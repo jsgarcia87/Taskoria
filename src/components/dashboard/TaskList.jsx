@@ -1,0 +1,351 @@
+import React, { useState } from 'react';
+import { Edit2, Trash2, Clock, Play } from 'lucide-react';
+import { useGame } from '../../context/GameContext';
+import { TASK_DIFFICULTY } from '../../utils/gameUtils';
+import TaskForm from './TaskForm';
+import HabitForm from './HabitForm';
+import PixelIcon from '../common/PixelIcon';
+
+const TaskList = ({ isSidebar = false, setActiveView }) => {
+    const { state, actions } = useGame();
+    const { tasks } = state;
+    const [isAddingTask, setIsAddingTask] = useState(false);
+    const [editingTask, setEditingTask] = useState(null);
+    const [isAddingHabit, setIsAddingHabit] = useState(false);
+    const [editingHabit, setEditingHabit] = useState(null);
+    const [showHistory, setShowHistory] = useState(false);
+
+    // Helper to find profile name
+    const getAssignerName = (id) => {
+        if (!state.familyData?.profiles) return 'Unknown';
+        const profile = state.familyData.profiles.find(p => p.id === id);
+        return profile ? profile.name : 'Unknown';
+    };
+
+    const activeTasks = tasks.filter(t => !t.completed && t.category !== 'chore' && !t.projectId);
+    const activeChores = tasks.filter(t => !t.completed && t.category === 'chore' && !t.projectId);
+
+    const handleOpenTaskForm = () => {
+        setEditingTask(null);
+        if (window.innerWidth < 768 && setActiveView) {
+            setActiveView('createTask');
+        } else {
+            setIsAddingTask(true);
+        }
+    };
+
+    const handleEditTask = (task) => {
+        setEditingTask(task);
+        if (window.innerWidth < 768 && setActiveView) {
+            // Ideally we'd pass state to the view, but sticking to the modal approach for simplicity here if possible
+            // Let's just use the modal for editing uniformly
+            setIsAddingTask(true);
+        } else {
+            setIsAddingTask(true);
+        }
+    };
+
+    const handleDeleteTask = (taskId) => {
+        if (window.confirm('Delete this task?')) {
+            actions.deleteTask(taskId);
+        }
+    };
+
+    const handleToggleStatus = (taskId, currentStatus) => {
+        const newStatus = currentStatus === 'in_progress' ? 'pending' : 'in_progress';
+        actions.updateTaskStatus(taskId, newStatus);
+    };
+
+    const handleOpenHabitForm = () => {
+        setEditingHabit(null);
+        if (window.innerWidth < 768 && setActiveView) {
+            setActiveView('createHabit');
+        } else {
+            setIsAddingHabit(true);
+        }
+    };
+
+    const handleEditHabit = (habit) => {
+        setEditingHabit(habit);
+        if (window.innerWidth < 768 && setActiveView) {
+            setIsAddingHabit(true);
+        } else {
+            setIsAddingHabit(true);
+        }
+    };
+
+    const TaskItem = ({ task }) => {
+        const isInProgress = task.status === 'in_progress';
+
+        return (
+            <div className={`glass-card p-4 group transition-all duration-300 hover:bg-white/5 border-l-4 ${isInProgress ? 'border-l-blue-500 bg-blue-900/10' : 'border-l-transparent hover:border-l-rpg-gold'}`}>
+                <div className="flex justify-between items-start gap-4">
+                    <div className="flex items-start gap-3 w-full">
+                        <button
+                            onClick={(e) => actions.completeTask(task.id, e.clientX, e.clientY)}
+                            className="mt-0.5 w-5 h-5 rounded-md border-2 border-gray-500 hover:border-rpg-green hover:bg-rpg-green/20 flex items-center justify-center shrink-0 transition-all group-hover:scale-110"
+                            title="Complete Quest"
+                        >
+                            <div className="w-2.5 h-2.5 rounded-sm bg-transparent group-hover:bg-rpg-green transition-colors" />
+                        </button>
+                        <div className="flex-1">
+                            <div className="flex justify-between items-start">
+                                <span className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors flex items-center gap-2 mb-1">
+                                    {task.assignerId ? <span className="text-rpg-gold text-lg drop-shadow-glow">📜</span> : task.category === 'chore' ? <span className="text-orange-500">🧹</span> : <PixelIcon name="sword" size={14} className="text-gray-400 group-hover:text-white" />}
+                                    <span className={isInProgress ? 'text-blue-300' : ''}>{task.title}</span>
+                                    {task.assignerId && <span className="ml-1 text-[9px] bg-red-900/40 text-red-400 px-2 py-0.5 rounded-full border border-red-500/30 uppercase tracking-wider font-bold shadow-[0_0_10px_rgba(239,68,68,0.3)]">Assigned by: {getAssignerName(task.assignerId)}</span>}
+                                    {isInProgress && <span className="ml-1 text-[9px] bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 uppercase tracking-wider font-bold animate-pulse">In Progress</span>}
+                                </span>
+
+                                {/* Quick actions that appear on hover */}
+                                <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 bg-black/40 p-1 md:bg-black/40 md:p-1 rounded-lg backdrop-blur-sm border md:border-white/5 border-white/20">
+                                    <button
+                                        onClick={() => handleToggleStatus(task.id, task.status)}
+                                        className={`p-2 md:p-1.5 rounded-md transition-colors ${isInProgress ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' : 'text-gray-400 hover:text-blue-400 hover:bg-blue-500/10'}`}
+                                        title={isInProgress ? "Pause work" : "Start working"}
+                                    >
+                                        {isInProgress ? <Clock size={16} className="md:w-3 md:h-3" /> : <Play size={16} className="md:w-3 md:h-3" />}
+                                    </button>
+                                    <button
+                                        onClick={() => handleEditTask(task)}
+                                        className="p-2 md:p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                                        title="Edit Quest"
+                                    >
+                                        <Edit2 size={16} className="md:w-3 md:h-3" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteTask(task.id)}
+                                        className="p-2 md:p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                                        title="Delete Quest"
+                                    >
+                                        <Trash2 size={16} className="md:w-3 md:h-3" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {task.extraInfo && (
+                                <p className="text-xs text-gray-400 mb-2 truncate max-w-xs">{task.extraInfo}</p>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${task.difficulty === 3
+                                    ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                    : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                    }`}>
+                                    {task.difficulty === 3 ? 'HARD' : 'NORMAL'}
+                                </span>
+                                <span className="text-[10px] text-rpg-gold flex items-center gap-1">
+                                    <span>+{task.difficulty === 3 ? '40' : '20'} XP</span>
+                                    <span>+{task.difficulty === 3 ? '20' : '10'} 🟡</span>
+                                </span>
+                                {task.attribute && task.attribute !== 'none' && (
+                                    <span className="text-[10px] text-blue-300 font-bold bg-blue-900/40 px-2 py-0.5 rounded-full border border-blue-500/30">
+                                        +1 {task.attribute.toUpperCase()}
+                                    </span>
+                                )}
+                                {task.dueDate && (
+                                    <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                        <PixelIcon name="clock" size={10} color="#9ca3af" /> <span>{task.dueDate}</span>
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className={`space-y-4 ${!isSidebar ? 'max-w-2xl mx-auto' : ''}`}>
+            {/* Modal para Crear/Editar Tarea */}
+            {isAddingTask && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar">
+                        <TaskForm
+                            onClose={() => {
+                                setIsAddingTask(false);
+                                setEditingTask(null);
+                            }}
+                            initialData={editingTask}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Modal para Crear/Editar Hábito */}
+            {isAddingHabit && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar">
+                        <HabitForm
+                            onClose={() => {
+                                setIsAddingHabit(false);
+                                setEditingHabit(null);
+                            }}
+                            initialData={editingHabit}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* ======= BLOQUE DE TAREAS (QUESTS) ======= */}
+            <div className="mb-8">
+                <div className="flex justify-between items-center mb-6">
+                    {!isSidebar && (
+                        <h3 className="font-bold text-white text-lg tracking-wide font-heading flex items-center gap-2">
+                            <PixelIcon name="sword" size={20} className="text-rpg-gold" /> ACTIVE QUESTS
+                        </h3>
+                    )}
+                    <button
+                        onClick={handleOpenTaskForm}
+                        className={`glass-btn-primary px-4 py-2 text-xs font-bold shadow-lg shadow-rpg-gold/20 flex items-center gap-2 ${isSidebar ? 'w-full justify-center' : ''}`}
+                    >
+                        <span>+</span> {isSidebar ? 'NEW QUEST' : 'NEW QUEST'}
+                    </button>
+                </div>
+
+                {activeTasks.length === 0 ? (
+                    <div className="text-center py-8 glass-panel border-dashed border-white/10 opacity-70 flex flex-col items-center justify-center group hover:opacity-100 transition-opacity">
+                        <PixelIcon name="shield" size={32} color="#9ca3af" className="mb-3 group-hover:text-amber-400 transition-colors" />
+                        <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">The Realm is Peaceful</div>
+                        <div className="text-[10px] text-gray-500 mt-1">Click + NEW QUEST to find trouble!</div>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {activeTasks.map(task => <TaskItem key={task.id} task={task} />)}
+                    </div>
+                )}
+            </div>
+
+            {/* ======= BLOQUE DE CHORES ======= */}
+            <div className="mb-8">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-bold text-gray-300 text-sm tracking-wider font-heading flex items-center gap-2">
+                        <span className="text-orange-500">🧹</span> HOUSEHOLD CHORES
+                    </h3>
+                </div>
+
+                {activeChores.length === 0 ? (
+                    <div className="text-center py-6 glass-panel border-dashed border-white/10 opacity-70 flex flex-col items-center justify-center">
+                        <span className="text-3xl mb-2 grayscale opacity-50">✨</span>
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">A Clean Tavern</div>
+                        <div className="text-[10px] text-gray-500 mt-1">All household chores are complete!</div>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {activeChores.map(task => <TaskItem key={task.id} task={task} />)}
+                    </div>
+                )}
+            </div>
+
+            {/* ======= HISTORIAL ======= */}
+            {state.completedTasks && state.completedTasks.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-white/10">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-bold text-gray-400 text-sm tracking-wider font-heading flex items-center gap-2">
+                            <PixelIcon name="book" size={16} className="text-gray-500" /> QUEST HISTORY
+                        </h3>
+                        <button
+                            onClick={() => setShowHistory(!showHistory)}
+                            className="text-xs text-gray-500 hover:text-white transition-colors uppercase font-bold tracking-wider"
+                        >
+                            {showHistory ? 'Hide History' : `Show History (${state.completedTasks.length})`}
+                        </button>
+                    </div>
+
+                    {showHistory && (
+                        <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                            {state.completedTasks.filter(t => !t.projectId).map((task, idx) => (
+                                <div key={`${task.id}-${idx}`} className="glass-card p-3 opacity-60 flex justify-between items-center">
+                                    <div>
+                                        <span className="text-sm font-medium text-gray-400 line-through block mb-1">{task.title}</span>
+                                        <span className="text-[10px] text-gray-500">
+                                            Completed: {new Date(task.lastCompleted).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] text-rpg-gold">
+                                        +{task.difficulty === 3 ? '40' : '20'} XP
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ======= BLOQUE DE HÁBITOS ======= */}
+            <div className="mt-8 pt-6 border-t border-white/10">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-bold text-gray-300 text-sm tracking-wider font-heading flex items-center gap-2">
+                        <PixelIcon name="clock" size={16} color="#60a5fa" /> DAILY HABITS
+                    </h3>
+                    <button onClick={handleOpenHabitForm} className="glass-btn-primary px-3 py-1.5 text-xs font-bold shadow-lg flex items-center gap-2 border border-white/20 hover:border-rpg-gold transition-colors">
+                        <span>+</span> NEW HABIT
+                    </button>
+                </div>
+
+                <div className="space-y-2">
+                    {state.habits.length === 0 && (
+                        <div className="text-center py-8 glass-panel border-dashed border-white/10 opacity-70 flex flex-col items-center justify-center group hover:opacity-100 transition-opacity mb-4">
+                            <PixelIcon name="clock" size={32} color="#9ca3af" className="mb-3 group-hover:text-blue-400 transition-colors" />
+                            <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">No Daily Rituals</div>
+                            <div className="text-[10px] text-gray-500 mt-1">Establish a new habit to gain steady EXP & CON.</div>
+                        </div>
+                    )}
+
+                    {state.habits.map(habit => (
+                        <div key={habit.id} className="glass-btn p-3 flex justify-between items-center group rounded-xl hover:bg-white/5 border border-white/5 relative overflow-hidden">
+                            <div className="flex items-center gap-3 relative z-10 w-full pr-20">
+                                <div className={`w-1.5 h-8 rounded-full shrink-0 ${habit.completed ? 'bg-rpg-green shadow-[0_0_10px_rgba(45,204,112,0.4)]' : 'bg-gray-700'}`}></div>
+                                <div className="min-w-0 pr-4">
+                                    <span className={`text-sm block truncate ${habit.completed ? 'text-gray-500 line-through' : 'text-gray-200 font-medium'}`}>{habit.title}</span>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        {habit.attribute && habit.attribute !== 'none' && (
+                                            <span className="text-[9px] text-blue-300 font-bold bg-blue-900/40 px-1.5 py-0 rounded border border-blue-500/30">
+                                                +1 {habit.attribute.toUpperCase()}
+                                            </span>
+                                        )}
+                                        {habit.extraInfo && <span className="text-xs text-gray-500 truncate block">{habit.extraInfo}</span>}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Hover Actions specific to Habits */}
+                            <div className="absolute right-12 top-1/2 -translate-y-1/2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-black/60 p-1 rounded-lg backdrop-blur-md border border-white/20 md:border-white/10 z-20">
+                                <button
+                                    onClick={() => handleEditHabit(habit)}
+                                    className="p-2 md:p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                                    title="Edit Habit"
+                                >
+                                    <Edit2 size={16} className="md:w-3 md:h-3" />
+                                </button>
+                                <button
+                                    onClick={() => confirm('Delete habit?') && actions.deleteHabit(habit.id)}
+                                    className="p-2 md:p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                                    title="Delete Habit"
+                                >
+                                    <Trash2 size={16} className="md:w-3 md:h-3" />
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-2 relative z-10 shrink-0">
+                                <span className="text-xs text-gray-500 font-bold mr-2"><span className="text-white">{habit.count}</span><span className="mx-0.5">/</span>{habit.target}</span>
+                                <button
+                                    onClick={(e) => actions.tickHabit(habit.id, e.clientX, e.clientY)}
+                                    disabled={habit.completed}
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${habit.completed
+                                        ? 'bg-white/5 text-gray-600 cursor-not-allowed'
+                                        : 'bg-rpg-green text-black font-bold hover:scale-110 shadow-[0_0_10px_rgba(45,204,112,0.3)]'
+                                        }`}
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default TaskList;

@@ -1,0 +1,216 @@
+import React from 'react';
+
+const PixelIcon = ({ name, size = 24, color = "currentColor", strokeWidth = 1.5, className = "" }) => {
+    // Basic 8x8 grid for custom pixel-art icons
+    // . = transparent
+    // # = filled space (color or black shadow)
+
+    const ICONS = {
+        sword: [
+            "......#.",
+            ".....##.",
+            "....##..",
+            "..###...",
+            ".##.##..",
+            "##...#..",
+            "#.......",
+            "........"
+        ],
+        home: [
+            "...##...",
+            "..####..",
+            ".######.",
+            "########",
+            ".##..##.",
+            ".##..##.",
+            ".######.",
+            "........"
+        ],
+        user: [
+            "...##...",
+            "..####..",
+            "..####..",
+            "...##...",
+            ".######.",
+            "########",
+            "##....##",
+            "........"
+        ],
+        shoppingBag: [
+            "...##...",
+            "..#..#..",
+            "########",
+            "#......#",
+            "#......#",
+            "########",
+            "........",
+            "........"
+        ],
+        checkSquare: [
+            "........",
+            "......#.",
+            ".....##.",
+            "#...###.",
+            "##.###..",
+            ".####...",
+            "..##....",
+            "........"
+        ],
+        skull: [
+            "..####..",
+            ".######.",
+            ".#.##.#.",
+            ".######.",
+            "..####..",
+            "...##...",
+            "........",
+            "........"
+        ],
+        trophy: [
+            ".######.",
+            "##.##.##",
+            ".######.",
+            "..####..",
+            "...##...",
+            "..####..",
+            "########",
+            "........"
+        ],
+        book: [
+            "........",
+            ".#####..",
+            "###.###.",
+            "###.###.",
+            "###.###.",
+            ".#####..",
+            "........",
+            "........"
+        ],
+        zap: [
+            "...##...",
+            "..###...",
+            ".#####..",
+            "########",
+            "...#####",
+            "....###.",
+            ".....##.",
+            "........"
+        ],
+        box: [
+            "..####..",
+            ".######.",
+            "##.##.##",
+            "########",
+            "##.##.##",
+            "##.##.##",
+            ".######.",
+            "..####.."
+        ],
+        coins: [
+            "........",
+            "....###.",
+            "...####.",
+            "..##.##.",
+            ".###.#..",
+            ".###....",
+            "..##....",
+            "........"
+        ],
+        clock: [
+            "...##...",
+            ".######.",
+            "##.##.##",
+            "##.###.#",
+            "##....##",
+            ".######.",
+            "...##...",
+            "........"
+        ],
+        shield: [
+            "########",
+            "##....##",
+            "###..###",
+            ".######.",
+            "..####..",
+            "...##...",
+            "........",
+            "........"
+        ],
+        shirt: [
+            "........",
+            ".#....#.",
+            "###..###",
+            "########",
+            "########",
+            ".######.",
+            ".######.",
+            "........"
+        ],
+        bell: [
+            "...##...",
+            "..####..",
+            ".######.",
+            ".######.",
+            "########",
+            "########",
+            "...##...",
+            "........"
+        ],
+        users: [
+            "....##..",
+            "..####..",
+            ".##.##..",
+            "###..##.",
+            ".######.",
+            "######.#",
+            "........",
+            "........"
+        ]
+    };
+
+    const matrix = ICONS[name] || ICONS.sword; // Fallback to sword
+
+    // Default Lucide mapping allows sizes and specific visual classes
+    const actualSize = parseInt(size, 10);
+    const pixelSize = actualSize / 8; // Because matrix is 8x8
+
+    const svgWidth = 8 * pixelSize;
+    const svgHeight = 8 * pixelSize;
+
+    const renderSquares = () => {
+        let squares = [];
+        for (let y = 0; y < 8; y++) {
+            for (let x = 0; x < 8; x++) {
+                const char = matrix[y][x];
+                if (char === '#') {
+                    squares.push(
+                        <rect
+                            key={`${x}-${y}`}
+                            x={x * pixelSize}
+                            y={y * pixelSize}
+                            width={pixelSize + 0.5} // Slight overlap to fix SVG gaps
+                            height={pixelSize + 0.5}
+                            fill={color}
+                        />
+                    );
+                }
+            }
+        }
+        return squares;
+    };
+
+    return (
+        <svg
+            width={svgWidth}
+            height={svgHeight}
+            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+            xmlns="http://www.w3.org/2000/svg"
+            className={className}
+            style={{ display: 'inline-block', vectorEffect: 'non-scaling-stroke' }} // prevent pixel stretching
+        >
+            {renderSquares()}
+        </svg>
+    );
+};
+
+export default PixelIcon;
