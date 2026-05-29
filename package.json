@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "cp -R api dist/api",
     "build:local": "vite build --config vite.local.config.js",
     "lint": "eslint .",
     "preview": "vite preview"

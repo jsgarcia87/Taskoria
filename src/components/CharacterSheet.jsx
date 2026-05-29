@@ -44,7 +44,12 @@ const CharacterSheet = () => {
     const xpPercent = character.xp ? (character.xp.current / character.xp.max) * 100 : 0;
 
     const startEditing = () => {
-        alert("Character editing coming soon!");
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveAvatar = (newAvatarId, newColors, cost) => {
+        actions.updateAvatar(newAvatarId, newColors, cost);
+        setIsEditModalOpen(false);
     };
 
     const handleEquip = (item) => {
