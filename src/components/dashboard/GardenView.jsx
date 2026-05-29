@@ -17,45 +17,64 @@ const GardenView = ({ forceScenario }) => {
         activeScenario = 'inn';
     }
 
-    useEffect(() => {
-        if (!character || !state.tasks || !state.habits) return;
+    // Calculate counts outside memoization
+    const pendingTasks = state?.tasks?.filter(t => !t.completed).length || 0;
+    const pendingHabits = state?.habits?.filter(h => h.target ? (!h.completed && h.count < h.target) : !h.completed).length || 0;
+    const charName = character?.name || "";
 
-        const pendingTasks = state.tasks.filter(t => !t.completed).length;
-        const pendingHabits = state.habits.filter(h => h.target ? (!h.completed && h.count < h.target) : !h.completed).length;
-
-        const possibleMessages = [
-            `Hello, ${character.name}! What shall we begin with today?`,
+    // Generate possible messages dynamically and stably
+    const possibleMessages = React.useMemo(() => {
+        if (!character) return [];
+        const msgs = [
+            `Hello, ${charName}! What shall we begin with today?`,
             "The focus dungeon awaits for you to gain experience!",
         ];
 
         if (activeScenario === 'inn') {
-            possibleMessages.push(`Resting at the inn... zZz...`);
-            possibleMessages.push(`The fire is warm today.`);
+            msgs.push(`Resting at the inn... zZz...`);
+            msgs.push(`The fire is warm today.`);
         } else if (activeScenario === 'sanctuary') {
-            possibleMessages.push(`What a magical place!`);
-            possibleMessages.push(`Our friends are resting here.`);
+            msgs.push(`What a magical place!`);
+            msgs.push(`Our friends are resting here.`);
         } else {
             if (pendingTasks > 0) {
-                possibleMessages.push(`You have ${pendingTasks} quests pending for today.`);
+                msgs.push(`You have ${pendingTasks} quests pending for today.`);
             } else {
-                possibleMessages.push(`All quests completed! Take a breather.`);
+                msgs.push(`All quests completed! Take a breather.`);
             }
         }
 
         if (pendingHabits > 0) {
-            possibleMessages.push(`Don't forget to complete your daily habits.`);
+            msgs.push(`Don't forget to complete your daily habits.`);
         }
+        return msgs;
+    }, [charName, activeScenario, pendingTasks, pendingHabits]);
+
+    // Keep possibleMessages in a ref so the interval timer never restarts on component ticks
+    const msgsRef = React.useRef(possibleMessages);
+    useEffect(() => {
+        msgsRef.current = possibleMessages;
+    }, [possibleMessages]);
+
+    useEffect(() => {
+        if (possibleMessages.length === 0) return;
+        
+        // Initialize first message
+        setMessage(possibleMessages[0]);
+        setMessageVisible(true);
 
         let msgIndex = 0;
-        setMessage(possibleMessages[msgIndex]);
-
         let timeoutId;
+        
         const interval = setInterval(() => {
             setMessageVisible(false);
             timeoutId = setTimeout(() => {
-                msgIndex = (msgIndex + 1) % possibleMessages.length;
-                setMessage(possibleMessages[msgIndex]);
-                setMessageVisible(true);
+                const currentMsgs = msgsRef.current;
+                if (currentMsgs.length > 0) {
+                    msgIndex = (msgIndex + 1) % currentMsgs.length;
+                    setMessage(currentMsgs[msgIndex]);
+                    setMessageVisible(true);
+                }
             }, 500);
         }, 8000);
 
@@ -63,7 +82,7 @@ const GardenView = ({ forceScenario }) => {
             clearInterval(interval);
             clearTimeout(timeoutId);
         };
-    }, [character, state.tasks, state.habits, activeScenario]);
+    }, [charName]);
 
     if (!character) return null;
 
@@ -109,7 +128,7 @@ const GardenView = ({ forceScenario }) => {
     const currentConfig = configs[activeScenario];
 
     return (
-        <div className="relative glass-card p-0 h-64 flex items-center justify-center overflow-hidden group shadow-2xl ring-1 ring-white/10">
+        <div className="relative glass-card p-0 h-64 flex items-end justify-center pb-6 overflow-hidden group shadow-2xl ring-1 ring-white/10">
             {/* Decorative Background */}
             <div className={`absolute inset-0 bg-gradient-to-b ${currentConfig.bgGradient} transition-all duration-1000 group-hover:scale-110`} />
             <div className="absolute inset-0 transition-opacity duration-1000" style={currentConfig.pattern}></div>
@@ -177,17 +196,19 @@ const GardenView = ({ forceScenario }) => {
                 >
                     {/* Speech Bubble */}
                     {messageVisible && message && (
-                        <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] md:text-xs px-3 py-2 rounded-2xl shadow-xl border-2 border-rpg-gold z-50 whitespace-nowrap animate-in fade-in zoom-in duration-300 pointer-events-none">
-                            <div className="font-heading font-medium tracking-wide">
+                        <div className="absolute top-0 left-full ml-4 pixel-bubble z-50 whitespace-normal w-max max-w-[150px] md:max-w-[200px] pointer-events-none animate-bubble-popup">
+                            <div className="bubble-body normal-case tracking-wide text-left">
                                 {message}
                             </div>
-                            {/* Tail */}
-                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-t-[8px] border-t-white border-r-[6px] border-r-transparent filter drop-shadow-sm"></div>
+                            {/* Tail pointing left */}
+                            <div className="absolute top-4 -left-3 text-[#2a2a2a] text-xl leading-none" style={{ textShadow: '-2px 2px 0 rgba(0,0,0,0.5)' }}>
+                                ◀
+                            </div>
                         </div>
                     )}
 
                     {charData && (
-                        <div className="transform group-hover/avatar:scale-110 transition-transform duration-300 flex justify-center filter drop-shadow-2xl md:drop-shadow-none md:group-hover/avatar:drop-shadow-2xl">
+                        <div className="relative transform group-hover/avatar:scale-110 transition-transform duration-300 flex justify-center filter drop-shadow-2xl md:drop-shadow-none md:group-hover/avatar:drop-shadow-2xl">
                             <PixelAvatar
                                 type={charData.avatarType || charData.id}
                                 scale={2.4}

@@ -26,12 +26,34 @@ try {
         if ($s['user_id'] == $defender_id) $defenderSave = json_decode($s['save_data'], true);
     }
 
-    if (!$attackerSave || !$defenderSave || !isset($attackerSave['character']) || !isset($defenderSave['character'])) {
-        throw new Exception("Invalid save data or users not found");
+    function &get_character_ref(&$saveData) {
+        $null = null;
+        if (isset($saveData['character'])) {
+            return $saveData['character'];
+        }
+        if (isset($saveData['profiles']) && is_array($saveData['profiles']) && count($saveData['profiles']) > 0) {
+            $activeId = $saveData['lastActiveProfile'] ?? $saveData['profiles'][0]['id'];
+            foreach ($saveData['profiles'] as &$prof) {
+                if ($prof['id'] === $activeId) {
+                    if (!isset($prof['state'])) {
+                        $prof['state'] = [];
+                    }
+                    if (!isset($prof['state']['character'])) {
+                        $prof['state']['character'] = null;
+                    }
+                    return $prof['state']['character'];
+                }
+            }
+        }
+        return $null;
     }
 
-    $attChar = $attackerSave['character'];
-    $defChar = $defenderSave['character'];
+    $attChar = &get_character_ref($attackerSave);
+    $defChar = &get_character_ref($defenderSave);
+
+    if (!$attChar || !$defChar) {
+        throw new Exception("Invalid save data or users not found");
+    }
 
     // Calculate Power
     // Simple formula: Sum of stats * Level
@@ -59,18 +81,18 @@ try {
             $stolenItem = $defChar['inventory'][$randIndex];
             
             // Remove from defender
-            array_splice($defenderSave['character']['inventory'], $randIndex, 1);
+            array_splice($defChar['inventory'], $randIndex, 1);
             
             // Add to attacker
-            $attackerSave['character']['inventory'][] = $stolenItem;
+            $attChar['inventory'][] = $stolenItem;
             
             $logMsg = "Victory! You defeated {$defChar['name']} and stole their {$stolenItem['name']}!";
         } else {
              $logMsg = "Victory! You defeated {$defChar['name']} but they had nothing to steal!";
              // Maybe gain some gold?
              $goldStolen = min(10, $defChar['gold']);
-             $attackerSave['character']['gold'] += $goldStolen;
-             $defenderSave['character']['gold'] -= $goldStolen;
+             $attChar['gold'] += $goldStolen;
+             $defChar['gold'] -= $goldStolen;
              if ($goldStolen > 0) $logMsg .= " Stole {$goldStolen} gold instead.";
         }
         
@@ -81,10 +103,10 @@ try {
             $lostItem = $attChar['inventory'][$randIndex];
             
             // Remove from attacker
-            array_splice($attackerSave['character']['inventory'], $randIndex, 1);
+            array_splice($attChar['inventory'], $randIndex, 1);
             
             // Add to defender (Passively)
-            $defenderSave['character']['inventory'][] = $lostItem;
+            $defChar['inventory'][] = $lostItem;
             
             $stolenItem = $lostItem; // Actually lost item
             $logMsg = "Defeat! {$defChar['name']} overpowered you and took your {$lostItem['name']}!";

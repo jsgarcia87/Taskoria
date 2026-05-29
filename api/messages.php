@@ -69,18 +69,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sql = "UPDATE messages SET is_read = TRUE WHERE receiver_id = ? AND sender_id = ? AND is_read = FALSE";
             $params = [$user_id, $other_id];
             
-            if ($profile_id) { 
-                $sql .= " AND receiver_profile_id = ?"; 
-                $params[] = $profile_id; 
+            if ($user_id == $other_id) {
+                if ($profile_id) { 
+                    $sql .= " AND receiver_profile_id = ?"; 
+                    $params[] = $profile_id; 
+                } else {
+                    $sql .= " AND (receiver_profile_id IS NULL OR receiver_profile_id = '')";
+                }
+                
+                if ($other_profile_id) { 
+                    $sql .= " AND sender_profile_id = ?"; 
+                    $params[] = $other_profile_id; 
+                } else {
+                    $sql .= " AND (sender_profile_id IS NULL OR sender_profile_id = '')";
+                }
             } else {
-                $sql .= " AND (receiver_profile_id IS NULL OR receiver_profile_id = '')";
-            }
-            
-            if ($other_profile_id) { 
-                $sql .= " AND sender_profile_id = ?"; 
-                $params[] = $other_profile_id; 
-            } else {
-                $sql .= " AND (sender_profile_id IS NULL OR sender_profile_id = '')";
+                // External Chat: Only isolate read status by the receiver's current profile
+                if ($profile_id) { 
+                    $sql .= " AND receiver_profile_id = ?"; 
+                    $params[] = $profile_id; 
+                }
             }
 
             $stmt = $pdo->prepare($sql);
@@ -108,25 +116,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         try {
-            $where = "((sender_id = ? AND receiver_id = ? ";
-            $params = [$user1, $user2];
-            
-            if ($p1) { $where .= "AND sender_profile_id = ? "; $params[] = $p1; } 
-            else { $where .= "AND (sender_profile_id IS NULL OR sender_profile_id = '') "; }
-            
-            if ($p2) { $where .= "AND receiver_profile_id = ? "; $params[] = $p2; } 
-            else { $where .= "AND (receiver_profile_id IS NULL OR receiver_profile_id = '') "; }
-            
-            $where .= ") OR (sender_id = ? AND receiver_id = ? ";
-            $params[] = $user2; $params[] = $user1;
-            
-            if ($p2) { $where .= "AND sender_profile_id = ? "; $params[] = $p2; } 
-            else { $where .= "AND (sender_profile_id IS NULL OR sender_profile_id = '') "; }
-            
-            if ($p1) { $where .= "AND receiver_profile_id = ? "; $params[] = $p1; } 
-            else { $where .= "AND (receiver_profile_id IS NULL OR receiver_profile_id = '') "; }
-            
-            $where .= "))";
+            if ($user1 == $user2) {
+                $where = "((sender_id = ? AND receiver_id = ? ";
+                $params = [$user1, $user2];
+                
+                if ($p1) { $where .= "AND sender_profile_id = ? "; $params[] = $p1; } 
+                else { $where .= "AND (sender_profile_id IS NULL OR sender_profile_id = '') "; }
+                
+                if ($p2) { $where .= "AND receiver_profile_id = ? "; $params[] = $p2; } 
+                else { $where .= "AND (receiver_profile_id IS NULL OR receiver_profile_id = '') "; }
+                
+                $where .= ") OR (sender_id = ? AND receiver_id = ? ";
+                $params[] = $user2; $params[] = $user1;
+                
+                if ($p2) { $where .= "AND sender_profile_id = ? "; $params[] = $p2; } 
+                else { $where .= "AND (sender_profile_id IS NULL OR sender_profile_id = '') "; }
+                
+                if ($p1) { $where .= "AND receiver_profile_id = ? "; $params[] = $p1; } 
+                else { $where .= "AND (receiver_profile_id IS NULL OR receiver_profile_id = '') "; }
+                
+                $where .= "))";
+            } else {
+                // External Chat: Only isolate by the current user's profile ID ($p1)
+                $where = "((sender_id = ? AND receiver_id = ? ";
+                $params = [$user1, $user2];
+                if ($p1) { $where .= "AND sender_profile_id = ? "; $params[] = $p1; }
+                
+                $where .= ") OR (sender_id = ? AND receiver_id = ? ";
+                $params[] = $user2; $params[] = $user1;
+                if ($p1) { $where .= "AND receiver_profile_id = ? "; $params[] = $p1; }
+                
+                $where .= "))";
+            }
 
             if ($last_id > 0) {
                 $sql = "SELECT * FROM messages WHERE $where AND id > ? ORDER BY created_at ASC";

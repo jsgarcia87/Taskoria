@@ -121,8 +121,8 @@ const ChatModal = ({ isOpen, onClose, currentUser, friend, onUpdateUnread }) => 
     const friendChar = friend.character || {};
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-[#1a102e]/95 border border-white/10 rounded-3xl shadow-2xl w-full max-w-md h-[600px] max-h-[90vh] flex flex-col overflow-hidden relative">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-[#1a102e]/95 border border-white/10 rounded-none sm:rounded-3xl shadow-2xl w-full max-w-md h-[100dvh] sm:h-[600px] max-h-[100dvh] sm:max-h-[90vh] flex flex-col overflow-hidden relative">
 
                 {/* Header */}
                 <div className="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
@@ -188,7 +188,7 @@ const ChatModal = ({ isOpen, onClose, currentUser, friend, onUpdateUnread }) => 
                 </div>
 
                 {/* Input Area */}
-                <form onSubmit={handleSend} className="p-4 border-t border-white/10 bg-black/40 flex items-center gap-2">
+                <form onSubmit={handleSend} className="px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-4 border-t border-white/10 bg-black/40 flex items-center gap-2">
                     <input
                         type="text"
                         value={newMessage}

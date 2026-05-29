@@ -13,6 +13,19 @@ $username = trim($data['username']); // Treating username as email
 // Generate a secure random password if not provided
 $password = isset($data['password']) && !empty($data['password']) ? $data['password'] : bin2hex(random_bytes(8));
 
+// Auto-create settings table if not exists
+try {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS settings (
+            setting_key VARCHAR(100) PRIMARY KEY,
+            setting_value VARCHAR(255) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    ");
+    $pdo->exec("INSERT IGNORE INTO settings (setting_key, setting_value) VALUES ('allow_registration', 'true')");
+} catch (PDOException $e) {
+    // Ignore
+}
+
 // Primero: comprobar si el registro público está cerrado
 $stmtSetting = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'allow_registration'");
 $setting = $stmtSetting->fetch();

@@ -3,6 +3,35 @@
 header('Content-Type: application/json');
 require_once 'db.php';
 
+// Auto-migrate tables if not exist
+try {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS guilds (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL UNIQUE,
+            description TEXT,
+            emblem VARCHAR(50) DEFAULT 'shield',
+            leader_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (leader_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS guild_members (
+            guild_id INT NOT NULL,
+            user_id INT NOT NULL UNIQUE,
+            role VARCHAR(50) DEFAULT 'member',
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (guild_id, user_id),
+            FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    ");
+} catch (PDOException $e) {
+    // Ignore
+}
+
 $action = $_GET['action'] ?? '';
 $user_id = $_GET['user_id'] ?? 0;
 
@@ -157,9 +186,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
             // Get guild members complete info
             $stmt = $pdo->prepare("
-                SELECT u.id, u.username, u.character_data, gm.role, gm.joined_at, u.last_login 
+                SELECT u.id, u.username, gs.save_data, gm.role, gm.joined_at, u.last_active_at 
                 FROM guild_members gm 
                 JOIN users u ON gm.user_id = u.id 
+                LEFT JOIN game_saves gs ON u.id = gs.user_id
                 WHERE gm.guild_id = ?
             ");
             $stmt->execute([$guild_id]);
@@ -167,12 +197,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             
             $members = [];
             foreach($res as $row) {
-                if ($row['character_data']) {
-                    $row['character'] = json_decode($row['character_data'], true);
+                $foundChar = null;
+                if ($row['save_data']) {
+                    $data = json_decode($row['save_data'], true);
+                    $foundChar = isset($data['character']) ? $data['character'] : null;
+                    if (!$foundChar && isset($data['profiles']) && count($data['profiles']) > 0) {
+                        $activeId = $data['lastActiveProfile'] ?? $data['profiles'][0]['id'];
+                        foreach ($data['profiles'] as $prof) {
+                            if ($prof['id'] === $activeId && isset($prof['state']['character'])) {
+                                $foundChar = $prof['state']['character'];
+                                break;
+                            }
+                        }
+                    }
                 }
+                $row['character'] = $foundChar;
+                
                 // Add is_online approximation
-                $row['is_online'] = (time() - strtotime($row['last_login'] ?? '2000-01-01')) < 300; 
-                unset($row['character_data']); // clean response
+                $row['is_online'] = $row['last_active_at'] ? (time() - strtotime($row['last_active_at'])) < 300 : false; 
+                unset($row['save_data']); // clean response
+                unset($row['last_active_at']); // clean response
                 $members[] = $row;
             }
             

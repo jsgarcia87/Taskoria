@@ -6,7 +6,7 @@ import { MAP_DATA } from './MapData';
 const TILE_SIZE = 40; // Collision buffer size
 const SPEED = 5; // Pixels per frame (~300px per sec at 60fps)
 
-const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onClose, className }) => {
+const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onClose, onInteract, className }) => {
     // Engine State
     const [currentMapId, setCurrentMapId] = useState('townSquare');
     const map = MAP_DATA[currentMapId];
@@ -37,6 +37,17 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
     // NPC generation
     const [npcs, setNpcs] = useState([]);
 
+    // Proximity interaction (shop / pet sanctuary NPCs)
+    const [nearTarget, setNearTarget] = useState(null);
+    const nearTargetRef = useRef(null);
+    const onInteractRef = useRef(onInteract);
+    useEffect(() => { onInteractRef.current = onInteract; });
+
+    const triggerInteract = () => {
+        const target = nearTargetRef.current;
+        if (target && onInteractRef.current) onInteractRef.current(target);
+    };
+
     // Keep posRef updated
     useEffect(() => { posRef.current = pos; }, [pos]);
 
@@ -64,6 +75,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
         const handleKeyDown = (e) => {
             if (e.code) keys.current[e.code] = true;
             if (e.key) keys.current[e.key.toLowerCase()] = true;
+            if (e.key && e.key.toLowerCase() === 'e') triggerInteract();
         };
         const handleKeyUp = (e) => {
             if (e.code) keys.current[e.code] = false;
@@ -97,6 +109,18 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
         return false;
     };
 
+    // Helper: nearest interaction zone within its radius
+    const checkInteractables = (x, y, mapRef) => {
+        if (!mapRef.interactables) return null;
+        for (const it of mapRef.interactables) {
+            const cx = it.x + it.width / 2;
+            const cy = it.y + it.height / 2;
+            const dist = Math.hypot(x - cx, y - cy);
+            if (dist < (it.radius || 90)) return it;
+        }
+        return null;
+    };
+
     // Helper: Portal Collision
     const checkPortals = (x, y, mapRef) => {
         for (const portal of mapRef.portals) {
@@ -108,15 +132,29 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
         return null;
     };
 
+    // Snap the camera to the current player position (used on resize / map change)
+    const centerCamera = () => {
+        const currentMap = MAP_DATA[currentMapId];
+        if (!mapDOMRef.current || !currentMap || !(viewportSizeRef.current.w > 0)) return;
+        const viewW = viewportSizeRef.current.w;
+        const viewH = viewportSizeRef.current.h;
+        let camX = posRef.current.x - viewW / 2;
+        let camY = posRef.current.y - viewH / 2;
+        camX = Math.max(0, Math.min(currentMap.width - viewW, camX));
+        camY = Math.max(0, Math.min(currentMap.height - viewH, camY));
+        mapDOMRef.current.style.transform = `translate3d(-${camX}px, -${camY}px, 0)`;
+    };
+
     // Maintain viewport size cache for Camera centering
     useEffect(() => {
         if (!viewportRef.current) return;
-        
+
         // Initial setup
         viewportSizeRef.current = {
             w: viewportRef.current.clientWidth,
             h: viewportRef.current.clientHeight
         };
+        centerCamera();
 
         const ro = new ResizeObserver(entries => {
             for (let entry of entries) {
@@ -125,10 +163,12 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                     h: entry.contentRect.height
                 };
             }
+            // Keep the player framed when the playable area is resized (orientation, keyboard, layout shifts)
+            centerCamera();
         });
         ro.observe(viewportRef.current);
         return () => ro.disconnect();
-    }, []);
+    }, [currentMapId]);
 
     // MAIN GAME LOOP (60fps)
     useEffect(() => {
@@ -242,6 +282,14 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                 }
             }
 
+            // Proximity to interaction zones (shop / pet sanctuary)
+            const near = checkInteractables(posRef.current.x, posRef.current.y, currentMap);
+            const prevTarget = nearTargetRef.current?.target || null;
+            if ((near?.target || null) !== prevTarget) {
+                nearTargetRef.current = near;
+                setNearTarget(near);
+            }
+
             animationFrameId = requestAnimationFrame(loop);
         };
 
@@ -305,7 +353,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                             <div 
                                 key={`dec_${i}`} 
                                 className="absolute shadow-xl" 
-                                style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, backgroundColor: dec.color, border: dec.border ? `4px solid ${dec.border}` : 'none', borderRadius: dec.radius || 0, opacity: dec.opacity || 1, zIndex: dec.y }}
+                                style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, backgroundColor: dec.color, border: dec.border ? `4px solid ${dec.border}` : 'none', borderRadius: dec.radius || 0, opacity: dec.opacity || 1, zIndex: dec.z !== undefined ? dec.z : dec.y }}
                             ></div>
                         );
                     }
@@ -441,6 +489,196 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                             </div>
                         );
                     }
+
+                    if (dec.type === 'well') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute flex flex-col items-center justify-end" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, zIndex: Math.floor(dec.y + dec.height) }}>
+                                <div className="w-[90%] h-[28%] bg-red-800 border-b-4 border-red-950 rounded-t-sm relative overflow-hidden shadow-lg z-30">
+                                    <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(90deg, transparent 50%, rgba(0,0,0,0.5) 50%)', backgroundSize: '10px 10px' }} />
+                                </div>
+                                <div className="flex justify-between w-[68%] -mt-1 z-20">
+                                    <div className="w-2 h-7 bg-[#5c3a21] border-x border-[#3d261b]" />
+                                    <div className="w-2 h-7 bg-[#5c3a21] border-x border-[#3d261b]" />
+                                </div>
+                                <div className="w-full h-[42%] bg-gray-500 border-t-4 border-gray-400 border-b-4 border-gray-700 rounded-md shadow-xl flex items-center justify-center relative z-10">
+                                    <div className="w-[70%] h-[55%] bg-black/80 rounded-md shadow-inner" />
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'shop_building') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute flex flex-col items-center" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, zIndex: Math.floor(dec.y + dec.height) }}>
+                                <div className="w-[108%] h-[26%] bg-[#7c2d12] border-b-4 border-[#431407] rounded-t-md shadow-lg relative overflow-hidden">
+                                    <div className="absolute inset-0 opacity-25" style={{ backgroundImage: 'linear-gradient(90deg, transparent 50%, rgba(0,0,0,0.4) 50%)', backgroundSize: '14px 14px' }} />
+                                </div>
+                                <div className="w-full flex-1 bg-[#d6c3a1] border-x-4 border-[#a1856a] relative flex items-end justify-center">
+                                    <div className="absolute top-0 left-0 w-full h-5 border-b-2 border-black/20" style={{ backgroundImage: 'repeating-linear-gradient(90deg,#dc2626 0 16px,#fef3c7 16px 32px)' }} />
+                                    <div className="absolute top-9 left-5 w-10 h-10 bg-sky-300/70 border-4 border-[#7c2d12] rounded-sm shadow-inner" />
+                                    <div className="absolute top-8 right-5 w-10 h-10 rounded-full bg-rpg-gold border-4 border-yellow-700 flex items-center justify-center font-black text-yellow-900 text-lg shadow-md">$</div>
+                                    <div className="w-[34%] h-[60%] bg-[#5c3a21] border-4 border-[#3d261b] rounded-t-lg shadow-inner relative">
+                                        <div className="absolute right-1.5 top-1/2 w-1.5 h-1.5 rounded-full bg-rpg-gold" />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'market_stall') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute flex flex-col items-center" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, zIndex: Math.floor(dec.y + dec.height) }}>
+                                <div className="w-[110%] h-[34%] rounded-t-sm shadow-md border-b-2 border-black/30" style={{ backgroundImage: `repeating-linear-gradient(90deg, ${dec.color} 0 14px, #f8fafc 14px 28px)` }} />
+                                <div className="w-full flex-1 flex flex-col items-center justify-end">
+                                    <div className="flex justify-between w-full px-1 flex-1">
+                                        <div className="w-2 bg-[#5c3a21]" />
+                                        <div className="w-2 bg-[#5c3a21]" />
+                                    </div>
+                                    <div className="w-full h-5 bg-[#7c4a2b] border-t-2 border-[#a16207] rounded-sm shadow" />
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'fence') {
+                        const horizontal = dec.width >= dec.height;
+                        return (
+                            <div key={`dec_${i}`} className="absolute" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, zIndex: Math.floor(dec.y + dec.height) }}>
+                                <div className="w-full h-full border border-[#5c3a21] rounded-sm shadow-sm" style={{ backgroundImage: horizontal ? 'repeating-linear-gradient(90deg,#7c4a2b 0 18px,#5c3a21 18px 22px)' : 'repeating-linear-gradient(0deg,#7c4a2b 0 18px,#5c3a21 18px 22px)' }} />
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'sign') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute flex flex-col items-center pointer-events-none" style={{ left: dec.x, top: dec.y, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                                <div className="px-2 py-1 bg-[#7c4a2b] border-2 border-[#3d261b] rounded text-[9px] font-black text-yellow-100 uppercase tracking-wider shadow whitespace-nowrap">{dec.label}</div>
+                                <div className="w-1.5 h-5 bg-[#3d261b]" />
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'barrel') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                                <div className="w-full h-full bg-[#7c4a2b] rounded-md border-x-4 border-[#5c3a21] shadow relative overflow-hidden">
+                                    <div className="absolute top-0 w-full h-2 bg-[#a16207]" />
+                                    <div className="absolute top-[30%] w-full h-1.5 bg-[#3d261b]" />
+                                    <div className="absolute top-[64%] w-full h-1.5 bg-[#3d261b]" />
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'crate') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                                <div className="w-full h-full bg-[#a16207] border-4 border-[#7c4a2b] shadow relative">
+                                    <div className="absolute inset-1 border-2 border-[#7c4a2b]" />
+                                    <div className="absolute top-1/2 left-0 w-full h-1 bg-[#7c4a2b]" />
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'lamp') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute flex flex-col items-center pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size * 0.5, height: dec.size, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                                <div className="w-3 h-3 rounded-full bg-yellow-300 shadow-[0_0_18px_rgba(253,224,71,0.9)] animate-flicker" />
+                                <div className="w-4 h-3 bg-[#374151] -mt-0.5 rounded-sm" />
+                                <div className="w-1.5 flex-1 bg-[#374151]" />
+                                <div className="w-5 h-1.5 bg-[#1f2937] rounded-sm" />
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'flowers') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size * 0.6, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                                <div className="relative w-full h-full">
+                                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-green-700/50 rounded-full blur-[1px]" />
+                                    <span className="absolute bottom-1 left-1 w-2 h-2 rounded-full bg-pink-400" />
+                                    <span className="absolute bottom-2 left-1/2 w-2 h-2 rounded-full bg-yellow-300" />
+                                    <span className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-sky-300" />
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'bush') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size * 0.8, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                                <div className="w-full h-full bg-[#166534] rounded-full border-b-4 border-[#14532d] shadow-md relative">
+                                    <div className="absolute top-1 left-2 w-1/3 h-1/3 bg-[#22c55e]/40 rounded-full" />
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'bench') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size * 0.5, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                                <div className="relative w-full h-full">
+                                    <div className="absolute top-0 w-full h-2 bg-[#8a5a2b] rounded-sm" />
+                                    <div className="absolute top-2 w-full h-2 bg-[#7c4a2b] rounded-sm" />
+                                    <div className="absolute bottom-0 left-1 w-2 h-3 bg-[#5c3a21]" />
+                                    <div className="absolute bottom-0 right-1 w-2 h-3 bg-[#5c3a21]" />
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'banner') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute flex flex-col items-center pointer-events-none" style={{ left: dec.x, top: dec.y, transform: 'translate(-50%, 0)', zIndex: 5 }}>
+                                <div className="w-10 h-1.5 bg-[#3d261b] rounded-full" />
+                                <div className="w-9 h-16 flex items-center justify-center text-white text-lg shadow-lg" style={{ backgroundColor: dec.color, clipPath: 'polygon(0 0,100% 0,100% 82%,50% 100%,0 82%)' }}>{dec.icon}</div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'critter') {
+                        const c = dec.color || '#22c55e';
+                        return (
+                            <div key={`dec_${i}`} className="absolute pointer-events-none animate-world-bob" style={{ left: dec.x, top: dec.y, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                                {dec.variant === 'slime' ? (
+                                    <div className="relative w-7 h-6 rounded-[45%] shadow" style={{ backgroundColor: c }}>
+                                        <div className="absolute top-2 left-1.5 w-1 h-1 bg-black rounded-full" />
+                                        <div className="absolute top-2 right-1.5 w-1 h-1 bg-black rounded-full" />
+                                    </div>
+                                ) : dec.variant === 'cat' ? (
+                                    <div className="relative w-7 h-6">
+                                        <div className="absolute top-0 left-0 w-2 h-2" style={{ backgroundColor: c, clipPath: 'polygon(0 100%,50% 0,100% 100%)' }} />
+                                        <div className="absolute top-0 right-0 w-2 h-2" style={{ backgroundColor: c, clipPath: 'polygon(0 100%,50% 0,100% 100%)' }} />
+                                        <div className="absolute bottom-0 w-full h-4 rounded-md" style={{ backgroundColor: c }} />
+                                        <div className="absolute bottom-1.5 left-1.5 w-1 h-1 bg-black rounded-full" />
+                                        <div className="absolute bottom-1.5 right-1.5 w-1 h-1 bg-black rounded-full" />
+                                    </div>
+                                ) : (
+                                    <div className="relative w-8 h-6">
+                                        <div className="absolute top-0 left-0 w-2.5 h-3 rounded-md" style={{ backgroundColor: c }} />
+                                        <div className="absolute bottom-0 w-full h-4 rounded-md" style={{ backgroundColor: c }} />
+                                        <div className="absolute bottom-1.5 left-1 w-1 h-1 bg-black rounded-full" />
+                                    </div>
+                                )}
+                                <div className="w-6 h-1.5 bg-black/30 rounded-full blur-[1px] mx-auto" />
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'vendor_npc') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute flex flex-col items-center" style={{ left: dec.x, top: dec.y, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                                <div className="text-rpg-gold text-lg font-black animate-bounce drop-shadow mb-0.5">!</div>
+                                <div className="bg-black/60 text-white text-[8px] px-2 py-0.5 rounded-full mb-1 border border-white/10 font-bold uppercase tracking-wider whitespace-nowrap">{dec.label}</div>
+                                <div className="animate-world-bob">
+                                    <PixelAvatar type={dec.avatar || 'monk'} scale={1.1} customColors={dec.colors} />
+                                </div>
+                                <div className="w-8 h-2 bg-black/40 rounded-full blur-sm mt-[-4px]" />
+                            </div>
+                        );
+                    }
+
                     return null;
                 })}
 
@@ -488,7 +726,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
             </div>
 
             {/* UI Overlay */}
-            <div className="sticky top-4 left-4 pointer-events-none float-left w-0">
+            <div className="absolute top-4 left-4 z-40 pointer-events-none">
                 <div className="glass-panel px-4 py-2 flex items-center gap-3 backdrop-blur-xl bg-[#1a102e]/80 w-max shadow-xl">
                     <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
                     <div>
@@ -498,8 +736,8 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                 </div>
             </div>
 
-            <div className="sticky top-4 right-4 pointer-events-none text-right hidden lg:block float-right w-0">
-                <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 text-[10px] text-gray-300 font-mono mb-2 w-max ml-auto relative right-8">
+            <div className="absolute top-4 right-16 z-40 pointer-events-none text-right hidden lg:block">
+                <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 text-[10px] text-gray-300 font-mono w-max ml-auto">
                     <span className="font-bold text-white">W A S D</span> or <span className="font-bold text-white">ARROWS</span> to move<br/>
                 </div>
             </div>
@@ -515,8 +753,20 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                 </div>
             )}
 
+            {/* Interaction prompt (proximity to shop / pet sanctuary) */}
+            {nearTarget && (
+                <button
+                    onClick={triggerInteract}
+                    className="absolute bottom-28 left-1/2 -translate-x-1/2 z-[60] pointer-events-auto flex items-center gap-2 px-4 py-2.5 bg-rpg-gold text-rpg-bg rounded-full font-bold uppercase tracking-wider text-xs shadow-[0_0_20px_rgba(250,204,21,0.5)] border border-yellow-200/50 animate-in fade-in slide-in-from-bottom-2 active:scale-95 transition-transform"
+                >
+                    <span className="hidden md:inline-flex items-center justify-center w-5 h-5 rounded bg-rpg-bg/20 text-[10px] font-black">E</span>
+                    <span className="md:hidden inline-flex items-center justify-center w-5 h-5 rounded bg-rpg-bg/20 text-[10px] font-black">👆</span>
+                    {nearTarget.label}
+                </button>
+            )}
+
             {/* Mobile Controls */}
-            <MobileJoystick 
+            <MobileJoystick
                 onMove={(jsPos) => {
                     joyInput.current = jsPos;
                 }}

@@ -17,9 +17,16 @@ try {
         CREATE TABLE IF NOT EXISTS waitlist (
             id INT AUTO_INCREMENT PRIMARY KEY,
             email VARCHAR(255) NOT NULL UNIQUE,
+            temp_password VARCHAR(255) DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
     ");
+
+    try {
+        $pdo->exec("ALTER TABLE waitlist ADD COLUMN temp_password VARCHAR(255) DEFAULT NULL;");
+    } catch (PDOException $e) {
+        // Already exists
+    }
 
     // Check if the email is already in the waitlist
     $stmt = $pdo->prepare("SELECT id FROM waitlist WHERE email = ?");

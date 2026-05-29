@@ -47,6 +47,26 @@ try {
     // Column likely exists, ignore
 }
 
+// Auto-migrate waitlist to include temp_password
+try {
+    $pdo->exec("ALTER TABLE waitlist ADD COLUMN temp_password VARCHAR(255) DEFAULT NULL;");
+} catch (PDOException $e) {
+    // Ignore
+}
+
+// Auto-create settings table if not exists
+try {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS settings (
+            setting_key VARCHAR(100) PRIMARY KEY,
+            setting_value VARCHAR(255) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    ");
+    $pdo->exec("INSERT IGNORE INTO settings (setting_key, setting_value) VALUES ('allow_registration', 'true')");
+} catch (PDOException $e) {
+    // Ignore
+}
+
 
 // --- API ACTIONS ---
 

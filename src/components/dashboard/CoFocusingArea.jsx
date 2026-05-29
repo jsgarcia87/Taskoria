@@ -133,12 +133,12 @@ const CoFocusingArea = ({ currentUser, activeProfile, familyMembers, friends }) 
                     >
                         {/* Status Bubbles */}
                         {char.isFocusing ? (
-                            <div className="pixel-bubble mb-2 animate-float whitespace-nowrap">
+                            <div className="absolute left-full ml-2 top-0 pixel-bubble animate-float whitespace-nowrap z-50">
                                 <div className="bubble-header">FOCUSING...</div>
                                 <div className="bubble-body whitespace-nowrap flex items-center gap-2">
                                     {char.message} <PixelIcon name="star" size={12} className="text-white opacity-50" />
                                 </div>
-                                <div className="bubble-tail text-[#2b254a]">▼</div>
+                                <div className="absolute top-4 -left-3 text-[#2a2a2a] text-xl leading-none" style={{ textShadow: '-2px 2px 0 rgba(0,0,0,0.5)' }}>◀</div>
                             </div>
                         ) : (
                             <div className="absolute -top-6 -right-4 flex font-bold text-gray-400 text-sm">

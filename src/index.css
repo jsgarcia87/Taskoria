@@ -338,4 +338,23 @@
   .map-fade-enter {
     animation: map-fade-in 0.4s forwards;
   }
+
+  /* RPG Speech Bubble Animation */
+  @keyframes pop-up-bubble {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, 10px) scale(0.85);
+    }
+    50% {
+      transform: translate(-50%, -2px) scale(1.03);
+    }
+    100% {
+      opacity: 1;
+      transform: translate(-50%, 0) scale(1);
+    }
+  }
+
+  .animate-bubble-popup {
+    animation: pop-up-bubble 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
 }

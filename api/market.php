@@ -11,6 +11,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once 'db.php';
 
+// Auto-migrate/create table if not exists
+try {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS community_market (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            seller_id INT NOT NULL,
+            profile_id VARCHAR(50) NOT NULL,
+            seller_name VARCHAR(100) NOT NULL,
+            item_data JSON NOT NULL,
+            price INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    ");
+} catch (PDOException $e) {
+    // Ignore
+}
+
 $action = $_GET['action'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'list') {

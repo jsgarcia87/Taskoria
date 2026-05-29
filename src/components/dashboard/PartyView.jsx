@@ -326,12 +326,16 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                         </h2>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">A bustling medieval hub for your party!</p>
                         
-                        <PlayableWorld 
+                        <PlayableWorld
                             className="relative w-full h-[500px] sm:h-[600px] bg-black border-4 border-[#1a102e] rounded-t-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
                             currentUser={currentUser}
                             activeProfile={familyData?.profiles?.find(p => p.id === activeProfileId)}
                             familyMembers={familyMembers}
                             friends={friends}
+                            onInteract={(target) => {
+                                setActiveTab(target.target);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
                         />
 
                         {/* Legend / Status bar */}

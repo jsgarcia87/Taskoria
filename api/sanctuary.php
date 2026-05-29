@@ -11,6 +11,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once 'db.php';
 
+// Auto-migrate/create table if not exists
+try {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS pet_sanctuary (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            profile_id VARCHAR(50) NOT NULL,
+            owner_name VARCHAR(100) NOT NULL,
+            pet_type VARCHAR(100) NOT NULL,
+            pet_level INT DEFAULT 1,
+            pet_xp INT DEFAULT 0,
+            price INT DEFAULT 0,
+            is_market TINYINT DEFAULT 0,
+            released_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    ");
+} catch (PDOException $e) {
+    // Ignore
+}
+
 $action = $_GET['action'] ?? '';
 
 // Basic automatic schema update for columns

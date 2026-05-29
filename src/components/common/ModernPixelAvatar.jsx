@@ -141,9 +141,11 @@ const ModernPixelAvatar = ({ type = 'warrior', scale = 1, headOnly = false, cust
     const zoomFactor = 1.0;
     const canvasActualSize = GRID_SIZE * S * zoomFactor;
 
-    // Mathematical Centering: Center the "Eye Level" (approx x=32, y=13) in the 14-unit wrapper
-    const posX = (wrapperWidth / 2) - (32 * (canvasActualSize / GRID_SIZE));
-    const posY = (wrapperHeight / 2) - (13 * (canvasActualSize / GRID_SIZE));
+    // Mathematical Centering: Stably position based on mode
+    const posX = (wrapperWidth / 2) - (32 * S);
+    const posY = headOnly 
+        ? (wrapperHeight / 2) - (13 * S) 
+        : (wrapperHeight / 2) - (32 * S);
 
     const mappedType = TYPE_MAP[type] || 'fighter';
     const config = blueprintsData[mappedType] || blueprintsData['fighter'];
