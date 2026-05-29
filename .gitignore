@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Local single-file build output (npm run build:local)
+standalone/
+
+# OS files
+.DS_Store
+
+# Local env / editor
+*.local
+.vscode/
