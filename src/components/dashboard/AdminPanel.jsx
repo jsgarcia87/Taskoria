@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, UserPlus, Shield, ShieldOff, Search, Loader } from 'lucide-react';
 import PixelIcon from '../common/PixelIcon';
+import CreationsModeration from './CreationsModeration';
 
 const AdminPanel = ({ currentUser }) => {
     const [users, setUsers] = useState([]);
@@ -298,6 +299,9 @@ const AdminPanel = ({ currentUser }) => {
                         </div>
                     )}
                 </div>
+
+                {/* Pixel Studio Moderation */}
+                <CreationsModeration currentUser={currentUser} />
 
                 {/* Users Table */}
                 <div className="glass-card p-0 overflow-hidden border border-white/10 rounded-2xl flex flex-col h-[500px]">

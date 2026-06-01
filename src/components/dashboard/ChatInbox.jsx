@@ -80,7 +80,7 @@ const ChatInbox = ({ isOpen, onClose, currentUser, onOpenChat }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-x-4 top-[80px] bottom-24 md:inset-auto md:absolute md:right-0 md:top-full md:mt-4 md:w-80 bg-[#1a102e]/95 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50 shadow-2xl ring-1 ring-white/10 flex flex-col md:max-h-[70vh]">
+        <div className="fixed inset-x-4 top-[80px] bottom-24 md:inset-x-auto md:bottom-auto md:right-6 md:top-[88px] md:w-80 bg-[#1a102e]/95 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-[9999] shadow-2xl ring-1 ring-white/10 flex flex-col md:max-h-[70vh]">
 
             {/* Header */}
             <div className="p-4 border-b border-white/10 bg-black/20 flex justify-between items-center">

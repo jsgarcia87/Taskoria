@@ -196,13 +196,13 @@ const GardenView = ({ forceScenario }) => {
                 >
                     {/* Speech Bubble */}
                     {messageVisible && message && (
-                        <div className="absolute top-0 left-full ml-4 pixel-bubble z-50 whitespace-normal w-max max-w-[150px] md:max-w-[200px] pointer-events-none animate-bubble-popup">
-                            <div className="bubble-body normal-case tracking-wide text-left">
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 pixel-bubble z-50 whitespace-normal w-max max-w-[150px] md:max-w-[200px] pointer-events-none animate-bubble-popup">
+                            <div className="bubble-body normal-case tracking-wide text-center">
                                 {message}
                             </div>
-                            {/* Tail pointing left */}
-                            <div className="absolute top-4 -left-3 text-[#2a2a2a] text-xl leading-none" style={{ textShadow: '-2px 2px 0 rgba(0,0,0,0.5)' }}>
-                                ◀
+                            {/* Tail pointing down */}
+                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[#2a2a2a] text-xl leading-none" style={{ textShadow: '2px 2px 0 rgba(0,0,0,0.5)' }}>
+                                ▼
                             </div>
                         </div>
                     )}

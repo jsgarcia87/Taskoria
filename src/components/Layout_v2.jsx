@@ -40,6 +40,8 @@ const Layout_v2 = ({
         { id: 'party', label: 'Town', icon: 'users' },
         { id: 'diary', label: 'Diary', icon: 'book' },
         { id: 'profile', label: 'Hero', icon: 'user' },
+        { id: 'studio', label: 'Studio', icon: 'sword' },
+        { id: 'creations', label: 'World', icon: 'trophy' },
     ];
 
     if (currentUser?.is_admin) {
@@ -194,24 +196,6 @@ const Layout_v2 = ({
                                     </span>
                                 )}
                             </div>
-
-                            {/* Inbox Dropdown component */}
-                            {isInboxOpen && (
-                                <>
-                                    <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]" onClick={() => setIsInboxOpen(false)} />
-                                    <div className="absolute right-0 top-full mt-4 z-50">
-                                        <ChatInbox
-                                            isOpen={isInboxOpen}
-                                            onClose={() => setIsInboxOpen(false)}
-                                            currentUser={currentUser}
-                                            onOpenChat={(friend) => {
-                                                setActiveChatFriend(friend);
-                                                setIsInboxOpen(false);
-                                            }}
-                                        />
-                                    </div>
-                                </>
-                            )}
                         </div>
 
                         {/* User Menu */}
@@ -326,6 +310,22 @@ const Layout_v2 = ({
 
             {/* --- MOBILE BOTTOM NAVIGATION --- */}
             <BottomNav activeView={activeView} setActiveView={setActiveView} currentUser={currentUser} />
+
+            {/* Inbox (rendered at root so its fixed positioning is viewport-relative, not trapped by the blurred header) */}
+            {isInboxOpen && (
+                <>
+                    <div className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-[1px]" onClick={() => setIsInboxOpen(false)} />
+                    <ChatInbox
+                        isOpen={isInboxOpen}
+                        onClose={() => setIsInboxOpen(false)}
+                        currentUser={currentUser}
+                        onOpenChat={(friend) => {
+                            setActiveChatFriend(friend);
+                            setIsInboxOpen(false);
+                        }}
+                    />
+                </>
+            )}
 
             <ChatModal
                 isOpen={!!activeChatFriend}

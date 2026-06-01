@@ -32,6 +32,8 @@ import TaskForm from './components/dashboard/TaskForm';
 import HabitForm from './components/dashboard/HabitForm';
 import FAQ from './components/dashboard/FAQ';
 import AdminPanel from './components/dashboard/AdminPanel';
+import CreationStudio from './components/dashboard/CreationStudio';
+import CreationGallery from './components/dashboard/CreationGallery';
 import LevelUpModal from './components/common/LevelUpModal';
 import DailyRewardModal from './components/dashboard/DailyRewardModal';
 import Settings from './components/Settings';
@@ -161,6 +163,18 @@ const GameContent = ({ currentUser, onLogout }) => {
           {activeView === 'faq' && (
             <div className="col-span-12 lg:col-span-10 lg:col-start-2">
               <FAQ />
+            </div>
+          )}
+
+          {activeView === 'studio' && (
+            <div className="col-span-12 lg:col-span-10 lg:col-start-2">
+              <CreationStudio currentUser={currentUser} />
+            </div>
+          )}
+
+          {activeView === 'creations' && (
+            <div className="col-span-12 lg:col-span-10 lg:col-start-2">
+              <CreationGallery currentUser={currentUser} />
             </div>
           )}
 

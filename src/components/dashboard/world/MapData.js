@@ -4,9 +4,11 @@ export const MAP_DATA = {
         name: 'Town Square',
         width: 1600,
         height: 1000,
-        className: 'medieval-town-bg',
+        className: 'medieval-town-bg', // fallback if no tileSprite is set
         baseColor: '#2b1f1a',
-        background: {}, // Relies on CSS class
+        background: {}, // Relies on CSS class (overridden when tileSprite is set)
+        tileSprite: 'cobblestone_tile', // pixel-art floor tile from sprites.js
+        tileSize: 64, // px per tile on screen (1:1 with source grid)
         spawn: { x: 800, y: 500 },
         // Simple rectangular obstacles { x, y, width, height }
         obstacles: [
@@ -59,21 +61,45 @@ export const MAP_DATA = {
             { type: 'rect', x: 0, y: 470, width: 1600, height: 90, color: '#7a6a52', opacity: 0.15, z: 0 },
             { type: 'rect', x: 760, y: 0, width: 90, height: 1000, color: '#7a6a52', opacity: 0.15, z: 0 },
 
-            // --- Central well (now visible) ---
+            // --- Ground variation: worn cobble patches & cracks (break monotony) ---
+            { type: 'cobble_patch', x: 800, y: 500, width: 220, height: 140, color: '#6b5240', opacity: 0.55, z: 0 },
+            { type: 'cobble_patch', x: 360, y: 700, width: 160, height: 100, color: '#3d2a1d', opacity: 0.45, z: 0 },
+            { type: 'cobble_patch', x: 1240, y: 320, width: 140, height: 90, color: '#5c4033', opacity: 0.4, z: 0 },
+            { type: 'cobble_patch', x: 1100, y: 480, width: 110, height: 70, color: '#3d261b', opacity: 0.45, z: 0 },
+            { type: 'crack', x: 700, y: 520, length: 80, angle: 15, z: 0 },
+            { type: 'crack', x: 880, y: 580, length: 60, angle: -25, z: 0 },
+            { type: 'crack', x: 480, y: 480, length: 90, angle: 40, z: 0 },
+            { type: 'crack', x: 1180, y: 540, length: 70, angle: -10, z: 0 },
+            { type: 'puddle', x: 720, y: 660, size: 70, z: 0 },
+            { type: 'puddle', x: 1140, y: 410, size: 50, z: 0 },
+
+            // --- Central well ---
             { type: 'well', x: 752, y: 352, width: 96, height: 96 },
             { type: 'bench', x: 624, y: 520, size: 60 },
             { type: 'bench', x: 920, y: 520, size: 60 },
+            { type: 'flowers', x: 760, y: 470, size: 30 },
 
             // --- Item Shop (building + keeper + sign + props) ---
             { type: 'shop_building', x: 170, y: 230, width: 280, height: 150 },
+            { type: 'rug', x: 310, y: 410, width: 110, height: 50, color: '#7f1d1d', z: 1 },
             { type: 'vendor_npc', x: 310, y: 420, label: 'Tendero', avatar: 'mage', colors: { primary: '#b91c1c', primaryDark: '#7f1d1d', skin: '#e8b08a' } },
             { type: 'sign', x: 470, y: 360, label: 'TIENDA' },
             { type: 'barrel', x: 150, y: 400, size: 38 },
+            { type: 'barrel', x: 130, y: 440, size: 32 },
             { type: 'crate', x: 440, y: 400, size: 42 },
+            { type: 'crate', x: 460, y: 440, size: 34 },
+            { type: 'planter', x: 220, y: 410, width: 60, height: 32 },
+            { type: 'planter', x: 400, y: 410, width: 60, height: 32 },
+            { type: 'weapon_rack', x: 110, y: 470, width: 50, height: 60 },
 
             // --- Extra market stalls (ambiance) ---
             { type: 'market_stall', x: 520, y: 760, width: 130, height: 96, color: '#16a34a' },
+            { type: 'crate', x: 555, y: 870, size: 32 },
+            { type: 'crate', x: 615, y: 870, size: 32 },
+            { type: 'hay', x: 490, y: 880, size: 40 },
             { type: 'market_stall', x: 1050, y: 220, width: 130, height: 96, color: '#7c3aed' },
+            { type: 'barrel', x: 1040, y: 340, size: 32 },
+            { type: 'crate', x: 1180, y: 340, size: 30 },
 
             // --- Pet Sanctuary zone (right side) ---
             { type: 'rect', x: 1120, y: 560, width: 360, height: 320, color: '#15803d', opacity: 0.35, radius: '20px', z: 1 },
@@ -88,12 +114,21 @@ export const MAP_DATA = {
             { type: 'critter', x: 1390, y: 680, variant: 'cat', color: '#f59e0b' },
             { type: 'critter', x: 1270, y: 790, variant: 'dog', color: '#a16207' },
             { type: 'critter', x: 1420, y: 810, variant: 'slime', color: '#3b82f6' },
+            { type: 'hay', x: 1180, y: 850, size: 44 },
+            { type: 'hay', x: 1440, y: 870, size: 38 },
+            { type: 'flowers', x: 1240, y: 760, size: 32 },
+            { type: 'flowers', x: 1380, y: 740, size: 32 },
 
-            // --- Lamps ---
+            // --- Lamps + warm glow on the ground ---
+            { type: 'lantern_glow', x: 600, y: 320, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
             { type: 'lamp', x: 600, y: 300, size: 64 },
+            { type: 'lantern_glow', x: 1000, y: 320, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
             { type: 'lamp', x: 1000, y: 300, size: 64 },
+            { type: 'lantern_glow', x: 600, y: 780, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
             { type: 'lamp', x: 600, y: 760, size: 64 },
+            { type: 'lantern_glow', x: 1000, y: 780, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
             { type: 'lamp', x: 1000, y: 760, size: 64 },
+            { type: 'lantern_glow', x: 800, y: 400, radius: 120, color: 'rgba(255,200,120,0.22)', z: 1 },
 
             // --- Greenery ---
             { type: 'flowers', x: 520, y: 560, size: 40 },
@@ -104,9 +139,20 @@ export const MAP_DATA = {
             { type: 'bush', x: 1120, y: 150, size: 52 },
             { type: 'bush', x: 260, y: 840, size: 52 },
             { type: 'bush', x: 980, y: 900, size: 52 },
+            { type: 'bush', x: 1500, y: 250, size: 44 },
+            { type: 'bush', x: 80, y: 720, size: 44 },
+
+            // --- Trees framing the plaza ---
+            { type: 'tree', x: 130, y: 180, width: 70, height: 90 },
+            { type: 'tree', x: 540, y: 110, width: 60, height: 80 },
+            { type: 'tree', x: 1500, y: 130, width: 70, height: 90 },
+            { type: 'tree', x: 100, y: 600, width: 65, height: 85 },
+            { type: 'tree', x: 1520, y: 920, width: 65, height: 85 },
+            { type: 'tree', x: 120, y: 920, width: 60, height: 80 },
 
             // --- Banners on the north wall ---
             { type: 'banner', x: 320, y: 40, color: '#7c3aed', icon: '⚔' },
+            { type: 'banner', x: 800, y: 40, color: '#fbbf24', icon: '✦' },
             { type: 'banner', x: 1120, y: 40, color: '#dc2626', icon: '★' }
         ]
     },

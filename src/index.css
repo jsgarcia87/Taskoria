@@ -138,18 +138,23 @@
     background-color: rgba(255, 255, 255, 0.3);
   }
 
-  /* Co-Focusing Area Custom Styles */
+  /* Co-Focusing Area Custom Styles - rich cobblestone ground */
   .medieval-town-bg {
-    background-color: #5c4033;
-    /* Dirt/brown base */
+    background-color: #4a3225;
     background-image:
-      radial-gradient(#4a3225 15%, transparent 16%),
-      radial-gradient(#4a3225 15%, transparent 16%),
-      linear-gradient(45deg, #3d261b 25%, transparent 25%, transparent 75%, #3d261b 75%, #3d261b),
-      linear-gradient(-45deg, #3d261b 25%, transparent 25%, transparent 75%, #3d261b 75%, #3d261b);
-    background-size: 40px 40px, 40px 40px, 20px 20px, 20px 20px;
-    background-position: 0 0, 20px 20px, 0 0, 0 0;
-    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8);
+      /* per-stone highlight (top-left) and shadow (bottom-right) for a 3D feel */
+      radial-gradient(ellipse at 28% 28%, rgba(255, 220, 180, 0.10) 0 32%, transparent 60%),
+      radial-gradient(ellipse at 72% 72%, rgba(0, 0, 0, 0.32) 0 32%, transparent 60%),
+      /* mortar grid (dark lines between stones) */
+      linear-gradient(rgba(10, 5, 0, 0.55) 2px, transparent 2px),
+      linear-gradient(90deg, rgba(10, 5, 0, 0.55) 2px, transparent 2px),
+      /* alternating brick rows for irregular feel */
+      linear-gradient(180deg, #5c4033 0 50%, #4f3528 50% 100%),
+      /* subtle warm wash */
+      linear-gradient(180deg, rgba(124, 74, 43, 0.18), rgba(40, 22, 12, 0.25));
+    background-size: 32px 32px, 32px 32px, 32px 32px, 32px 32px, 32px 64px, 100% 100%;
+    background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+    box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.75);
   }
 
   .pixel-bubble {

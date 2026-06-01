@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import PixelAvatar from '../../common/PixelAvatar';
 import MobileJoystick from './MobileJoystick';
 import { MAP_DATA } from './MapData';
+import { SPRITES, PixelSprite, pixelBufferToDataUrl } from './sprites';
 import ChatModal from '../ChatModal';
 import { X, MessageSquare } from 'lucide-react';
 
@@ -276,6 +277,21 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
         return () => cancelAnimationFrame(rafId);
     }, [currentMapId, fadeState]);
 
+    // Pre-compute the floor tile data URL once per map (expensive: 4096 cells → SVG)
+    const tileBackground = React.useMemo(() => {
+        if (!map?.tileSprite) return null;
+        const buffer = SPRITES[map.tileSprite];
+        if (!buffer) return null;
+        const tilePx = map.tileSize || 64;
+        return {
+            backgroundColor: map.baseColor || '#000',
+            backgroundImage: `url("${pixelBufferToDataUrl(buffer, 64)}")`,
+            backgroundSize: `${tilePx}px ${tilePx}px`,
+            backgroundRepeat: 'repeat',
+            imageRendering: 'pixelated'
+        };
+    }, [map?.tileSprite, map?.tileSize, map?.baseColor]);
+
     if (!map) return <div className="text-white p-10">Loading map...</div>;
 
     const charData = activeProfile?.state?.character || { name: 'Player', class: 'Novice', avatarId: 'warrior' };
@@ -294,9 +310,30 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
             {/* Map Container (Camera Layer) */}
             <div
                 ref={mapDOMRef}
-                className={`origin-top-left will-change-transform ${map.className || ''}`}
-                style={{ width: map.width, height: map.height, position: 'relative', ...(map.background || {}) }}
+                className={`origin-top-left will-change-transform ${tileBackground ? '' : (map.className || '')}`}
+                style={{ width: map.width, height: map.height, position: 'relative', ...(map.background || {}), ...(tileBackground || {}) }}
             >
+                {/* Ambient atmosphere: warm wash + soft vignette (only on outdoor cobbled maps) */}
+                {map.className === 'medieval-town-bg' && (
+                    <>
+                        <div
+                            className="absolute inset-0 pointer-events-none"
+                            style={{
+                                background: 'radial-gradient(ellipse at 50% 40%, rgba(255,180,90,0.10) 0%, transparent 55%)',
+                                mixBlendMode: 'screen',
+                                zIndex: 0
+                            }}
+                        />
+                        <div
+                            className="absolute inset-0 pointer-events-none"
+                            style={{
+                                background: 'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%)',
+                                zIndex: 0
+                            }}
+                        />
+                    </>
+                )}
+
                 {/* Portals */}
                 {map.portals?.map((portal, i) => (
                     <div
@@ -623,6 +660,216 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                                     </div>
                                 )}
                                 <div className="w-6 h-1.5 bg-black/30 rounded-full blur-[1px] mx-auto" />
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'sprite') {
+                        // Render a hand-drawn pixel sprite from the SPRITES registry.
+                        // dec.name = registry key; dec.scale = pixels per source-pixel (default 4)
+                        // anchor: 'bottom' (default, feet at dec.y) | 'center' | 'top'
+                        const buffer = SPRITES[dec.name];
+                        if (!buffer) return null;
+                        const scale = dec.scale || 4;
+                        const px = 64 * scale;
+                        const anchor = dec.anchor || 'bottom';
+                        const transform = anchor === 'center'
+                            ? 'translate(-50%, -50%)'
+                            : anchor === 'top'
+                                ? 'translate(-50%, 0)'
+                                : 'translate(-50%, -100%)';
+                        return (
+                            <div
+                                key={`dec_${i}`}
+                                className={`absolute pointer-events-none ${dec.animate || ''}`}
+                                style={{ left: dec.x, top: dec.y, width: px, height: px, transform, zIndex: dec.z !== undefined ? dec.z : Math.floor(dec.y) }}
+                            >
+                                <PixelSprite buffer={buffer} scale={scale} />
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'lantern_glow') {
+                        // Soft warm glow on the ground beneath a lamp/torch
+                        const r = dec.radius || 110;
+                        return (
+                            <div
+                                key={`dec_${i}`}
+                                className="absolute pointer-events-none animate-flicker"
+                                style={{
+                                    left: dec.x, top: dec.y,
+                                    width: r * 2, height: r * 2,
+                                    transform: 'translate(-50%, -50%)',
+                                    background: `radial-gradient(circle, ${dec.color || 'rgba(253,224,71,0.35)'} 0%, transparent 65%)`,
+                                    mixBlendMode: 'screen',
+                                    zIndex: dec.z !== undefined ? dec.z : 2
+                                }}
+                            />
+                        );
+                    }
+
+                    if (dec.type === 'cobble_patch') {
+                        // A small worn stone patch breaking the ground monotony
+                        return (
+                            <div
+                                key={`dec_${i}`}
+                                className="absolute pointer-events-none"
+                                style={{
+                                    left: dec.x, top: dec.y,
+                                    width: dec.width || 120, height: dec.height || 80,
+                                    transform: 'translate(-50%, -50%)',
+                                    backgroundColor: dec.color || '#6b5240',
+                                    backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 2px), radial-gradient(circle, rgba(0,0,0,0.25) 1px, transparent 2px)',
+                                    backgroundSize: '10px 10px, 14px 14px',
+                                    backgroundPosition: '0 0, 7px 7px',
+                                    borderRadius: dec.radius || '50%',
+                                    boxShadow: 'inset 0 0 18px rgba(0,0,0,0.55)',
+                                    opacity: dec.opacity ?? 0.7,
+                                    zIndex: dec.z !== undefined ? dec.z : 1
+                                }}
+                            />
+                        );
+                    }
+
+                    if (dec.type === 'puddle') {
+                        return (
+                            <div
+                                key={`dec_${i}`}
+                                className="absolute pointer-events-none"
+                                style={{
+                                    left: dec.x, top: dec.y,
+                                    width: dec.size || 60, height: (dec.size || 60) * 0.55,
+                                    transform: 'translate(-50%, -50%)',
+                                    background: 'radial-gradient(ellipse at center, rgba(96,165,250,0.45) 0%, rgba(30,58,138,0.35) 60%, transparent 80%)',
+                                    borderRadius: '50%',
+                                    boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.4)',
+                                    zIndex: dec.z !== undefined ? dec.z : 1
+                                }}
+                            />
+                        );
+                    }
+
+                    if (dec.type === 'crack') {
+                        // A thin crack line on the ground
+                        const angle = dec.angle || 0;
+                        return (
+                            <div
+                                key={`dec_${i}`}
+                                className="absolute pointer-events-none"
+                                style={{
+                                    left: dec.x, top: dec.y,
+                                    width: dec.length || 60, height: 2,
+                                    transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+                                    background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.7) 30%, rgba(0,0,0,0.85) 60%, transparent)',
+                                    borderRadius: '2px',
+                                    zIndex: dec.z !== undefined ? dec.z : 1
+                                }}
+                            />
+                        );
+                    }
+
+                    if (dec.type === 'planter') {
+                        // Wooden planter box with bright flowers
+                        return (
+                            <div
+                                key={`dec_${i}`}
+                                className="absolute pointer-events-none"
+                                style={{ left: dec.x, top: dec.y, width: dec.width || 60, height: dec.height || 36, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}
+                            >
+                                <div className="relative w-full h-full">
+                                    <div className="absolute bottom-0 w-full h-[55%] bg-[#7c4a2b] border-x-2 border-t-2 border-[#3d261b] rounded-sm shadow-md">
+                                        <div className="absolute inset-x-1 top-1 h-0.5 bg-[#5c3a21]" />
+                                        <div className="absolute inset-x-1 bottom-1 h-0.5 bg-[#3d261b]" />
+                                    </div>
+                                    <div className="absolute bottom-[45%] w-full h-[35%] bg-[#166534] rounded-t-md shadow-inner" />
+                                    <div className="absolute bottom-[60%] left-2 w-2 h-2 rounded-full bg-pink-400" />
+                                    <div className="absolute bottom-[70%] left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-yellow-300" />
+                                    <div className="absolute bottom-[60%] right-2 w-2 h-2 rounded-full bg-rose-300" />
+                                    <div className="absolute bottom-[75%] left-1/3 w-1.5 h-1.5 rounded-full bg-sky-300" />
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'hay') {
+                        // Pile of hay
+                        const s = dec.size || 48;
+                        return (
+                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: s, height: s * 0.7, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                                <div className="relative w-full h-full">
+                                    <div className="absolute bottom-0 w-full h-[80%] bg-[#ca8a04] rounded-t-full border-b-2 border-[#854d0e] shadow"
+                                        style={{ backgroundImage: 'repeating-linear-gradient(95deg, transparent 0 3px, rgba(0,0,0,0.18) 3px 4px)' }} />
+                                    <div className="absolute top-0 left-1/4 w-1 h-2 bg-[#854d0e] rotate-12" />
+                                    <div className="absolute top-1 right-1/4 w-1 h-2 bg-[#854d0e] -rotate-12" />
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'rug') {
+                        // Entry rug
+                        return (
+                            <div
+                                key={`dec_${i}`}
+                                className="absolute pointer-events-none"
+                                style={{
+                                    left: dec.x, top: dec.y,
+                                    width: dec.width || 80, height: dec.height || 50,
+                                    transform: 'translate(-50%, -50%)',
+                                    backgroundColor: dec.color || '#7f1d1d',
+                                    backgroundImage: 'repeating-linear-gradient(90deg, rgba(0,0,0,0.0) 0 8px, rgba(0,0,0,0.18) 8px 10px), linear-gradient(180deg, rgba(255,255,255,0.08), transparent)',
+                                    border: '3px solid #fbbf24',
+                                    borderRadius: '4px',
+                                    boxShadow: '0 2px 6px rgba(0,0,0,0.55)',
+                                    opacity: 0.92,
+                                    zIndex: dec.z !== undefined ? dec.z : 1
+                                }}
+                            />
+                        );
+                    }
+
+                    if (dec.type === 'weapon_rack') {
+                        // Wooden rack with swords leaning
+                        const w = dec.width || 60, h = dec.height || 70;
+                        return (
+                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: w, height: h, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                                <div className="relative w-full h-full">
+                                    <div className="absolute bottom-0 w-full h-2 bg-[#5c3a21] rounded-sm shadow" />
+                                    <div className="absolute top-1 w-full h-2 bg-[#7c4a2b] rounded-sm" />
+                                    <div className="absolute top-3 left-1 w-1 bg-[#5c3a21]" style={{ height: h - 12 }} />
+                                    <div className="absolute top-3 right-1 w-1 bg-[#5c3a21]" style={{ height: h - 12 }} />
+                                    {/* Swords */}
+                                    <div className="absolute bottom-2 left-[20%] w-1 h-[80%] bg-gradient-to-t from-gray-400 to-gray-200 shadow"
+                                        style={{ transform: 'rotate(-6deg)', transformOrigin: 'bottom' }}>
+                                        <div className="absolute -bottom-1 -left-1 w-3 h-1 bg-[#78350f]" />
+                                    </div>
+                                    <div className="absolute bottom-2 right-[20%] w-1 h-[75%] bg-gradient-to-t from-gray-500 to-gray-300 shadow"
+                                        style={{ transform: 'rotate(8deg)', transformOrigin: 'bottom' }}>
+                                        <div className="absolute -bottom-1 -left-1 w-3 h-1 bg-[#78350f]" />
+                                    </div>
+                                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1 h-[85%] bg-gradient-to-t from-gray-400 to-white">
+                                        <div className="absolute -bottom-1 -left-1 w-3 h-1 bg-[#fbbf24]" />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (dec.type === 'tree') {
+                        // A small ornamental tree (round canopy)
+                        const w = dec.width || 70, h = dec.height || 90;
+                        return (
+                            <div key={`dec_${i}`} className="absolute flex flex-col items-center justify-end pointer-events-none animate-sway"
+                                style={{ left: dec.x, top: dec.y, width: w, height: h, zIndex: dec.y + h }}>
+                                <div className="relative w-full flex-1 flex items-end justify-center">
+                                    <div className="absolute top-0 w-[90%] h-[70%] rounded-full bg-[#166534] border-b-4 border-[#14532d] shadow-lg">
+                                        <div className="absolute top-2 left-3 w-3 h-3 bg-[#22c55e]/50 rounded-full" />
+                                        <div className="absolute top-4 right-3 w-2 h-2 bg-[#22c55e]/50 rounded-full" />
+                                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-3 h-2 bg-black/25 rounded-full blur-[1px]" />
+                                    </div>
+                                </div>
+                                <div className="w-[18%] h-[22%] bg-[#451a03] border-x-2 border-[#290f01] z-10" />
+                                <div className="absolute -bottom-1 w-[70%] h-2 bg-black/45 rounded-full blur-[2px]" />
                             </div>
                         );
                     }
