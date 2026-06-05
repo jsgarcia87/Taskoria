@@ -8,7 +8,32 @@ import Auth from './components/Auth';
 import LandingPage from './components/LandingPage';
 import CalendarView from './components/dashboard/CalendarView';
 import PixelIcon from './components/common/PixelIcon';
-import { TASK_DIFFICULTY } from './utils/gameUtils';
+import { TASK_DIFFICULTY, calculateXpReq } from './utils/gameUtils';
+
+// Recompute xp.max for every character so saves created under the previous
+// XP curve get aligned to the current formula. Safe to run repeatedly.
+const migrateXpCurve = (familyData) => {
+    if (!familyData?.profiles) return familyData;
+    return {
+        ...familyData,
+        profiles: familyData.profiles.map(profile => {
+            const char = profile?.state?.character;
+            if (!char || typeof char.level !== 'number') return profile;
+            const expectedMax = calculateXpReq(char.level);
+            if (char.xp?.max === expectedMax) return profile;
+            return {
+                ...profile,
+                state: {
+                    ...profile.state,
+                    character: {
+                        ...char,
+                        xp: { current: char.xp?.current || 0, max: expectedMax }
+                    }
+                }
+            };
+        })
+    };
+};
 import Layout_v2 from './components/Layout_v2';
 import Diary from './components/Diary';
 
@@ -332,7 +357,7 @@ function App() {
 
       if (finalData && finalData.profiles) {
         // It's already in the new Family format
-        setFamilyData(finalData);
+        setFamilyData(migrateXpCurve(finalData));
       } else if (finalData && (finalData.character || finalData.tasks)) {
         // It's the old single-user format. Migrate them to Family format automatically.
         const migratedProfile = {
@@ -340,10 +365,10 @@ function App() {
           name: finalData.character?.name || 'Hero 1',
           state: finalData
         };
-        setFamilyData({
+        setFamilyData(migrateXpCurve({
           profiles: [migratedProfile],
           lastActiveProfile: migratedProfile.id
-        });
+        }));
       } else {
         // First time ever playing, empty family
         setFamilyData({ profiles: [] });

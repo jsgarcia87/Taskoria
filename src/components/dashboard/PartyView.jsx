@@ -9,9 +9,11 @@ import BossArena from './BossArena';
 import Shop from '../Shop';
 import PlayableWorld from './world/PlayableWorld';
 import { useGame } from '../../context/GameContext';
+import { useToast } from '../common/Toast';
 
 const PartyView = ({ currentUser, onOpenChat }) => {
     const { state, dispatch, actions, activeProfileId, familyData, setFamilyData } = useGame();
+    const toast = useToast();
     const [familyMembers, setFamilyMembers] = useState([]);
     const [friends, setFriends] = useState([]);
     const [activeTab, setActiveTab] = useState('friends'); // friends | guilds | sanctuary | boss | shop
@@ -114,7 +116,7 @@ const PartyView = ({ currentUser, onOpenChat }) => {
             // Local PvP Simulator (Family)
             const opponent = familyMembers.find(u => u.id === opponentId);
             if (!opponent || !opponent.state || !opponent.state.character) {
-                alert("This family member hasn't created a hero yet!");
+                toast.info("This family member hasn't created a hero yet.");
                 return;
             }
 
@@ -161,7 +163,7 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                 const data = await res.json();
 
                 if (data.error) {
-                    alert(data.error);
+                    toast.error(data.error);
                     return;
                 }
 

@@ -4,11 +4,13 @@ import PixelAvatar from '../common/PixelAvatar';
 import PixelIcon from '../common/PixelIcon';
 import ChatModal from './ChatModal';
 import { useGame } from '../../context/GameContext';
+import { useToast } from '../common/Toast';
 
 const GUILD_CREATION_COST = 500;
 
 const GuildView = ({ currentUser }) => {
     const { state, dispatch, actions } = useGame();
+    const toast = useToast();
     const [guilds, setGuilds] = useState([]);
     const [myGuild, setMyGuild] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -59,9 +61,9 @@ const GuildView = ({ currentUser }) => {
     const handleCreateGuild = async (e) => {
         e.preventDefault();
 
-        if (!newGuildName.trim()) return alert("Guild name is required.");
+        if (!newGuildName.trim()) return toast.error("Guild name is required.");
         if (gold < GUILD_CREATION_COST && !currentUser.is_admin) {
-            return alert(`You need ${GUILD_CREATION_COST}G to create a guild.`);
+            return toast.error(`You need ${GUILD_CREATION_COST}G to create a guild.`);
         }
 
         try {
@@ -77,7 +79,7 @@ const GuildView = ({ currentUser }) => {
             const data = await res.json();
 
             if (data.error) {
-                alert(data.error);
+                toast.error(data.error);
             } else {
                 // Paga el costo in-game (si no es admin)
                 if (!currentUser.is_admin) {
@@ -95,7 +97,7 @@ const GuildView = ({ currentUser }) => {
             }
         } catch (e) {
             console.error("Error creating guild", e);
-            alert("Error creating guild.");
+            toast.error("Error creating guild.");
         }
     };
 
@@ -114,7 +116,7 @@ const GuildView = ({ currentUser }) => {
             const data = await res.json();
 
             if (data.error) {
-                alert(data.error);
+                toast.error(data.error);
             } else {
                 fetchGuildData();
                 if (actions.triggerPush) actions.triggerPush('Welcome to the Guild!', 'You are now a member.');
@@ -135,7 +137,7 @@ const GuildView = ({ currentUser }) => {
             const data = await res.json();
 
             if (data.error) {
-                alert(data.error);
+                toast.error(data.error);
             } else {
                 fetchGuildData();
             }

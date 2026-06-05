@@ -4,10 +4,12 @@ import { Coins, Clock, ShoppingBag, Gift, Plus, Trash2 } from 'lucide-react';
 import { ITEMS, ITEM_TYPES, RARITY } from '../data/items';
 import Sprite from './common/Sprite';
 import { playCoinSound, playHealSound } from '../utils/sound';
+import { useToast } from './common/Toast';
 
 const Shop = ({ currentUser }) => {
     const { state, dispatch, actions } = useGame();
     const { character, rewards } = state;
+    const toast = useToast();
     const [activeTab, setActiveTab] = useState('items'); // items | rewards | community
     const [marketItems, setMarketItems] = useState([]);
     const [isLoadingMarket, setIsLoadingMarket] = useState(false);
@@ -65,7 +67,7 @@ const Shop = ({ currentUser }) => {
 
     const buyMarketItem = async (listing) => {
         if (character.gold < listing.price) {
-            alert("Not enough gold!");
+            toast.error("Not enough gold!");
             return;
         }
 
@@ -84,7 +86,7 @@ const Shop = ({ currentUser }) => {
                     // Remove from local list
                     setMarketItems(prev => prev.filter(i => i.id !== listing.id));
                 } else {
-                    alert(data.error || "Failed to buy item.");
+                    toast.error(data.error || "Failed to buy item.");
                 }
             } catch (e) {
                 console.error("Failed to execute buy transaction", e);

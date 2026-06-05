@@ -25,7 +25,39 @@ export const calculateMaxHp = (con, level) => {
 };
 
 export const calculateXpReq = (level) => {
-    return Math.floor(100 * Math.pow(level, 1.8)) + (level * 50);
+    return Math.floor(80 * Math.pow(level, 1.5)) + (level * 40);
+};
+
+// Single source of truth for class-driven mechanics.
+// `levelStats`: stat increments granted on every level up.
+// `combatStats`: array of stat keys averaged to produce the damage modifier in COMPLETE_TASK.
+export const CLASS_CONFIG = {
+    Fighter:     { levelStats: { str: 2, con: 1 },             combatStats: ['str'] },
+    Paladin:     { levelStats: { str: 1, con: 1, will: 1 },    combatStats: ['str', 'will'] },
+    Wizard:      { levelStats: { int: 2, will: 1 },            combatStats: ['int'] },
+    Rogue:       { levelStats: { dex: 2, cha: 1 },             combatStats: ['dex'] },
+    Cleric:      { levelStats: { will: 2, cha: 1 },            combatStats: ['will', 'cha'] },
+    Ranger:      { levelStats: { dex: 1, con: 1, will: 1 },    combatStats: ['dex'] },
+    Barbarian:   { levelStats: { str: 2, con: 2 },             combatStats: ['str'] },
+    Bard:        { levelStats: { cha: 2, int: 1 },             combatStats: ['cha'] },
+    Druid:       { levelStats: { will: 2, con: 1 },            combatStats: ['will'] },
+    Monk:        { levelStats: { dex: 1, will: 1, con: 1 },    combatStats: ['dex', 'will'] },
+    Necromancer: { levelStats: { int: 2, cha: 1 },             combatStats: ['int'] },
+    Antipaladin: { levelStats: { str: 1, cha: 1, will: 1 },    combatStats: ['str', 'cha'] },
+    Sorcerer:    { levelStats: { cha: 2, will: 1 },            combatStats: ['cha'] },
+    Scout:       { levelStats: { dex: 2, int: 1 },             combatStats: ['dex'] },
+};
+
+const DEFAULT_CLASS = { levelStats: { str: 1, int: 1, dex: 1 }, combatStats: ['str'] };
+
+export const getClassConfig = (charClass) => CLASS_CONFIG[charClass] || DEFAULT_CLASS;
+
+// Damage modifier for the COMPLETE_TASK roll, derived from class combat stats.
+export const getCombatModifier = (charClass, effStats) => {
+    const keys = getClassConfig(charClass).combatStats;
+    if (!keys.length) return 0;
+    const sum = keys.reduce((acc, k) => acc + (effStats[k] || 0), 0);
+    return Math.floor(sum / keys.length);
 };
 
 export const rollD20 = () => Math.floor(Math.random() * 20) + 1;
@@ -130,46 +162,52 @@ export const getEffectiveStats = (character) => {
 
 export const processRewardsAndLevelUp = (character, xpGain, goldGain, timeGain = 0) => {
     if (!character) return null;
-    let newXp = character.xp.current + xpGain;
-    let charClass = character.class;
-    let stats = character.stats;
 
-    let newChar = {
-        ...character,
-        gold: character.gold + goldGain,
-        timePoints: (character.timePoints || 0) + timeGain,
-    };
+    // Apply equipment XP bonus (percentage) before anything else.
+    const xpBonusPct = character.bonuses?.xp || 0;
+    const adjustedXpGain = Math.floor((xpGain || 0) * (1 + xpBonusPct / 100));
 
-    let levelUp = false;
-    let newLevel = character.level;
-    let newStats = { ...stats };
-    let currentMaxXp = character.xp.max;
+    const startingLevel = character.level;
+    const startingMaxXp = character.xp.max || calculateXpReq(startingLevel);
+    let newXp = (character.xp.current || 0) + adjustedXpGain;
+    let newLevel = startingLevel;
+    let currentMaxXp = startingMaxXp;
+
+    // Clone stats/baseStats so we never mutate the previous character.
+    let newStats = { ...character.stats };
+    let newBaseStats = { ...character.baseStats };
+
+    const classCfg = getClassConfig(character.class);
 
     while (newXp >= currentMaxXp) {
-        levelUp = true;
         newXp -= currentMaxXp;
         newLevel += 1;
         currentMaxXp = calculateXpReq(newLevel);
 
-        if (charClass === 'Fighter') { newStats.str += 2; newStats.con += 1; }
-        else if (charClass === 'Wizard') { newStats.int += 2; newStats.will += 1; }
-        else if (charClass === 'Rogue') { newStats.dex += 2; newStats.cha += 1; }
-        else if (charClass === 'Cleric') { newStats.will += 2; newStats.cha += 1; }
-        else if (charClass === 'Paladin') { newStats.str += 1; newStats.con += 1; newStats.will += 1; }
-        else { newStats.str += 1; newStats.int += 1; newStats.dex += 1; }
+        Object.entries(classCfg.levelStats).forEach(([stat, inc]) => {
+            newStats[stat] = (newStats[stat] || 0) + inc;
+            newBaseStats[stat] = (newBaseStats[stat] || 0) + inc;
+        });
     }
+
+    const levelUp = newLevel > startingLevel;
+
+    const newChar = {
+        ...character,
+        gold: (character.gold || 0) + goldGain,
+        timePoints: (character.timePoints || 0) + timeGain,
+        xp: { current: newXp, max: currentMaxXp },
+    };
 
     if (levelUp) {
         newChar.level = newLevel;
         newChar.stats = newStats;
-        newChar.xp = { current: newXp, max: currentMaxXp };
-        let newMaxHp = calculateMaxHp(newStats.con || 10, newLevel);
+        newChar.baseStats = newBaseStats;
+        const newMaxHp = calculateMaxHp(newStats.con || 10, newLevel);
         newChar.hp = { max: newMaxHp, current: newMaxHp };
-    } else {
-        newChar.xp = { ...character.xp, current: newXp };
     }
 
-    return { newChar, levelUp };
+    return { newChar, levelUp, xpGained: adjustedXpGain, levelsGained: newLevel - startingLevel };
 };
 
 export const checkBadges = (character) => {

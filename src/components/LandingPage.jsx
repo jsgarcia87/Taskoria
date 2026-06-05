@@ -3,6 +3,8 @@ import {
     Sword, Shield, Scroll, Users, CheckCircle2, ChevronRight, Loader2, Crown, Hammer,
     Sparkles, Map, Timer, Heart, Target, Trophy, Flame, Star, Zap, BookOpen
 } from 'lucide-react';
+import ModernPixelAvatar from './common/ModernPixelAvatar';
+import ModernPixelPet from './common/ModernPixelPet';
 
 // Reveal-on-scroll wrapper using IntersectionObserver (robust, no scroll math)
 const Reveal = ({ children, className = '', delay = 0 }) => {
@@ -50,14 +52,9 @@ const HeroMockup = () => {
                 <div className="grid grid-cols-12 gap-2 p-3 bg-gradient-to-b from-[#130f1e] to-[#0a0514]">
                     {/* Avatar + stats */}
                     <div className="col-span-5 bg-black/40 border border-white/10 rounded-lg p-3 flex flex-col items-center">
-                        {/* Pixel avatar (mock) */}
-                        <div className="w-20 h-20 grid grid-cols-8 gap-[1px] mb-2" style={{ imageRendering: 'pixelated' }}>
-                            {[
-                                '........','...##...','..####..','.######.',
-                                '..####..','..####..','.######.','........',
-                            ].flatMap((row, y) => row.split('').map((c, x) => (
-                                <div key={`${x}-${y}`} className={`aspect-square ${c === '#' ? 'bg-rpg-gold' : ''}`}></div>
-                            )))}
+                        <div className="flex items-end gap-1 mb-2 h-20">
+                            <ModernPixelAvatar type="wizard" scale={1.2} />
+                            <ModernPixelPet type="dragon" scale={0.45} />
                         </div>
                         <div className="text-[10px] font-bold uppercase tracking-widest text-rpg-gold">Lvl 7 · Mage</div>
                         <div className="w-full mt-2 space-y-1">
@@ -155,20 +152,6 @@ const House = ({ x, y }) => (
         <div className="w-5 h-3.5 bg-amber-800 border border-amber-950"></div>
     </div>
 );
-
-// Pixel-art tile preview used in the Pixel Studio gallery mockup
-const PixelTile = ({ pattern, color = '#f0c040' }) => (
-    <div className="grid grid-cols-8 gap-0 w-full aspect-square" style={{ imageRendering: 'pixelated' }}>
-        {pattern.flatMap((row, y) => row.split('').map((c, x) => (
-            <div key={`${x}-${y}`} className="aspect-square" style={{ backgroundColor: c === '#' ? color : c === '.' ? 'transparent' : c }}></div>
-        )))}
-    </div>
-);
-
-const HOUSE_TILE = ['........','...##...','..####..','.######.','########','#.####.#','#.#..#.#','#.#..#.#'];
-const CASTLE_TILE = ['#.##.##.','########','#.####.#','########','#.####.#','########','#.####.#','########'];
-const TREE_TILE = ['........','....#...','...###..','..#####.','.#######','...##...','...##...','...##...'];
-const MOUNT_TILE = ['........','..##.##.','.######.','########','.######.','.##..##.','.##..##.','........'];
 
 const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
     const [email, setEmail] = useState('');
@@ -408,12 +391,20 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                 </button>
                             </div>
 
-                            {/* Gallery mockup */}
+                            {/* Gallery: real characters & pets from the game */}
                             <div className="relative z-10 grid grid-cols-2 gap-3">
-                                <GalleryMockCard title="Blacksmith's House" cat="Houses" pattern={HOUSE_TILE} color="#dc2626"/>
-                                <GalleryMockCard title="Mage Tower" cat="Castles" pattern={CASTLE_TILE} color="#8a2be2"/>
-                                <GalleryMockCard title="Ancient Oak" cat="Trees" pattern={TREE_TILE} color="#16a34a"/>
-                                <GalleryMockCard title="Golden Steed" cat="Mounts" pattern={MOUNT_TILE} color="#f0c040"/>
+                                <GalleryRealCard title="Wizard" cat="Hero Class">
+                                    <ModernPixelAvatar type="wizard" scale={1.1}/>
+                                </GalleryRealCard>
+                                <GalleryRealCard title="Paladin" cat="Hero Class">
+                                    <ModernPixelAvatar type="paladin" scale={1.1}/>
+                                </GalleryRealCard>
+                                <GalleryRealCard title="Dragon" cat="Companion">
+                                    <ModernPixelPet type="dragon" scale={0.9}/>
+                                </GalleryRealCard>
+                                <GalleryRealCard title="Phoenix" cat="Companion">
+                                    <ModernPixelPet type="phoenix" scale={0.9}/>
+                                </GalleryRealCard>
                             </div>
                         </div>
                     </Reveal>
@@ -493,12 +484,10 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
     );
 };
 
-const GalleryMockCard = ({ title, cat, pattern, color }) => (
+const GalleryRealCard = ({ title, cat, children }) => (
     <div className="bg-[#0f0a1f] border border-white/10 rounded-xl p-3 flex flex-col items-center hover:border-rpg-gold/40 transition-colors">
-        <div className="w-full aspect-square bg-black/40 rounded p-2 flex items-center justify-center">
-            <div className="w-3/4">
-                <PixelTile pattern={pattern} color={color}/>
-            </div>
+        <div className="w-full aspect-square bg-black/40 rounded p-2 flex items-center justify-center overflow-hidden">
+            {children}
         </div>
         <div className="mt-2 text-xs font-bold text-white truncate w-full text-center">{title}</div>
         <div className="text-[9px] uppercase tracking-widest text-rpg-gold">{cat}</div>

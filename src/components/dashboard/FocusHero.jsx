@@ -3,9 +3,11 @@ import { Play, Settings, Coffee, ListTodo, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import Pomodoro from '../../components/Pomodoro';
 import PixelPet from '../common/PixelPet';
+import { useToast } from '../common/Toast';
 
 const FocusHero = () => {
     const { actions, state, dispatch } = useGame();
+    const toast = useToast();
     // Simple state to track total focus time (could be from context later)
     const [stats, setStats] = useState({ todayFocusMinutes: 0 }); // Placeholder
 
@@ -37,7 +39,7 @@ const FocusHero = () => {
 
     const handleEnterPortal = () => {
         if (pomodoroMode === 'hatch' && !selectedEgg) {
-            alert("Please select an egg to incubate first!");
+            toast.error("Please select an egg to incubate first.");
             return;
         }
 

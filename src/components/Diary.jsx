@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { Book, Plus, Trash2, Calendar, Share2, CheckSquare, Square, Type, ListTodo, Edit2 } from 'lucide-react';
 import CalendarView from './dashboard/CalendarView';
+import { useToast } from './common/Toast';
 
 const Diary = () => {
+    const toast = useToast();
     const { state, actions } = useGame();
     const { character } = state;
 
@@ -117,7 +119,7 @@ const Diary = () => {
             }
         } else {
             navigator.clipboard.writeText(textToShare);
-            alert('Note copied to clipboard!');
+            toast.success('Note copied to clipboard.');
         }
     };
 

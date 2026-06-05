@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import PixelPet from '../common/PixelPet';
 import PixelIcon from '../common/PixelIcon';
 import { useGame } from '../../context/GameContext';
+import { useToast } from '../common/Toast';
 
 const PetSanctuaryView = ({ currentUser }) => {
     const { state, actions } = useGame();
+    const toast = useToast();
     const [abandonedPets, setAbandonedPets] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -53,12 +55,12 @@ const PetSanctuaryView = ({ currentUser }) => {
             });
             const data = await res.json();
             if (data.success) {
-                alert(data.message);
+                toast.success(data.message);
                 setAbandonedPets([]);
                 // Reload window to clear context states
                 window.location.reload();
             } else {
-                alert(data.error || "Failed to reset");
+                toast.error(data.error || "Failed to reset");
             }
         } catch (e) {
             console.error("Reset error", e);
@@ -73,7 +75,7 @@ const PetSanctuaryView = ({ currentUser }) => {
         const currentGold = state.character?.gold || 0;
 
         if (currentGold < adoptionPrice) {
-            alert(`You need ${adoptionPrice} Gold to adopt this companion!`);
+            toast.error(`You need ${adoptionPrice} Gold to adopt this companion.`);
             return;
         }
 
@@ -109,7 +111,7 @@ const PetSanctuaryView = ({ currentUser }) => {
                 // In context we have ADOPT_PET
                 actions.dispatch({ type: 'ADOPT_PET', payload: { ...pet, cost: adoptionPrice, adoptedData: adoptedPet } });
             } else {
-                alert(data.error || 'Failed to adopt pet');
+                toast.error(data.error || 'Failed to adopt pet');
             }
         } catch (e) {
             console.error("Failed to adopt pet", e);
@@ -257,8 +259,10 @@ const PetSanctuaryView = ({ currentUser }) => {
                         ))}
                     </div>
                 ) : (
-                    <div className="glass-card p-8 text-center border-dashed border-emerald-500/30">
-                        <p className="text-gray-400 text-sm">No pets are currently looking for a home.</p>
+                    <div className="glass-card p-10 text-center border-dashed border-emerald-500/30 flex flex-col items-center">
+                        <div className="text-5xl mb-3 opacity-60">🌿</div>
+                        <div className="text-sm font-bold text-emerald-400 uppercase tracking-widest mb-1">The Sanctuary is Quiet</div>
+                        <p className="text-gray-500 text-xs max-w-[280px]">No companions are looking for a home right now. Check back soon — new friends arrive daily.</p>
                     </div>
                 )}
             </div>

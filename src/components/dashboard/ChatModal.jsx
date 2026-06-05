@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import PixelAvatar from '../common/PixelAvatar';
 import { Send, X, MessageSquare } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { useToast } from '../common/Toast';
 
 const ChatModal = ({ isOpen, onClose, currentUser, friend, onUpdateUnread }) => {
     const { activeProfileId } = useGame();
+    const toast = useToast();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -104,7 +106,7 @@ const ChatModal = ({ isOpen, onClose, currentUser, friend, onUpdateUnread }) => 
                 console.error("Failed to send message", data.error);
                 // If failed, remove the temporary message to show it wasn't sent
                 setMessages(prev => prev.filter(m => m.id !== tempMessage.id));
-                alert("Failed to send message: " + (data.error || "Unknown error"));
+                toast.error("Failed to send message: " + (data.error || "Unknown error"));
             } else {
                 await fetchMessages(); // Refresh to get the real ID and exact timestamp
             }

@@ -11,9 +11,11 @@ import Sprite from './common/Sprite';
 import AvatarSpeechBubble from './common/AvatarSpeechBubble';
 import DailyProgressChart from './dashboard/DailyProgressChart';
 import StatsRadarChart from './dashboard/StatsRadarChart';
+import { useToast } from './common/Toast';
 
 const CharacterSheet = () => {
     const { state, actions, activeProfileId, familyData } = useGame();
+    const toast = useToast();
     const { character } = state;
     const [activeTab, setActiveTab] = useState('stats'); // stats | inventory | skills
     const [isSellModalOpen, setIsSellModalOpen] = useState(false);
@@ -106,7 +108,7 @@ const CharacterSheet = () => {
                 setIsSellModalOpen(false);
                 setItemToSell(null);
             } else {
-                alert(data.error || "Failed to list item");
+                toast.error(data.error || "Failed to list item");
             }
         } catch (e) {
             console.error("Market listing error", e);
@@ -144,7 +146,7 @@ const CharacterSheet = () => {
             if (data.success) {
                 actions.toggleSanctuaryPet(pet.id);
             } else {
-                alert(data.error || `Failed to ${actionText} pet`);
+                toast.error(data.error || `Failed to ${actionText} pet`);
             }
         } catch (e) {
             console.error(`Sanctuary ${actionText} error`, e);
@@ -185,7 +187,7 @@ const CharacterSheet = () => {
                 if (data.success) {
                     actions.releasePet(pet.id);
                 } else {
-                    alert(data.error || "Failed to list pet for adoption");
+                    toast.error(data.error || "Failed to list pet for adoption");
                 }
             } catch (e) {
                 console.error("Adoption error", e);
@@ -545,9 +547,10 @@ const CharacterSheet = () => {
                                 </div>
                             ))
                         ) : (
-                            <div className="text-center py-12">
-                                <PixelIcon name="box" size={48} className="mx-auto text-gray-700 mb-2" />
-                                <p className="text-gray-500 text-sm">Your inventory is empty.</p>
+                            <div className="text-center py-12 glass-panel border-dashed border-white/10 opacity-70 flex flex-col items-center justify-center group hover:opacity-100 transition-opacity">
+                                <PixelIcon name="box" size={48} className="text-gray-600 mb-3 group-hover:text-rpg-gold transition-colors" />
+                                <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">Empty Satchel</div>
+                                <div className="text-xs text-gray-500 mt-1 max-w-[260px]">Complete quests and battle bosses to find loot. Visit the Shop to buy gear.</div>
                             </div>
                         )}
                     </div>

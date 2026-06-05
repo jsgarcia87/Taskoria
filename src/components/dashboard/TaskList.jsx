@@ -207,7 +207,7 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
                     <div className="text-center py-8 glass-panel border-dashed border-white/10 opacity-70 flex flex-col items-center justify-center group hover:opacity-100 transition-opacity">
                         <PixelIcon name="shield" size={32} color="#9ca3af" className="mb-3 group-hover:text-amber-400 transition-colors" />
                         <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">The Realm is Peaceful</div>
-                        <div className="text-[10px] text-gray-500 mt-1">Click + NEW QUEST to find trouble!</div>
+                        <div className="text-xs text-gray-500 mt-1">Click + NEW QUEST to find trouble.</div>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -228,7 +228,7 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
                     <div className="text-center py-6 glass-panel border-dashed border-white/10 opacity-70 flex flex-col items-center justify-center">
                         <span className="text-3xl mb-2 grayscale opacity-50">✨</span>
                         <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">A Clean Tavern</div>
-                        <div className="text-[10px] text-gray-500 mt-1">All household chores are complete!</div>
+                        <div className="text-xs text-gray-500 mt-1">All household chores are complete.</div>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -258,11 +258,11 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
                                 <div key={`${task.id}-${idx}`} className="glass-card p-3 opacity-60 flex justify-between items-center">
                                     <div>
                                         <span className="text-sm font-medium text-gray-400 line-through block mb-1">{task.title}</span>
-                                        <span className="text-[10px] text-gray-500">
+                                        <span className="text-xs text-gray-500">
                                             Completed: {new Date(task.lastCompleted).toLocaleDateString()}
                                         </span>
                                     </div>
-                                    <span className="text-[10px] text-rpg-gold">
+                                    <span className="text-xs text-rpg-gold">
                                         +{task.difficulty === 3 ? '40' : '20'} XP
                                     </span>
                                 </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import PixelIcon from '../common/PixelIcon';
 import Sprite from '../common/Sprite';
+import { useToast } from '../common/Toast';
 
 const BOSS_TYPES = [
     { id: 'dragon', src: '/assets/sprites_items.png', x: -160, y: -64, width: 32, height: 32 },
@@ -10,6 +11,7 @@ const BOSS_TYPES = [
 ];
 
 const ProjectModal = ({ onClose, initialBoss = null }) => {
+    const toast = useToast();
     const { state, actions, familyData, activeProfileId } = useGame();
 
     // Modes: 'wild' or 'project'
@@ -87,7 +89,7 @@ const ProjectModal = ({ onClose, initialBoss = null }) => {
                 // Filter out empty tasks
                 const validTasks = tasks.filter(t => t.title.trim() !== '');
                 if (validTasks.length === 0) {
-                    alert("Please add at least one task for the project!");
+                    toast.error("Please add at least one task for the project.");
                     return;
                 }
                 actions.addEpicProject(title, hp, xp, gold, randomSprite, validTasks);

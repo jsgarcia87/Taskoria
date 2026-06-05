@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Trash2, UserPlus, Shield, ShieldOff, Search, Loader } from 'lucide-react';
 import PixelIcon from '../common/PixelIcon';
 import CreationsModeration from './CreationsModeration';
+import { useToast } from '../common/Toast';
 
 const AdminPanel = ({ currentUser }) => {
+    const toast = useToast();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -73,9 +75,9 @@ const AdminPanel = ({ currentUser }) => {
             });
             const data = await res.json();
             if (data.success) {
-                alert("You have been granted Super-User rights! Please refresh the page completely to update your session.");
+                toast.success("You have been granted Super-User rights. Refresh the page to update your session.", { duration: 7000 });
             } else {
-                alert("You do not have Administrator privileges.");
+                toast.error("You do not have Administrator privileges.");
             }
         } catch (e) { }
     }
@@ -103,7 +105,7 @@ const AdminPanel = ({ currentUser }) => {
             const data = await res.json();
             if (data.success) setAllowRegistration(newStatus);
         } catch (e) {
-            alert("Error toggling registration");
+            toast.error("Error toggling registration");
         }
     };
 
@@ -118,7 +120,7 @@ const AdminPanel = ({ currentUser }) => {
             const data = await res.json();
             if (data.success) setWaitlist(waitlist.filter(w => w.id !== id));
         } catch (e) {
-            alert("Error deleting from waitlist");
+            toast.error("Error deleting from waitlist");
         }
     };
 
@@ -138,10 +140,10 @@ const AdminPanel = ({ currentUser }) => {
             if (data.success) {
                 setUsers(users.filter(u => u.id !== targetId));
             } else {
-                alert(data.error || "Failed to delete user");
+                toast.error(data.error || "Failed to delete user");
             }
         } catch (e) {
-            alert("Network error deleting user");
+            toast.error("Network error deleting user");
         }
     };
 

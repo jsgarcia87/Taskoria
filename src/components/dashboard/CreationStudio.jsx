@@ -12,11 +12,11 @@ const PALETTE = [
 ];
 
 const CATEGORIES = [
-    { id: 'casas', label: 'Casas' },
-    { id: 'castillos', label: 'Castillos' },
-    { id: 'monturas', label: 'Monturas' },
-    { id: 'arboles', label: 'Árboles' },
-    { id: 'decoracion', label: 'Decoración' },
+    { id: 'casas', label: 'Houses' },
+    { id: 'castillos', label: 'Castles' },
+    { id: 'monturas', label: 'Mounts' },
+    { id: 'arboles', label: 'Trees' },
+    { id: 'decoracion', label: 'Decoration' },
     { id: 'props', label: 'Props' },
 ];
 
@@ -170,7 +170,7 @@ const CreationStudio = ({ currentUser }) => {
     }, []);
 
     const clearCanvas = () => {
-        if (!confirm('¿Limpiar lienzo?')) return;
+        if (!confirm('Clear canvas?')) return;
         pushUndo(pixelsRef.current);
         setPixels(emptyBuffer());
     };
@@ -210,10 +210,10 @@ const CreationStudio = ({ currentUser }) => {
 
     const publish = async () => {
         const trimmed = (name || '').trim();
-        if (!trimmed) { setPublishStatus({ state: 'error', msg: 'Pon un nombre a tu creación.' }); return; }
-        if (!currentUser?.id) { setPublishStatus({ state: 'error', msg: 'Necesitas iniciar sesión.' }); return; }
+        if (!trimmed) { setPublishStatus({ state: 'error', msg: 'Name your creation first.' }); return; }
+        if (!currentUser?.id) { setPublishStatus({ state: 'error', msg: 'You need to be logged in.' }); return; }
         const hasContent = pixelsRef.current.some(p => p && p !== EMPTY);
-        if (!hasContent) { setPublishStatus({ state: 'error', msg: 'El lienzo está vacío.' }); return; }
+        if (!hasContent) { setPublishStatus({ state: 'error', msg: 'The canvas is empty.' }); return; }
 
         setPublishStatus({ state: 'loading', msg: '' });
         try {
@@ -230,12 +230,12 @@ const CreationStudio = ({ currentUser }) => {
             });
             const data = await res.json();
             if (res.ok && data.success) {
-                setPublishStatus({ state: 'success', msg: '¡Publicado! Pendiente de aprobación.' });
+                setPublishStatus({ state: 'success', msg: 'Published! Awaiting moderation.' });
             } else {
-                setPublishStatus({ state: 'error', msg: data.error || 'Error al publicar.' });
+                setPublishStatus({ state: 'error', msg: data.error || 'Failed to publish.' });
             }
         } catch (err) {
-            setPublishStatus({ state: 'error', msg: 'Error de conexión.' });
+            setPublishStatus({ state: 'error', msg: 'Connection error.' });
         }
     };
 
@@ -254,28 +254,28 @@ const CreationStudio = ({ currentUser }) => {
         <div className="text-white">
             <header className="mb-6 text-center">
                 <h1 className="text-3xl font-display font-bold tracking-wide text-rpg-gold">Taskoria Pixel Studio</h1>
-                <p className="text-sm text-gray-400">Crea props, casas, monturas y más para el mundo de Taskoria. Tu creación pasará por moderación antes de aparecer en el mundo.</p>
+                <p className="text-sm text-gray-400">Design props, houses, mounts and more for the world of Taskoria. Your creation will go through moderation before it appears in the world.</p>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 {/* LEFT PANEL: tools, palette, reference */}
                 <aside className="lg:col-span-3 glass-panel p-4 rounded-2xl space-y-4">
                     <div>
-                        <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2">Herramientas</div>
+                        <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2">Tools</div>
                         <div className="grid grid-cols-4 gap-2">
-                            <ToolBtn active={tool==='pencil'} onClick={() => setTool('pencil')} title="Lápiz">✏️</ToolBtn>
-                            <ToolBtn active={tool==='eraser'} onClick={() => setTool('eraser')} title="Borrador"><Eraser size={16}/></ToolBtn>
-                            <ToolBtn active={tool==='fill'} onClick={() => setTool('fill')} title="Cubo"><PaintBucket size={16}/></ToolBtn>
-                            <ToolBtn active={tool==='picker'} onClick={() => setTool('picker')} title="Cuentagotas"><Pipette size={16}/></ToolBtn>
+                            <ToolBtn active={tool==='pencil'} onClick={() => setTool('pencil')} title="Pencil">✏️</ToolBtn>
+                            <ToolBtn active={tool==='eraser'} onClick={() => setTool('eraser')} title="Eraser"><Eraser size={16}/></ToolBtn>
+                            <ToolBtn active={tool==='fill'} onClick={() => setTool('fill')} title="Bucket"><PaintBucket size={16}/></ToolBtn>
+                            <ToolBtn active={tool==='picker'} onClick={() => setTool('picker')} title="Eyedropper"><Pipette size={16}/></ToolBtn>
                         </div>
                         <div className="grid grid-cols-2 gap-2 mt-2">
-                            <button onClick={undo} disabled={undoStack.length===0} className="flex items-center justify-center gap-1 text-xs bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed border border-white/10 rounded px-2 py-1.5"><Undo2 size={14}/> Deshacer</button>
-                            <button onClick={redo} disabled={redoStack.length===0} className="flex items-center justify-center gap-1 text-xs bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed border border-white/10 rounded px-2 py-1.5"><Redo2 size={14}/> Rehacer</button>
+                            <button onClick={undo} disabled={undoStack.length===0} className="flex items-center justify-center gap-1 text-xs bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed border border-white/10 rounded px-2 py-1.5"><Undo2 size={14}/> Undo</button>
+                            <button onClick={redo} disabled={redoStack.length===0} className="flex items-center justify-center gap-1 text-xs bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed border border-white/10 rounded px-2 py-1.5"><Redo2 size={14}/> Redo</button>
                         </div>
                     </div>
 
                     <div>
-                        <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2">Paleta</div>
+                        <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2">Palette</div>
                         <div className="grid grid-cols-5 gap-2">
                             {PALETTE.map(c => (
                                 <button
@@ -294,29 +294,29 @@ const CreationStudio = ({ currentUser }) => {
                                 onChange={(e) => { setCustomColor(e.target.value); setColor(e.target.value); setTool(t => t === 'eraser' || t === 'picker' ? 'pencil' : t); }}
                                 className="w-9 h-9 rounded cursor-pointer bg-transparent border border-white/10"
                             />
-                            <span className="text-xs text-gray-400">Color personalizado</span>
+                            <span className="text-xs text-gray-400">Custom color</span>
                         </div>
                     </div>
 
                     <div>
-                        <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2 flex items-center gap-1"><ImageIcon size={14}/> Imagen de referencia</div>
+                        <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2 flex items-center gap-1"><ImageIcon size={14}/> Reference image</div>
                         <label className="flex items-center justify-center gap-2 cursor-pointer text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded px-3 py-2">
-                            <Upload size={14}/> Subir imagen
+                            <Upload size={14}/> Upload image
                             <input type="file" accept="image/*" onChange={handleRefUpload} className="hidden"/>
                         </label>
                         {refImage && (
                             <div className="space-y-2 mt-2 text-xs text-gray-400">
-                                <Slider label="Opacidad" min={0} max={1} step={0.05} value={refOpacity} onChange={setRefOpacity}/>
-                                <Slider label="Tamaño" min={10} max={1000} step={5} value={refScale} onChange={setRefScale}/>
-                                <Slider label="Eje X" min={0} max={100} step={0.5} value={refX} onChange={setRefX}/>
-                                <Slider label="Eje Y" min={0} max={100} step={0.5} value={refY} onChange={setRefY}/>
-                                <button onClick={clearRef} className="w-full text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded px-2 py-1.5 flex items-center justify-center gap-1"><X size={12}/> Quitar guía</button>
+                                <Slider label="Opacity" min={0} max={1} step={0.05} value={refOpacity} onChange={setRefOpacity}/>
+                                <Slider label="Scale" min={10} max={1000} step={5} value={refScale} onChange={setRefScale}/>
+                                <Slider label="X Axis" min={0} max={100} step={0.5} value={refX} onChange={setRefX}/>
+                                <Slider label="Y Axis" min={0} max={100} step={0.5} value={refY} onChange={setRefY}/>
+                                <button onClick={clearRef} className="w-full text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded px-2 py-1.5 flex items-center justify-center gap-1"><X size={12}/> Remove guide</button>
                             </div>
                         )}
                     </div>
 
                     <button onClick={clearCanvas} className="w-full flex items-center justify-center gap-2 text-xs bg-red-900/20 hover:bg-red-900/30 border border-red-700/40 text-red-300 rounded px-3 py-2">
-                        <Trash2 size={14}/> Limpiar lienzo
+                        <Trash2 size={14}/> Clear canvas
                     </button>
                 </aside>
 
@@ -348,17 +348,17 @@ const CreationStudio = ({ currentUser }) => {
                 {/* RIGHT PANEL: name, category, publish, session */}
                 <aside className="lg:col-span-3 glass-panel p-4 rounded-2xl space-y-4">
                     <div>
-                        <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2">Publicar en Taskoria</div>
-                        <label className="block text-xs text-gray-400 mb-1">Nombre</label>
+                        <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2">Publish to Taskoria</div>
+                        <label className="block text-xs text-gray-400 mb-1">Name</label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Casa del herrero..."
+                            placeholder="Blacksmith's house..."
                             className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-sm focus:border-rpg-gold focus:outline-none"
                             maxLength={120}
                         />
-                        <label className="block text-xs text-gray-400 mb-1 mt-3">Categoría</label>
+                        <label className="block text-xs text-gray-400 mb-1 mt-3">Category</label>
                         <select
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
@@ -372,31 +372,31 @@ const CreationStudio = ({ currentUser }) => {
                             disabled={publishStatus.state === 'loading'}
                             className="mt-3 w-full bg-rpg-gold hover:brightness-110 disabled:opacity-50 text-black font-bold uppercase tracking-widest text-sm py-3 rounded transition-all"
                         >
-                            {publishStatus.state === 'loading' ? 'Publicando...' : 'Publicar'}
+                            {publishStatus.state === 'loading' ? 'Publishing...' : 'Publish'}
                         </button>
                         {publishStatus.msg && (
                             <p className={`text-xs mt-2 ${publishStatus.state === 'success' ? 'text-green-400' : 'text-red-400'}`}>{publishStatus.msg}</p>
                         )}
                         <p className="text-[10px] text-gray-500 mt-2 leading-relaxed">
-                            Tu creación pasará por moderación. Si se aprueba, podrá aparecer en el mundo de Taskoria.
+                            Your creation will go through moderation. If approved, it may appear in the world of Taskoria.
                         </p>
                     </div>
 
                     <div>
                         <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2 flex items-center justify-between">
-                            <span>Sesión actual</span>
+                            <span>Current session</span>
                             <span className="text-gray-500 normal-case">{sessionKeys.length}</span>
                         </div>
                         <button onClick={saveToSession} className="w-full flex items-center justify-center gap-2 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded px-3 py-2 mb-2">
-                            <Save size={14}/> Guardar en sesión
+                            <Save size={14}/> Save to session
                         </button>
                         <div className="space-y-1 max-h-40 overflow-y-auto">
-                            {sessionKeys.length === 0 && <p className="text-[10px] text-gray-600 text-center">Vacío.</p>}
+                            {sessionKeys.length === 0 && <p className="text-[10px] text-gray-600 text-center">Empty.</p>}
                             {sessionKeys.map(k => (
                                 <div key={k} className="flex items-center justify-between bg-black/40 border border-white/10 rounded px-2 py-1.5">
                                     <span className="text-xs font-mono truncate text-green-400">{k}</span>
                                     <div className="flex gap-1 flex-shrink-0">
-                                        <button onClick={() => loadFromSession(k)} className="text-[10px] bg-white/5 hover:bg-white/15 px-2 py-1 rounded">Cargar</button>
+                                        <button onClick={() => loadFromSession(k)} className="text-[10px] bg-white/5 hover:bg-white/15 px-2 py-1 rounded">Load</button>
                                         <button onClick={() => deleteFromSession(k)} className="text-[10px] bg-red-900/20 hover:bg-red-900/40 text-red-300 px-2 py-1 rounded">X</button>
                                     </div>
                                 </div>

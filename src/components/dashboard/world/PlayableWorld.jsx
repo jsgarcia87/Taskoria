@@ -3,6 +3,7 @@ import PixelAvatar from '../../common/PixelAvatar';
 import MobileJoystick from './MobileJoystick';
 import { MAP_DATA } from './MapData';
 import { SPRITES, PixelSprite, pixelBufferToDataUrl } from './sprites';
+import { WorldSprite } from './worldProps';
 import ChatModal from '../ChatModal';
 import { X, MessageSquare } from 'lucide-react';
 
@@ -365,28 +366,11 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                         );
                     }
                     if (dec.type === 'pine_tree' || dec.type === 'oak_tree') {
+                        const cx = dec.x + (dec.width || 80) / 2;
+                        const by = dec.y + (dec.height || 120);
+                        const sc = (dec.height || 120) / (dec.type === 'pine_tree' ? 72 : 64);
                         return (
-                            <div key={`dec_${i}`} className="absolute flex flex-col items-center justify-end pointer-events-none animate-sway" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, zIndex: dec.y + dec.height }}>
-                                {dec.type === 'pine_tree' ? (
-                                    <>
-                                        <div className="flex flex-col items-center drop-shadow-2xl">
-                                            <div className="w-[20%] h-[15%] bg-[#064e3b] shadow-inner"></div>
-                                            <div className="w-[40%] h-[15%] bg-[#065f46] shadow-inner border-y border-[#047857]"></div>
-                                            <div className="w-[60%] h-[15%] bg-[#064e3b] shadow-inner"></div>
-                                            <div className="w-[80%] h-[15%] bg-[#065f46] shadow-[inset_0_-4px_rgba(0,0,0,0.3)] border-b-[3px] border-black/40"></div>
-                                        </div>
-                                        <div className="w-[20%] h-[25%] bg-[#451a03] border-x-4 border-[#290f01] shadow-[inset_4px_0_rgba(0,0,0,0.3)] z-10"></div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="w-[60%] h-[15%] bg-[#166534] rounded-t-md shadow-inner"></div>
-                                        <div className="w-[80%] h-[20%] bg-[#15803d] border-b-[3px] border-[#14532d]"></div>
-                                        <div className="w-[100%] h-[30%] bg-[#166534] shadow-[inset_0_-10px_#052e16] rounded-b-md border-b-[4px] border-black/40"></div>
-                                        <div className="w-[30%] h-[30%] bg-[#451a03] border-x-4 border-[#290f01]"></div>
-                                    </>
-                                )}
-                                <div className="absolute -bottom-2 w-[80%] h-4 bg-black/40 rounded-full blur-[2px] z-0"></div>
-                            </div>
+                            <WorldSprite key={`dec_${i}`} name={dec.type} x={cx} y={by} scale={sc} sway />
                         );
                     }
                     if (dec.type === 'torch') {
@@ -409,16 +393,58 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                         );
                     }
                     if (dec.type === 'statue') {
+                        const sz = dec.size || 80;
                         return (
-                            <div key={`dec_${i}`} className="absolute flex flex-col items-center justify-end" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size * 1.5, zIndex: dec.y }}>
-                                <div className="w-[50%] h-[15%] bg-gray-600 border-x-2 border-gray-800"></div>
-                                <div className="w-[70%] h-[45%] bg-gray-500 border-x-4 border-gray-700 relative">
-                                    <div className="absolute top-2 left-1 w-[20%] h-[10%] bg-white/20"></div>
-                                    <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[40%] h-[20%] bg-gray-900/40 rounded-full"></div>
-                                </div>
-                                <div className="w-[40%] h-[25%] bg-gray-400 border-x-2 border-gray-600"></div>
-                                <div className="w-full h-[15%] bg-gray-800 border-t-2 border-gray-600 rounded-sm shadow-xl"></div>
-                                <div className="absolute -bottom-2 w-[120%] h-4 bg-black/30 rounded-full blur-md z-[-1]"></div>
+                            <div key={`dec_${i}`} className="absolute pointer-events-none"
+                                style={{ left: dec.x - sz / 2, top: dec.y - sz * 0.5, width: sz, height: sz * 1.5, zIndex: dec.y }}>
+                                <svg width={sz} height={sz * 1.5} viewBox="0 0 16 24" shapeRendering="crispEdges"
+                                    style={{ imageRendering: 'pixelated', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))' }}>
+                                    <rect x="1" y="20" width="14" height="4" fill="#4a4a6a" />
+                                    <rect x="2" y="19" width="12" height="1" fill="#6a6a8a" />
+                                    <rect x="3" y="18" width="10" height="1" fill="#3a3a5a" />
+                                    <rect x="5" y="14" width="6" height="4" fill="#545470" />
+                                    <rect x="5" y="14" width="1" height="4" fill="#6a6a8a" />
+                                    <rect x="4" y="9" width="8" height="5" fill="#585878" />
+                                    <rect x="4" y="9" width="1" height="5" fill="#7a7a9a" />
+                                    <rect x="11" y="9" width="1" height="5" fill="#3a3a5a" />
+                                    <rect x="5" y="5" width="6" height="4" fill="#606080" />
+                                    <rect x="5" y="5" width="1" height="4" fill="#808098" />
+                                    <rect x="4" y="4" width="8" height="2" fill="#4a4a6a" />
+                                    <rect x="5" y="3" width="6" height="2" fill="#585878" />
+                                    <rect x="6" y="2" width="4" height="1" fill="#4a4a6a" />
+                                    <rect x="2" y="10" width="3" height="4" fill="#4a4a6a" />
+                                    <rect x="2" y="10" width="1" height="4" fill="#6a6a8a" />
+                                    <rect x="3" y="11" width="1" height="2" fill="#c0a040" />
+                                    <rect x="11" y="8" width="1" height="6" fill="#8a8aaa" />
+                                    <rect x="10" y="9" width="3" height="1" fill="#6a6a8a" />
+                                    <rect x="4" y="13" width="8" height="2" fill="#404060" />
+                                    <rect x="0" y="23" width="16" height="1" fill="rgba(0,0,0,0.3)" />
+                                </svg>
+                            </div>
+                        );
+                    }
+                    if (dec.type === 'throne') {
+                        const sz = dec.size || 80;
+                        return (
+                            <div key={`dec_${i}`} className="absolute pointer-events-none"
+                                style={{ left: dec.x - sz / 2, top: dec.y - sz, width: sz, height: sz, zIndex: dec.y }}>
+                                <svg width={sz} height={sz} viewBox="0 0 16 16" shapeRendering="crispEdges"
+                                    style={{ imageRendering: 'pixelated', filter: 'drop-shadow(0 0 12px rgba(251,191,36,0.4))' }}>
+                                    <rect x="1" y="1" width="14" height="10" fill="#92400e" />
+                                    <rect x="1" y="1" width="14" height="1" fill="#fbbf24" />
+                                    <rect x="1" y="1" width="1" height="10" fill="#fbbf24" />
+                                    <rect x="14" y="1" width="1" height="10" fill="#b45309" />
+                                    <rect x="1" y="0" width="2" height="2" fill="#fbbf24" />
+                                    <rect x="7" y="0" width="2" height="2" fill="#fbbf24" />
+                                    <rect x="13" y="0" width="2" height="2" fill="#fbbf24" />
+                                    <rect x="3" y="3" width="2" height="2" fill="#ef4444" />
+                                    <rect x="7" y="3" width="2" height="2" fill="#3b82f6" />
+                                    <rect x="11" y="3" width="2" height="2" fill="#10b981" />
+                                    <rect x="1" y="11" width="14" height="4" fill="#7c2d12" />
+                                    <rect x="1" y="11" width="14" height="1" fill="#b45309" />
+                                    <rect x="0" y="14" width="16" height="2" fill="#7f1d1d" />
+                                    <rect x="1" y="15" width="14" height="1" fill="#991b1b" />
+                                </svg>
                             </div>
                         );
                     }
@@ -489,128 +515,82 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                     );
 
                     if (dec.type === 'well') {
-                        return (
-                            <div key={`dec_${i}`} className="absolute flex flex-col items-center justify-end" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, zIndex: Math.floor(dec.y + dec.height) }}>
-                                <div className="w-[90%] h-[28%] bg-red-800 border-b-4 border-red-950 rounded-t-sm relative overflow-hidden shadow-lg z-30">
-                                    <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(90deg, transparent 50%, rgba(0,0,0,0.5) 50%)', backgroundSize: '10px 10px' }} />
-                                </div>
-                                <div className="flex justify-between w-[68%] -mt-1 z-20">
-                                    <div className="w-2 h-7 bg-[#5c3a21] border-x border-[#3d261b]" />
-                                    <div className="w-2 h-7 bg-[#5c3a21] border-x border-[#3d261b]" />
-                                </div>
-                                <div className="w-full h-[42%] bg-gray-500 border-t-4 border-gray-400 border-b-4 border-gray-700 rounded-md shadow-xl flex items-center justify-center relative z-10">
-                                    <div className="w-[70%] h-[55%] bg-black/80 rounded-md shadow-inner" />
-                                </div>
-                            </div>
-                        );
+                        const cx = dec.x + (dec.width || 96) / 2;
+                        const by = dec.y + (dec.height || 96);
+                        const sc = (dec.height || 96) / 36;
+                        return <WorldSprite key={`dec_${i}`} name="well" x={cx} y={by} scale={sc} />;
                     }
 
                     if (dec.type === 'shop_building') {
-                        return (
-                            <div key={`dec_${i}`} className="absolute flex flex-col items-center" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, zIndex: Math.floor(dec.y + dec.height) }}>
-                                <div className="w-[108%] h-[26%] bg-[#7c2d12] border-b-4 border-[#431407] rounded-t-md shadow-lg relative overflow-hidden">
-                                    <div className="absolute inset-0 opacity-25" style={{ backgroundImage: 'linear-gradient(90deg, transparent 50%, rgba(0,0,0,0.4) 50%)', backgroundSize: '14px 14px' }} />
-                                </div>
-                                <div className="w-full flex-1 bg-[#d6c3a1] border-x-4 border-[#a1856a] relative flex items-end justify-center">
-                                    <div className="absolute top-0 left-0 w-full h-5 border-b-2 border-black/20" style={{ backgroundImage: 'repeating-linear-gradient(90deg,#dc2626 0 16px,#fef3c7 16px 32px)' }} />
-                                    <div className="absolute top-9 left-5 w-10 h-10 bg-sky-300/70 border-4 border-[#7c2d12] rounded-sm shadow-inner" />
-                                    <div className="absolute top-8 right-5 w-10 h-10 rounded-full bg-rpg-gold border-4 border-yellow-700 flex items-center justify-center font-black text-yellow-900 text-lg shadow-md">$</div>
-                                    <div className="w-[34%] h-[60%] bg-[#5c3a21] border-4 border-[#3d261b] rounded-t-lg shadow-inner relative">
-                                        <div className="absolute right-1.5 top-1/2 w-1.5 h-1.5 rounded-full bg-rpg-gold" />
-                                    </div>
-                                </div>
-                            </div>
-                        );
+                        const cx = dec.x + (dec.width || 280) / 2;
+                        const by = dec.y + (dec.height || 150);
+                        const sc = (dec.height || 150) / 60;
+                        return <WorldSprite key={`dec_${i}`} name="shop_building" x={cx} y={by} scale={sc} />;
                     }
 
                     if (dec.type === 'market_stall') {
-                        return (
-                            <div key={`dec_${i}`} className="absolute flex flex-col items-center" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, zIndex: Math.floor(dec.y + dec.height) }}>
-                                <div className="w-[110%] h-[34%] rounded-t-sm shadow-md border-b-2 border-black/30" style={{ backgroundImage: `repeating-linear-gradient(90deg, ${dec.color} 0 14px, #f8fafc 14px 28px)` }} />
-                                <div className="w-full flex-1 flex flex-col items-center justify-end">
-                                    <div className="flex justify-between w-full px-1 flex-1">
-                                        <div className="w-2 bg-[#5c3a21]" />
-                                        <div className="w-2 bg-[#5c3a21]" />
-                                    </div>
-                                    <div className="w-full h-5 bg-[#7c4a2b] border-t-2 border-[#a16207] rounded-sm shadow" />
-                                </div>
-                            </div>
-                        );
+                        const cx = dec.x + (dec.width || 130) / 2;
+                        const by = dec.y + (dec.height || 96);
+                        const sc = (dec.height || 96) / 40;
+                        const variant = dec.color === '#16a34a' ? 'market_stall_green'
+                            : dec.color === '#7c3aed' ? 'market_stall_purple'
+                            : 'market_stall_red';
+                        return <WorldSprite key={`dec_${i}`} name={variant} x={cx} y={by} scale={sc} />;
                     }
 
                     if (dec.type === 'fence') {
-                        const horizontal = dec.width >= dec.height;
-                        return (
-                            <div key={`dec_${i}`} className="absolute" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, zIndex: Math.floor(dec.y + dec.height) }}>
-                                <div className="w-full h-full border border-[#5c3a21] rounded-sm shadow-sm" style={{ backgroundImage: horizontal ? 'repeating-linear-gradient(90deg,#7c4a2b 0 18px,#5c3a21 18px 22px)' : 'repeating-linear-gradient(0deg,#7c4a2b 0 18px,#5c3a21 18px 22px)' }} />
-                            </div>
-                        );
+                        // Tile the fence sprite along the requested length
+                        const horizontal = (dec.width || 0) >= (dec.height || 0);
+                        const len = horizontal ? (dec.width || 32) : (dec.height || 32);
+                        const sc = (horizontal ? (dec.height || 16) : (dec.width || 16)) / 18;
+                        const segPx = 32 * sc;
+                        const segs = Math.max(1, Math.ceil(len / segPx));
+                        const items = [];
+                        for (let s = 0; s < segs; s++) {
+                            const offset = s * segPx;
+                            const sx = horizontal ? (dec.x + offset + segPx / 2) : (dec.x + (dec.width || 16) / 2);
+                            const sy = horizontal ? (dec.y + (dec.height || 16)) : (dec.y + offset + segPx);
+                            items.push(<WorldSprite key={`fence_${i}_${s}`} name="fence" x={sx} y={sy} scale={sc} shadow={false} />);
+                        }
+                        return <React.Fragment key={`dec_${i}`}>{items}</React.Fragment>;
                     }
 
                     if (dec.type === 'sign') {
-                        return (
-                            <div key={`dec_${i}`} className="absolute flex flex-col items-center pointer-events-none" style={{ left: dec.x, top: dec.y, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
-                                <div className="px-2 py-1 bg-[#7c4a2b] border-2 border-[#3d261b] rounded text-[9px] font-black text-yellow-100 uppercase tracking-wider shadow whitespace-nowrap">{dec.label}</div>
-                                <div className="w-1.5 h-5 bg-[#3d261b]" />
-                            </div>
-                        );
+                        return <WorldSprite key={`dec_${i}`} name="sign" x={dec.x} y={dec.y + 4} scale={1.2} />;
                     }
 
                     if (dec.type === 'barrel') {
-                        return (
-                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
-                                <div className="w-full h-full bg-[#7c4a2b] rounded-md border-x-4 border-[#5c3a21] shadow relative overflow-hidden">
-                                    <div className="absolute top-0 w-full h-2 bg-[#a16207]" />
-                                    <div className="absolute top-[30%] w-full h-1.5 bg-[#3d261b]" />
-                                    <div className="absolute top-[64%] w-full h-1.5 bg-[#3d261b]" />
-                                </div>
-                            </div>
-                        );
+                        const sc = (dec.size || 38) / 24;
+                        return <WorldSprite key={`dec_${i}`} name="barrel" x={dec.x} y={dec.y} scale={sc} />;
                     }
 
                     if (dec.type === 'crate') {
-                        return (
-                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
-                                <div className="w-full h-full bg-[#a16207] border-4 border-[#7c4a2b] shadow relative">
-                                    <div className="absolute inset-1 border-2 border-[#7c4a2b]" />
-                                    <div className="absolute top-1/2 left-0 w-full h-1 bg-[#7c4a2b]" />
-                                </div>
-                            </div>
-                        );
+                        const sc = (dec.size || 42) / 20;
+                        return <WorldSprite key={`dec_${i}`} name="crate" x={dec.x} y={dec.y} scale={sc} />;
                     }
 
                     if (dec.type === 'lamp') {
+                        const sc = (dec.size || 64) / 32;
                         return (
-                            <div key={`dec_${i}`} className="absolute flex flex-col items-center pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size * 0.5, height: dec.size, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
-                                <div className="w-3 h-3 rounded-full bg-yellow-300 shadow-[0_0_18px_rgba(253,224,71,0.9)] animate-flicker" />
-                                <div className="w-4 h-3 bg-[#374151] -mt-0.5 rounded-sm" />
-                                <div className="w-1.5 flex-1 bg-[#374151]" />
-                                <div className="w-5 h-1.5 bg-[#1f2937] rounded-sm" />
-                            </div>
+                            <React.Fragment key={`dec_${i}`}>
+                                <div className="absolute pointer-events-none rounded-full animate-flicker" style={{
+                                    left: dec.x - 60, top: dec.y - dec.size * sc + 6, width: 120, height: 120,
+                                    background: 'radial-gradient(circle, rgba(253,224,71,0.45) 0%, rgba(253,224,71,0) 65%)',
+                                    zIndex: Math.floor(dec.y) - 1,
+                                }} />
+                                <WorldSprite name="lamp" x={dec.x} y={dec.y} scale={sc} />
+                            </React.Fragment>
                         );
                     }
 
                     if (dec.type === 'flowers') {
-                        return (
-                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size * 0.6, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
-                                <div className="relative w-full h-full">
-                                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-green-700/50 rounded-full blur-[1px]" />
-                                    <span className="absolute bottom-1 left-1 w-2 h-2 rounded-full bg-pink-400" />
-                                    <span className="absolute bottom-2 left-1/2 w-2 h-2 rounded-full bg-yellow-300" />
-                                    <span className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-sky-300" />
-                                </div>
-                            </div>
-                        );
+                        const sc = (dec.size || 30) / 28;
+                        return <WorldSprite key={`dec_${i}`} name="flowers" x={dec.x} y={dec.y} scale={sc} shadow={false} />;
                     }
 
                     if (dec.type === 'bush') {
-                        return (
-                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size * 0.8, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
-                                <div className="w-full h-full bg-[#166534] rounded-full border-b-4 border-[#14532d] shadow-md relative">
-                                    <div className="absolute top-1 left-2 w-1/3 h-1/3 bg-[#22c55e]/40 rounded-full" />
-                                </div>
-                            </div>
-                        );
+                        const sc = (dec.size || 50) / 32;
+                        return <WorldSprite key={`dec_${i}`} name="bush" x={dec.x} y={dec.y} scale={sc} sway />;
                     }
 
                     if (dec.type === 'bench') {
@@ -856,22 +836,11 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                     }
 
                     if (dec.type === 'tree') {
-                        // A small ornamental tree (round canopy)
                         const w = dec.width || 70, h = dec.height || 90;
-                        return (
-                            <div key={`dec_${i}`} className="absolute flex flex-col items-center justify-end pointer-events-none animate-sway"
-                                style={{ left: dec.x, top: dec.y, width: w, height: h, zIndex: dec.y + h }}>
-                                <div className="relative w-full flex-1 flex items-end justify-center">
-                                    <div className="absolute top-0 w-[90%] h-[70%] rounded-full bg-[#166534] border-b-4 border-[#14532d] shadow-lg">
-                                        <div className="absolute top-2 left-3 w-3 h-3 bg-[#22c55e]/50 rounded-full" />
-                                        <div className="absolute top-4 right-3 w-2 h-2 bg-[#22c55e]/50 rounded-full" />
-                                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-3 h-2 bg-black/25 rounded-full blur-[1px]" />
-                                    </div>
-                                </div>
-                                <div className="w-[18%] h-[22%] bg-[#451a03] border-x-2 border-[#290f01] z-10" />
-                                <div className="absolute -bottom-1 w-[70%] h-2 bg-black/45 rounded-full blur-[2px]" />
-                            </div>
-                        );
+                        const cx = dec.x + w / 2;
+                        const by = dec.y + h;
+                        const sc = h / 64;
+                        return <WorldSprite key={`dec_${i}`} name="oak_tree" x={cx} y={by} scale={sc} sway />;
                     }
 
                     if (dec.type === 'vendor_npc') {

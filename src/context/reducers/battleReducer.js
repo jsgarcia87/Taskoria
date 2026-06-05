@@ -1,5 +1,7 @@
 import { processRewardsAndLevelUp, recordActivity } from '../../utils/gameUtils';
 
+const uid = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
 export const battleReducer = (state, action) => {
     switch (action.type) {
         case 'DEAL_DAMAGE': {
@@ -52,8 +54,11 @@ export const battleReducer = (state, action) => {
             updatedChar = { ...updatedChar, focusMessage: null, activityHistory: recordActivity(updatedChar, 'minutes', totalMinutesWorked) };
 
             if (updatedChar.achievements) {
-                updatedChar.achievements = { ...updatedChar.achievements, goldEarned: (updatedChar.achievements.goldEarned || 0) + goldGain };
+                updatedChar = { ...updatedChar, achievements: { ...updatedChar.achievements, goldEarned: (updatedChar.achievements.goldEarned || 0) + goldGain } };
             }
+
+            const initialLevel = state.character.level;
+            let anyLevelUp = !!rewardRes?.levelUp;
 
             let newEpicQuests = state.epicQuests || [];
             let bossLogs = [];
@@ -62,9 +67,12 @@ export const battleReducer = (state, action) => {
                     if (boss.currentHp > 0) {
                         const newBossHp = Math.max(0, boss.currentHp - damage);
                         if (newBossHp === 0 && boss.currentHp > 0) {
-                            bossLogs.push({ id: Date.now() + Math.random(), message: `🐉 Slayed Epic Boss: ${boss.title}! +${boss.rewardXp} XP, +${boss.rewardGold} Gold`, type: 'reward' });
-                            let bossRes = processRewardsAndLevelUp(updatedChar, boss.rewardXp, boss.rewardGold, 0);
-                            if (bossRes) { updatedChar = bossRes.newChar; if (bossRes.levelUp) rewardRes = bossRes; }
+                            bossLogs.push({ id: uid('log'), message: `🐉 Slayed Epic Boss: ${boss.title}! +${boss.rewardXp} XP, +${boss.rewardGold} Gold`, type: 'reward' });
+                            const bossRes = processRewardsAndLevelUp(updatedChar, boss.rewardXp, boss.rewardGold, 0);
+                            if (bossRes) {
+                                updatedChar = bossRes.newChar;
+                                if (bossRes.levelUp) anyLevelUp = true;
+                            }
                         }
                         return { ...boss, currentHp: newBossHp };
                     }
@@ -72,13 +80,15 @@ export const battleReducer = (state, action) => {
                 }).filter(boss => boss.currentHp > 0);
             }
 
+            const actualXpGain = rewardRes?.xpGained ?? xpGain;
+
             return {
                 ...state,
                 character: updatedChar,
                 activeDungeon: { ...state.activeDungeon, hp: newDungeonHp },
                 epicQuests: newEpicQuests,
-                log: [{ id: Date.now(), message: `FOCUS CONCLUDED! (${totalMinutesWorked} mins). +${goldGain} G, +${timeGain} TP, +${xpGain} XP.`, type: 'reward' }, ...bossLogs, ...state.log],
-                ...(rewardRes?.levelUp ? { showLevelUpModal: true, newLevelData: { level: updatedChar.level, stats: updatedChar.stats, class: updatedChar.class } } : {})
+                log: [{ id: uid('log'), message: `FOCUS CONCLUDED! (${totalMinutesWorked} mins). +${goldGain} G, +${timeGain} TP, +${actualXpGain} XP.`, type: 'reward' }, ...bossLogs, ...state.log],
+                ...(anyLevelUp && updatedChar.level > initialLevel ? { showLevelUpModal: true, newLevelData: { level: updatedChar.level, stats: updatedChar.stats, class: updatedChar.class } } : {})
             };
         }
 
