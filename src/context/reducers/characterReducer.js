@@ -1,8 +1,10 @@
-import { 
-    calculateMaxHp, 
-    calculateXpReq, 
+import {
+    calculateMaxHp,
+    calculateXpReq,
     calculateUpdatedStats,
-    checkBadges
+    checkBadges,
+    processRewardsAndLevelUp,
+    bumpDailyMissions
 } from '../../utils/gameUtils';
 import { SET_BONUSES } from '../../data/items';
 
@@ -59,7 +61,12 @@ export const characterReducer = (state, action) => {
                     activeSets: {},
                     bonuses: { gold: 0, xp: 0 },
                     achievements: { tasks: 0, habits: 0, goldEarned: 100 },
-                    unlockedBadges: []
+                    unlockedBadges: [],
+                    // Onboarding: trigger interactive tutorial for fresh characters
+                    hasSeenTutorial: false,
+                    // Daily missions — auto-generated each day
+                    dailyMissions: null,
+                    dailyMissionsDate: null,
                 },
             };
         }
@@ -73,7 +80,8 @@ export const characterReducer = (state, action) => {
                 character: {
                     ...state.character,
                     gold: state.character.gold - item.cost,
-                    inventory: [...state.character.inventory, item]
+                    inventory: [...state.character.inventory, item],
+                    dailyMissions: bumpDailyMissions(state.character.dailyMissions, 'spend_gold', item.cost),
                 },
                 log: [{ id: Date.now(), message: `Bought ${item.name}`, type: 'info' }, ...state.log]
             };
@@ -216,36 +224,114 @@ export const characterReducer = (state, action) => {
 
             let newChar = { ...state.character, inventory: newInventory };
             let logMsg = `Used ${item.name}.`;
+            let levelUpData = null;
 
-            if (item.name === 'Health Potion') {
+            // Legacy name-based effects (kept for items that came from loot drops)
+            if (item.name === 'Health Potion' && !item.effect?.hp) {
                 newChar.hp = { ...newChar.hp, current: Math.min(newChar.hp.max, newChar.hp.current + 50) };
                 logMsg += ` Restored 50 HP.`;
-            } else if (item.name === 'Gold Pouch') {
+            } else if (item.name === 'Gold Pouch' && !item.effect?.gold) {
                 const goldAmount = Math.floor(Math.random() * 200) + 100;
                 newChar.gold = (newChar.gold || 0) + goldAmount;
                 logMsg += ` Found ${goldAmount} Gold!`;
-            } else if (item.name === 'Mystery Chest') {
-                const roll = Math.random();
-                if (roll < 0.5) {
-                    const goldAmount = Math.floor(Math.random() * 400) + 100;
-                    newChar.gold = (newChar.gold || 0) + goldAmount;
-                    logMsg += ` Found ${goldAmount} Gold!`;
-                } else if (roll < 0.9) {
-                    newChar.gold = (newChar.gold || 0) + 500;
-                    logMsg += ` Jackpot: 500 Gold!`;
-                }
-                // Hatching is handled by petReducer
             }
 
-            if (item.effect?.hp) {
-                newChar.hp = { ...newChar.hp, current: Math.min(newChar.hp.max, newChar.hp.current + item.effect.hp) };
-                logMsg += ` Restored ${item.effect.hp} HP.`;
+            // Effect-based handlers (preferred for new items)
+            const eff = item.effect || {};
+
+            if (eff.hp) {
+                newChar.hp = { ...newChar.hp, current: Math.min(newChar.hp.max, newChar.hp.current + eff.hp) };
+                logMsg += ` Restored ${eff.hp} HP.`;
+            }
+
+            if (eff.gold) {
+                // Allow randomised pouches via effect.gold (treated as the mean)
+                const variance = Math.floor(eff.gold * 0.5);
+                const goldAmount = (eff.gold - variance) + Math.floor(Math.random() * (variance * 2 + 1));
+                newChar.gold = (newChar.gold || 0) + goldAmount;
+                logMsg += ` Found ${goldAmount} Gold!`;
+            }
+
+            if (eff.xp) {
+                const res = processRewardsAndLevelUp(newChar, eff.xp, 0, 0);
+                if (res) {
+                    newChar = res.newChar;
+                    logMsg += ` Gained ${res.xpGained} XP!`;
+                    if (res.levelUp) {
+                        levelUpData = { level: newChar.level, stats: newChar.stats };
+                    }
+                }
+            }
+
+            if (eff.mysteryChest || item.name === 'Mystery Chest') {
+                const roll = Math.random();
+                if (roll < 0.55) {
+                    const goldAmount = Math.floor(Math.random() * 400) + 200;
+                    newChar.gold = (newChar.gold || 0) + goldAmount;
+                    logMsg += ` Found ${goldAmount} Gold!`;
+                } else if (roll < 0.85) {
+                    newChar.gold = (newChar.gold || 0) + 800;
+                    logMsg += ` Jackpot: 800 Gold!`;
+                } else {
+                    // 15% chance: 300 XP boost
+                    const res = processRewardsAndLevelUp(newChar, 300, 0, 0);
+                    if (res) {
+                        newChar = res.newChar;
+                        logMsg += ` Ancient knowledge! +${res.xpGained} XP.`;
+                        if (res.levelUp) levelUpData = { level: newChar.level, stats: newChar.stats };
+                    }
+                }
             }
 
             return {
                 ...state,
                 character: newChar,
-                log: [{ id: Date.now(), message: logMsg, type: 'info' }, ...state.log]
+                log: [{ id: Date.now(), message: logMsg, type: 'info' }, ...state.log],
+                ...(levelUpData ? { showLevelUpModal: true, newLevelData: levelUpData } : {})
+            };
+        }
+
+        case 'DISMISS_TUTORIAL':
+            if (!state.character) return state;
+            return { ...state, character: { ...state.character, hasSeenTutorial: true } };
+
+        case 'CLAIM_DAILY_MISSION': {
+            if (!state.character?.dailyMissions) return state;
+            const missionId = action.payload;
+            const mission = state.character.dailyMissions.find(m => m.id === missionId);
+            if (!mission || mission.claimed || mission.progress < mission.target) return state;
+
+            const xpGain = mission.rewardXp || 0;
+            const goldGain = mission.rewardGold || 0;
+            const res = processRewardsAndLevelUp(state.character, xpGain, goldGain, 0);
+            let updatedChar = res ? res.newChar : state.character;
+            const updatedMissions = updatedChar.dailyMissions.map(m =>
+                m.id === missionId ? { ...m, claimed: true } : m
+            );
+            updatedChar = { ...updatedChar, dailyMissions: updatedMissions };
+
+            // Bump "completed all daily missions today" counter — used by the
+            // "Disciplined Day" badge. Only counts once per day per character.
+            const allDone = updatedMissions.every(m => m.claimed);
+            const today = updatedChar.dailyMissionsDate;
+            const lastAllDoneDay = updatedChar.achievements?.lastAllMissionsDay;
+            if (allDone && today && today !== lastAllDoneDay) {
+                updatedChar = {
+                    ...updatedChar,
+                    achievements: {
+                        ...(updatedChar.achievements || {}),
+                        dailyMissionsCompletedDays:
+                            (updatedChar.achievements?.dailyMissionsCompletedDays || 0) + 1,
+                        lastAllMissionsDay: today,
+                    },
+                };
+            }
+
+            return {
+                ...state,
+                character: updatedChar,
+                log: [{ id: Date.now(), message: `Mission claimed: ${mission.title}! +${xpGain} XP, +${goldGain} G`, type: 'reward' }, ...state.log],
+                ...(res?.levelUp ? { showLevelUpModal: true, newLevelData: { level: updatedChar.level, stats: updatedChar.stats } } : {}),
             };
         }
 

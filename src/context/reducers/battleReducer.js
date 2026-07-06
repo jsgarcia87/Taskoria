@@ -1,4 +1,4 @@
-import { processRewardsAndLevelUp, recordActivity } from '../../utils/gameUtils';
+import { processRewardsAndLevelUp, recordActivity, bumpDailyMissions, getPetMoodBonus, getPetPerks } from '../../utils/gameUtils';
 
 const uid = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -38,8 +38,21 @@ export const battleReducer = (state, action) => {
             const qualityMult = 0.7 + (focusQuality * 0.1);
             const damage = Math.floor((50 + (enemiesDefeated * 10)) * qualityMult);
 
-            const xpGain = Math.floor(totalMinutesWorked * 2 * (1 + Math.min(enemiesDefeated, 25) / 100) * qualityMult);
-            const goldGain = Math.floor(((totalMinutesWorked * 10) + (enemiesDefeated * 5)) * qualityMult);
+            // Pomodoro rewards rebalanced: old formula gave ~250g for a single 25-min
+            // session (= 2.5 Iron Swords!) which inflated the economy. New formula
+            // pays well for time but isn't the dominant income source.
+            //   25 min × quality 3 → XP ≈ 75, Gold ≈ 75
+            //   50 min × quality 5 → XP ≈ 180, Gold ≈ 180
+            const petBonus = getPetMoodBonus(state.character);
+            const perks = getPetPerks(state.character);
+            const xpGain = Math.floor(
+                (totalMinutesWorked * 3 + enemiesDefeated * 2) *
+                (1 + Math.min(enemiesDefeated, 25) / 100) *
+                qualityMult * petBonus * (1 + perks.xpMult)
+            );
+            const goldGain = Math.floor(
+                (totalMinutesWorked * 3 + enemiesDefeated * 2) * qualityMult * (1 + perks.goldMult)
+            );
             const timeGain = totalMinutesWorked;
 
             const newDungeonHp = Math.max(0, (state.activeDungeon?.hp || 0) - damage);
@@ -52,9 +65,20 @@ export const battleReducer = (state, action) => {
             }
 
             updatedChar = { ...updatedChar, focusMessage: null, activityHistory: recordActivity(updatedChar, 'minutes', totalMinutesWorked) };
+            // Daily mission progress
+            updatedChar = { ...updatedChar, dailyMissions: bumpDailyMissions(updatedChar.dailyMissions, 'pomodoro', 1) };
+            updatedChar = { ...updatedChar, dailyMissions: bumpDailyMissions(updatedChar.dailyMissions, 'focus_minutes', totalMinutesWorked) };
 
             if (updatedChar.achievements) {
-                updatedChar = { ...updatedChar, achievements: { ...updatedChar.achievements, goldEarned: (updatedChar.achievements.goldEarned || 0) + goldGain } };
+                updatedChar = {
+                    ...updatedChar,
+                    achievements: {
+                        ...updatedChar.achievements,
+                        goldEarned: (updatedChar.achievements.goldEarned || 0) + goldGain,
+                        pomodoros: (updatedChar.achievements.pomodoros || 0) + 1,
+                        focusMinutes: (updatedChar.achievements.focusMinutes || 0) + totalMinutesWorked,
+                    }
+                };
             }
 
             const initialLevel = state.character.level;

@@ -164,22 +164,23 @@ function pineTree() {
     set(17, 70, PAL.woodBase); set(22, 70, PAL.woodBase);
     set(16, 71, PAL.woodDark); set(23, 71, PAL.woodDark);
 
-    // Three triangle tiers (bottom widest)
+    // Three triangle tiers (each tier: narrow at top, widest at bottom — skirt shape)
     const drawTier = (cy, halfW, hgt) => {
         for (let dy = 0; dy < hgt; dy++) {
-            const ww = Math.round(halfW * (1 - dy / hgt));
+            const ww = Math.round(halfW * (dy / (hgt - 1))); // 0 at top → halfW at bottom
             for (let dx = -ww; dx <= ww; dx++) {
                 set(20 + dx, cy + dy, PAL.leafDark);
             }
         }
     };
-    drawTier(40, 18, 18);  // bottom
-    drawTier(24, 14, 16);  // middle
-    drawTier(8, 10, 16);   // top
+    drawTier(40, 18, 18);  // bottom tier
+    drawTier(24, 14, 16);  // middle tier
+    drawTier(8, 10, 16);   // top tier
     // Highlight on left side (sun)
     const drawHi = (cy, halfW, hgt) => {
         for (let dy = 1; dy < hgt - 1; dy++) {
-            const ww = Math.round(halfW * (1 - dy / hgt));
+            const ww = Math.round(halfW * (dy / (hgt - 1)));
+            if (ww < 2) continue;
             for (let dx = -ww; dx <= -ww + 3; dx++) {
                 set(20 + dx, cy + dy, PAL.leafBase);
             }
@@ -706,6 +707,484 @@ function clothBanner(accent) {
 }
 
 // -----------------------------------------------------------------------------
+//  Tavern interior props
+// -----------------------------------------------------------------------------
+
+function tavernMug() {
+    const w = 16, h = 20;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Body
+    rect(buf, w, h, 3, 6, 8, 13, PAL.woodMid);
+    rect(buf, w, h, 3, 6, 8, 1, PAL.woodLite);
+    rect(buf, w, h, 3, 18, 8, 1, PAL.woodDark);
+    rect(buf, w, h, 3, 6, 1, 13, PAL.woodHi);
+    rect(buf, w, h, 10, 6, 1, 13, PAL.woodDark);
+    // Iron bands
+    rect(buf, w, h, 3, 9, 8, 1, PAL.ironDark);
+    rect(buf, w, h, 3, 15, 8, 1, PAL.ironDark);
+    // Foam top
+    rect(buf, w, h, 3, 4, 8, 2, PAL.white);
+    set(4, 3, PAL.white); set(6, 3, PAL.white); set(8, 3, PAL.white); set(9, 3, PAL.white);
+    set(5, 5, PAL.stoneMid); set(8, 5, PAL.stoneMid);
+    // Ale shine
+    rect(buf, w, h, 5, 6, 1, 3, PAL.brassHi);
+    // Handle (right side)
+    rect(buf, w, h, 11, 8, 2, 1, PAL.woodDark);
+    rect(buf, w, h, 13, 9, 1, 6, PAL.woodMid);
+    rect(buf, w, h, 11, 15, 2, 1, PAL.woodDark);
+    rect(buf, w, h, 12, 10, 1, 4, PAL.woodHi);
+    return { w, h, buffer: buf };
+}
+
+function tavernStool() {
+    const w = 18, h = 18;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Top seat (round)
+    ellipse(buf, w, h, 9, 5, 7, 3, PAL.woodBase);
+    ellipse(buf, w, h, 9, 5, 7, 2, PAL.woodMid);
+    ellipse(buf, w, h, 9, 4, 6, 1, PAL.woodHi);
+    // Seat edge shadow
+    ellipse(buf, w, h, 9, 6, 7, 1, PAL.woodDark);
+    // Wood grain on seat
+    set(6, 5, PAL.woodDark); set(11, 5, PAL.woodDark);
+    // Legs (3 visible, slight perspective)
+    rect(buf, w, h, 4, 7, 2, 10, PAL.woodBase);
+    rect(buf, w, h, 4, 7, 1, 10, PAL.woodHi);
+    rect(buf, w, h, 12, 7, 2, 10, PAL.woodBase);
+    rect(buf, w, h, 13, 7, 1, 10, PAL.woodDark);
+    rect(buf, w, h, 8, 7, 2, 10, PAL.woodMid);
+    // Cross brace
+    rect(buf, w, h, 5, 12, 8, 1, PAL.woodDark);
+    return { w, h, buffer: buf };
+}
+
+function fireplace() {
+    const w = 40, h = 48;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Stone mantle/back wall
+    rect(buf, w, h, 0, 0, w, 6, PAL.stoneShade);
+    rect(buf, w, h, 0, 6, w, 2, PAL.stoneDark);
+    rect(buf, w, h, 0, 8, w, 36, PAL.stoneDark);
+    // Stone block pattern on outer wall
+    for (let r = 0; r < 6; r++) {
+        const off = (r % 2) * 4;
+        for (let c = -1; c < 5; c++) {
+            const x = off + c * 8;
+            const y = 10 + r * 6;
+            rect(buf, w, h, x, y, 7, 5, PAL.stoneBase);
+            rect(buf, w, h, x, y, 7, 1, PAL.stoneMid);
+            rect(buf, w, h, x, y + 4, 7, 1, PAL.stoneShade);
+        }
+    }
+    // Mantle shelf
+    rect(buf, w, h, 0, 4, w, 2, PAL.stoneMid);
+    rect(buf, w, h, 0, 4, w, 1, PAL.stoneHi);
+    // Hearth arch (cutout)
+    rect(buf, w, h, 8, 14, 24, 30, PAL.ironDark);
+    // Arch top
+    for (let i = 0; i < 6; i++) {
+        rect(buf, w, h, 8 + i, 14 - i, 24 - i * 2, 1, PAL.stoneShade);
+    }
+    // Fire bed (logs)
+    rect(buf, w, h, 10, 38, 20, 4, PAL.woodDark);
+    rect(buf, w, h, 11, 36, 18, 3, PAL.woodBase);
+    rect(buf, w, h, 13, 34, 14, 3, PAL.woodMid);
+    // Log ends
+    set(10, 37, PAL.woodHi); set(29, 37, PAL.woodHi);
+    set(11, 35, PAL.woodHi); set(28, 35, PAL.woodHi);
+    // Flames
+    const flameLayers = [
+        { y: 30, w: 12, c: PAL.redDark },
+        { y: 28, w: 10, c: PAL.orange },
+        { y: 26, w: 8, c: PAL.brassHi },
+        { y: 24, w: 6, c: PAL.yellow },
+        { y: 22, w: 4, c: PAL.yellow },
+        { y: 20, w: 2, c: PAL.white },
+    ];
+    flameLayers.forEach(({ y, w: fw, c }) => {
+        rect(buf, w, h, 20 - fw / 2, y, fw, 4, c);
+        // Round tops
+        set(20 - fw / 2 - 1, y + 2, c);
+        set(20 + fw / 2, y + 2, c);
+    });
+    // Sparks
+    set(15, 22, PAL.yellow); set(25, 24, PAL.brassHi); set(18, 18, PAL.orange);
+    return { w, h, buffer: buf };
+}
+
+function woodenTable() {
+    const w = 56, h = 28;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Top
+    rect(buf, w, h, 2, 4, 52, 8, PAL.woodMid);
+    rect(buf, w, h, 2, 4, 52, 1, PAL.woodLite);
+    rect(buf, w, h, 2, 11, 52, 1, PAL.woodDark);
+    rect(buf, w, h, 2, 12, 52, 2, PAL.woodDark);
+    // Wood planks (3 slats)
+    rect(buf, w, h, 2, 7, 52, 1, PAL.woodDark);
+    rect(buf, w, h, 2, 9, 52, 1, PAL.woodDark);
+    // Top grain dots
+    for (let x = 4; x < 54; x += 6) set(x, 6, PAL.woodHi);
+    for (let x = 7; x < 54; x += 6) set(x, 8, PAL.woodDark);
+    // Legs
+    rect(buf, w, h, 6, 14, 4, 13, PAL.woodBase);
+    rect(buf, w, h, 6, 14, 1, 13, PAL.woodHi);
+    rect(buf, w, h, 9, 14, 1, 13, PAL.woodDark);
+    rect(buf, w, h, 46, 14, 4, 13, PAL.woodBase);
+    rect(buf, w, h, 46, 14, 1, 13, PAL.woodHi);
+    rect(buf, w, h, 49, 14, 1, 13, PAL.woodDark);
+    // Apron
+    rect(buf, w, h, 10, 14, 36, 2, PAL.woodDark);
+    // Items on table (candle + plate)
+    rect(buf, w, h, 26, 1, 4, 4, PAL.brassDark);
+    rect(buf, w, h, 27, 0, 2, 1, PAL.yellow);
+    set(28, 1, PAL.white);
+    ellipse(buf, w, h, 18, 7, 4, 1, PAL.stoneHi);
+    ellipse(buf, w, h, 38, 7, 4, 1, PAL.stoneHi);
+    return { w, h, buffer: buf };
+}
+
+function barCounter() {
+    // Wider tavern bar counter, replaces the dark rect
+    const w = 100, h = 28;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Counter top (richer wood, polished)
+    rect(buf, w, h, 0, 0, w, 6, PAL.woodMid);
+    rect(buf, w, h, 0, 0, w, 1, PAL.woodLite);
+    rect(buf, w, h, 0, 5, w, 1, PAL.woodDark);
+    // Front
+    rect(buf, w, h, 0, 6, w, 22, PAL.woodBase);
+    rect(buf, w, h, 0, 6, w, 1, PAL.woodHi);
+    rect(buf, w, h, 0, 26, w, 2, PAL.woodDark);
+    // Vertical plank seams
+    for (let x = 8; x < w; x += 12) {
+        rect(buf, w, h, x, 6, 1, 20, PAL.woodDark);
+        set(x + 1, 7, PAL.woodHi);
+    }
+    // Trim band
+    rect(buf, w, h, 0, 22, w, 1, PAL.woodDark);
+    rect(buf, w, h, 0, 23, w, 1, PAL.woodHi);
+    // Brass studs
+    for (let x = 4; x < w; x += 12) {
+        set(x, 9, PAL.brassHi); set(x + 1, 9, PAL.brassBase);
+    }
+    return { w, h, buffer: buf };
+}
+
+// -----------------------------------------------------------------------------
+//  Interior / Keep props (reference-image style)
+// -----------------------------------------------------------------------------
+
+function wallTorch() {
+    const w = 14, h = 32;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Iron sconce bracket against wall
+    rect(buf, w, h, 4, 18, 6, 8, PAL.ironDark);
+    rect(buf, w, h, 4, 18, 6, 1, PAL.ironHi);
+    rect(buf, w, h, 4, 18, 1, 8, PAL.ironHi);
+    rect(buf, w, h, 9, 18, 1, 8, PAL.ironBase);
+    // Handle pin
+    rect(buf, w, h, 6, 26, 2, 2, PAL.ironBase);
+    // Wooden torch shaft going up from sconce
+    rect(buf, w, h, 6, 10, 2, 10, PAL.woodDark);
+    rect(buf, w, h, 6, 10, 1, 10, PAL.woodBase);
+    // Flame layers
+    const flame = [
+        { y: 7, w: 4, c: PAL.redDark },
+        { y: 5, w: 4, c: PAL.orange },
+        { y: 3, w: 3, c: PAL.brassHi },
+        { y: 1, w: 2, c: PAL.yellow },
+    ];
+    flame.forEach(({ y, w: fw, c }) => rect(buf, w, h, 7 - Math.floor(fw / 2), y, fw, 3, c));
+    set(7, 0, PAL.white);
+    // Sparks/glow dots
+    set(4, 4, PAL.yellow); set(10, 5, PAL.orange);
+    return { w, h, buffer: buf };
+}
+
+function bookshelf() {
+    const w = 36, h = 56;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Outer wooden frame
+    rect(buf, w, h, 0, 0, w, h, PAL.woodBase);
+    rect(buf, w, h, 1, 1, w - 2, h - 2, PAL.woodMid);
+    // Top/bottom thick boards
+    rect(buf, w, h, 0, 0, w, 3, PAL.woodDark);
+    rect(buf, w, h, 0, 0, w, 1, PAL.woodHi);
+    rect(buf, w, h, 0, h - 3, w, 3, PAL.woodDark);
+    // Side rails
+    rect(buf, w, h, 0, 0, 2, h, PAL.woodHi);
+    rect(buf, w, h, w - 2, 0, 2, h, PAL.woodDark);
+    // Shelves (3 rows)
+    const shelfRows = [16, 30, 44];
+    shelfRows.forEach(y => {
+        rect(buf, w, h, 2, y, w - 4, 2, PAL.woodDark);
+        rect(buf, w, h, 2, y, w - 4, 1, PAL.woodHi);
+    });
+    // Books on each shelf row above the shelf line
+    const bookColors = [
+        [PAL.redBase, PAL.redHi],
+        [PAL.blueBase, PAL.blueHi],
+        [PAL.leafBase, PAL.leafMid],
+        [PAL.purpleBase, PAL.purpleHi],
+        [PAL.brassBase, PAL.brassHi],
+        [PAL.woodHi, PAL.woodLite],
+    ];
+    const drawBookRow = (rowTop, rowH) => {
+        let x = 3;
+        let i = 0;
+        while (x < w - 4) {
+            const bw = 3 + (noise(x, rowTop) % 3);
+            const [c, hi] = bookColors[i % bookColors.length];
+            const bh = rowH - 1 - (noise(x, rowTop, 1) % 2);
+            const top = rowTop + (rowH - bh);
+            rect(buf, w, h, x, top, bw, bh, c);
+            rect(buf, w, h, x, top, 1, bh, hi);
+            // Title band
+            set(x + Math.floor(bw / 2), top + 2, PAL.brassHi);
+            x += bw;
+            i++;
+        }
+    };
+    drawBookRow(4, 12);
+    drawBookRow(18, 12);
+    drawBookRow(32, 12);
+    // Bottom row — scroll/jar/decoration
+    rect(buf, w, h, 6, 46, 6, 6, PAL.brassBase);
+    rect(buf, w, h, 6, 46, 6, 1, PAL.brassHi);
+    set(8, 49, PAL.white);
+    rect(buf, w, h, 16, 47, 4, 5, PAL.leafDark);
+    set(17, 46, PAL.leafMid); set(18, 46, PAL.leafMid);
+    rect(buf, w, h, 24, 46, 6, 6, PAL.redDark);
+    rect(buf, w, h, 24, 46, 6, 1, PAL.redHi);
+    return { w, h, buffer: buf };
+}
+
+function bed() {
+    const w = 40, h = 30;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Wooden frame
+    rect(buf, w, h, 0, 6, w, 22, PAL.woodBase);
+    rect(buf, w, h, 0, 26, w, 4, PAL.woodDark);
+    rect(buf, w, h, 0, 6, w, 1, PAL.woodHi);
+    // Headboard (left)
+    rect(buf, w, h, 0, 0, 6, 30, PAL.woodMid);
+    rect(buf, w, h, 0, 0, 1, 30, PAL.woodHi);
+    rect(buf, w, h, 5, 0, 1, 30, PAL.woodDark);
+    rect(buf, w, h, 1, 1, 4, 5, PAL.woodDark);
+    rect(buf, w, h, 1, 1, 4, 1, PAL.woodHi);
+    // Mattress (blue covers, reference-style)
+    rect(buf, w, h, 6, 8, w - 6, 18, PAL.blueBase);
+    rect(buf, w, h, 6, 8, w - 6, 1, PAL.blueHi);
+    rect(buf, w, h, 6, 25, w - 6, 1, PAL.blueDark);
+    // Cover trim
+    rect(buf, w, h, 6, 14, w - 6, 1, PAL.blueDark);
+    rect(buf, w, h, 6, 15, w - 6, 1, PAL.blueHi);
+    // Pillow
+    rect(buf, w, h, 8, 10, 10, 6, PAL.white);
+    rect(buf, w, h, 8, 10, 10, 1, PAL.stoneHi);
+    rect(buf, w, h, 8, 15, 10, 1, PAL.stoneMid);
+    // Fold details
+    set(20, 10, PAL.blueHi); set(28, 12, PAL.blueHi);
+    set(24, 18, PAL.blueDark); set(32, 20, PAL.blueDark);
+    // Legs
+    rect(buf, w, h, 7, 28, 3, 2, PAL.woodDark);
+    rect(buf, w, h, w - 6, 28, 3, 2, PAL.woodDark);
+    return { w, h, buffer: buf };
+}
+
+function diningChair() {
+    const w = 14, h = 24;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Back rest (tall, with decorative top)
+    rect(buf, w, h, 3, 0, 8, 12, PAL.woodBase);
+    rect(buf, w, h, 3, 0, 8, 1, PAL.woodHi);
+    rect(buf, w, h, 3, 0, 1, 12, PAL.woodHi);
+    rect(buf, w, h, 10, 0, 1, 12, PAL.woodDark);
+    // Cutout in backrest
+    rect(buf, w, h, 5, 4, 4, 4, PAL.outline);
+    // Seat
+    rect(buf, w, h, 2, 12, 10, 4, PAL.woodMid);
+    rect(buf, w, h, 2, 12, 10, 1, PAL.woodLite);
+    rect(buf, w, h, 2, 15, 10, 1, PAL.woodDark);
+    // Legs
+    rect(buf, w, h, 3, 16, 2, 8, PAL.woodBase);
+    rect(buf, w, h, w - 5, 16, 2, 8, PAL.woodBase);
+    // Foot shadow
+    rect(buf, w, h, 2, 23, 10, 1, PAL.shadow);
+    return { w, h, buffer: buf };
+}
+
+function diningTable() {
+    // Square-ish dining table with candelabra (3 candles) on top
+    const w = 36, h = 32;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Tabletop
+    rect(buf, w, h, 2, 10, 32, 8, PAL.woodMid);
+    rect(buf, w, h, 2, 10, 32, 1, PAL.woodLite);
+    rect(buf, w, h, 2, 17, 32, 1, PAL.woodDark);
+    // Apron
+    rect(buf, w, h, 2, 18, 32, 2, PAL.woodDark);
+    // Legs
+    rect(buf, w, h, 4, 20, 3, 12, PAL.woodBase);
+    rect(buf, w, h, 4, 20, 1, 12, PAL.woodHi);
+    rect(buf, w, h, w - 7, 20, 3, 12, PAL.woodBase);
+    rect(buf, w, h, w - 5, 20, 1, 12, PAL.woodDark);
+    // Cross brace
+    rect(buf, w, h, 7, 27, 22, 1, PAL.woodDark);
+    // Candelabra base
+    rect(buf, w, h, 14, 7, 8, 3, PAL.brassDark);
+    rect(buf, w, h, 14, 7, 8, 1, PAL.brassBase);
+    rect(buf, w, h, 16, 6, 4, 1, PAL.brassHi);
+    // 3 candles
+    const candles = [
+        { x: 12, h: 5 },
+        { x: 18, h: 6 },
+        { x: 24, h: 5 },
+    ];
+    candles.forEach(({ x, h: ch }) => {
+        rect(buf, w, h, x, 7 - ch, 2, ch, PAL.white);
+        set(x, 7 - ch, PAL.stoneHi);
+        // Flame
+        set(x, 7 - ch - 2, PAL.orange);
+        set(x, 7 - ch - 1, PAL.yellow);
+        set(x + 1, 7 - ch - 1, PAL.brassHi);
+        set(x, 7 - ch - 3, PAL.yellow);
+    });
+    return { w, h, buffer: buf };
+}
+
+function redCarpet() {
+    // Tileable red carpet with gold trim — sized to mark a ceremonial zone
+    const w = 96, h = 56;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Outer trim (gold border)
+    rect(buf, w, h, 0, 0, w, 3, PAL.brassDark);
+    rect(buf, w, h, 0, h - 3, w, 3, PAL.brassDark);
+    rect(buf, w, h, 0, 0, 3, h, PAL.brassDark);
+    rect(buf, w, h, w - 3, 0, 3, h, PAL.brassDark);
+    rect(buf, w, h, 1, 1, w - 2, 1, PAL.brassHi);
+    rect(buf, w, h, 1, h - 2, w - 2, 1, PAL.brassHi);
+    rect(buf, w, h, 1, 1, 1, h - 2, PAL.brassHi);
+    rect(buf, w, h, w - 2, 1, 1, h - 2, PAL.brassHi);
+    // Carpet body (dark red with pattern)
+    rect(buf, w, h, 3, 3, w - 6, h - 6, PAL.redDark);
+    // Lighter middle field
+    rect(buf, w, h, 6, 6, w - 12, h - 12, PAL.redBase);
+    // Inner ornamental border
+    rect(buf, w, h, 8, 8, w - 16, 1, PAL.brassBase);
+    rect(buf, w, h, 8, h - 9, w - 16, 1, PAL.brassBase);
+    rect(buf, w, h, 8, 8, 1, h - 16, PAL.brassBase);
+    rect(buf, w, h, w - 9, 8, 1, h - 16, PAL.brassBase);
+    // Diamond medallion in center
+    const cx = w / 2, cy = h / 2;
+    for (let dy = -6; dy <= 6; dy++) {
+        const span = 6 - Math.abs(dy);
+        for (let dx = -span; dx <= span; dx++) {
+            set(cx + dx, cy + dy, PAL.redHi);
+        }
+    }
+    for (let dy = -4; dy <= 4; dy++) {
+        const span = 4 - Math.abs(dy);
+        for (let dx = -span; dx <= span; dx++) {
+            set(cx + dx, cy + dy, PAL.brassDark);
+        }
+    }
+    set(cx, cy, PAL.brassHi);
+    set(cx - 1, cy, PAL.brassBase); set(cx + 1, cy, PAL.brassBase);
+    set(cx, cy - 1, PAL.brassBase); set(cx, cy + 1, PAL.brassBase);
+    return { w, h, buffer: buf };
+}
+
+function armorStand() {
+    // Decorative armor stand (statue-like) — used to flank doors
+    const w = 22, h = 36;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Pedestal
+    rect(buf, w, h, 4, 32, 14, 4, PAL.stoneDark);
+    rect(buf, w, h, 4, 32, 14, 1, PAL.stoneBase);
+    rect(buf, w, h, 5, 31, 12, 1, PAL.stoneMid);
+    // Stand pole
+    rect(buf, w, h, 10, 18, 2, 14, PAL.ironDark);
+    // Cuirass body
+    rect(buf, w, h, 4, 12, 14, 12, PAL.ironBase);
+    rect(buf, w, h, 4, 12, 14, 1, PAL.ironHi);
+    rect(buf, w, h, 4, 12, 1, 12, PAL.ironHi);
+    rect(buf, w, h, 17, 12, 1, 12, PAL.ironDark);
+    rect(buf, w, h, 4, 23, 14, 1, PAL.ironDark);
+    // Pauldrons
+    rect(buf, w, h, 2, 13, 3, 5, PAL.ironBase);
+    rect(buf, w, h, 17, 13, 3, 5, PAL.ironBase);
+    rect(buf, w, h, 2, 13, 3, 1, PAL.ironHi);
+    rect(buf, w, h, 17, 13, 3, 1, PAL.ironHi);
+    // Chest emblem
+    rect(buf, w, h, 9, 16, 4, 4, PAL.brassBase);
+    rect(buf, w, h, 9, 16, 4, 1, PAL.brassHi);
+    set(11, 18, PAL.redHi);
+    // Helmet
+    rect(buf, w, h, 6, 2, 10, 8, PAL.ironBase);
+    rect(buf, w, h, 6, 2, 10, 1, PAL.ironHi);
+    rect(buf, w, h, 6, 9, 10, 1, PAL.ironDark);
+    // Visor slit
+    rect(buf, w, h, 8, 5, 6, 1, PAL.outline);
+    // Plume
+    rect(buf, w, h, 9, 0, 4, 3, PAL.redHi);
+    set(10, -1 < 0 ? 0 : -1, PAL.redDark);
+    return { w, h, buffer: buf };
+}
+
+function pixelSkull() {
+    const w = 16, h = 16;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Cranium
+    rect(buf, w, h, 4, 2, 8, 1, PAL.stoneShade);
+    rect(buf, w, h, 3, 3, 10, 1, PAL.stoneBase);
+    rect(buf, w, h, 2, 4, 12, 6, PAL.stoneHi);
+    rect(buf, w, h, 2, 4, 1, 6, PAL.stoneShade);
+    rect(buf, w, h, 13, 4, 1, 6, PAL.stoneShade);
+    rect(buf, w, h, 3, 10, 10, 1, PAL.stoneBase);
+    // Eye sockets
+    rect(buf, w, h, 4, 5, 3, 3, PAL.outline);
+    rect(buf, w, h, 9, 5, 3, 3, PAL.outline);
+    set(5, 6, '#c81616'); set(10, 6, '#c81616'); // red glow in eyes
+    // Nose
+    rect(buf, w, h, 7, 8, 2, 2, PAL.outline);
+    // Teeth row
+    rect(buf, w, h, 4, 11, 8, 3, PAL.stoneBase);
+    set(5, 12, PAL.outline); set(7, 12, PAL.outline); set(9, 12, PAL.outline); set(11, 12, PAL.outline);
+    rect(buf, w, h, 4, 14, 8, 1, PAL.stoneShade);
+    return { w, h, buffer: buf };
+}
+
+function stoneFloorPatch() {
+    // Small standalone floor highlight tile — useful for layering
+    const w = 64, h = 32;
+    const buf = makeBuf(w, h);
+    // Lighter stone variation for accents
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const n = noise(x, y, 4) % 9;
+            const c = n < 5 ? PAL.stoneBase : (n < 8 ? PAL.stoneMid : PAL.stoneHi);
+            buf[y * w + x] = c;
+        }
+    }
+    return { w, h, buffer: buf };
+}
+
+// -----------------------------------------------------------------------------
 //  Registry
 // -----------------------------------------------------------------------------
 
@@ -736,13 +1215,35 @@ export const WORLD_PROPS = {
     banner_red: clothBanner(PAL.redBase),
     banner_gold: clothBanner(PAL.brassBase),
     banner_blue: clothBanner(PAL.blueBase),
+    // Wave 3 — tavern interior
+    mug: tavernMug(),
+    stool: tavernStool(),
+    fire: fireplace(),
+    table: woodenTable(),
+    bar_counter: barCounter(),
+    // Wave 4 — keep / interior
+    wall_torch: wallTorch(),
+    bookshelf: bookshelf(),
+    bed: bed(),
+    dining_chair: diningChair(),
+    dining_table: diningTable(),
+    red_carpet: redCarpet(),
+    armor_stand: armorStand(),
+    floor_patch: stoneFloorPatch(),
+    skull: pixelSkull(),
 };
 
 // -----------------------------------------------------------------------------
 //  WorldSprite — renders a registry prop as inline SVG (crisp at any scale)
 // -----------------------------------------------------------------------------
 
+// Prop buffers are immutable, so the merged-run <rect> list never changes for a
+// given buffer. Cache by buffer reference so we build it once instead of on
+// every render (the world re-renders often during movement / transitions).
+const _propRectCache = new WeakMap();
 function bufferToRects(buffer, w, h) {
+    const cached = _propRectCache.get(buffer);
+    if (cached) return cached;
     const rects = [];
     for (let y = 0; y < h; y++) {
         let runColor = null;
@@ -758,6 +1259,7 @@ function bufferToRects(buffer, w, h) {
             }
         }
     }
+    _propRectCache.set(buffer, rects);
     return rects;
 }
 
@@ -765,7 +1267,7 @@ function bufferToRects(buffer, w, h) {
  * Renders a WORLD_PROPS entry. Anchored bottom-center at (x, y) so trees/posts
  * "stand on" their ground coordinate. Z-sorted by y like the rest of the world.
  */
-export function WorldSprite({ name, x, y, scale = 1, sway = false, opacity = 1, shadow = true }) {
+export const WorldSprite = React.memo(function WorldSprite({ name, x, y, scale = 1, sway = false, opacity = 1, shadow = true }) {
     const prop = WORLD_PROPS[name];
     if (!prop) return null;
     const { w, h, buffer } = prop;
@@ -803,4 +1305,4 @@ export function WorldSprite({ name, x, y, scale = 1, sway = false, opacity = 1, 
             </svg>
         </div>
     );
-}
+});

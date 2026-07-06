@@ -81,7 +81,7 @@ const ToastItem = ({ toast, onDismiss }) => {
 
     return (
         <div
-            className={`pointer-events-auto bg-[#1a102e]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl flex items-stretch overflow-hidden transition-all duration-300 ${enter ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
+            className={`pointer-events-auto bg-rpg-panel/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl flex items-stretch overflow-hidden transition-all duration-300 ${enter ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
             role={toast.type === 'error' ? 'alert' : 'status'}
         >
             <div className={`w-1 ${bar}`}></div>

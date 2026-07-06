@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserPlus, User } from 'lucide-react';
-import PixelAvatar from './common/PixelAvatar'; // Assuming you have this or similar for avatars
+import ModernPixelAvatar from './common/ModernPixelAvatar';
+import { PressButton } from './common/PressButton';
 
 const ProfileSelection = ({ profiles, onSelectProfile, onCreateProfile, onLogout }) => {
     const [isCreating, setIsCreating] = useState(false);
@@ -49,13 +50,13 @@ const ProfileSelection = ({ profiles, onSelectProfile, onCreateProfile, onLogout
                                 >
                                     Cancel
                                 </button>
-                                <button
+                                <PressButton
                                     type="submit"
                                     disabled={!newProfileName.trim()}
-                                    className="flex-1 py-3 bg-rpg-gold text-rpg-bg rounded-xl transition-all font-bold text-sm uppercase shadow-glow-gold hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                                    className="flex-1 py-3 bg-rpg-gold text-rpg-bg rounded-xl font-bold text-sm uppercase shadow-glow-gold disabled:opacity-50"
                                 >
                                     Create
-                                </button>
+                                </PressButton>
                             </div>
                         </form>
                     </div>
@@ -70,7 +71,7 @@ const ProfileSelection = ({ profiles, onSelectProfile, onCreateProfile, onLogout
                                 <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl bg-black/40 border-2 border-white/10 flex items-center justify-center p-2 group-hover:border-rpg-gold group-hover:bg-white/5 group-hover:shadow-[0_0_30px_rgba(255,215,0,0.2)] transition-all duration-300 transform group-hover:-translate-y-2 overflow-hidden relative">
                                     {/* Default avatar fallback if profile doesn't have one set up yet */}
                                     {profile.state?.character?.avatarId ? (
-                                        <PixelAvatar type={profile.state.character.avatarId} scale={4.0} customColors={profile.state.character.avatarColors} headOnly={true} />
+                                        <ModernPixelAvatar type={profile.state.character.avatarId} scale={4.0} customColors={profile.state.character.avatarColors} headOnly={true} />
                                     ) : (
                                         <User size={48} className="text-gray-500 group-hover:text-rpg-gold transition-colors" />
                                     )}

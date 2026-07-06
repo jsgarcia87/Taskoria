@@ -158,4 +158,6 @@ const ModernPixelPet = ({ type = 'slime', scale = 1, customColors = null, isHatc
     );
 };
 
-export default ModernPixelPet;
+// Memoized: skips re-render when props are unchanged (e.g. when the parent
+// re-renders for unrelated state like a periodic speech bubble).
+export default React.memo(ModernPixelPet);

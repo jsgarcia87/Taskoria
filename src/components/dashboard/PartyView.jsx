@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import PixelAvatar from '../common/PixelAvatar';
+import React, { useEffect, useState, Suspense } from 'react';
+import ModernPixelAvatar from '../common/ModernPixelAvatar';
 import PixelIcon from '../common/PixelIcon';
 import CoFocusingArea from './CoFocusingArea';
 import PetSanctuaryView from './PetSanctuaryView';
 import ChatModal from './ChatModal';
 import GuildView from './GuildView';
 import BossArena from './BossArena';
-import Shop from '../Shop';
-import PlayableWorld from './world/PlayableWorld';
+// Shop carries the full items catalog + sprite sheet URL → defer until needed.
+const Shop = React.lazy(() => import('../Shop'));
+// PlayableWorld is the biggest single component (~1000 lines + world/sprites/
+// prefabs registry). Lazy-load it so the Party landing isn't gated on it.
+const PlayableWorld = React.lazy(() => import('./world/PlayableWorld'));
 import { useGame } from '../../context/GameContext';
 import { useToast } from '../common/Toast';
 
@@ -134,7 +137,7 @@ const PartyView = ({ currentUser, onOpenChat }) => {
             // Simulate pushing the combat log notification
             if (actions.triggerPush) {
                 actions.triggerPush(
-                    iWon ? `Victory against ${opChar.name}! ⚔️` : `Defeated by ${opChar.name}! 💀`,
+                    iWon ? `Victory against ${opChar.name}!` : `Defeated by ${opChar.name}!`,
                     iWon ? `Your ${myChar.class} overpowered them with ${myPower} power!` : `Their counterattack hit for ${opPower} power!`
                 );
             }
@@ -176,7 +179,7 @@ const PartyView = ({ currentUser, onOpenChat }) => {
 
                 if (actions.triggerPush) {
                     const isWin = data.winner === 'attacker';
-                    actions.triggerPush(isWin ? 'Network Victory! ⚔️' : 'Network Defeat! 💀', data.log || (isWin ? 'You won the battle!' : 'You lost the battle.'));
+                    actions.triggerPush(isWin ? 'Network Victory!' : 'Network Defeat!', data.log || (isWin ? 'You won the battle!' : 'You lost the battle.'));
                 }
 
             } catch (e) {
@@ -199,7 +202,7 @@ const PartyView = ({ currentUser, onOpenChat }) => {
         const customColors = charData?.avatarColors;
 
         return (
-            <div key={u.id} className="bg-[#1a102e]/60 backdrop-blur-xl p-3 sm:p-6 relative group border border-white/10 rounded-2xl shadow-xl hover:border-rpg-gold/50 hover:shadow-[0_0_30px_rgba(255,215,0,0.15)] transition-all duration-300">
+            <div key={u.id} className="bg-rpg-panel/60 backdrop-blur-xl p-3 sm:p-6 relative group border border-white/10 rounded-2xl shadow-xl hover:border-rpg-gold/50 hover:shadow-[0_0_30px_rgba(255,215,0,0.15)] transition-all duration-300">
                 <button
                     onClick={() => isLocal ? handleRemoveFamilyMember(u.id) : handleRemoveFriend(u.id)}
                     className="absolute top-2 right-2 text-gray-500 hover:text-red-400 bg-black/20 hover:bg-black/50 p-1.5 rounded-lg transition-colors"
@@ -213,9 +216,9 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                     <div className="p-2 sm:p-4 bg-black/30 rounded-2xl border border-white/10 shadow-inner group-hover:shadow-[0_0_20px_rgba(255,215,0,0.1)] transition-all">
                         {charData ? (
                             <div className="relative flex justify-center items-center transform scale-75 sm:scale-100 origin-center mt-[-10px] sm:mt-0">
-                                <PixelAvatar type={displayAvatar} scale={3} customColors={customColors} />
+                                <ModernPixelAvatar type={displayAvatar} scale={3} customColors={customColors} />
                                 {!isLocal && (
-                                    <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-[#1a102e] ${u.is_online ? 'bg-green-500' : 'bg-gray-500'}`} title={u.is_online ? "Online" : "Offline"}></div>
+                                    <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-rpg-panel ${u.is_online ? 'bg-green-500' : 'bg-gray-500'}`} title={u.is_online ? "Online" : "Offline"}></div>
                                 )}
                             </div>
                         ) : (
@@ -328,20 +331,29 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                         </h2>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">A bustling medieval hub for your party!</p>
                         
-                        <PlayableWorld
-                            className="relative w-full h-[500px] sm:h-[600px] bg-black border-4 border-[#1a102e] rounded-t-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
-                            currentUser={currentUser}
-                            activeProfile={familyData?.profiles?.find(p => p.id === activeProfileId)}
-                            familyMembers={familyMembers}
-                            friends={friends}
-                            onInteract={(target) => {
-                                setActiveTab(target.target);
+                        <Suspense fallback={
+                            <div className="relative w-full h-[500px] sm:h-[600px] bg-black border-4 border-rpg-panel rounded-t-xl flex items-center justify-center text-rpg-gold animate-pulse">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="w-8 h-8 border-2 border-rpg-gold border-t-transparent rounded-full animate-spin" />
+                                    <div className="text-[10px] uppercase tracking-widest font-bold">Loading world…</div>
+                                </div>
+                            </div>
+                        }>
+                            <PlayableWorld
+                                className="relative w-full h-[500px] sm:h-[600px] bg-black border-4 border-rpg-panel rounded-t-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                                currentUser={currentUser}
+                                activeProfile={familyData?.profiles?.find(p => p.id === activeProfileId)}
+                                familyMembers={familyMembers}
+                                friends={friends}
+                                onInteract={(target) => {
+                                    setActiveTab(target.target);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
-                        />
+                            />
+                        </Suspense>
 
                         {/* Legend / Status bar */}
-                        <div className="bg-[#2b254a] p-3 border-x-4 border-b-4 border-[#1a102e] rounded-b-lg flex justify-between items-center text-xs text-gray-400 font-bold uppercase tracking-widest mt-[-2px]">
+                        <div className="bg-[#2b254a] p-3 border-x-4 border-b-4 border-rpg-panel rounded-b-lg flex justify-between items-center text-xs text-gray-400 font-bold uppercase tracking-widest mt-[-2px]">
                             <div className="flex items-center gap-4">
                                 <span className="flex text-[10px] items-center gap-1"><span className="text-white">WASD</span> to walk</span>
                                 <span className="flex text-[10px] items-center gap-1"><div className="w-2 h-2 rounded-full border border-dashed border-white"></div> Portals</span>
@@ -351,7 +363,7 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                     </div>
 
                     {/* Search/Invite Section */}
-                    <div className="bg-[#1a102e]/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-4 sm:p-6 mb-8">
+                    <div className="bg-rpg-panel/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-4 sm:p-6 mb-8">
                         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
                             <input
                                 type="text"
@@ -379,7 +391,7 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden">
                                                     {u.character ? (
-                                                        <PixelAvatar type={u.character.avatarId} scale={1.5} customColors={u.character.avatarColors} />
+                                                        <ModernPixelAvatar type={u.character.avatarId} scale={1.5} customColors={u.character.avatarColors} />
                                                     ) : (
                                                         <PixelIcon name="user" size={14} className="text-gray-500" />
                                                     )}
@@ -449,7 +461,7 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                     {/* Battle Result Modal */}
                     {battleResult && (
                         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
-                            <div className={`bg-[#1a102e]/90 backdrop-blur-3xl rounded-3xl p-8 max-w-sm w-full text-center border shadow-2xl ${battleResult.winner === 'attacker' ? 'border-green-500/50 shadow-[0_0_50px_rgba(45,204,112,0.2)]' : 'border-red-500/50 shadow-[0_0_50px_rgba(239,68,68,0.2)]'}`}>
+                            <div className={`bg-rpg-panel/90 backdrop-blur-3xl rounded-3xl p-8 max-w-sm w-full text-center border shadow-2xl ${battleResult.winner === 'attacker' ? 'border-green-500/50 shadow-[0_0_50px_rgba(45,204,112,0.2)]' : 'border-red-500/50 shadow-[0_0_50px_rgba(239,68,68,0.2)]'}`}>
                                 <div className="flex justify-center mb-6">
                                     {battleResult.winner === 'attacker' ? (
                                         <div className="p-4 bg-green-500/10 rounded-full border border-green-500/30 animate-bounce">
@@ -497,7 +509,13 @@ const PartyView = ({ currentUser, onOpenChat }) => {
 
             {activeTab === 'shop' && (
                 <div className="h-full min-h-[600px] mt-4">
-                    <Shop currentUser={currentUser} />
+                    <Suspense fallback={
+                        <div className="min-h-[400px] flex items-center justify-center text-rpg-gold animate-pulse">
+                            <div className="w-6 h-6 border-2 border-rpg-gold border-t-transparent rounded-full animate-spin" />
+                        </div>
+                    }>
+                        <Shop currentUser={currentUser} />
+                    </Suspense>
                 </div>
             )}
 

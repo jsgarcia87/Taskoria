@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
+import { PressButton } from '../common/PressButton';
 
 const HabitForm = ({ onClose, initialData = null }) => {
     const { actions } = useGame();
@@ -101,12 +102,12 @@ const HabitForm = ({ onClose, initialData = null }) => {
                             className="w-full bg-black/40 border border-rpg-blue/30 rounded-xl text-blue-300 px-4 py-3 text-sm focus:border-rpg-blue hover:bg-white/5 outline-none font-sans cursor-pointer transition-colors appearance-none"
                         >
                             <option value="none">None</option>
-                            <option value="str">💪 STR (Strength)</option>
-                            <option value="int">🧠 INT (Intelligence)</option>
-                            <option value="dex">⚡ DEX (Dexterity)</option>
-                            <option value="con">🛡️ CON (Constitution)</option>
-                            <option value="cha">🗣️ CHA (Charisma)</option>
-                            <option value="will">🧘 WILL (Willpower)</option>
+                            <option value="str">+1 STR (Strength)</option>
+                            <option value="int">+1 INT (Intelligence)</option>
+                            <option value="dex">+1 DEX (Dexterity)</option>
+                            <option value="con">+1 CON (Constitution)</option>
+                            <option value="cha">+1 CHA (Charisma)</option>
+                            <option value="will">+1 WILL (Willpower)</option>
                         </select>
                     </div>
                 </div>
@@ -131,12 +132,12 @@ const HabitForm = ({ onClose, initialData = null }) => {
                             CANCEL
                         </button>
                     )}
-                    <button
+                    <PressButton
                         type="submit"
-                        className="flex-1 px-4 py-3 text-sm bg-rpg-blue text-white font-bold rounded-xl hover:bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all active:scale-95 uppercase tracking-wider"
+                        className="flex-1 px-4 py-3 text-sm bg-rpg-blue text-white font-bold rounded-xl hover:bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-colors uppercase tracking-wider"
                     >
                         {initialData ? 'SAVE CHANGES' : 'CREATE HABIT'}
-                    </button>
+                    </PressButton>
                 </div>
             </form>
         </div>

@@ -132,8 +132,8 @@ const Shop = ({ currentUser }) => {
     }
 
     return (
-        <div className="bg-[#1a102e]/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-4 sm:p-6 h-full flex flex-col relative min-h-[500px]">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#130f1e] px-4 sm:px-6 py-1 text-xs sm:text-sm text-rpg-gold font-heading font-bold tracking-widest border border-rpg-gold/30 shadow-[0_0_15px_rgba(255,215,0,0.3)] rounded-full whitespace-nowrap">
+        <div className="bg-rpg-panel/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-4 sm:p-6 h-full flex flex-col relative min-h-[500px]">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-rpg-panelDark px-4 sm:px-6 py-1 text-xs sm:text-sm text-rpg-gold font-heading font-bold tracking-widest border border-rpg-gold/30 shadow-[0_0_15px_rgba(255,215,0,0.3)] rounded-full whitespace-nowrap">
                 HUMBLE MERCHANT
             </div>
 

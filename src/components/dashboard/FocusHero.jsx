@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Play, Settings, Coffee, ListTodo, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import Pomodoro from '../../components/Pomodoro';
-import PixelPet from '../common/PixelPet';
+import ModernPixelPet from '../common/ModernPixelPet';
 import { useToast } from '../common/Toast';
 
 const FocusHero = () => {
@@ -109,12 +109,19 @@ const FocusHero = () => {
                         onClick={() => setPomodoroMode('hatch')}
                         className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${pomodoroMode === 'hatch' ? 'bg-amber-500 text-white shadow-glow-amber' : 'text-gray-500 hover:text-gray-300'}`}
                     >
-                        <div className="scale-75 origin-center"><PixelPet type="egg" scale={0.5} /></div> Hatch
+                        <div className="scale-75 origin-center"><ModernPixelPet type="dragon_egg" scale={0.5} isHatching /></div> Hatch
                     </button>
                 </div>
 
                 {/* Big Launch Button / Portal */}
-                <div className="relative group/portal cursor-pointer" onClick={handleEnterPortal}>
+                <div
+                    className="relative group/portal cursor-pointer"
+                    onClick={handleEnterPortal}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Enter portal"
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleEnterPortal(); } }}
+                >
                     <div className={`relative z-10 bg-gradient-to-b from-gray-900 to-black w-24 h-24 rounded-full flex flex-col items-center justify-center transition-all duration-500 group-hover/portal:scale-110 shadow-[0_0_40px_rgba(239,68,68,0.2)] border-2 ${pomodoroMode === 'hatch' ? 'border-amber-900/50 group-hover/portal:border-amber-500/80 group-hover/portal:shadow-[0_0_60px_rgba(245,158,11,0.6)]' : 'border-red-900/50 group-hover/portal:border-red-500/80 group-hover/portal:shadow-[0_0_60px_rgba(239,68,68,0.6)]'} overflow-hidden`}>
                         <div className={`absolute inset-0 bg-[conic-gradient(from_0deg,transparent,${pomodoroMode === 'hatch' ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.3)'},transparent)] animate-spin-slow opacity-0 group-hover/portal:opacity-100 transition-opacity duration-1000`}></div>
                         <Play size={32} fill="currentColor" className={`${pomodoroMode === 'hatch' ? 'text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)]' : 'text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]'} ml-1 z-10 group-hover/portal:scale-110 transition-transform`} />
@@ -156,7 +163,7 @@ const FocusHero = () => {
                             </button>
 
                             {showTaskSelector && (
-                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-[#1a102e] border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] p-3 z-50 text-left h-auto max-h-64 flex flex-col animate-in fade-in slide-in-from-bottom-2">
+                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-rpg-panel border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] p-3 z-50 text-left h-auto max-h-64 flex flex-col animate-in fade-in slide-in-from-bottom-2">
                                     <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
                                         <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Quests</div>
                                         <button onClick={() => setShowTaskSelector(false)} className="text-gray-500 hover:text-white"><X size={14} /></button>

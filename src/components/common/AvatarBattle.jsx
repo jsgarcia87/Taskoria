@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../../context/GameContext';
-import PixelAvatar from './PixelAvatar';
+import ModernPixelAvatar from './ModernPixelAvatar';
 import { Sword, Skull } from 'lucide-react';
 
 // Helper to get random class type
@@ -117,7 +117,7 @@ const AvatarBattle = ({ isActive, onEnemyDefeated, isBoss = false }) => {
                 </div>
 
                 <div className="filter drop-shadow-[4px_4px_0_rgba(0,0,0,0.5)]">
-                    <PixelAvatar
+                    <ModernPixelAvatar
                         type={character?.avatarId || character?.class?.toLowerCase() || 'warrior'}
                         scale={2}
                         customColors={character?.avatarColors}
@@ -149,7 +149,7 @@ const AvatarBattle = ({ isActive, onEnemyDefeated, isBoss = false }) => {
                         filter: `drop-shadow(-4px 4px 0 rgba(0,0,0,0.5)) ${isBoss ? 'hue-rotate(320deg) brightness(1.2)' : 'brightness(0.6) contrast(1.2) sepia(0.3) saturate(0.5) hue-rotate(200deg)'}` 
                     }}
                 > {/* Flip enemy and apply shadow/entity look */}
-                    <PixelAvatar
+                    <ModernPixelAvatar
                         type={enemy.type}
                         scale={isBoss ? 3 : 2}
                     />

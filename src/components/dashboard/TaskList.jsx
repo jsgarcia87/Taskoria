@@ -1,10 +1,112 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Edit2, Trash2, Clock, Play } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { TASK_DIFFICULTY } from '../../utils/gameUtils';
 import TaskForm from './TaskForm';
 import HabitForm from './HabitForm';
 import PixelIcon from '../common/PixelIcon';
+
+// Presets compartidos para la animación de cada quest.
+// Salida corta (x: 24, no 60) y ease "gentle-out" → la tarea "se retira" en
+// vez de "salir volando". El `layout` en el mismo motion.div hace que las
+// tareas de debajo suban con spring al desaparecer una.
+const TASK_MOTION = {
+    layout: true,
+    initial: { opacity: 0, y: 6 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, x: 24, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } },
+    transition: { type: 'spring', stiffness: 300, damping: 32 },
+};
+
+const CHECK_SPRING = { type: 'spring', stiffness: 340, damping: 26 };
+
+/**
+ * TaskRow — extracted out of TaskList + wrapped in React.memo so a stats tick
+ * (character.gold/hp/xp updates) doesn't re-render every task in the list.
+ * Only re-renders when its own `task` reference changes, or when one of the
+ * memoized callbacks identity changes (they're stable via useCallback below).
+ */
+const TaskRow = memo(function TaskRow({ task, assignerName, onComplete, onToggleStatus, onEdit, onDelete }) {
+    const isInProgress = task.status === 'in_progress';
+    return (
+        <div className={`glass-card p-4 group transition-all duration-300 hover:bg-white/5 border-l-4 ${isInProgress ? 'border-l-blue-500 bg-blue-900/10' : 'border-l-transparent hover:border-l-rpg-gold'}`}>
+            <div className="flex justify-between items-start gap-4">
+                <div className="flex items-start gap-3 w-full">
+                    <motion.button
+                        onClick={(e) => onComplete(task.id, e.clientX, e.clientY)}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92 }}
+                        transition={CHECK_SPRING}
+                        className="mt-0.5 w-5 h-5 rounded-md border-2 border-gray-500 hover:border-rpg-green hover:bg-rpg-green/20 flex items-center justify-center shrink-0 transition-colors"
+                        title="Complete Quest"
+                    >
+                        <div className="w-2.5 h-2.5 rounded-sm bg-transparent group-hover:bg-rpg-green transition-colors" />
+                    </motion.button>
+                    <div className="flex-1">
+                        <div className="flex justify-between items-start">
+                            <span className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors flex items-center gap-2 mb-1">
+                                {task.assignerId
+                                    ? <PixelIcon name="book" size={14} color="#fbbf24" />
+                                    : task.category === 'chore'
+                                        ? <PixelIcon name="box" size={14} color="#f97316" />
+                                        : <PixelIcon name="sword" size={14} className="text-gray-400 group-hover:text-white" />}
+                                <span className={isInProgress ? 'text-blue-300' : ''}>{task.title}</span>
+                                {task.assignerId && <span className="ml-1 text-[9px] bg-red-900/40 text-red-400 px-2 py-0.5 rounded-full border border-red-500/30 uppercase tracking-wider font-bold shadow-[0_0_10px_rgba(239,68,68,0.3)]">Assigned by: {assignerName}</span>}
+                                {isInProgress && <span className="ml-1 text-[9px] bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 uppercase tracking-wider font-bold animate-pulse">In Progress</span>}
+                            </span>
+                            <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 bg-black/40 p-1 md:bg-black/40 md:p-1 rounded-lg backdrop-blur-sm border md:border-white/5 border-white/20">
+                                <button
+                                    onClick={() => onToggleStatus(task.id, task.status)}
+                                    className={`p-2 md:p-1.5 rounded-md transition-colors ${isInProgress ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' : 'text-gray-400 hover:text-blue-400 hover:bg-blue-500/10'}`}
+                                    title={isInProgress ? "Pause work" : "Start working"}
+                                >
+                                    {isInProgress ? <Clock size={16} className="md:w-3 md:h-3" /> : <Play size={16} className="md:w-3 md:h-3" />}
+                                </button>
+                                <button
+                                    onClick={() => onEdit(task)}
+                                    className="p-2 md:p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                                    title="Edit Quest"
+                                >
+                                    <Edit2 size={16} className="md:w-3 md:h-3" />
+                                </button>
+                                <button
+                                    onClick={() => onDelete(task.id)}
+                                    className="p-2 md:p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                                    title="Delete Quest"
+                                >
+                                    <Trash2 size={16} className="md:w-3 md:h-3" />
+                                </button>
+                            </div>
+                        </div>
+                        {task.extraInfo && (
+                            <p className="text-xs text-gray-400 mb-2 truncate max-w-xs">{task.extraInfo}</p>
+                        )}
+                        <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${task.difficulty === 3 ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
+                                {task.difficulty === 3 ? 'HARD' : 'NORMAL'}
+                            </span>
+                            <span className="text-[10px] text-rpg-gold flex items-center gap-1">
+                                <span>+{task.difficulty === 3 ? '40' : '20'} XP</span>
+                                <span>+{task.difficulty === 3 ? '20' : '10'} G</span>
+                            </span>
+                            {task.attribute && task.attribute !== 'none' && (
+                                <span className="text-[10px] text-blue-300 font-bold bg-blue-900/40 px-2 py-0.5 rounded-full border border-blue-500/30">
+                                    +1 {task.attribute.toUpperCase()}
+                                </span>
+                            )}
+                            {task.dueDate && (
+                                <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                    <PixelIcon name="clock" size={10} color="#9ca3af" /> <span>{task.dueDate}</span>
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+});
 
 const TaskList = ({ isSidebar = false, setActiveView }) => {
     const { state, actions } = useGame();
@@ -34,27 +136,25 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
         }
     };
 
-    const handleEditTask = (task) => {
+    // useCallback stabilizes refs so the memoized TaskRow doesn't see new
+    // handler identities on every parent render.
+    const handleEditTask = useCallback((task) => {
         setEditingTask(task);
-        if (window.innerWidth < 768 && setActiveView) {
-            // Ideally we'd pass state to the view, but sticking to the modal approach for simplicity here if possible
-            // Let's just use the modal for editing uniformly
-            setIsAddingTask(true);
-        } else {
-            setIsAddingTask(true);
-        }
-    };
+        setIsAddingTask(true);
+    }, []);
 
-    const handleDeleteTask = (taskId) => {
-        if (window.confirm('Delete this task?')) {
+    const handleDeleteTask = useCallback((taskId) => {
+        if (window.confirm('Delete this task? This cannot be undone.')) {
             actions.deleteTask(taskId);
         }
-    };
+    }, [actions]);
 
-    const handleToggleStatus = (taskId, currentStatus) => {
+    const handleToggleStatus = useCallback((taskId, currentStatus) => {
         const newStatus = currentStatus === 'in_progress' ? 'pending' : 'in_progress';
         actions.updateTaskStatus(taskId, newStatus);
-    };
+    }, [actions]);
+
+    const handleCompleteTask = useCallback((id, x, y) => actions.completeTask(id, x, y), [actions]);
 
     const handleOpenHabitForm = () => {
         setEditingHabit(null);
@@ -74,86 +174,23 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
         }
     };
 
-    const TaskItem = ({ task }) => {
-        const isInProgress = task.status === 'in_progress';
-
-        return (
-            <div className={`glass-card p-4 group transition-all duration-300 hover:bg-white/5 border-l-4 ${isInProgress ? 'border-l-blue-500 bg-blue-900/10' : 'border-l-transparent hover:border-l-rpg-gold'}`}>
-                <div className="flex justify-between items-start gap-4">
-                    <div className="flex items-start gap-3 w-full">
-                        <button
-                            onClick={(e) => actions.completeTask(task.id, e.clientX, e.clientY)}
-                            className="mt-0.5 w-5 h-5 rounded-md border-2 border-gray-500 hover:border-rpg-green hover:bg-rpg-green/20 flex items-center justify-center shrink-0 transition-all group-hover:scale-110"
-                            title="Complete Quest"
-                        >
-                            <div className="w-2.5 h-2.5 rounded-sm bg-transparent group-hover:bg-rpg-green transition-colors" />
-                        </button>
-                        <div className="flex-1">
-                            <div className="flex justify-between items-start">
-                                <span className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors flex items-center gap-2 mb-1">
-                                    {task.assignerId ? <span className="text-rpg-gold text-lg drop-shadow-glow">📜</span> : task.category === 'chore' ? <span className="text-orange-500">🧹</span> : <PixelIcon name="sword" size={14} className="text-gray-400 group-hover:text-white" />}
-                                    <span className={isInProgress ? 'text-blue-300' : ''}>{task.title}</span>
-                                    {task.assignerId && <span className="ml-1 text-[9px] bg-red-900/40 text-red-400 px-2 py-0.5 rounded-full border border-red-500/30 uppercase tracking-wider font-bold shadow-[0_0_10px_rgba(239,68,68,0.3)]">Assigned by: {getAssignerName(task.assignerId)}</span>}
-                                    {isInProgress && <span className="ml-1 text-[9px] bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 uppercase tracking-wider font-bold animate-pulse">In Progress</span>}
-                                </span>
-
-                                {/* Quick actions that appear on hover */}
-                                <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 bg-black/40 p-1 md:bg-black/40 md:p-1 rounded-lg backdrop-blur-sm border md:border-white/5 border-white/20">
-                                    <button
-                                        onClick={() => handleToggleStatus(task.id, task.status)}
-                                        className={`p-2 md:p-1.5 rounded-md transition-colors ${isInProgress ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' : 'text-gray-400 hover:text-blue-400 hover:bg-blue-500/10'}`}
-                                        title={isInProgress ? "Pause work" : "Start working"}
-                                    >
-                                        {isInProgress ? <Clock size={16} className="md:w-3 md:h-3" /> : <Play size={16} className="md:w-3 md:h-3" />}
-                                    </button>
-                                    <button
-                                        onClick={() => handleEditTask(task)}
-                                        className="p-2 md:p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-colors"
-                                        title="Edit Quest"
-                                    >
-                                        <Edit2 size={16} className="md:w-3 md:h-3" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteTask(task.id)}
-                                        className="p-2 md:p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
-                                        title="Delete Quest"
-                                    >
-                                        <Trash2 size={16} className="md:w-3 md:h-3" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {task.extraInfo && (
-                                <p className="text-xs text-gray-400 mb-2 truncate max-w-xs">{task.extraInfo}</p>
-                            )}
-                            <div className="flex items-center gap-2">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${task.difficulty === 3
-                                    ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                                    : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                    }`}>
-                                    {task.difficulty === 3 ? 'HARD' : 'NORMAL'}
-                                </span>
-                                <span className="text-[10px] text-rpg-gold flex items-center gap-1">
-                                    <span>+{task.difficulty === 3 ? '40' : '20'} XP</span>
-                                    <span>+{task.difficulty === 3 ? '20' : '10'} 🟡</span>
-                                </span>
-                                {task.attribute && task.attribute !== 'none' && (
-                                    <span className="text-[10px] text-blue-300 font-bold bg-blue-900/40 px-2 py-0.5 rounded-full border border-blue-500/30">
-                                        +1 {task.attribute.toUpperCase()}
-                                    </span>
-                                )}
-                                {task.dueDate && (
-                                    <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                                        <PixelIcon name="clock" size={10} color="#9ca3af" /> <span>{task.dueDate}</span>
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
+    // Pre-build a per-task renderer that pre-resolves the assigner name string.
+    // The memoized TaskRow then skips re-render unless any of these props change.
+    // motion.div envuelve TaskRow (fuera del memo) — el memo sigue evitando
+    // re-renders internos por ticks de stats; el wrapper solo se ocupa de la
+    // orquestación de layout/enter/exit.
+    const renderTask = (task) => (
+        <motion.div key={task.id} {...TASK_MOTION}>
+            <TaskRow
+                task={task}
+                assignerName={task.assignerId ? getAssignerName(task.assignerId) : ''}
+                onComplete={handleCompleteTask}
+                onToggleStatus={handleToggleStatus}
+                onEdit={handleEditTask}
+                onDelete={handleDeleteTask}
+            />
+        </motion.div>
+    );
 
     return (
         <div className={`space-y-4 ${!isSidebar ? 'max-w-2xl mx-auto' : ''}`}>
@@ -211,7 +248,9 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {activeTasks.map(task => <TaskItem key={task.id} task={task} />)}
+                        <AnimatePresence mode="popLayout" initial={false}>
+                            {activeTasks.map(renderTask)}
+                        </AnimatePresence>
                     </div>
                 )}
             </div>
@@ -232,7 +271,9 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {activeChores.map(task => <TaskItem key={task.id} task={task} />)}
+                        <AnimatePresence mode="popLayout" initial={false}>
+                            {activeChores.map(renderTask)}
+                        </AnimatePresence>
                     </div>
                 )}
             </div>
@@ -319,7 +360,7 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
                                     <Edit2 size={16} className="md:w-3 md:h-3" />
                                 </button>
                                 <button
-                                    onClick={() => confirm('Delete habit?') && actions.deleteHabit(habit.id)}
+                                    onClick={() => confirm('Delete this habit? This cannot be undone.') && actions.deleteHabit(habit.id)}
                                     className="p-2 md:p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
                                     title="Delete Habit"
                                 >

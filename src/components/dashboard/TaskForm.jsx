@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import { TASK_DIFFICULTY } from '../../utils/gameUtils';
+import { PressButton } from '../common/PressButton';
 
 const TaskForm = ({ onClose, initialData = null }) => {
     const { actions, familyData, activeProfileId } = useGame();
@@ -63,7 +64,7 @@ const TaskForm = ({ onClose, initialData = null }) => {
         <div className="w-full max-w-md mx-auto glass-panel p-6 shadow-2xl ring-1 ring-white/10 animate-in fade-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-heading font-bold text-rpg-gold flex items-center gap-2">
-                    <span>⚔️</span> {initialData ? 'EDIT QUEST' : 'CREATE QUEST'}
+                    {initialData ? 'EDIT QUEST' : 'CREATE QUEST'}
                 </h3>
                 {onClose && (
                     <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
@@ -94,8 +95,8 @@ const TaskForm = ({ onClose, initialData = null }) => {
                             onChange={(e) => setCategory(e.target.value)}
                             className="w-full bg-black/40 border border-white/10 rounded-xl text-white px-4 py-3 text-sm focus:border-rpg-gold/50 outline-none font-sans cursor-pointer hover:bg-white/5 transition-colors appearance-none"
                         >
-                            <option value="quest">⚔️ Quest</option>
-                            <option value="chore">🧹 Chore</option>
+                            <option value="quest">Quest</option>
+                            <option value="chore">Chore</option>
                         </select>
                     </div>
                     <div>
@@ -145,12 +146,12 @@ const TaskForm = ({ onClose, initialData = null }) => {
                             className="w-full bg-black/40 border border-rpg-gold/30 rounded-xl text-yellow-300 px-4 py-3 text-sm focus:border-rpg-gold hover:bg-white/5 outline-none font-sans cursor-pointer transition-colors appearance-none"
                         >
                             <option value="none">None</option>
-                            <option value="str">💪 STR (Strength)</option>
-                            <option value="int">🧠 INT (Intelligence)</option>
-                            <option value="dex">⚡ DEX (Dexterity)</option>
-                            <option value="con">🛡️ CON (Constitution)</option>
-                            <option value="cha">🗣️ CHA (Charisma)</option>
-                            <option value="will">🧘 WILL (Willpower)</option>
+                            <option value="str">+1 STR (Strength)</option>
+                            <option value="int">+1 INT (Intelligence)</option>
+                            <option value="dex">+1 DEX (Dexterity)</option>
+                            <option value="con">+1 CON (Constitution)</option>
+                            <option value="cha">+1 CHA (Charisma)</option>
+                            <option value="will">+1 WILL (Willpower)</option>
                         </select>
                     </div>
                 </div>
@@ -175,12 +176,12 @@ const TaskForm = ({ onClose, initialData = null }) => {
                             CANCEL
                         </button>
                     )}
-                    <button
+                    <PressButton
                         type="submit"
-                        className="flex-1 px-4 py-3 text-sm bg-rpg-green text-black font-bold rounded-xl hover:bg-green-400 shadow-[0_0_15px_rgba(45,204,112,0.4)] transition-all active:scale-95 uppercase tracking-wider"
+                        className="flex-1 px-4 py-3 text-sm bg-rpg-green text-black font-bold rounded-xl hover:bg-green-400 shadow-[0_0_15px_rgba(45,204,112,0.4)] transition-colors uppercase tracking-wider"
                     >
                         {initialData ? 'SAVE CHANGES' : 'ACCEPT QUEST'}
-                    </button>
+                    </PressButton>
                 </div>
             </form>
         </div>

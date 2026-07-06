@@ -5,6 +5,10 @@ import {
     checkBadges,
     rollD20,
     getCombatModifier,
+    getStatBonus,
+    bumpDailyMissions,
+    getPetMoodBonus,
+    getPetPerks,
     TASK_DIFFICULTY
 } from '../../utils/gameUtils';
 
@@ -77,11 +81,16 @@ export const taskReducer = (state, action) => {
             const difficulty = habit ? (habit.target > 3 ? TASK_DIFFICULTY.HARD : TASK_DIFFICULTY.NORMAL) : TASK_DIFFICULTY.NORMAL;
 
             const effStats = getEffectiveStats(state.character);
-            const intBonus = 1 + ((effStats.int || 10) * 0.02);
-            const chaBonus = 1 + ((effStats.cha || 10) * 0.02);
+            // Capped at +50% (reached at stat 25) so high-level characters don't snowball.
+            const intBonus = getStatBonus(effStats.int);
+            const chaBonus = getStatBonus(effStats.cha);
 
-            let xpGain = Math.floor(difficulty * 15 * intBonus);
-            let goldGain = Math.floor(difficulty * 3 * chaBonus);
+            // Habits = small daily drips. Lower per-tick than quests so quests stay
+            // the main XP driver. Was diff×15 → too dominant vs tasks.
+            const petBonus = getPetMoodBonus(state.character);
+            const perks = getPetPerks(state.character);
+            let xpGain = Math.floor(difficulty * 8 * intBonus * petBonus * (1 + perks.xpMult));
+            let goldGain = Math.floor(difficulty * 3 * chaBonus * (1 + perks.goldMult));
 
             let rewardRes = processRewardsAndLevelUp(state.character, xpGain, goldGain);
             let updatedChar = rewardRes ? rewardRes.newChar : state.character;
@@ -98,6 +107,8 @@ export const taskReducer = (state, action) => {
                 };
             }
             updatedChar = { ...updatedChar, activityHistory: recordActivity(updatedChar, 'task', 1) };
+            // Daily mission progress
+            updatedChar = { ...updatedChar, dailyMissions: bumpDailyMissions(updatedChar.dailyMissions, 'habits', 1) };
 
             const badgeCheck = checkBadges(updatedChar);
             updatedChar = badgeCheck.newChar;
@@ -116,7 +127,7 @@ export const taskReducer = (state, action) => {
                 }
             }
 
-            let logs = [logEntry, ...badgeCheck.newBadges.map(b => ({ id: uid('badge'), message: `🏆 Badge Unlocked: ${b.name}!`, type: 'reward' }))];
+            let logs = [logEntry, ...badgeCheck.newBadges.map(b => ({ id: uid('badge'), message: `[BADGE] Unlocked: ${b.name}!`, type: 'reward' }))];
 
             if (x !== null && y !== null) {
                 newFloatingTexts.push({ id: uid('ft'), text: `+${actualXpGain} XP`, x, y, color: '#fbbf24' });
@@ -144,12 +155,22 @@ export const taskReducer = (state, action) => {
             const modifier = getCombatModifier(charClass, effStats);
 
             const d20 = rollD20();
-            const damage = (d20 + modifier) * task.difficulty;
+            // Pet dmgMult applies to all quests; hardDmgMult stacks on top
+            // only when difficulty === 3 (so dragon_fire shines vs bosses).
+            const isHard = task.difficulty >= 3;
+            const dmgPerk = 1 + (getPetPerks(state.character).dmgMult)
+                + (isHard ? getPetPerks(state.character).hardDmgMult : 0);
+            const damage = Math.floor((d20 + modifier) * task.difficulty * dmgPerk);
 
-            const intBonus = 1 + ((effStats.int || 10) * 0.02);
-            const chaBonus = 1 + ((effStats.cha || 10) * 0.02);
-            let xpGain = Math.floor(task.difficulty * (task.recurrence === 'daily' ? 12 : 8) * intBonus);
-            let goldGain = Math.floor(task.difficulty * 5 * chaBonus);
+            const intBonus = getStatBonus(effStats.int);
+            const chaBonus = getStatBonus(effStats.cha);
+            const petBonus = getPetMoodBonus(state.character);
+            const perks = getPetPerks(state.character);
+            // Quests are the main XP source. Daily quests get a consistency bonus.
+            // Was diff × (12 daily / 8 normal) → bumped to (20 daily / 15 normal).
+            const xpBase = task.recurrence === 'daily' ? 20 : 15;
+            let xpGain = Math.floor(task.difficulty * xpBase * intBonus * petBonus * (1 + perks.xpMult));
+            let goldGain = Math.floor(task.difficulty * 5 * chaBonus * (1 + perks.goldMult));
 
             const rewardRes = processRewardsAndLevelUp(state.character, xpGain, goldGain);
             let updatedChar = rewardRes ? rewardRes.newChar : state.character;
@@ -175,7 +196,7 @@ export const taskReducer = (state, action) => {
                                : roll < 0.40 ? { id: uid('item'), name: 'Gold Pouch', type: 'consumable', cost: 0, description: 'Grants 100-300 Gold.', icon: 'coins' }
                                : { id: uid('item'), name: 'Health Potion', type: 'consumable', cost: 0, description: 'Restores 50 HP.', icon: 'heart' };
                 updatedChar = { ...updatedChar, inventory: [...(updatedChar.inventory || []), droppedItem] };
-                logMessage += ` 🎁 Found a ${droppedItem.name}!`;
+                logMessage += ` [LOOT] Found a ${droppedItem.name}!`;
             }
 
             const todayStr = new Date().toDateString();
@@ -208,11 +229,17 @@ export const taskReducer = (state, action) => {
                     achievements: {
                         ...updatedChar.achievements,
                         tasks: (updatedChar.achievements.tasks || 0) + 1,
+                        hardTasks: (updatedChar.achievements.hardTasks || 0) + (task.difficulty >= 3 ? 1 : 0),
                         goldEarned: (updatedChar.achievements.goldEarned || 0) + goldGain
                     }
                 };
             }
             updatedChar = { ...updatedChar, activityHistory: recordActivity(updatedChar, 'task', 1) };
+            // Daily mission progress: any task counts toward 'tasks', hard tasks toward 'hard_tasks' too
+            updatedChar = { ...updatedChar, dailyMissions: bumpDailyMissions(updatedChar.dailyMissions, 'tasks', 1) };
+            if (task.difficulty >= 3) {
+                updatedChar = { ...updatedChar, dailyMissions: bumpDailyMissions(updatedChar.dailyMissions, 'hard_tasks', 1) };
+            }
 
             const badgeCheck = checkBadges(updatedChar);
             updatedChar = badgeCheck.newChar;
@@ -265,7 +292,7 @@ export const taskReducer = (state, action) => {
                 tasks: remainingTasks,
                 completedTasks: newCompletedTasks,
                 epicQuests: newEpicQuests,
-                log: [...bossLogs, { id: uid('log'), message: logMessage, type: 'info' }, ...badgeCheck.newBadges.map(b => ({ id: uid('badge'), message: `🏆 Badge Unlocked: ${b.name}!`, type: 'reward' })), ...state.log],
+                log: [...bossLogs, { id: uid('log'), message: logMessage, type: 'info' }, ...badgeCheck.newBadges.map(b => ({ id: uid('badge'), message: `[BADGE] Unlocked: ${b.name}!`, type: 'reward' })), ...state.log],
                 activeDungeon: { ...state.activeDungeon, hp: Math.max(0, state.activeDungeon.hp - damage) },
                 ...(anyLevelUp && updatedChar.level > initialLevel ? { showLevelUpModal: true, newLevelData: { level: updatedChar.level, stats: updatedChar.stats, class: updatedChar.class } } : {})
             };

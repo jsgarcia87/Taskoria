@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import PixelIcon from '../common/PixelIcon';
+import { PressButton } from '../common/PressButton';
 
 const DailyRewardModal = ({ isOpen, onClose, data }) => {
     useEffect(() => {
@@ -12,7 +13,7 @@ const DailyRewardModal = ({ isOpen, onClose, data }) => {
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
-            <div className="bg-[#1a102e] border-2 border-rpg-gold rounded-2xl p-6 max-w-sm w-full text-center relative overflow-hidden shadow-2xl shadow-yellow-500/20">
+            <div className="bg-rpg-panel border-2 border-rpg-gold rounded-2xl p-6 max-w-sm w-full text-center relative overflow-hidden shadow-2xl shadow-yellow-500/20">
                 {/* Visual Flair Background */}
                 <div className="absolute inset-x-0 -top-20 h-40 bg-yellow-500/10 blur-3xl rounded-full mix-blend-screen pointer-events-none animate-pulse"></div>
                 
@@ -42,12 +43,12 @@ const DailyRewardModal = ({ isOpen, onClose, data }) => {
                 </div>
 
                 {/* Action */}
-                <button
+                <PressButton
                     onClick={onClose}
-                    className="w-full bg-gradient-to-r from-yellow-600 to-yellow-500 text-black py-4 px-6 rounded-xl font-bold font-heading uppercase text-xl shadow-[0_0_15px_rgba(251,191,36,0.4)] hover:shadow-[0_0_25px_rgba(251,191,36,0.6)] hover:brightness-110 active:scale-95 transition-all relative z-10 tracking-wider"
+                    className="w-full bg-gradient-to-r from-yellow-600 to-yellow-500 text-black py-4 px-6 rounded-xl font-bold font-heading uppercase text-xl shadow-[0_0_15px_rgba(251,191,36,0.4)] hover:shadow-[0_0_25px_rgba(251,191,36,0.6)] hover:brightness-110 transition-shadow relative z-10 tracking-wider"
                 >
                     Claim Reward
-                </button>
+                </PressButton>
             </div>
         </div>
     );

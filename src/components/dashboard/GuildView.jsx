@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Shield, ShieldAlert, Sparkles, UserPlus, LogOut } from 'lucide-react';
-import PixelAvatar from '../common/PixelAvatar';
+import ModernPixelAvatar from '../common/ModernPixelAvatar';
 import PixelIcon from '../common/PixelIcon';
 import ChatModal from './ChatModal';
 import { useGame } from '../../context/GameContext';
@@ -203,7 +203,7 @@ const GuildView = ({ currentUser }) => {
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {guilds.map(g => (
-                                        <div key={g.id} className="bg-[#1a102e]/60 backdrop-blur-xl p-6 rounded-3xl border border-indigo-500/20 shadow-xl hover:border-indigo-400 transition-colors flex flex-col h-full">
+                                        <div key={g.id} className="bg-rpg-panel/60 backdrop-blur-xl p-6 rounded-3xl border border-indigo-500/20 shadow-xl hover:border-indigo-400 transition-colors flex flex-col h-full">
                                             <div className="flex items-start justify-between mb-4">
                                                 <div className="flex items-center justify-center w-12 h-12 bg-black/40 rounded-xl border border-white/10 shrink-0">
                                                     <PixelIcon name={g.emblem || 'shield'} size={24} className="text-rpg-gold" />
@@ -285,7 +285,7 @@ const GuildView = ({ currentUser }) => {
                     {activeTab === 'my_guild' && myGuild && (
                         <div>
                             {/* Guild Info Header */}
-                            <div className="bg-gradient-to-r from-indigo-900/50 to-[#1a102e]/80 border border-indigo-500/30 rounded-3xl p-6 sm:p-10 mb-8 relative overflow-hidden flex flex-col md:flex-row items-center gap-8 shadow-[0_0_30px_rgba(79,70,229,0.1)]">
+                            <div className="bg-gradient-to-r from-indigo-900/50 to-rpg-panel/80 border border-indigo-500/30 rounded-3xl p-6 sm:p-10 mb-8 relative overflow-hidden flex flex-col md:flex-row items-center gap-8 shadow-[0_0_30px_rgba(79,70,229,0.1)]">
                                 <div className="absolute top-0 right-0 p-32 bg-indigo-500/10 blur-[100px] rounded-full mix-blend-screen pointer-events-none"></div>
 
                                 <div className="w-24 h-24 sm:w-32 sm:h-32 bg-black/60 rounded-3xl border border-indigo-500/50 flex items-center justify-center shadow-inner shrink-0 relative z-10">
@@ -319,17 +319,17 @@ const GuildView = ({ currentUser }) => {
                                         const isMe = parseInt(u.id) === parseInt(currentUser.id);
 
                                         return (
-                                            <div key={u.id} className={`bg-[#1a102e]/60 backdrop-blur-md border ${u.role === 'leader' ? 'border-rpg-gold/50 shadow-[0_0_15px_rgba(251,191,36,0.1)]' : 'border-white/10'} rounded-2xl p-4 sm:p-6 text-center group hover:border-indigo-400 transition-colors flex flex-col`}>
+                                            <div key={u.id} className={`bg-rpg-panel/60 backdrop-blur-md border ${u.role === 'leader' ? 'border-rpg-gold/50 shadow-[0_0_15px_rgba(251,191,36,0.1)]' : 'border-white/10'} rounded-2xl p-4 sm:p-6 text-center group hover:border-indigo-400 transition-colors flex flex-col`}>
 
                                                 <div className="flex justify-center mb-4 relative">
                                                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-center shadow-inner relative z-10">
                                                         {charData ? (
-                                                            <PixelAvatar type={charData.avatarId} scale={1.5} customColors={charData.avatarColors} />
+                                                            <ModernPixelAvatar type={charData.avatarId} scale={1.5} customColors={charData.avatarColors} />
                                                         ) : (
                                                             <div className="text-gray-600 font-bold text-2xl">?</div>
                                                         )}
                                                     </div>
-                                                    <div className={`absolute bottom-0 right-1/4 w-3 h-3 rounded-full border-2 border-[#1a102e] z-20 ${u.is_online || isMe ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+                                                    <div className={`absolute bottom-0 right-1/4 w-3 h-3 rounded-full border-2 border-rpg-panel z-20 ${u.is_online || isMe ? 'bg-green-500' : 'bg-gray-500'}`}></div>
                                                 </div>
 
                                                 <h4 className="text-sm sm:text-base font-bold text-white mb-1 truncate">{u.username}</h4>

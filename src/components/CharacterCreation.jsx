@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CHARACTERS } from '../data/characters';
-import PixelAvatar from './common/PixelAvatar';
-import PixelPet from './common/PixelPet';
+import ModernPixelAvatar from './common/ModernPixelAvatar';
+import { PressButton } from './common/PressButton';
 
 const CharacterCreation = ({ onComplete }) => {
     const [name, setName] = useState('');
@@ -45,7 +45,7 @@ const CharacterCreation = ({ onComplete }) => {
                 `}
                         >
                             <div className="transition-transform duration-300 pb-2">
-                                <PixelAvatar
+                                <ModernPixelAvatar
                                     type={c.avatarType}
                                     scale={1.2}
                                     customColors={selectedCharId === c.id ? colors : undefined}
@@ -113,12 +113,12 @@ const CharacterCreation = ({ onComplete }) => {
                             maxLength={15}
                             required
                         />
-                        <button
+                        <PressButton
                             type="submit"
-                            className="bg-rpg-gold text-rpg-bg text-xl px-8 py-4 font-bold rounded-xl hover:scale-105 transition-all w-full shadow-glow-gold active:scale-95 uppercase tracking-widest font-heading mt-4"
+                            className="bg-rpg-gold text-rpg-bg text-xl px-8 py-4 font-bold rounded-xl w-full shadow-glow-gold uppercase tracking-widest font-heading mt-4"
                         >
                             Start Adventure
-                        </button>
+                        </PressButton>
                     </form>
                 </div>
             </div>

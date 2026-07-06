@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, UserPlus, Shield, ShieldOff, Search, Loader } from 'lucide-react';
+import { Trash2, UserPlus, Shield, ShieldOff, Search, Loader, Users as UsersIcon, Settings as SettingsIcon, Hammer, Palette, Lightbulb, Check } from 'lucide-react';
 import PixelIcon from '../common/PixelIcon';
 import CreationsModeration from './CreationsModeration';
+import StudioAccessRequests from './StudioAccessRequests';
+import AdminWorldTools from './AdminWorldTools';
 import { useToast } from '../common/Toast';
 
 const AdminPanel = ({ currentUser }) => {
@@ -9,6 +11,8 @@ const AdminPanel = ({ currentUser }) => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    // Sub-menu sections to declutter the panel
+    const [activeSection, setActiveSection] = useState('users');
 
     // Create User Form State
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -22,6 +26,10 @@ const AdminPanel = ({ currentUser }) => {
     const [allowRegistration, setAllowRegistration] = useState(false);
     const [waitlist, setWaitlist] = useState([]);
     const [loadingWaitlist, setLoadingWaitlist] = useState(true);
+
+    // Suggestion Box
+    const [suggestions, setSuggestions] = useState([]);
+    const [loadingSuggestions, setLoadingSuggestions] = useState(true);
 
     const fetchSettings = async () => {
         try {
@@ -39,6 +47,16 @@ const AdminPanel = ({ currentUser }) => {
             if (data.success) setWaitlist(data.waitlist || []);
         } catch (e) { console.error("Error fetching waitlist"); }
         finally { setLoadingWaitlist(false); }
+    };
+
+    const fetchSuggestions = async () => {
+        setLoadingSuggestions(true);
+        try {
+            const res = await fetch(`api/admin.php?action=list_suggestions`, { method: 'POST', body: JSON.stringify({ admin_id: currentUser.id }) });
+            const data = await res.json();
+            if (data.success) setSuggestions(data.suggestions || []);
+        } catch (e) { console.error("Error fetching suggestions"); }
+        finally { setLoadingSuggestions(false); }
     };
 
     const fetchUsers = async () => {
@@ -86,6 +104,7 @@ const AdminPanel = ({ currentUser }) => {
         fetchUsers();
         fetchSettings();
         fetchWaitlist();
+        fetchSuggestions();
     }, []);
 
     const toggleRegistration = async () => {
@@ -110,7 +129,7 @@ const AdminPanel = ({ currentUser }) => {
     };
 
     const handleDeleteWaitlist = async (id, email) => {
-        if (!confirm(`Delete ${email} from waitlist?`)) return;
+        if (!confirm(`Delete ${email} from waitlist? This cannot be undone.`)) return;
         try {
             const res = await fetch(`api/admin.php?action=delete_waitlist`, {
                 method: 'POST',
@@ -121,6 +140,35 @@ const AdminPanel = ({ currentUser }) => {
             if (data.success) setWaitlist(waitlist.filter(w => w.id !== id));
         } catch (e) {
             toast.error("Error deleting from waitlist");
+        }
+    };
+
+    const handleMarkSuggestionRead = async (id) => {
+        try {
+            const res = await fetch(`api/admin.php?action=mark_suggestion_read`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ admin_id: currentUser.id, target_id: id })
+            });
+            const data = await res.json();
+            if (data.success) setSuggestions(suggestions.map(s => s.id === id ? { ...s, status: 'read' } : s));
+        } catch (e) {
+            toast.error("Error updating suggestion");
+        }
+    };
+
+    const handleDeleteSuggestion = async (id) => {
+        if (!confirm('Delete this suggestion? This cannot be undone.')) return;
+        try {
+            const res = await fetch(`api/admin.php?action=delete_suggestion`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ admin_id: currentUser.id, target_id: id })
+            });
+            const data = await res.json();
+            if (data.success) setSuggestions(suggestions.filter(s => s.id !== id));
+        } catch (e) {
+            toast.error("Error deleting suggestion");
         }
     };
 
@@ -206,60 +254,89 @@ const AdminPanel = ({ currentUser }) => {
                 </div>
             </div>
 
-            {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                {/* Search */}
-                <div className="relative w-full sm:w-96">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Search by username..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-500 hover:border-rpg-gold/30 focus:border-rpg-gold focus:outline-none focus:ring-1 focus:ring-rpg-gold transition-all"
-                    />
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-4 w-full sm:w-auto">
-                    {/* Export Users Button */}
-                    <a
-                        href="api/export_csv.php"
-                        className="flex-1 sm:flex-none bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/50 px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all hover:-translate-y-1"
-                        download
-                    >
-                        Export CSV
-                    </a>
-
-                    {/* Create Button */}
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex-1 sm:flex-none bg-rpg-gold hover:bg-yellow-400 text-rpg-bg px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] hover:shadow-[0_0_25px_rgba(251,191,36,0.5)] hover:-translate-y-1"
-                    >
-                        <UserPlus size={18} />
-                        Summon Hero
-                    </button>
-                </div>
+            {/* Sub-menu — section tabs */}
+            <div className="glass-card p-1 border border-white/10 rounded-2xl flex gap-1 flex-wrap">
+                {[
+                    { id: 'users',  label: 'Users',         icon: UsersIcon,  hint: 'Citizens management' },
+                    { id: 'server', label: 'Server',        icon: SettingsIcon, hint: 'Registration + waitlist' },
+                    { id: 'feedback', label: 'Feedback',    icon: Lightbulb,  hint: 'Suggestion box from citizens' },
+                    { id: 'studio', label: 'Pixel Studio',  icon: Palette,    hint: 'Access + creations moderation' },
+                    { id: 'world',  label: 'World Tools',   icon: Hammer,     hint: 'House Builder + Map Editor + Library' },
+                ].map(t => {
+                    const Icon = t.icon;
+                    const isActive = activeSection === t.id;
+                    return (
+                        <button
+                            key={t.id}
+                            onClick={() => setActiveSection(t.id)}
+                            title={t.hint}
+                            className={`flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-heading font-bold uppercase tracking-widest transition-all ${
+                                isActive
+                                    ? 'bg-rpg-gold text-rpg-bg shadow-[0_0_15px_rgba(251,191,36,0.35)]'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
+                        >
+                            <Icon size={14}/> {t.label}
+                        </button>
+                    );
+                })}
             </div>
 
-            {/* Server Settings */}
-            <div className="glass-card p-6 border border-white/10 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div>
-                    <h3 className="text-xl font-bold text-white mb-1">Public Registration</h3>
-                    <p className="text-gray-400 text-sm">Control whether strangers can create accounts from the login screen.</p>
+            {/* === SECTION: USERS === */}
+            {activeSection === 'users' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    {/* Toolbar (search + create + export) */}
+                    <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
+                        <div className="relative w-full sm:w-96">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Search by username..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-500 hover:border-rpg-gold/30 focus:border-rpg-gold focus:outline-none focus:ring-1 focus:ring-rpg-gold transition-all"
+                            />
+                        </div>
+                        <div className="flex gap-4 w-full sm:w-auto">
+                            <a
+                                href="api/export_csv.php"
+                                className="flex-1 sm:flex-none bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/50 px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all hover:-translate-y-1"
+                                download
+                            >
+                                Export CSV
+                            </a>
+                            <button
+                                onClick={() => setShowCreateModal(true)}
+                                className="flex-1 sm:flex-none bg-rpg-gold hover:bg-yellow-400 text-rpg-bg px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] hover:shadow-[0_0_25px_rgba(251,191,36,0.5)] hover:-translate-y-1"
+                            >
+                                <UserPlus size={18} />
+                                Summon Hero
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <button
-                    onClick={toggleRegistration}
-                    className={`px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-sm transition-all flex items-center gap-2 ${allowRegistration ? 'bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/50 hover:bg-green-500/30'}`}
-                >
-                    {allowRegistration ? <ShieldOff size={18} /> : <Shield size={18} />}
-                    {allowRegistration ? 'Close Registration' : 'Open Registration'}
-                </button>
-            </div>
+            )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Waitlist Table */}
-                <div className="glass-card p-0 overflow-hidden border border-white/10 rounded-2xl flex flex-col h-[500px]">
+            {/* === SECTION: SERVER (registration + waitlist) === */}
+            {activeSection === 'server' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    {/* Server Settings */}
+                    <div className="glass-card p-6 border border-white/10 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h3 className="text-xl font-bold text-white mb-1">Public Registration</h3>
+                            <p className="text-gray-400 text-sm">Control whether strangers can create accounts from the login screen.</p>
+                        </div>
+                        <button
+                            onClick={toggleRegistration}
+                            className={`px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-sm transition-all flex items-center gap-2 ${allowRegistration ? 'bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/50 hover:bg-green-500/30'}`}
+                        >
+                            {allowRegistration ? <ShieldOff size={18} /> : <Shield size={18} />}
+                            {allowRegistration ? 'Close Registration' : 'Open Registration'}
+                        </button>
+                    </div>
+
+                    {/* Waitlist Table */}
+                    <div className="glass-card p-0 overflow-hidden border border-white/10 rounded-2xl flex flex-col h-[500px]">
                     <div className="p-4 border-b border-white/10 bg-black/40">
                         <h3 className="text-xl font-bold text-rpg-gold">Beta Waitlist</h3>
                         <p className="text-xs text-gray-400">Adventurers waiting to join.</p>
@@ -300,13 +377,76 @@ const AdminPanel = ({ currentUser }) => {
                             )}
                         </div>
                     )}
+                    </div>
                 </div>
+            )}
 
-                {/* Pixel Studio Moderation */}
-                <CreationsModeration currentUser={currentUser} />
+            {/* === SECTION: FEEDBACK (suggestion box) === */}
+            {activeSection === 'feedback' && (
+                <div className="glass-card p-0 overflow-hidden border border-white/10 rounded-2xl flex flex-col h-[500px] animate-in fade-in duration-300">
+                    <div className="p-4 border-b border-white/10 bg-black/40 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-xl font-bold text-rpg-gold">Suggestion Box</h3>
+                            <p className="text-xs text-gray-400">Ideas sent in by citizens.</p>
+                        </div>
+                        <span className="text-xs font-mono bg-rpg-gold/10 text-rpg-gold border border-rpg-gold/30 px-2 py-1 rounded-lg">
+                            {suggestions.filter(s => s.status === 'new').length} new
+                        </span>
+                    </div>
+                    {loadingSuggestions ? (
+                        <div className="flex-1 flex items-center justify-center text-rpg-gold">
+                            <Loader className="animate-spin" size={32} />
+                        </div>
+                    ) : (
+                        <div className="overflow-y-auto flex-1 p-4">
+                            {suggestions.length === 0 ? (
+                                <div className="text-center text-gray-500 italic py-10">No suggestions yet.</div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {suggestions.map((s) => (
+                                        <div key={s.id} className={`bg-black/40 p-4 rounded-xl border ${s.status === 'new' ? 'border-rpg-gold/40' : 'border-white/5'}`}>
+                                            <div className="flex justify-between items-start gap-4">
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="font-bold text-white">{s.username}</span>
+                                                        {s.status === 'new' && (
+                                                            <span className="text-[9px] font-bold uppercase bg-rpg-gold/20 text-rpg-gold px-2 py-0.5 rounded-full">New</span>
+                                                        )}
+                                                        <span className="text-xs text-gray-500">{new Date(s.created_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-300 whitespace-pre-wrap break-words">{s.message}</p>
+                                                </div>
+                                                <div className="flex gap-1 shrink-0">
+                                                    {s.status === 'new' && (
+                                                        <button
+                                                            onClick={() => handleMarkSuggestionRead(s.id)}
+                                                            className="p-2 text-gray-500 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
+                                                            title="Mark as read"
+                                                        >
+                                                            <Check size={16} />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDeleteSuggestion(s.id)}
+                                                        className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                        title="Delete suggestion"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
 
-                {/* Users Table */}
-                <div className="glass-card p-0 overflow-hidden border border-white/10 rounded-2xl flex flex-col h-[500px]">
+            {/* === SECTION: USERS — table goes here (Toolbar was rendered up top) === */}
+            {activeSection === 'users' && (
+                <div className="glass-card p-0 overflow-hidden border border-white/10 rounded-2xl flex flex-col animate-in fade-in duration-300">
                     <div className="p-4 border-b border-white/10 bg-black/40">
                         <h3 className="text-xl font-bold text-rpg-gold">Active Citizens</h3>
                         <p className="text-xs text-gray-400">All registered users in the realm.</p>
@@ -379,12 +519,28 @@ const AdminPanel = ({ currentUser }) => {
                         </div>
                     )}
                 </div>
+            )}
 
-                {/* Create Modal */}
+            {/* === SECTION: PIXEL STUDIO (access requests + creations moderation) === */}
+            {activeSection === 'studio' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <StudioAccessRequests currentUser={currentUser} />
+                    <CreationsModeration currentUser={currentUser} />
+                </div>
+            )}
+
+            {/* === SECTION: WORLD TOOLS === */}
+            {activeSection === 'world' && (
+                <div className="animate-in fade-in duration-300">
+                    <AdminWorldTools currentUser={currentUser} />
+                </div>
+            )}
+
+            {/* Create Modal (always available regardless of section) */}
                 {showCreateModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => !isCreating && setShowCreateModal(false)}></div>
-                        <div className="relative bg-[#1a102e] border border-rpg-gold/30 rounded-2xl w-full max-w-md p-6 shadow-2xl shadow-black/50 animate-in zoom-in-95 duration-200">
+                        <div className="relative bg-rpg-panel border border-rpg-gold/30 rounded-2xl w-full max-w-md p-6 shadow-2xl shadow-black/50 animate-in zoom-in-95 duration-200">
                             <h3 className="text-xl font-heading font-bold text-rpg-gold flex items-center gap-2 mb-6 border-b border-white/10 pb-4">
                                 <UserPlus size={20} /> Summon New Hero
                             </h3>
@@ -456,7 +612,6 @@ const AdminPanel = ({ currentUser }) => {
                         </div>
                     </div>
                 )}
-            </div>
         </div>
     );
 };

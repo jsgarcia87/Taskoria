@@ -55,12 +55,15 @@ export function pixelBufferToDataUrl(buffer, size = SPRITE_GRID) {
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-/**
- * React component to render a pixel buffer as an inline SVG sprite.
- * Crisp at any scale, no rasterization blur.
- */
-export function PixelSprite({ buffer, size = SPRITE_GRID, scale = 1, style, className }) {
-    if (!buffer) return null;
+// Buffers are immutable, so the merged-run <rect> list for a given buffer never
+// changes. Cache it by buffer reference so we compute it once instead of on
+// every render (the world re-renders frequently during movement).
+const _rectCache = new WeakMap();
+function buildRects(buffer, size) {
+    if (typeof buffer === 'object' && buffer !== null) {
+        const cached = _rectCache.get(buffer);
+        if (cached) return cached;
+    }
     const rects = [];
     for (let y = 0; y < size; y++) {
         let runColor = null;
@@ -78,6 +81,18 @@ export function PixelSprite({ buffer, size = SPRITE_GRID, scale = 1, style, clas
             }
         }
     }
+    if (typeof buffer === 'object' && buffer !== null) _rectCache.set(buffer, rects);
+    return rects;
+}
+
+/**
+ * React component to render a pixel buffer as an inline SVG sprite.
+ * Crisp at any scale, no rasterization blur.
+ * Memoized: skips re-render when props are unchanged (e.g. during movement).
+ */
+export const PixelSprite = React.memo(function PixelSprite({ buffer, size = SPRITE_GRID, scale = 1, style, className }) {
+    if (!buffer) return null;
+    const rects = buildRects(buffer, size);
     return (
         <svg
             width={size * scale}
@@ -90,7 +105,7 @@ export function PixelSprite({ buffer, size = SPRITE_GRID, scale = 1, style, clas
             {rects}
         </svg>
     );
-}
+});
 
 // -----------------------------------------------------------------------------
 //  Procedural demo sprite — replace with your hand-drawn version when ready

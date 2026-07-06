@@ -55,105 +55,72 @@ export const MAP_DATA = {
                 label: 'Taskoria Keep'
             }
         ],
+        // Composite scenes — buildings + their surroundings as a single unit
+        prefabs: [
+            { name: 'shop_complete',  x: 170,  y: 230 },
+            { name: 'market_corner',  x: 520,  y: 760, accent: '#16a34a' },
+            { name: 'market_corner',  x: 1050, y: 220, accent: '#7c3aed' },
+            { name: 'sanctuary_pen',  x: 1120, y: 560, width: 360, height: 320 },
+            // Coherent forest clusters that frame the plaza instead of loose trees
+            { name: 'forest_grove',   x: 200,  y: 140, seed: 11 },
+            { name: 'forest_grove',   x: 1450, y: 140, seed: 23 },
+            { name: 'forest_grove',   x: 180,  y: 880, seed: 37 },
+            { name: 'forest_grove',   x: 1480, y: 880, seed: 47 },
+            // Residential blocks — give the town actual urban density
+            { name: 'town_houses',    x: 460,  y: 820, count: 1, seed: 3 },
+            { name: 'town_houses',    x: 920,  y: 820, count: 1, seed: 7 },
+            // Decorative garden patches for empty space — coherent flower+bush+grass clusters
+            { name: 'garden_patch',   x: 540,  y: 140, seed: 5 },
+            { name: 'garden_patch',   x: 300,  y: 620, seed: 12 },
+            { name: 'garden_patch',   x: 1080, y: 500, seed: 18 },
+        ],
         decorations: [
-            // --- Ground & paths (kept under everything via explicit z) ---
-            { type: 'rect', x: 560, y: 200, width: 480, height: 480, color: '#8a7a5c', opacity: 0.18, radius: '9999px', z: 0 },
-            { type: 'rect', x: 0, y: 470, width: 1600, height: 90, color: '#7a6a52', opacity: 0.15, z: 0 },
-            { type: 'rect', x: 760, y: 0, width: 90, height: 1000, color: '#7a6a52', opacity: 0.15, z: 0 },
+            // --- ROADS — visible warm-sand paths carved across the cobblestone ---
+            //   Central plaza around the well (round dirt circle)
+            { type: 'rect', x: 600, y: 280, width: 400, height: 380, color: '#c8a878', opacity: 0.55, radius: '9999px', z: 0 },
+            { type: 'rect', x: 620, y: 300, width: 360, height: 340, color: '#b89868', opacity: 0.45, radius: '9999px', z: 0 },
+            //   Horizontal road across the town (east-west, from forest portal to sanctuary)
+            { type: 'rect', x: 0, y: 470, width: 1600, height: 90, color: '#c8a878', opacity: 0.55, z: 0 },
+            { type: 'rect', x: 0, y: 490, width: 1600, height: 50, color: '#b89868', opacity: 0.5, z: 0 },
+            //   Vertical road across the town (north-south, from tavern/keep portals to bottom)
+            { type: 'rect', x: 760, y: 0, width: 90, height: 1000, color: '#c8a878', opacity: 0.55, z: 0 },
+            { type: 'rect', x: 780, y: 0, width: 50, height: 1000, color: '#b89868', opacity: 0.5, z: 0 },
+            //   Side spur to the shop (from horizontal road, branching NW)
+            { type: 'rect', x: 320, y: 380, width: 60, height: 180, color: '#c8a878', opacity: 0.5, z: 0 },
+            //   Side spur to sanctuary
+            { type: 'rect', x: 1100, y: 540, width: 60, height: 80, color: '#c8a878', opacity: 0.5, z: 0 },
+            //   Side spur to south market
+            { type: 'rect', x: 560, y: 560, width: 60, height: 220, color: '#c8a878', opacity: 0.5, z: 0 },
+            //   Side spur to north market
+            { type: 'rect', x: 1080, y: 320, width: 60, height: 180, color: '#c8a878', opacity: 0.5, z: 0 },
 
-            // --- Ground variation: worn cobble patches & cracks (break monotony) ---
-            { type: 'cobble_patch', x: 800, y: 500, width: 220, height: 140, color: '#6b5240', opacity: 0.55, z: 0 },
-            { type: 'cobble_patch', x: 360, y: 700, width: 160, height: 100, color: '#3d2a1d', opacity: 0.45, z: 0 },
-            { type: 'cobble_patch', x: 1240, y: 320, width: 140, height: 90, color: '#5c4033', opacity: 0.4, z: 0 },
-            { type: 'cobble_patch', x: 1100, y: 480, width: 110, height: 70, color: '#3d261b', opacity: 0.45, z: 0 },
+            // --- Worn patches & cracks on the roads ---
+            { type: 'cobble_patch', x: 800, y: 500, width: 220, height: 140, color: '#8a6a40', opacity: 0.45, z: 0 },
             { type: 'crack', x: 700, y: 520, length: 80, angle: 15, z: 0 },
             { type: 'crack', x: 880, y: 580, length: 60, angle: -25, z: 0 },
-            { type: 'crack', x: 480, y: 480, length: 90, angle: 40, z: 0 },
-            { type: 'crack', x: 1180, y: 540, length: 70, angle: -10, z: 0 },
             { type: 'puddle', x: 720, y: 660, size: 70, z: 0 },
-            { type: 'puddle', x: 1140, y: 410, size: 50, z: 0 },
 
-            // --- Central well ---
+            // --- Central well (anchored plaza centerpiece, flanked by benches) ---
             { type: 'well', x: 752, y: 352, width: 96, height: 96 },
             { type: 'bench', x: 624, y: 520, size: 60 },
             { type: 'bench', x: 920, y: 520, size: 60 },
             { type: 'flowers', x: 760, y: 470, size: 30 },
 
-            // --- Item Shop (building + keeper + sign + props) ---
-            { type: 'shop_building', x: 170, y: 230, width: 280, height: 150 },
-            { type: 'rug', x: 310, y: 410, width: 110, height: 50, color: '#7f1d1d', z: 1 },
-            { type: 'vendor_npc', x: 310, y: 420, label: 'Shopkeeper', avatar: 'mage', colors: { primary: '#b91c1c', primaryDark: '#7f1d1d', skin: '#e8b08a' } },
-            { type: 'sign', x: 470, y: 360, label: 'SHOP' },
-            { type: 'barrel', x: 150, y: 400, size: 38 },
-            { type: 'barrel', x: 130, y: 440, size: 32 },
-            { type: 'crate', x: 440, y: 400, size: 42 },
-            { type: 'crate', x: 460, y: 440, size: 34 },
-            { type: 'planter', x: 220, y: 410, width: 60, height: 32 },
-            { type: 'planter', x: 400, y: 410, width: 60, height: 32 },
-            { type: 'weapon_rack', x: 110, y: 470, width: 50, height: 60 },
-
-            // --- Extra market stalls (ambiance) ---
-            { type: 'market_stall', x: 520, y: 760, width: 130, height: 96, color: '#16a34a' },
-            { type: 'crate', x: 555, y: 870, size: 32 },
-            { type: 'crate', x: 615, y: 870, size: 32 },
-            { type: 'hay', x: 490, y: 880, size: 40 },
-            { type: 'market_stall', x: 1050, y: 220, width: 130, height: 96, color: '#7c3aed' },
-            { type: 'barrel', x: 1040, y: 340, size: 32 },
-            { type: 'crate', x: 1180, y: 340, size: 30 },
-
-            // --- Pet Sanctuary zone (right side) ---
-            { type: 'rect', x: 1120, y: 560, width: 360, height: 320, color: '#15803d', opacity: 0.35, radius: '20px', z: 1 },
-            { type: 'fence', x: 1120, y: 556, width: 360, height: 16 },
-            { type: 'fence', x: 1116, y: 560, width: 16, height: 320 },
-            { type: 'fence', x: 1468, y: 560, width: 16, height: 320 },
-            { type: 'fence', x: 1120, y: 872, width: 120, height: 16 },
-            { type: 'fence', x: 1360, y: 872, width: 120, height: 16 },
-            { type: 'sign', x: 1100, y: 520, label: 'PETS' },
-            { type: 'vendor_npc', x: 1300, y: 610, label: 'Caretaker', avatar: 'archer', colors: { primary: '#047857', primaryDark: '#065f46', skin: '#d49060' } },
-            { type: 'critter', x: 1200, y: 700, variant: 'slime', color: '#22c55e' },
-            { type: 'critter', x: 1390, y: 680, variant: 'cat', color: '#f59e0b' },
-            { type: 'critter', x: 1270, y: 790, variant: 'dog', color: '#a16207' },
-            { type: 'critter', x: 1420, y: 810, variant: 'slime', color: '#3b82f6' },
-            { type: 'hay', x: 1180, y: 850, size: 44 },
-            { type: 'hay', x: 1440, y: 870, size: 38 },
-            { type: 'flowers', x: 1240, y: 760, size: 32 },
-            { type: 'flowers', x: 1380, y: 740, size: 32 },
-
-            // --- Lamps + warm glow on the ground ---
-            { type: 'lantern_glow', x: 600, y: 320, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
-            { type: 'lamp', x: 600, y: 300, size: 64 },
+            // --- Lamps lighting the plaza corners (kept manual, paired with their glow) ---
+            { type: 'lantern_glow', x: 600,  y: 320, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
+            { type: 'lamp',         x: 600,  y: 300, size: 64 },
             { type: 'lantern_glow', x: 1000, y: 320, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
-            { type: 'lamp', x: 1000, y: 300, size: 64 },
-            { type: 'lantern_glow', x: 600, y: 780, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
-            { type: 'lamp', x: 600, y: 760, size: 64 },
+            { type: 'lamp',         x: 1000, y: 300, size: 64 },
+            { type: 'lantern_glow', x: 600,  y: 780, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
+            { type: 'lamp',         x: 600,  y: 760, size: 64 },
             { type: 'lantern_glow', x: 1000, y: 780, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
-            { type: 'lamp', x: 1000, y: 760, size: 64 },
-            { type: 'lantern_glow', x: 800, y: 400, radius: 120, color: 'rgba(255,200,120,0.22)', z: 1 },
-
-            // --- Greenery ---
-            { type: 'flowers', x: 520, y: 560, size: 40 },
-            { type: 'flowers', x: 1080, y: 500, size: 40 },
-            { type: 'flowers', x: 300, y: 620, size: 40 },
-            { type: 'flowers', x: 900, y: 820, size: 40 },
-            { type: 'bush', x: 480, y: 160, size: 52 },
-            { type: 'bush', x: 1120, y: 150, size: 52 },
-            { type: 'bush', x: 260, y: 840, size: 52 },
-            { type: 'bush', x: 980, y: 900, size: 52 },
-            { type: 'bush', x: 1500, y: 250, size: 44 },
-            { type: 'bush', x: 80, y: 720, size: 44 },
-
-            // --- Trees framing the plaza ---
-            { type: 'tree', x: 130, y: 180, width: 70, height: 90 },
-            { type: 'tree', x: 540, y: 110, width: 60, height: 80 },
-            { type: 'tree', x: 1500, y: 130, width: 70, height: 90 },
-            { type: 'tree', x: 100, y: 600, width: 65, height: 85 },
-            { type: 'tree', x: 1520, y: 920, width: 65, height: 85 },
-            { type: 'tree', x: 120, y: 920, width: 60, height: 80 },
+            { type: 'lamp',         x: 1000, y: 760, size: 64 },
+            { type: 'lantern_glow', x: 800,  y: 400, radius: 120, color: 'rgba(255,200,120,0.22)', z: 1 },
 
             // --- Banners on the north wall ---
-            { type: 'banner', x: 320, y: 40, color: '#7c3aed', icon: '⚔' },
-            { type: 'banner', x: 800, y: 40, color: '#fbbf24', icon: '✦' },
-            { type: 'banner', x: 1120, y: 40, color: '#dc2626', icon: '★' }
+            { type: 'banner', x: 320,  y: 40, color: '#7c3aed', icon: '⚔' },
+            { type: 'banner', x: 800,  y: 40, color: '#fbbf24', icon: '✦' },
+            { type: 'banner', x: 1120, y: 40, color: '#dc2626', icon: '★' },
         ]
     },
     taskoriaKeep: {
@@ -170,8 +137,6 @@ export const MAP_DATA = {
             { x: 0, y: 900, width: 1000, height: 100 }, // Bottom
             { x: 0, y: 0, width: 100, height: 1000 }, // Left
             { x: 900, y: 0, width: 100, height: 1000 }, // Right
-            // Throne platform
-            { x: 350, y: 150, width: 300, height: 150 }
         ],
         portals: [
             {
@@ -181,20 +146,37 @@ export const MAP_DATA = {
                 label: 'Exit to Town'
             }
         ],
+        // Composite scenes — throne hall + flanking library wings
+        prefabs: [
+            { name: 'royal_dais', x: 500, y: 130 },
+        ],
         decorations: [
-            // Royal Carpet
-            { x: 400, y: 300, type: 'rect', width: 200, height: 600, color: '#7f1d1d', opacity: 0.8 },
-            // Throne
-            { x: 500, y: 240, type: 'throne', size: 96 },
-            { x: 500, y: 140, type: 'text', value: 'THE ROYAL THRONE', size: 12, color: '#fbbf24' },
-            // Statues
-            { x: 250, y: 400, type: 'statue', size: 80 },
-            { x: 750, y: 400, type: 'statue', size: 80 },
-            { x: 250, y: 700, type: 'statue', size: 80 },
-            { x: 750, y: 700, type: 'statue', size: 80 },
-            // Guards (static for now, just text/emoji or custom type)
-            { x: 300, y: 250, type: 'text', value: '🛡️', size: 40 },
-            { x: 700, y: 250, type: 'text', value: '🛡️', size: 40 }
+            // Bookshelves along the side walls — library corners flanking the throne hall
+            { type: 'sprite', name: 'bookshelf', x: 150, y: 380, scale: 1.6, z: 380 },
+            { type: 'sprite', name: 'bookshelf', x: 850, y: 380, scale: 1.6, z: 380 },
+            { type: 'sprite', name: 'bookshelf', x: 150, y: 580, scale: 1.6, z: 580 },
+            { type: 'sprite', name: 'bookshelf', x: 850, y: 580, scale: 1.6, z: 580 },
+
+            // Wall torches with halos along the side walls (rhythm + light)
+            { type: 'sprite', name: 'wall_torch', x: 130, y: 480, scale: 1.6, z: 480 },
+            { type: 'sprite', name: 'wall_torch', x: 870, y: 480, scale: 1.6, z: 480 },
+            { type: 'sprite', name: 'wall_torch', x: 130, y: 720, scale: 1.6, z: 720 },
+            { type: 'sprite', name: 'wall_torch', x: 870, y: 720, scale: 1.6, z: 720 },
+            { type: 'lantern_glow', x: 130, y: 480, radius: 110, color: 'rgba(255,170,60,0.32)', z: 1 },
+            { type: 'lantern_glow', x: 870, y: 480, radius: 110, color: 'rgba(255,170,60,0.32)', z: 1 },
+            { type: 'lantern_glow', x: 130, y: 720, radius: 110, color: 'rgba(255,170,60,0.32)', z: 1 },
+            { type: 'lantern_glow', x: 870, y: 720, radius: 110, color: 'rgba(255,170,60,0.32)', z: 1 },
+
+            // Decorative armor stands deeper into the hall (not the dais guards)
+            { type: 'sprite', name: 'armor_stand', x: 280, y: 500, scale: 1.7, z: 500 },
+            { type: 'sprite', name: 'armor_stand', x: 720, y: 500, scale: 1.7, z: 500 },
+            { type: 'sprite', name: 'armor_stand', x: 280, y: 760, scale: 1.7, z: 760 },
+            { type: 'sprite', name: 'armor_stand', x: 720, y: 760, scale: 1.7, z: 760 },
+
+            // Ground texture variation — break the empty stone field
+            { type: 'cobble_patch', x: 500, y: 500, width: 280, height: 180, color: '#1a1a2a', opacity: 0.35, z: 0 },
+            { type: 'crack', x: 400, y: 520, length: 70, angle: 12, z: 0 },
+            { type: 'crack', x: 600, y: 580, length: 60, angle: -22, z: 0 },
         ]
     },
     tavernInterior: {
@@ -228,16 +210,16 @@ export const MAP_DATA = {
             }
         ],
         decorations: [
-            // Bar visual
-            { x: 200, y: 200, type: 'rect', width: 400, height: 80, color: '#271c19', border: '#4a3225' },
+            // Bar counter
+            { x: 200, y: 200, type: 'bar_counter', width: 400, height: 80 },
             { x: 400, y: 150, type: 'mug', size: 40 },
             { x: 450, y: 150, type: 'mug', size: 40 },
             { x: 500, y: 150, type: 'mug', size: 40 },
             { x: 350, y: 130, type: 'bartender_npc', size: 60 },
-            
-            // Tables visuals
-            { x: 200, y: 400, type: 'rect', width: 120, height: 80, color: '#3d261b', border: '#78350f', radius: '20px' },
-            { x: 500, y: 400, type: 'rect', width: 120, height: 80, color: '#3d261b', border: '#78350f', radius: '20px' },
+
+            // Tables
+            { x: 200, y: 400, type: 'table', width: 120, height: 80 },
+            { x: 500, y: 400, type: 'table', width: 120, height: 80 },
             
             // Chairs
             { x: 180, y: 420, type: 'stool', size: 30 },
@@ -287,18 +269,42 @@ export const MAP_DATA = {
                 label: 'Shadow Crypts'
             }
         ],
+        // Composite scenes — densify the 2000×1000 forest with coherent clusters
+        prefabs: [
+            // West side (between portal-to-crypts and the river) — 4 groves + 1 clearing
+            { name: 'forest_grove',    x: 220,  y: 180, seed: 11 },
+            { name: 'forest_grove',    x: 220,  y: 780, seed: 23 },
+            { name: 'forest_grove',    x: 520,  y: 200, seed: 37 },
+            { name: 'forest_grove',    x: 520,  y: 760, seed: 41 },
+            { name: 'forest_clearing', x: 380,  y: 480, seed: 7 },
+
+            // East side (between river bridge and town portal) — 4 groves + 1 clearing
+            { name: 'forest_grove',    x: 1180, y: 200, seed: 53 },
+            { name: 'forest_grove',    x: 1180, y: 780, seed: 59 },
+            { name: 'forest_grove',    x: 1500, y: 180, seed: 67 },
+            { name: 'forest_grove',    x: 1500, y: 800, seed: 73 },
+            { name: 'forest_clearing', x: 1350, y: 480, seed: 83 },
+
+            // Garden patches — filler clusters of flowers/bushes in the gaps
+            { name: 'garden_patch',    x: 360,  y: 320, seed: 5 },
+            { name: 'garden_patch',    x: 360,  y: 640, seed: 9 },
+            { name: 'garden_patch',    x: 1350, y: 320, seed: 14 },
+            { name: 'garden_patch',    x: 1350, y: 640, seed: 18 },
+        ],
         decorations: [
             // River visual
             { x: 800, y: 0, type: 'rect', width: 200, height: 1000, color: '#3b82f6', opacity: 0.6 },
             // Bridge visual
             { x: 780, y: 400, type: 'rect', width: 240, height: 200, color: '#78350f' },
-            // Trees
-            { x: 200, y: 150, type: 'pine_tree', width: 80, height: 120 },
-            { x: 400, y: 100, type: 'pine_tree', width: 100, height: 140 },
-            { x: 250, y: 560, type: 'oak_tree', width: 120, height: 150 },
-            { x: 550, y: 650, type: 'pine_tree', width: 90, height: 130 },
-            { x: 1200, y: 150, type: 'pine_tree', width: 70, height: 110 },
-            { x: 1450, y: 550, type: 'oak_tree', width: 140, height: 160 }
+            // Bridge plank texture
+            { x: 780, y: 420, type: 'rect', width: 240, height: 4, color: '#5c3a21', opacity: 0.8, z: 1 },
+            { x: 780, y: 460, type: 'rect', width: 240, height: 4, color: '#5c3a21', opacity: 0.8, z: 1 },
+            { x: 780, y: 500, type: 'rect', width: 240, height: 4, color: '#5c3a21', opacity: 0.8, z: 1 },
+            { x: 780, y: 540, type: 'rect', width: 240, height: 4, color: '#5c3a21', opacity: 0.8, z: 1 },
+            { x: 780, y: 580, type: 'rect', width: 240, height: 4, color: '#5c3a21', opacity: 0.8, z: 1 },
+            // Path patches near portals
+            { type: 'cobble_patch', x: 150, y: 460, width: 120, height: 80, color: '#8a7a5c', opacity: 0.35, z: 0 },
+            { type: 'cobble_patch', x: 1830, y: 480, width: 120, height: 80, color: '#8a7a5c', opacity: 0.35, z: 0 },
         ]
     },
     shadowCrypts: {
@@ -349,8 +355,8 @@ export const MAP_DATA = {
             { x: 800, y: 1100, type: 'pillar', width: 80, height: 120 },
 
             // Skeletons
-            { x: 200, y: 400, type: 'text', value: '💀', size: 30, opacity: 0.5 },
-            { x: 900, y: 900, type: 'text', value: '💀', size: 30, opacity: 0.5 }
+            { type: 'sprite', name: 'skull', x: 200, y: 400, scale: 2.0, z: 400 },
+            { type: 'sprite', name: 'skull', x: 900, y: 900, scale: 2.0, z: 900 }
         ]
     }
 };

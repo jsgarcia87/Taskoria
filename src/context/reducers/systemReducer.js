@@ -1,3 +1,46 @@
+/**
+ * Pool of possible daily missions. Each is a stable shape:
+ *   { kind, target, title, rewardXp, rewardGold }
+ *
+ * `kind` is checked by taskReducer / battleReducer to bump `progress`.
+ * Three missions are picked per day, deterministically based on the date,
+ * so all players on the same day see the same set (creates a shared cadence).
+ */
+const MISSION_POOL = [
+    { kind: 'tasks',         target: 3,  title: 'Complete 3 quests',        rewardXp: 60,  rewardGold: 50 },
+    { kind: 'tasks',         target: 5,  title: 'Complete 5 quests',        rewardXp: 120, rewardGold: 100 },
+    { kind: 'habits',        target: 3,  title: 'Tick 3 habits',            rewardXp: 40,  rewardGold: 40 },
+    { kind: 'habits',        target: 5,  title: 'Tick 5 habits',            rewardXp: 80,  rewardGold: 80 },
+    { kind: 'pomodoro',      target: 1,  title: 'Run a Pomodoro session',   rewardXp: 60,  rewardGold: 60 },
+    { kind: 'pomodoro',      target: 2,  title: 'Run 2 Pomodoro sessions',  rewardXp: 140, rewardGold: 120 },
+    { kind: 'focus_minutes', target: 25, title: 'Focus for 25 minutes',     rewardXp: 80,  rewardGold: 80 },
+    { kind: 'focus_minutes', target: 60, title: 'Focus for an hour',        rewardXp: 200, rewardGold: 180 },
+    { kind: 'hard_tasks',    target: 1,  title: 'Slay 1 hard quest',        rewardXp: 80,  rewardGold: 70 },
+    { kind: 'spend_gold',    target: 100, title: 'Spend 100 gold in shop',  rewardXp: 30,  rewardGold: 0 },
+];
+
+const generateDailyMissions = (todayStr) => {
+    // Simple deterministic hash so the date drives a stable rotation.
+    let seed = 0;
+    for (let i = 0; i < todayStr.length; i++) seed = (seed * 31 + todayStr.charCodeAt(i)) | 0;
+    const picks = [];
+    const used = new Set();
+    let s = Math.abs(seed);
+    while (picks.length < 3 && picks.length < MISSION_POOL.length) {
+        const idx = s % MISSION_POOL.length;
+        s = (s * 1103515245 + 12345) >>> 0;
+        if (used.has(MISSION_POOL[idx].kind + '_' + MISSION_POOL[idx].target)) continue;
+        used.add(MISSION_POOL[idx].kind + '_' + MISSION_POOL[idx].target);
+        picks.push({
+            ...MISSION_POOL[idx],
+            id: 'dm_' + idx,
+            progress: 0,
+            claimed: false,
+        });
+    }
+    return picks;
+};
+
 export const systemReducer = (initialState) => (state, action) => {
     switch (action.type) {
         case 'TOGGLE_RESTING':
@@ -33,7 +76,15 @@ export const systemReducer = (initialState) => (state, action) => {
                 log: action.payload?.log || [],
                 screensaverSettings: action.payload?.screensaverSettings || initialState.screensaverSettings,
                 activeDungeon: action.payload?.activeDungeon || initialState.activeDungeon,
-                activeWorldBoss: action.payload?.activeWorldBoss || initialState.activeWorldBoss
+                activeWorldBoss: action.payload?.activeWorldBoss || initialState.activeWorldBoss,
+                // Always force modals closed on restore — otherwise a save that
+                // happened while a modal was open re-opens it on every refresh.
+                // CHECK_PENALTIES (dispatched right after) decides if the daily
+                // reward should actually fire based on lastLoginDate.
+                showDailyRewardModal: false,
+                dailyRewardData: null,
+                showLevelUpModal: false,
+                newLevelData: null,
             };
             if (newState.character) {
                 let safePets = newState.character.pets || [];
@@ -82,8 +133,13 @@ export const systemReducer = (initialState) => (state, action) => {
             let currentStreak = 1;
             let updatedChar = state.character;
 
+            // Guard against repeating the daily reward when the persisted save
+            // hasn't caught up yet (the action payload carries an atomic flag
+            // sourced from localStorage in GameContext).
+            const skipDailyReward = !!(action.payload && action.payload.skipDailyReward);
+
             if (updatedChar) {
-                if (updatedChar.lastLoginDate !== today) {
+                if (updatedChar.lastLoginDate !== today && !skipDailyReward) {
                     if (updatedChar.lastLoginDate) {
                         try {
                             const diffDays = Math.ceil(Math.abs(new Date(today) - new Date(updatedChar.lastLoginDate)) / (1000 * 60 * 60 * 24));
@@ -93,7 +149,23 @@ export const systemReducer = (initialState) => (state, action) => {
                     dailyRewardGold = 50 + (currentStreak * 10);
                     showDailyReward = true;
                     updatedChar = { ...updatedChar, loginStreak: currentStreak, lastLoginDate: today, gold: (updatedChar.gold || 0) + dailyRewardGold };
-                } else currentStreak = updatedChar.loginStreak || 1;
+                } else {
+                    // Either same day OR localStorage says we already gave reward.
+                    // Still patch lastLoginDate to keep the saved state consistent.
+                    currentStreak = updatedChar.loginStreak || 1;
+                    if (skipDailyReward && updatedChar.lastLoginDate !== today) {
+                        updatedChar = { ...updatedChar, lastLoginDate: today };
+                    }
+                }
+            }
+
+            // Daily missions — regenerate when the date changes (or first time)
+            if (updatedChar && updatedChar.dailyMissionsDate !== today) {
+                updatedChar = {
+                    ...updatedChar,
+                    dailyMissions: generateDailyMissions(today),
+                    dailyMissionsDate: today,
+                };
             }
 
             const updatedHabits = (state.habits || []).map(h => {
@@ -114,20 +186,45 @@ export const systemReducer = (initialState) => (state, action) => {
                 return t;
             });
 
+            // Overdue task penalty — capped to keep a bad week from one-shotting users.
+            // Old behavior: diff×5 HP per overdue task, unlimited. 5 hard overdue = -75 HP.
+            // New behavior:
+            //   • diff×3 HP per overdue task (was ×5)
+            //   • Total daily damage hard-capped at 20% of max HP (or 25 HP, whichever is more)
+            //   • Resting at the Inn fully shields you (already handled by early return)
             const overdueTasks = updatedTasks.filter(t => t.dueDate && t.dueDate < today && !t.completed && !t.penalized);
-            overdueTasks.forEach(t => { dmgTaken += (t.difficulty || 1) * 5; t.penalized = true; });
+            overdueTasks.forEach(t => { dmgTaken += (t.difficulty || 1) * 3; t.penalized = true; });
+            const maxDailyDmg = Math.max(25, Math.floor((updatedChar.hp?.max || 100) * 0.2));
+            const cappedDmg = Math.min(dmgTaken, maxDailyDmg);
+            const dmgCapped = dmgTaken > cappedDmg;
+            dmgTaken = cappedDmg;
 
-            let newHp = (updatedChar.hp?.current || 0) - dmgTaken;
-            let goldPenalty = (newHp <= 0) ? Math.floor((updatedChar.gold || 0) * 0.1) : 0;
-            if (newHp < 0) newHp = 0;
+            // Passive HP regeneration on day change — small, only if not penalized.
+            // Encourages returning daily without forcing the Inn.
+            let regenAmount = 0;
+            if (dmgTaken === 0 && (updatedChar.hp?.current || 0) < (updatedChar.hp?.max || 100)) {
+                regenAmount = Math.max(5, Math.floor((updatedChar.hp.max || 100) * 0.1));
+            }
+
+            let newHp = (updatedChar.hp?.current || 0) - dmgTaken + regenAmount;
+            if (newHp > (updatedChar.hp?.max || 100)) newHp = updatedChar.hp.max;
+            // Reduced gold penalty when KO'd (was 10% → now 5%, max 200 gold)
+            let goldPenalty = (newHp <= 0) ? Math.min(200, Math.floor((updatedChar.gold || 0) * 0.05)) : 0;
+            if (newHp <= 0) newHp = 1; // never KO completely — leave at 1 HP
 
             let updatedPets = updatedChar.pets ? updatedChar.pets.map(p => {
                 if (p.inSanctuary) return p;
+                // Slower hunger decay: 2/hour was 5/hour. Pets now survive a weekend trip.
                 const hoursSinceFed = (now - new Date(p.lastFed || Date.now())) / (1000 * 60 * 60);
-                return hoursSinceFed >= 1 ? { ...p, hunger: Math.max(0, (p.hunger || 0) - (Math.floor(hoursSinceFed) * 5)), lastFed: Date.now() } : p;
+                return hoursSinceFed >= 1 ? { ...p, hunger: Math.max(0, (p.hunger || 0) - (Math.floor(hoursSinceFed) * 2)), lastFed: Date.now() } : p;
             }) : [];
 
-            let logEntry = dmgTaken > 0 ? `Overdue Quests! Took ${dmgTaken} DMG.` : null;
+            let logEntry = null;
+            if (dmgTaken > 0) {
+                logEntry = `Overdue Quests! Took ${dmgTaken} DMG${dmgCapped ? ' (daily cap reached)' : ''}.`;
+            } else if (regenAmount > 0) {
+                logEntry = `A new day. Recovered ${regenAmount} HP.`;
+            }
             if (showDailyReward) {
                 const rewardLog = `Daily Login! Streak: ${currentStreak}d. +${dailyRewardGold} G.`;
                 logEntry = logEntry ? logEntry + " " + rewardLog : rewardLog;

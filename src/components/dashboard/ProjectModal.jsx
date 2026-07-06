@@ -198,7 +198,7 @@ const ProjectModal = ({ onClose, initialBoss = null }) => {
                                                         className="bg-transparent text-xs text-amber-400 font-bold outline-none cursor-pointer"
                                                     >
                                                         {partyMembers.map(member => (
-                                                            <option key={member.id} value={member.id} className="bg-[#1a102e]">{member.name}</option>
+                                                            <option key={member.id} value={member.id} className="bg-rpg-panel">{member.name}</option>
                                                         ))}
                                                     </select>
                                                 </div>

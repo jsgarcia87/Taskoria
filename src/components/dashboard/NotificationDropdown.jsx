@@ -6,7 +6,7 @@ const NotificationDropdown = ({ isOpen, onClose, overdueTasks = [], setActiveVie
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-x-4 top-[80px] md:inset-auto md:absolute md:right-0 md:top-full md:mt-4 md:w-80 bg-[#1a102e]/95 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50 shadow-2xl ring-1 ring-white/10 flex flex-col max-h-[70vh]">
+        <div className="fixed inset-x-4 top-[80px] md:inset-auto md:absolute md:right-0 md:top-full md:mt-4 md:w-80 bg-rpg-panel/95 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50 shadow-2xl ring-1 ring-white/10 flex flex-col max-h-[70vh]">
             
             <div className="p-4 border-b border-white/10 bg-black/20 flex justify-between items-center">
                 <h3 className="text-white font-bold font-heading flex items-center gap-2">

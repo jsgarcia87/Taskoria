@@ -37,6 +37,21 @@ function isAdmin($pdo, $userId) {
     return $r && (int)$r['is_admin'] === 1;
 }
 
+function hasStudioAccess($pdo, $userId) {
+    if (!$userId) return false;
+    try {
+        $s = $pdo->prepare("SELECT studio_access, is_admin FROM users WHERE id = ?");
+        $s->execute([$userId]);
+        $r = $s->fetch();
+        if (!$r) return false;
+        if ((int)$r['is_admin'] === 1) return true; // admins always have access
+        return ($r['studio_access'] ?? 'none') === 'approved';
+    } catch (PDOException $e) {
+        // Column may not exist yet — fail closed
+        return false;
+    }
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
@@ -111,6 +126,7 @@ if ($method === 'POST') {
         $pixels = $data['pixels'] ?? null;
 
         if (!$userId) { http_response_code(401); echo json_encode(['error' => 'Login required']); exit; }
+        if (!hasStudioAccess($pdo, $userId)) { http_response_code(403); echo json_encode(['error' => 'Studio access not approved']); exit; }
         if ($name === '' || mb_strlen($name) > 120) { http_response_code(400); echo json_encode(['error' => 'Invalid name']); exit; }
         if (!in_array($category, $ALLOWED_CATEGORIES, true)) { http_response_code(400); echo json_encode(['error' => 'Invalid category']); exit; }
         if ($gridSize < 8 || $gridSize > 128) { http_response_code(400); echo json_encode(['error' => 'Invalid grid_size']); exit; }

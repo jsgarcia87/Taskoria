@@ -27,7 +27,7 @@ const BossArena = () => {
     const hpColor = hpPercent > 50 ? 'from-green-500 to-emerald-400' : hpPercent > 20 ? 'from-yellow-500 to-orange-400' : 'from-red-600 to-red-400';
 
     return (
-        <div className="bg-[#1a102e]/80 backdrop-blur-xl border border-red-900/40 rounded-3xl shadow-2xl p-6 sm:p-10 relative overflow-hidden min-h-[500px] flex flex-col">
+        <div className="bg-rpg-panel/80 backdrop-blur-xl border border-red-900/40 rounded-3xl shadow-2xl p-6 sm:p-10 relative overflow-hidden min-h-[500px] flex flex-col">
 
             {/* Dark magical background effects */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20 bg-[radial-gradient(circle_at_50%_40%,rgba(185,28,28,0.2),transparent_70%)]"></div>
@@ -75,7 +75,7 @@ const BossArena = () => {
                 </div>
 
                 {/* Massive HP Bar */}
-                <div className="w-full max-w-2xl bg-black/60 rounded-2xl border-4 border-[#130f1e] overflow-hidden p-1 shadow-2xl relative mb-8">
+                <div className="w-full max-w-2xl bg-black/60 rounded-2xl border-4 border-rpg-panelDark overflow-hidden p-1 shadow-2xl relative mb-8">
                     {/* Tick marks behind bar */}
                     <div className="absolute inset-0 w-full h-full flex justify-between px-1 pointer-events-none opacity-20">
                         {Array.from({ length: 10 }).map((_, i) => (

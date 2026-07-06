@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
-import { BADGE_DEFS } from '../utils/gameUtils';
+import {
+    BADGE_DEFS,
+    SPECIES_PERKS,
+    EVOLUTIONS,
+    canEvolvePet,
+    PET_BOND_MAX,
+} from '../utils/gameUtils';
 import { Edit2, Eye, EyeOff, X } from 'lucide-react'; // keeping small utility icons
+import { PressButton } from './common/PressButton';
+import { StatBar } from './common/StatBar';
+import { NumberTicker } from './common/NumberTicker';
 import PixelIcon from './common/PixelIcon';
 import { CHARACTERS } from '../data/characters';
 import { EQUIPMENT_SLOTS, ITEM_TYPES, SET_BONUSES } from '../data/items';
-import PixelAvatar from './common/PixelAvatar';
-import PixelPet from './common/PixelPet';
+import ModernPixelAvatar from './common/ModernPixelAvatar';
+import ModernPixelPet from './common/ModernPixelPet';
 import Sprite from './common/Sprite';
 import AvatarSpeechBubble from './common/AvatarSpeechBubble';
 import DailyProgressChart from './dashboard/DailyProgressChart';
@@ -201,30 +210,31 @@ const CharacterSheet = () => {
     // Mock Skills Data based on Class
     const getSkills = (charClass) => {
         const skills = {
+            // Skill icons reference PixelIcon names (sword/shield/zap/bell/book/skull/trophy/star/heart)
             'Fighter': [
-                { name: 'Power Strike', type: 'Physical', desc: 'Deal 150% DMG', icon: '⚔️' },
-                { name: 'Shield Wall', type: 'Defense', desc: '+50 Defense for 1 turn', icon: '🛡️' },
-                { name: 'War Cry', type: 'Buff', desc: '+10% STR to Party', icon: '📢' }
+                { name: 'Power Strike', type: 'Physical', desc: 'Deal 150% DMG', icon: 'sword', color: '#ef4444' },
+                { name: 'Shield Wall', type: 'Defense', desc: '+50 Defense for 1 turn', icon: 'shield', color: '#94a3b8' },
+                { name: 'War Cry', type: 'Buff', desc: '+10% STR to Party', icon: 'bell', color: '#fbbf24' }
             ],
             'Wizard': [
-                { name: 'Fireball', type: 'Magic', desc: 'Deal AoE Fire DMG', icon: '🔥' },
-                { name: 'Ice Barrier', type: 'Defense', desc: 'Absorb next hit', icon: '❄️' },
-                { name: 'Arcane Wisdom', type: 'Passive', desc: '+20% XP Gain', icon: '✨' }
+                { name: 'Fireball', type: 'Magic', desc: 'Deal AoE Fire DMG', icon: 'zap', color: '#f97316' },
+                { name: 'Ice Barrier', type: 'Defense', desc: 'Absorb next hit', icon: 'shield', color: '#60a5fa' },
+                { name: 'Arcane Wisdom', type: 'Passive', desc: '+20% XP Gain', icon: 'book', color: '#a78bfa' }
             ],
             'Rogue': [
-                { name: 'Backstab', type: 'Physical', desc: 'Critical Hit Chance +50%', icon: '🗡️' },
-                { name: 'Stealth', type: 'Utility', desc: 'Avoid next combat encounter', icon: '👻' },
-                { name: 'Poison Weapon', type: 'Buff', desc: 'Add poison damage to attacks', icon: '☠️' }
+                { name: 'Backstab', type: 'Physical', desc: 'Critical Hit Chance +50%', icon: 'sword', color: '#10b981' },
+                { name: 'Stealth', type: 'Utility', desc: 'Avoid next combat encounter', icon: 'skull', color: '#64748b' },
+                { name: 'Poison Weapon', type: 'Buff', desc: 'Add poison damage to attacks', icon: 'skull', color: '#84cc16' }
             ],
             'Cleric': [
-                { name: 'Holy Light', type: 'Magic', desc: 'Heal Party for 30 HP', icon: '✨' },
-                { name: 'Divine Shield', type: 'Defense', desc: 'Block 100% DMG for 1 turn', icon: '🔰' },
-                { name: 'Blessing', type: 'Buff', desc: '+15% All Stats', icon: '🙏' }
+                { name: 'Holy Light', type: 'Magic', desc: 'Heal Party for 30 HP', icon: 'zap', color: '#fde047' },
+                { name: 'Divine Shield', type: 'Defense', desc: 'Block 100% DMG for 1 turn', icon: 'shield', color: '#fcd34d' },
+                { name: 'Blessing', type: 'Buff', desc: '+15% All Stats', icon: 'trophy', color: '#fbbf24' }
             ],
             'Paladin': [
-                { name: 'Smite', type: 'Physical', desc: 'Deal 120% Holy DMG', icon: '⚡' },
-                { name: 'Aura of Courage', type: 'Passive', desc: 'Party is immune to fear', icon: '🦁' },
-                { name: 'Lay on Hands', type: 'Utility', desc: 'Massive single-target heal', icon: '🙌' }
+                { name: 'Smite', type: 'Physical', desc: 'Deal 120% Holy DMG', icon: 'zap', color: '#fbbf24' },
+                { name: 'Aura of Courage', type: 'Passive', desc: 'Party is immune to fear', icon: 'shield', color: '#f59e0b' },
+                { name: 'Lay on Hands', type: 'Utility', desc: 'Massive single-target heal', icon: 'trophy', color: '#fde68a' }
             ]
         };
         return skills[charClass] || [];
@@ -243,7 +253,7 @@ const CharacterSheet = () => {
                             <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                             {charData && (
                                 <AvatarSpeechBubble idleTimeMs={30000}>
-                                    <PixelAvatar
+                                    <ModernPixelAvatar
                                         type={charData.id}
                                         scale={1.8}
                                         customColors={character?.avatarColors}
@@ -283,27 +293,21 @@ const CharacterSheet = () => {
                     <div className="relative group">
                         <div className="flex justify-between mb-1 text-xs font-bold uppercase tracking-wider">
                             <span className="text-red-400 flex items-center gap-1"><PixelIcon name="heart" size={12} color="#f87171" className="fill-current" /> Health</span>
-                            <span className="text-gray-400">{character.hp.current} / {character.hp.max}</span>
+                            <span className="text-gray-400">
+                                <NumberTicker value={character.hp.current} /> / {character.hp.max}
+                            </span>
                         </div>
-                        <div className="h-3 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
-                            <div
-                                className="h-full bg-gradient-to-r from-red-600 to-red-400 shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all duration-500 ease-out"
-                                style={{ width: `${hpPercent}%` }}
-                            ></div>
-                        </div>
+                        <StatBar current={character.hp.current} max={character.hp.max} kind="hp" />
                     </div>
 
                     <div className="relative group">
                         <div className="flex justify-between mb-1 text-xs font-bold uppercase tracking-wider">
                             <span className="text-amber-400 flex items-center gap-1"><PixelIcon name="star" size={12} color="#fbbf24" className="fill-current" /> Experience</span>
-                            <span className="text-gray-400">{character.xp.current} / {character.xp.max}</span>
+                            <span className="text-gray-400">
+                                <NumberTicker value={character.xp.current} /> / {character.xp.max}
+                            </span>
                         </div>
-                        <div className="h-3 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
-                            <div
-                                className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.5)] transition-all duration-500 ease-out"
-                                style={{ width: `${xpPercent}%` }}
-                            ></div>
-                        </div>
+                        <StatBar current={character.xp.current} max={character.xp.max} kind="xp" />
                     </div>
                 </div>
             </div>
@@ -473,8 +477,8 @@ const CharacterSheet = () => {
                             const isLocked = character.level < (idx * 3 + 1);
                             return (
                                 <div key={idx} className={`glass-card p-4 flex items-start gap-4 ${isLocked ? 'opacity-50 grayscale' : ''} group hover:border-white/20 transition-all`}>
-                                    <div className="text-2xl w-12 h-12 flex items-center justify-center bg-black/30 rounded-xl border border-white/10 shrink-0">
-                                        {skill.icon}
+                                    <div className="w-12 h-12 flex items-center justify-center bg-black/30 rounded-xl border border-white/10 shrink-0">
+                                        <PixelIcon name={skill.icon} size={22} color={skill.color || '#fbbf24'} />
                                     </div>
                                     <div className="flex-grow">
                                         <div className="flex justify-between items-center mb-1">
@@ -570,7 +574,7 @@ const CharacterSheet = () => {
                                     </button>
                                     <div className="w-32 h-32 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full border border-white/10 flex items-center justify-center shadow-lg relative mb-4">
                                         <div className="flex items-center justify-center transform translate-y-2">
-                                            <PixelPet type={pet.type} scale={1.8} />
+                                            <ModernPixelPet type={pet.type} scale={1.8} />
                                         </div>
                                     </div>
                                     <h3 className="text-xl font-display font-bold text-white capitalize">{pet.type}</h3>
@@ -611,9 +615,16 @@ const CharacterSheet = () => {
                                                 <span className="text-amber-400 flex items-center gap-1"><PixelIcon name="star" size={12} color="#fbbf24" className="fill-current" /> Exp</span>
                                                 <span className="text-gray-400">{Math.floor(pet.xp.current)} / {pet.xp.max}</span>
                                             </div>
-                                            <div className="h-3 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
-                                                <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-500" style={{ width: `${(pet.xp.current / pet.xp.max) * 100}%` }}></div>
+                                            <StatBar current={pet.xp.current} max={pet.xp.max} kind="xp" celebrateAtMax={false} />
+                                        </div>
+
+                                        {/* Bond — grows with every interaction, amplifies pet perks */}
+                                        <div className="relative group">
+                                            <div className="flex justify-between mb-1 text-xs font-bold uppercase tracking-wider">
+                                                <span className="text-rose-400 flex items-center gap-1"><PixelIcon name="heart" size={12} color="#fb7185" /> Bond</span>
+                                                <span className="text-gray-400">{pet.bond || 0} / {PET_BOND_MAX}</span>
                                             </div>
+                                            <StatBar current={pet.bond || 0} max={PET_BOND_MAX} kind="bond" height="h-2" />
                                         </div>
 
                                         <div className="grid grid-cols-3 gap-4">
@@ -622,9 +633,7 @@ const CharacterSheet = () => {
                                                     <span className="text-orange-400 flex items-center gap-1">Hunger</span>
                                                     <span className={pet.hunger < 20 ? "text-red-500 animate-pulse" : "text-gray-400"}>{Math.floor(pet.hunger)}%</span>
                                                 </div>
-                                                <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
-                                                    <div className={`h-full transition-all duration-500 ${pet.hunger < 20 ? 'bg-red-500' : 'bg-orange-500'}`} style={{ width: `${pet.hunger}%` }}></div>
-                                                </div>
+                                                <StatBar current={pet.hunger} max={100} kind="hunger" dangerBelow={20} height="h-2" celebrateAtMax={false} />
                                             </div>
 
                                             <div className="relative group">
@@ -632,9 +641,7 @@ const CharacterSheet = () => {
                                                     <span className="text-pink-400 flex items-center gap-1">Happy</span>
                                                     <span className={(pet.happiness || 100) < 20 ? "text-red-500 animate-pulse" : "text-gray-400"}>{Math.floor(pet.happiness || 100)}%</span>
                                                 </div>
-                                                <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
-                                                    <div className={`h-full transition-all duration-500 ${(pet.happiness || 100) < 20 ? 'bg-red-500' : 'bg-pink-500'}`} style={{ width: `${pet.happiness || 100}%` }}></div>
-                                                </div>
+                                                <StatBar current={pet.happiness || 100} max={100} kind="happy" dangerBelow={20} height="h-2" celebrateAtMax={false} />
                                             </div>
 
                                             <div className="relative group">
@@ -642,9 +649,7 @@ const CharacterSheet = () => {
                                                     <span className="text-blue-400 flex items-center gap-1">Clean</span>
                                                     <span className={(pet.hygiene || 100) < 20 ? "text-red-500 animate-pulse" : "text-gray-400"}>{Math.floor(pet.hygiene || 100)}%</span>
                                                 </div>
-                                                <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
-                                                    <div className={`h-full transition-all duration-500 ${(pet.hygiene || 100) < 20 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${pet.hygiene || 100}%` }}></div>
-                                                </div>
+                                                <StatBar current={pet.hygiene || 100} max={100} kind="hygiene" dangerBelow={20} height="h-2" celebrateAtMax={false} />
                                             </div>
                                         </div>
                                     </div>
@@ -668,6 +673,55 @@ const CharacterSheet = () => {
                                             Groom
                                         </button>
                                     </div>
+
+                                    {/* PERKS + EVOLUTION */}
+                                    {(SPECIES_PERKS[pet.type] || canEvolvePet(pet)) && (
+                                        <div className="w-full mt-4 p-3 rounded-xl bg-gradient-to-br from-amber-500/5 via-transparent to-rose-500/5 border border-white/10">
+                                            {SPECIES_PERKS[pet.type] && (
+                                                <>
+                                                    <h4 className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                                        <PixelIcon name="star" size={10} color="#fbbf24" /> Active Perks
+                                                        {pet.inSanctuary && <span className="text-[9px] text-gray-500 normal-case font-normal italic">(disabled while resting)</span>}
+                                                        {!pet.showPet && !pet.inSanctuary && <span className="text-[9px] text-gray-500 normal-case font-normal italic">(disabled while hidden)</span>}
+                                                    </h4>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {Object.entries(SPECIES_PERKS[pet.type]).map(([key, value]) => {
+                                                            const label = {
+                                                                xpMult:      `+${Math.round(value * 100)}% XP`,
+                                                                goldMult:    `+${Math.round(value * 100)}% Gold`,
+                                                                dmgMult:     `+${Math.round(value * 100)}% DMG`,
+                                                                hardDmgMult: `+${Math.round(value * 100)}% DMG (hard)`,
+                                                            }[key] || `${key} ${value}`;
+                                                            const color = {
+                                                                xpMult: 'amber', goldMult: 'yellow', dmgMult: 'red', hardDmgMult: 'orange',
+                                                            }[key] || 'gray';
+                                                            return (
+                                                                <span key={key} className={`text-[10px] font-bold px-2 py-0.5 rounded border bg-${color}-500/10 text-${color}-300 border-${color}-500/30`}>
+                                                                    {label}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    {(pet.bond || 0) >= 25 && (
+                                                        <p className="text-[9px] text-rose-300/70 mt-2 italic">
+                                                            Bond {pet.bond}/100 amplifies these perks ×{pet.bond >= 100 ? '1.5' : pet.bond >= 75 ? '1.3' : pet.bond >= 50 ? '1.15' : '1.05'}
+                                                        </p>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {/* Evolution CTA — shows only once the pet hits the level threshold */}
+                                            {canEvolvePet(pet) && (
+                                                <button
+                                                    onClick={() => actions.evolvePet(pet.id)}
+                                                    className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-rpg-gold to-amber-400 text-rpg-bg hover:brightness-110 font-heading font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(251,191,36,0.4)] animate-pulse"
+                                                >
+                                                    <PixelIcon name="zap" size={14} color="#1a102e" />
+                                                    Evolve into {EVOLUTIONS[pet.type].label}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Feed Section */}
                                     <div className="w-full mt-6">
@@ -884,7 +938,7 @@ const AvatarEditModal = ({ character, onSave, onClose }) => {
                                 className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${selectedCharId === c.id ? 'border-rpg-gold bg-white/5 shadow-glow-gold' : 'border-white/5 hover:border-white/20'}`}
                             >
                                 <div className="scale-125 pb-2">
-                                <PixelAvatar type={c.avatarType} scale={2} headOnly={true} customColors={selectedCharId === c.id ? colors : undefined} />
+                                <ModernPixelAvatar type={c.avatarType} scale={2} headOnly={true} customColors={selectedCharId === c.id ? colors : undefined} />
                                 </div>
                                 <span className={`text-[10px] font-bold uppercase transition-colors ${selectedCharId === c.id ? 'text-rpg-gold' : 'text-gray-400'}`}>{c.name}</span>
                             </div>
@@ -894,7 +948,7 @@ const AvatarEditModal = ({ character, onSave, onClose }) => {
                     {/* Right: Customization & Preview */}
                     <div className="space-y-6">
                         <div className="flex justify-center p-8 bg-black/40 rounded-2xl border border-white/5 relative group">
-                            <PixelAvatar type={CHARACTERS.find(c => c.id === selectedCharId)?.avatarType || 'warrior'} scale={4} customColors={colors} />
+                            <ModernPixelAvatar type={CHARACTERS.find(c => c.id === selectedCharId)?.avatarType || 'warrior'} scale={4} customColors={colors} />
                         </div>
 
                         <div className="grid grid-cols-1 gap-4">
@@ -926,13 +980,13 @@ const AvatarEditModal = ({ character, onSave, onClose }) => {
                                 </span>
                             </div>
 
-                            <button
+                            <PressButton
                                 onClick={handleSave}
                                 disabled={!canAfford}
-                                className="w-full py-4 bg-rpg-gold text-rpg-bg rounded-xl font-bold uppercase tracking-widest shadow-glow-gold hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
+                                className="w-full py-4 bg-rpg-gold text-rpg-bg rounded-xl font-bold uppercase tracking-widest shadow-glow-gold disabled:opacity-50"
                             >
                                 Mutate Appearance
-                            </button>
+                            </PressButton>
                             {!canAfford && <p className="text-red-500 text-[10px] text-center font-bold italic">You lack the necessary gold for this transformation.</p>}
                         </div>
                     </div>

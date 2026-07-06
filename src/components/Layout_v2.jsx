@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { Menu, Bell, LogOut, Settings, HelpCircle, Shield, Cloud, CloudOff, RefreshCw, MessageSquare } from 'lucide-react'; // Retaining some small UI icons as vector for readability if needed, or we can replace all
 import PixelIcon from './common/PixelIcon';
+import { NumberTicker } from './common/NumberTicker';
+import FeedbackButton from './common/FeedbackButton';
 import BottomNav from './common/BottomNav';
 import FloatingTextLayer from './common/FloatingTextLayer';
 import ChatInbox from './dashboard/ChatInbox';
@@ -51,7 +54,7 @@ const Layout_v2 = ({
     return (
         <div className="min-h-screen text-white flex flex-col font-sans selection:bg-rpg-gold/30 bg-rpg-bg">
             {/* --- TOP HUD HEADER --- */}
-            <header className="h-20 px-6 flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl bg-[#130f1e]/80 border-b border-white/5 transition-all duration-300">
+            <header className="h-20 px-6 flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl bg-rpg-panelDark/80 border-b border-white/5 transition-all duration-300">
 
                 {/* Logo Section */}
                 <div className="flex items-center gap-4 group cursor-pointer hover:opacity-80 transition-opacity">
@@ -63,53 +66,71 @@ const Layout_v2 = ({
                         <div className="text-xl font-heading font-bold tracking-tight text-white hidden md:block">
                             TASKORIA <span className="text-rpg-gold text-xs align-top">BETA</span>
                         </div>
-                        <div className="text-xl font-heading font-bold text-white md:hidden">RPG</div>
-                        <div className="hidden md:block text-[10px] text-gray-400 font-mono tracking-widest uppercase">Gamified Productivity</div>
+                        <img src="./logo_taskoria_mobile.svg" alt="Taskoria" className="h-6 w-auto object-contain md:hidden" />
+                        <div className="hidden lg:block text-[10px] text-gray-400 font-mono tracking-widest uppercase">Gamified Productivity</div>
                     </div>
                 </div>
 
-                {/* --- DESKTOP NAVIGATION --- */}
-                <nav className="hidden md:flex items-center gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md shadow-glass">
-                    {desktopNavItems.map(item => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveView(item.id)}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all duration-300 relative overflow-hidden
-                ${activeView === item.id
-                                    ? 'bg-rpg-bg text-rpg-gold shadow-inner border border-white/5'
+                {/* --- DESKTOP / TABLET NAVIGATION — compact on tablet, generous on desktop --- */}
+                <nav className="hidden md:flex items-center gap-1 lg:gap-2 bg-white/5 p-1 lg:p-1.5 rounded-2xl border border-white/5 backdrop-blur-md shadow-glass">
+                    {desktopNavItems.map(item => {
+                        const isActive = activeView === item.id;
+                        return (
+                            <motion.button
+                                key={item.id}
+                                onClick={() => setActiveView(item.id)}
+                                whileTap={{ scale: 0.97 }}
+                                transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+                                className={`flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-5 py-2 lg:py-2.5 rounded-xl relative overflow-hidden transition-colors duration-200
+                ${isActive
+                                    ? 'text-rpg-gold'
                                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                                 }`}
-                        >
-                            <PixelIcon name={item.icon} size={18} className={activeView === item.id ? "drop-shadow-glow" : ""} />
-                            <span className={`font-bold text-xs uppercase tracking-wider ${activeView === item.id ? "text-rpg-gold" : ""}`}>
-                                {item.label}
-                            </span>
-                            {activeView === item.id && (
-                                <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-rpg-gold to-transparent opacity-70"></div>
-                            )}
-                        </button>
-                    ))}
+                            >
+                                {/* Fondo activo — morfa entre tabs con layoutId */}
+                                {isActive && (
+                                    <motion.div
+                                        layoutId="active-desktop-nav-bg"
+                                        className="absolute inset-0 bg-rpg-bg shadow-inner border border-white/5 rounded-xl"
+                                        transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+                                    />
+                                )}
+                                <PixelIcon name={item.icon} size={16} className={`relative z-10 ${isActive ? 'drop-shadow-glow' : ''}`} />
+                                <span className={`relative z-10 hidden lg:inline font-bold text-xs uppercase tracking-wider ${isActive ? 'text-rpg-gold' : ''}`}>
+                                    {item.label}
+                                </span>
+                                {/* Barrita inferior activa — también morfa */}
+                                {isActive && (
+                                    <motion.div
+                                        layoutId="active-desktop-nav-underline"
+                                        className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-rpg-gold to-transparent opacity-70 z-10"
+                                        transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+                                    />
+                                )}
+                            </motion.button>
+                        );
+                    })}
                 </nav>
 
                 {/* User / Actions Section */}
                 <div className="flex items-center gap-4 shrink-0">
 
-                    {/* Persistent HUD (Visible only if character exists) */}
+                    {/* Persistent HUD — compact on tablet (no time stat), full on desktop */}
                     {character && (
-                        <div className="hidden md:flex items-center gap-3 bg-black/40 border border-white/10 rounded-xl px-4 py-1.5 shadow-glass backdrop-blur-md">
-                            <div className="flex items-center gap-1.5 min-w-[50px]">
+                        <div className="hidden md:flex items-center gap-2 lg:gap-3 bg-black/40 border border-white/10 rounded-xl px-2.5 lg:px-4 py-1.5 shadow-glass backdrop-blur-md">
+                            <div className="flex items-center gap-1.5 min-w-[40px] lg:min-w-[50px]">
                                 <PixelIcon name="heart" size={14} color="#f87171" className="fill-current drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]" />
-                                <span className="text-white text-xs font-bold font-mono">{character.hp?.current}</span>
+                                <NumberTicker value={character.hp?.current ?? 0} className="text-white text-xs font-bold font-mono" />
                             </div>
-                            <div className="h-4 w-px bg-white/20"></div>
-                            <div className="flex items-center gap-1.5 min-w-[50px]">
+                            <div className="hidden lg:block h-4 w-px bg-white/20"></div>
+                            <div className="hidden lg:flex items-center gap-1.5 min-w-[50px]">
                                 <PixelIcon name="clock" size={14} color="#60a5fa" className="fill-current drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]" />
-                                <span className="text-white text-xs font-bold font-mono">{character.timePoints}</span>
+                                <NumberTicker value={character.timePoints ?? 0} className="text-white text-xs font-bold font-mono" />
                             </div>
                             <div className="h-4 w-px bg-white/20"></div>
-                            <div className="flex items-center gap-1.5 min-w-[50px]">
+                            <div className="flex items-center gap-1.5 min-w-[40px] lg:min-w-[50px]">
                                 <PixelIcon name="coins" size={14} color="#fbbf24" className="fill-current drop-shadow-[0_0_5px_rgba(251,191,36,0.8)]" />
-                                <span className="text-white text-xs font-bold font-mono text-rpg-gold text-shadow-glow">{character.gold}</span>
+                                <NumberTicker value={character.gold ?? 0} className="text-white text-xs font-bold font-mono text-rpg-gold text-shadow-glow" />
                             </div>
                         </div>
                     )}
@@ -213,7 +234,7 @@ const Layout_v2 = ({
                                         className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
                                         onClick={() => { setIsMenuOpen(false); setConfirmLogout(false); }}
                                     />
-                                    <div className="absolute right-0 top-full mt-4 w-60 bg-[#1a102e]/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 p-2 z-50 shadow-2xl ring-1 ring-white/10">
+                                    <div className="absolute right-0 top-full mt-4 w-60 bg-rpg-panel/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 p-2 z-50 shadow-2xl ring-1 ring-white/10">
                                         <div className="px-4 py-3 border-b border-white/5 mb-2">
                                             <p className="text-sm font-bold text-white">{currentUser.username}</p>
                                             <p className="text-xs text-gray-400">Hero Level {currentUser.level || 1}</p>
@@ -298,7 +319,7 @@ const Layout_v2 = ({
                 <div className={`absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b ${getAtmosphereGlow()} blur-[100px] pointer-events-none mix-blend-screen opacity-70 user-select-none transition-all duration-1000`} />
 
                 {/* Content Container */}
-                <div className="max-w-7xl mx-auto p-4 md:p-6 pb-24 md:pb-8 relative z-10 w-full min-h-[calc(100vh-80px)] overflow-x-hidden">
+                <div className="max-w-7xl mx-auto p-4 md:p-6 pb-28 lg:pb-8 relative z-10 w-full min-h-[calc(100vh-80px)] overflow-x-hidden">
                     {React.Children.map(children, child => {
                         if (React.isValidElement(child)) {
                             return React.cloneElement(child, { onOpenChat: setActiveChatFriend });
@@ -310,6 +331,9 @@ const Layout_v2 = ({
 
             {/* --- MOBILE BOTTOM NAVIGATION --- */}
             <BottomNav activeView={activeView} setActiveView={setActiveView} currentUser={currentUser} />
+
+            {/* --- BETA FEEDBACK BUTTON (floating, all views) --- */}
+            <FeedbackButton currentUser={currentUser} activeProfileId={activeProfileId} />
 
             {/* Inbox (rendered at root so its fixed positioning is viewport-relative, not trapped by the blurred header) */}
             {isInboxOpen && (

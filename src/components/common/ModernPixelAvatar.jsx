@@ -173,4 +173,7 @@ const ModernPixelAvatar = ({ type = 'warrior', scale = 1, headOnly = false, cust
     );
 };
 
-export default ModernPixelAvatar;
+// Memoized: skips re-render when props are unchanged. Avatars appear in lists
+// and in frequently-re-rendering parents; without this each parent render
+// re-runs the component (and its effect-dependency recompute) needlessly.
+export default React.memo(ModernPixelAvatar);

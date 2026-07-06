@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import PixelAvatar from '../../common/PixelAvatar';
+import ModernPixelAvatar from '../../common/ModernPixelAvatar';
 import MobileJoystick from './MobileJoystick';
 import { MAP_DATA } from './MapData';
+import { expandPrefabs } from './prefabs';
 import { SPRITES, PixelSprite, pixelBufferToDataUrl } from './sprites';
 import { WorldSprite } from './worldProps';
 import ChatModal from '../ChatModal';
@@ -12,354 +13,49 @@ const SPEED = 5;
 const NPC_SPEED = SPEED * 0.35; // ~1.75px/frame, more leisurely than player
 const NPC_STOP_DIST = 5;
 
-const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onClose, onInteract, className }) => {
-    // Engine State
-    const [currentMapId, setCurrentMapId] = useState('townSquare');
-    const map = MAP_DATA[currentMapId];
+// Avatars re-run their rect generation on every render. Memoize so they only
+// re-render when their own props actually change (not when the world re-renders).
+const MemoAvatar = ModernPixelAvatar;
 
-    // Player State
-    const [pos, setPos] = useState({ x: map?.spawn?.x || 0, y: map?.spawn?.y || 0 });
-    const [facing, setFacing] = useState('right');
-    const [isMoving, setIsMoving] = useState(false);
-
-    // Input Refs (read in 60fps loop, no React state overhead)
-    const keys = useRef({ w: false, a: false, s: false, d: false });
-    const joyInput = useRef({ x: 0, y: 0 });
-    const viewportRef = useRef(null);
-    const viewportSizeRef = useRef({ w: 600, h: 400 });
-    const posRef = useRef(pos);
-    const mapDOMRef = useRef(null);
-    const playerDOMRef = useRef(null);
-    const isMovingRef = useRef(false);
-    const facingRef = useRef('right');
-    const particleIdCounter = useRef(0);
-
-    // Fade State for Map Transitions
-    const [fadeState, setFadeState] = useState('none');
+// Self-contained dust layer. Owns its particle state so spawning dust does NOT
+// re-render the whole world (which holds 150+ heavy SVG props). The game loop
+// pushes particles imperatively via the ref; each one removes itself when its
+// fade animation ends.
+const DustParticles = React.forwardRef(function DustParticles(_props, ref) {
     const [particles, setParticles] = useState([]);
-
-    // NPC State
-    const [npcs, setNpcs] = useState([]);
-    const npcDataRef = useRef({});  // { [id]: { x, y, tx, ty, facing, waitUntil } } — mutable, read in loop
-    const npcDOMRefs = useRef({});  // { [id]: HTMLElement } — DOM refs for direct position updates
-
-    // Interaction State
-    const [selectedNpc, setSelectedNpc] = useState(null);
-    const [chatNpc, setChatNpc] = useState(null);
-
-    // Proximity interaction (shop / pet sanctuary zones)
-    const [nearTarget, setNearTarget] = useState(null);
-    const nearTargetRef = useRef(null);
-    const onInteractRef = useRef(onInteract);
-    useEffect(() => { onInteractRef.current = onInteract; });
-    const triggerInteract = () => {
-        const target = nearTargetRef.current;
-        if (target && onInteractRef.current) onInteractRef.current(target);
-    };
-
-    // Keep posRef synced for the game loop
-    useEffect(() => { posRef.current = pos; }, [pos]);
-
-    // On map change: spawn NPCs + seed their wandering data
-    useEffect(() => {
-        const currentMap = MAP_DATA[currentMapId];
-        if (!currentMap) return;
-        setSelectedNpc(null);
-
-        const allOthers = [...(familyMembers || []), ...(friends || [])];
-
-        const generatedNpcs = allOthers.map(u => {
-            const x = 200 + Math.random() * (currentMap.width - 400);
-            const y = 200 + Math.random() * (currentMap.height - 400);
-            return { ...u, x, y, facing: Math.random() > 0.5 ? 'right' : 'left' };
-        });
-
-        setNpcs(generatedNpcs);
-
-        // Seed movement data in ref (not state — no re-renders during wandering)
-        const newNpcData = {};
-        generatedNpcs.forEach(npc => {
-            newNpcData[npc.id] = {
-                x: npc.x,
-                y: npc.y,
-                tx: 150 + Math.random() * (currentMap.width - 300),
-                ty: 150 + Math.random() * (currentMap.height - 300),
-                facing: npc.facing,
-                waitUntil: null,
-            };
-        });
-        npcDataRef.current = newNpcData;
-    }, [currentMapId, familyMembers, friends]);
-
-    // Keyboard Listeners
-    useEffect(() => {
-        const down = (e) => {
-            if (e.code) keys.current[e.code] = true;
-            if (e.key) keys.current[e.key.toLowerCase()] = true;
-            if (e.key && e.key.toLowerCase() === 'e') triggerInteract();
-        };
-        const up = (e) => {
-            if (e.code) keys.current[e.code] = false;
-            if (e.key) keys.current[e.key.toLowerCase()] = false;
-        };
-        window.addEventListener('keydown', down);
-        window.addEventListener('keyup', up);
-        return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
-    }, []);
-
-    // Box collision check
-    const checkCollision = (newX, newY, mapRef) => {
-        const pLeft = newX - TILE_SIZE / 2;
-        const pRight = newX + TILE_SIZE / 2;
-        const pTop = newY - TILE_SIZE / 2;
-        const pBottom = newY + TILE_SIZE / 2;
-        for (const obs of mapRef.obstacles) {
-            if (pRight > obs.x && pLeft < obs.x + obs.width && pBottom > obs.y && pTop < obs.y + obs.height) return true;
-        }
-        return false;
-    };
-
-    // Portal collision check
-    const checkPortals = (x, y, mapRef) => {
-        for (const portal of mapRef.portals) {
-            if (x > portal.x && x < portal.x + portal.width && y > portal.y && y < portal.y + portal.height) return portal;
-        }
-        return null;
-    };
-
-    // Nearest interaction zone within its radius (shop / pet sanctuary)
-    const checkInteractables = (x, y, mapRef) => {
-        if (!mapRef.interactables) return null;
-        for (const it of mapRef.interactables) {
-            const cx = it.x + it.width / 2;
-            const cy = it.y + it.height / 2;
-            if (Math.hypot(x - cx, y - cy) < (it.radius || 90)) return it;
-        }
-        return null;
-    };
-
-    // Camera utility — shared between moving and idle branches
-    const updateCamera = (px, py, currentMap) => {
-        if (!mapDOMRef.current || viewportSizeRef.current.w <= 0) return;
-        const viewW = viewportSizeRef.current.w;
-        const viewH = viewportSizeRef.current.h;
-        let camX = Math.max(0, Math.min(currentMap.width - viewW, px - viewW / 2));
-        let camY = Math.max(0, Math.min(currentMap.height - viewH, py - viewH / 2));
-        mapDOMRef.current.style.transform = `translate3d(-${camX}px, -${camY}px, 0)`;
-    };
-
-    // Viewport resize observer
-    useEffect(() => {
-        if (!viewportRef.current) return;
-        viewportSizeRef.current = { w: viewportRef.current.clientWidth, h: viewportRef.current.clientHeight };
-        const ro = new ResizeObserver(entries => {
-            for (const e of entries) viewportSizeRef.current = { w: e.contentRect.width, h: e.contentRect.height };
-            // Keep the player framed when the playable area is resized (orientation, layout shifts)
-            updateCamera(posRef.current.x, posRef.current.y, MAP_DATA[currentMapId]);
-        });
-        ro.observe(viewportRef.current);
-        return () => ro.disconnect();
-    }, [currentMapId]);
-
-    // MAIN GAME LOOP (60fps)
-    useEffect(() => {
-        let rafId;
-        let lastParticleTime = 0;
-
-        const loop = (timestamp) => {
-            const currentMap = MAP_DATA[currentMapId];
-            if (!currentMap) { rafId = requestAnimationFrame(loop); return; }
-
-            // --- Player input ---
-            let dx = 0, dy = 0;
-            if (keys.current['KeyW'] || keys.current['ArrowUp'] || keys.current['w']) dy -= 1;
-            if (keys.current['KeyS'] || keys.current['ArrowDown'] || keys.current['s']) dy += 1;
-            if (keys.current['KeyA'] || keys.current['ArrowLeft'] || keys.current['a']) dx -= 1;
-            if (keys.current['KeyD'] || keys.current['ArrowRight'] || keys.current['d']) dx += 1;
-            if (joyInput.current.x !== 0 || joyInput.current.y !== 0) { dx = joyInput.current.x; dy = joyInput.current.y; }
-
-            // Normalize diagonal (keyboard only)
-            if (dx !== 0 && dy !== 0 && joyInput.current.x === 0) {
-                const len = Math.sqrt(dx * dx + dy * dy);
-                dx /= len; dy /= len;
-            }
-
-            if (dx !== 0 || dy !== 0) {
-                let nx = Math.max(TILE_SIZE, Math.min(currentMap.width - TILE_SIZE, posRef.current.x + dx * SPEED));
-                let ny = Math.max(TILE_SIZE, Math.min(currentMap.height - TILE_SIZE, posRef.current.y + dy * SPEED));
-                if (!checkCollision(nx, posRef.current.y, currentMap)) posRef.current.x = nx;
-                if (!checkCollision(posRef.current.x, ny, currentMap)) posRef.current.y = ny;
-
-                // Dust particles
-                if (timestamp - lastParticleTime > 150) {
-                    particleIdCounter.current++;
-                    setParticles(prev => [...prev.slice(-10), { id: particleIdCounter.current, x: posRef.current.x, y: posRef.current.y }]);
-                    lastParticleTime = timestamp;
-                }
-
-                if (playerDOMRef.current) {
-                    playerDOMRef.current.style.left = `${posRef.current.x}px`;
-                    playerDOMRef.current.style.top = `${posRef.current.y}px`;
-                    playerDOMRef.current.style.zIndex = Math.round(posRef.current.y);
-                }
-
-                if (!isMovingRef.current) { isMovingRef.current = true; setIsMoving(true); }
-                if (dx > 0 && facingRef.current !== 'right') { facingRef.current = 'right'; setFacing('right'); }
-                if (dx < 0 && facingRef.current !== 'left') { facingRef.current = 'left'; setFacing('left'); }
-
-                updateCamera(posRef.current.x, posRef.current.y, currentMap);
-
-                const portal = checkPortals(posRef.current.x, posRef.current.y, currentMap);
-                if (portal && fadeState === 'none') {
-                    setFadeState('exit');
-                    setTimeout(() => {
-                        setCurrentMapId(portal.targetMap);
-                        setPos({ x: portal.targetX, y: portal.targetY });
-                        posRef.current = { x: portal.targetX, y: portal.targetY };
-                        setFadeState('enter');
-                        setTimeout(() => setFadeState('none'), 400);
-                    }, 400);
-                }
-            } else {
-                if (isMovingRef.current) { isMovingRef.current = false; setIsMoving(false); setPos({ ...posRef.current }); }
-                updateCamera(posRef.current.x, posRef.current.y, currentMap);
-            }
-
-            // --- NPC wandering (DOM-direct, no setState) ---
-            for (const [id, data] of Object.entries(npcDataRef.current)) {
-                const ndx = data.tx - data.x;
-                const ndy = data.ty - data.y;
-                const dist = Math.sqrt(ndx * ndx + ndy * ndy);
-
-                if (dist < NPC_STOP_DIST) {
-                    // Arrived — wait, then pick new target
-                    if (!data.waitUntil) data.waitUntil = timestamp + 1500 + Math.random() * 2500;
-                    if (timestamp > data.waitUntil) {
-                        data.waitUntil = null;
-                        data.tx = 150 + Math.random() * (currentMap.width - 300);
-                        data.ty = 150 + Math.random() * (currentMap.height - 300);
-                    }
-                } else {
-                    data.waitUntil = null;
-                    data.x += (ndx / dist) * NPC_SPEED;
-                    data.y += (ndy / dist) * NPC_SPEED;
-
-                    const newFacing = ndx > 0 ? 'right' : 'left';
-                    if (newFacing !== data.facing) {
-                        data.facing = newFacing;
-                        const domEl = npcDOMRefs.current[id];
-                        if (domEl) {
-                            const wrapper = domEl.querySelector('.npc-facing-wrapper');
-                            if (wrapper) wrapper.style.transform = newFacing === 'left' ? 'scaleX(-1)' : 'scaleX(1)';
-                        }
-                    }
-
-                    const domEl = npcDOMRefs.current[id];
-                    if (domEl) {
-                        domEl.style.left = `${data.x}px`;
-                        domEl.style.top = `${data.y}px`;
-                        domEl.style.zIndex = Math.round(data.y);
-                    }
-                }
-            }
-
-            // --- Proximity to interaction zones (shop / pet sanctuary) ---
-            const near = checkInteractables(posRef.current.x, posRef.current.y, currentMap);
-            const prevTarget = nearTargetRef.current?.target || null;
-            if ((near?.target || null) !== prevTarget) {
-                nearTargetRef.current = near;
-                setNearTarget(near);
-            }
-
-            rafId = requestAnimationFrame(loop);
-        };
-
-        rafId = requestAnimationFrame(loop);
-        return () => cancelAnimationFrame(rafId);
-    }, [currentMapId, fadeState]);
-
-    // Pre-compute the floor tile data URL once per map (expensive: 4096 cells → SVG)
-    const tileBackground = React.useMemo(() => {
-        if (!map?.tileSprite) return null;
-        const buffer = SPRITES[map.tileSprite];
-        if (!buffer) return null;
-        const tilePx = map.tileSize || 64;
-        return {
-            backgroundColor: map.baseColor || '#000',
-            backgroundImage: `url("${pixelBufferToDataUrl(buffer, 64)}")`,
-            backgroundSize: `${tilePx}px ${tilePx}px`,
-            backgroundRepeat: 'repeat',
-            imageRendering: 'pixelated'
-        };
-    }, [map?.tileSprite, map?.tileSize, map?.baseColor]);
-
-    if (!map) return <div className="text-white p-10">Loading map...</div>;
-
-    const charData = activeProfile?.state?.character || { name: 'Player', class: 'Novice', avatarId: 'warrior' };
-
+    const idRef = useRef(0);
+    React.useImperativeHandle(ref, () => ({
+        spawn(x, y) {
+            const id = ++idRef.current;
+            setParticles(prev => [...prev.slice(-9), { id, x, y }]);
+            setTimeout(() => {
+                setParticles(prev => prev.filter(p => p.id !== id));
+            }, 700);
+        },
+    }), []);
     return (
-        <div
-            className={(className || 'w-full h-full relative') + ' overflow-hidden transition-colors duration-1000'}
-            style={{ backgroundColor: map?.baseColor || '#000' }}
-            ref={viewportRef}
-        >
-            {/* Map Transition Overlay */}
-            {fadeState !== 'none' && (
-                <div className={`map-transition-overlay ${fadeState === 'exit' ? 'map-fade-exit' : 'map-fade-enter'}`} />
-            )}
+        <>
+            {particles.map(p => (
+                <div
+                    key={p.id}
+                    className="absolute w-4 h-4 bg-white/20 rounded-full blur-md animate-dust"
+                    style={{ left: p.x, top: p.y, transform: 'translate(-50%, -50%)', zIndex: 1 }}
+                />
+            ))}
+        </>
+    );
+});
 
-            {/* Map Container (Camera Layer) */}
-            <div
-                ref={mapDOMRef}
-                className={`origin-top-left will-change-transform ${tileBackground ? '' : (map.className || '')}`}
-                style={{ width: map.width, height: map.height, position: 'relative', ...(map.background || {}), ...(tileBackground || {}) }}
-            >
-                {/* Ambient atmosphere: warm wash + soft vignette (only on outdoor cobbled maps) */}
-                {map.className === 'medieval-town-bg' && (
-                    <>
-                        <div
-                            className="absolute inset-0 pointer-events-none"
-                            style={{
-                                background: 'radial-gradient(ellipse at 50% 40%, rgba(255,180,90,0.10) 0%, transparent 55%)',
-                                mixBlendMode: 'screen',
-                                zIndex: 0
-                            }}
-                        />
-                        <div
-                            className="absolute inset-0 pointer-events-none"
-                            style={{
-                                background: 'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%)',
-                                zIndex: 0
-                            }}
-                        />
-                    </>
-                )}
-
-                {/* Portals */}
-                {map.portals?.map((portal, i) => (
-                    <div
-                        key={`portal_${i}`}
-                        className="absolute flex items-center justify-center pointer-events-none"
-                        style={{ left: portal.x, top: portal.y, width: portal.width, height: portal.height, zIndex: portal.y }}
-                    >
-                        <div className="w-full h-full border-2 border-dashed border-white/50 rounded-lg animate-pulse shadow-[0_0_15px_rgba(255,255,255,0.3)] bg-white/5 flex flex-col items-center justify-center">
-                            <span className="text-[8px] font-bold text-white uppercase tracking-tighter opacity-70 mb-1">Portal</span>
-                            <span className="text-[10px] font-bold text-rpg-gold text-shadow-glow whitespace-nowrap">{portal.label}</span>
-                        </div>
-                    </div>
-                ))}
-
-                {/* Dust Particles */}
-                {particles.map(p => (
-                    <div
-                        key={p.id}
-                        className="absolute w-4 h-4 bg-white/20 rounded-full blur-md animate-dust"
-                        style={{ left: p.x, top: p.y, transform: 'translate(-50%, -50%)', zIndex: 1 }}
-                    />
-                ))}
-
-                {/* Decorations */}
-                {map.decorations?.map((dec, i) => {
+// Decorations don't change while the player walks around — only when the
+// map itself changes. Isolating them behind React.memo means the (large)
+// per-decoration switch + reconciliation is skipped on every movement-driven
+// re-render (isMoving/facing/pos/nearTarget), which was the main source of
+// Town lag — without this, ~150-250 decoration elements were fully re-diffed
+// every time the player started/stopped walking or turned.
+const DecorationsLayer = React.memo(function DecorationsLayer({ decorations }) {
+    return (
+        <>
+            {decorations?.map((dec, i) => {
                     if (dec.type === 'rect') {
                         return (
                             <div key={`dec_${i}`} className="absolute shadow-xl" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, backgroundColor: dec.color, border: dec.border ? `4px solid ${dec.border}` : 'none', borderRadius: dec.radius || 0, opacity: dec.opacity || 1, zIndex: dec.z !== undefined ? dec.z : dec.y }}></div>
@@ -482,33 +178,32 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                         return <div key={`dec_${i}`} className={`absolute pointer-events-none font-heading font-bold ${dec.shadow ? 'drop-shadow-lg' : ''}`} style={{ left: dec.x, top: dec.y, fontSize: dec.size || 16, color: dec.color || 'white', transform: 'translate(-50%, -50%)', zIndex: Math.floor(dec.y), opacity: dec.opacity || 1 }}>{dec.value}</div>;
                     }
                     if (dec.type === 'emoji') return <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, fontSize: dec.size || 24, transform: 'translate(-50%, -50%)', zIndex: Math.floor(dec.y) }}>{dec.value}</div>;
-                    if (dec.type === 'mug') return (
-                        <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size, transform: 'translate(-50%, -50%)', zIndex: Math.floor(dec.y) }}>
-                            <div className="absolute bottom-0 left-1/4 w-1/2 h-3/4 bg-[#92400e] border-x-2 border-black/20 rounded-sm"></div>
-                            <div className="absolute top-[30%] left-[30%] w-[40%] h-[20%] bg-amber-400 opacity-80"></div>
-                            <div className="absolute top-[15%] left-[30%] w-[40%] h-[15%] bg-white rounded-t-sm shadow-sm"></div>
-                            <div className="absolute right-[15%] top-[40%] w-[15%] h-[35%] border-2 border-[#92400e] rounded-r-md"></div>
-                        </div>
-                    );
-                    if (dec.type === 'stool') return (
-                        <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size, transform: 'translate(-50%, -50%)', zIndex: Math.floor(dec.y) }}>
-                            <div className="absolute top-0 left-0 w-full h-1/3 bg-[#78350f] rounded-sm border-b-2 border-black/40 shadow-sm"></div>
-                            <div className="absolute bottom-0 left-[20%] w-[10%] h-2/3 bg-[#451a03]"></div>
-                            <div className="absolute bottom-0 right-[20%] w-[10%] h-2/3 bg-[#451a03]"></div>
-                        </div>
-                    );
-                    if (dec.type === 'fire') return (
-                        <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size, transform: 'translate(-50%, -50%)', zIndex: Math.floor(dec.y) }}>
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80%] h-1/4 bg-[#451a03] rounded-full"></div>
-                            <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 w-[70%] h-full bg-orange-600 rounded-full animate-flicker mix-blend-screen blur-[1px]"></div>
-                            <div className="absolute bottom-[25%] left-1/2 -translate-x-1/2 w-1/2 h-2/3 bg-yellow-400 rounded-full animate-pulse blur-[1px]"></div>
-                        </div>
-                    );
+                    if (dec.type === 'mug') {
+                        const sc = (dec.size || 40) / 20;
+                        return <WorldSprite key={`dec_${i}`} name="mug" x={dec.x} y={dec.y + (dec.size || 40) / 2} scale={sc} shadow={false} />;
+                    }
+                    if (dec.type === 'stool') {
+                        const sc = (dec.size || 30) / 18;
+                        return <WorldSprite key={`dec_${i}`} name="stool" x={dec.x} y={dec.y + (dec.size || 30) / 2} scale={sc} />;
+                    }
+                    if (dec.type === 'fire') {
+                        const sc = (dec.size || 60) / 48;
+                        return (
+                            <React.Fragment key={`dec_${i}`}>
+                                <div className="absolute pointer-events-none rounded-full animate-flicker" style={{
+                                    left: dec.x - 100, top: dec.y - 60, width: 200, height: 200,
+                                    background: 'radial-gradient(circle, rgba(255,150,40,0.35) 0%, rgba(255,150,40,0) 65%)',
+                                    zIndex: Math.floor(dec.y) - 1,
+                                }} />
+                                <WorldSprite name="fire" x={dec.x} y={dec.y + (dec.size || 60) / 2} scale={sc} />
+                            </React.Fragment>
+                        );
+                    }
                     if (dec.type === 'bartender_npc') return (
                         <div key={`dec_${i}`} className="absolute flex flex-col items-center" style={{ left: dec.x, top: dec.y, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
                             <div className="bg-black/60 text-white text-[8px] px-2 py-0.5 rounded-full mb-1 border border-white/10 font-bold uppercase tracking-wider">Tavern Keeper</div>
                             <div className="animate-world-bob">
-                                <PixelAvatar type="monk" scale={1.1} customColors={{ primary: '#e8e8e8', primaryDark: '#c0c8d0', skin: '#d49060' }} />
+                                <ModernPixelAvatar type="monk" scale={1.1} customColors={{ primary: '#e8e8e8', primaryDark: '#c0c8d0', skin: '#d49060' }} />
                             </div>
                             <div className="w-8 h-2 bg-black/40 rounded-full blur-sm mt-[-4px]" />
                         </div>
@@ -594,25 +289,32 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                     }
 
                     if (dec.type === 'bench') {
-                        return (
-                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size * 0.5, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
-                                <div className="relative w-full h-full">
-                                    <div className="absolute top-0 w-full h-2 bg-[#8a5a2b] rounded-sm" />
-                                    <div className="absolute top-2 w-full h-2 bg-[#7c4a2b] rounded-sm" />
-                                    <div className="absolute bottom-0 left-1 w-2 h-3 bg-[#5c3a21]" />
-                                    <div className="absolute bottom-0 right-1 w-2 h-3 bg-[#5c3a21]" />
-                                </div>
-                            </div>
-                        );
+                        const sc = (dec.size || 60) / 36;
+                        return <WorldSprite key={`dec_${i}`} name="bench" x={dec.x} y={dec.y} scale={sc} />;
+                    }
+
+                    if (dec.type === 'table') {
+                        const cx = dec.x + (dec.width || 120) / 2;
+                        const by = dec.y + (dec.height || 80);
+                        const sc = (dec.width || 120) / 56;
+                        return <WorldSprite key={`dec_${i}`} name="table" x={cx} y={by} scale={sc} />;
+                    }
+
+                    if (dec.type === 'bar_counter') {
+                        const cx = dec.x + (dec.width || 400) / 2;
+                        const by = dec.y + (dec.height || 80);
+                        const sc = (dec.width || 400) / 100;
+                        return <WorldSprite key={`dec_${i}`} name="bar_counter" x={cx} y={by} scale={sc} shadow={false} />;
                     }
 
                     if (dec.type === 'banner') {
-                        return (
-                            <div key={`dec_${i}`} className="absolute flex flex-col items-center pointer-events-none" style={{ left: dec.x, top: dec.y, transform: 'translate(-50%, 0)', zIndex: 5 }}>
-                                <div className="w-10 h-1.5 bg-[#3d261b] rounded-full" />
-                                <div className="w-9 h-16 flex items-center justify-center text-white text-lg shadow-lg" style={{ backgroundColor: dec.color, clipPath: 'polygon(0 0,100% 0,100% 82%,50% 100%,0 82%)' }}>{dec.icon}</div>
-                            </div>
-                        );
+                        // Banner hangs from the wall — anchor is top-center
+                        const variant = dec.color === '#fbbf24' ? 'banner_gold'
+                            : dec.color === '#dc2626' ? 'banner_red'
+                            : dec.color === '#7c3aed' ? 'banner_purple'
+                            : 'banner_blue';
+                        const sc = 2;
+                        return <WorldSprite key={`dec_${i}`} name={variant} x={dec.x} y={dec.y + 32 * sc} scale={sc} shadow={false} />;
                     }
 
                     if (dec.type === 'critter') {
@@ -749,41 +451,15 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                     }
 
                     if (dec.type === 'planter') {
-                        // Wooden planter box with bright flowers
-                        return (
-                            <div
-                                key={`dec_${i}`}
-                                className="absolute pointer-events-none"
-                                style={{ left: dec.x, top: dec.y, width: dec.width || 60, height: dec.height || 36, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}
-                            >
-                                <div className="relative w-full h-full">
-                                    <div className="absolute bottom-0 w-full h-[55%] bg-[#7c4a2b] border-x-2 border-t-2 border-[#3d261b] rounded-sm shadow-md">
-                                        <div className="absolute inset-x-1 top-1 h-0.5 bg-[#5c3a21]" />
-                                        <div className="absolute inset-x-1 bottom-1 h-0.5 bg-[#3d261b]" />
-                                    </div>
-                                    <div className="absolute bottom-[45%] w-full h-[35%] bg-[#166534] rounded-t-md shadow-inner" />
-                                    <div className="absolute bottom-[60%] left-2 w-2 h-2 rounded-full bg-pink-400" />
-                                    <div className="absolute bottom-[70%] left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-yellow-300" />
-                                    <div className="absolute bottom-[60%] right-2 w-2 h-2 rounded-full bg-rose-300" />
-                                    <div className="absolute bottom-[75%] left-1/3 w-1.5 h-1.5 rounded-full bg-sky-300" />
-                                </div>
-                            </div>
-                        );
+                        const cx = dec.x + (dec.width || 60) / 2;
+                        const by = dec.y + (dec.height || 36);
+                        const sc = (dec.width || 60) / 32;
+                        return <WorldSprite key={`dec_${i}`} name="planter" x={cx} y={by} scale={sc} />;
                     }
 
                     if (dec.type === 'hay') {
-                        // Pile of hay
-                        const s = dec.size || 48;
-                        return (
-                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: s, height: s * 0.7, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
-                                <div className="relative w-full h-full">
-                                    <div className="absolute bottom-0 w-full h-[80%] bg-[#ca8a04] rounded-t-full border-b-2 border-[#854d0e] shadow"
-                                        style={{ backgroundImage: 'repeating-linear-gradient(95deg, transparent 0 3px, rgba(0,0,0,0.18) 3px 4px)' }} />
-                                    <div className="absolute top-0 left-1/4 w-1 h-2 bg-[#854d0e] rotate-12" />
-                                    <div className="absolute top-1 right-1/4 w-1 h-2 bg-[#854d0e] -rotate-12" />
-                                </div>
-                            </div>
-                        );
+                        const sc = (dec.size || 48) / 28;
+                        return <WorldSprite key={`dec_${i}`} name="hay" x={dec.x} y={dec.y} scale={sc} />;
                     }
 
                     if (dec.type === 'rug') {
@@ -809,30 +485,11 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                     }
 
                     if (dec.type === 'weapon_rack') {
-                        // Wooden rack with swords leaning
                         const w = dec.width || 60, h = dec.height || 70;
-                        return (
-                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{ left: dec.x, top: dec.y, width: w, height: h, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
-                                <div className="relative w-full h-full">
-                                    <div className="absolute bottom-0 w-full h-2 bg-[#5c3a21] rounded-sm shadow" />
-                                    <div className="absolute top-1 w-full h-2 bg-[#7c4a2b] rounded-sm" />
-                                    <div className="absolute top-3 left-1 w-1 bg-[#5c3a21]" style={{ height: h - 12 }} />
-                                    <div className="absolute top-3 right-1 w-1 bg-[#5c3a21]" style={{ height: h - 12 }} />
-                                    {/* Swords */}
-                                    <div className="absolute bottom-2 left-[20%] w-1 h-[80%] bg-gradient-to-t from-gray-400 to-gray-200 shadow"
-                                        style={{ transform: 'rotate(-6deg)', transformOrigin: 'bottom' }}>
-                                        <div className="absolute -bottom-1 -left-1 w-3 h-1 bg-[#78350f]" />
-                                    </div>
-                                    <div className="absolute bottom-2 right-[20%] w-1 h-[75%] bg-gradient-to-t from-gray-500 to-gray-300 shadow"
-                                        style={{ transform: 'rotate(8deg)', transformOrigin: 'bottom' }}>
-                                        <div className="absolute -bottom-1 -left-1 w-3 h-1 bg-[#78350f]" />
-                                    </div>
-                                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1 h-[85%] bg-gradient-to-t from-gray-400 to-white">
-                                        <div className="absolute -bottom-1 -left-1 w-3 h-1 bg-[#fbbf24]" />
-                                    </div>
-                                </div>
-                            </div>
-                        );
+                        const cx = dec.x + w / 2;
+                        const by = dec.y + h;
+                        const sc = h / 32;
+                        return <WorldSprite key={`dec_${i}`} name="weapon_rack" x={cx} y={by} scale={sc} />;
                     }
 
                     if (dec.type === 'tree') {
@@ -849,7 +506,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                                 <div className="text-rpg-gold text-lg font-black animate-bounce drop-shadow mb-0.5">!</div>
                                 <div className="bg-black/60 text-white text-[8px] px-2 py-0.5 rounded-full mb-1 border border-white/10 font-bold uppercase tracking-wider whitespace-nowrap">{dec.label}</div>
                                 <div className="animate-world-bob">
-                                    <PixelAvatar type={dec.avatar || 'monk'} scale={1.1} customColors={dec.colors} />
+                                    <ModernPixelAvatar type={dec.avatar || 'monk'} scale={1.1} customColors={dec.colors} />
                                 </div>
                                 <div className="w-8 h-2 bg-black/40 rounded-full blur-sm mt-[-4px]" />
                             </div>
@@ -857,34 +514,450 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                     }
 
                     return null;
-                })}
+            })}
+        </>
+    );
+});
 
-                {/* NPCs (family & friends) — positions updated via DOM refs in game loop */}
-                {npcs.map(npc => {
+// Portals are static per map — memoized for the same reason as decorations.
+const PortalsLayer = React.memo(function PortalsLayer({ portals }) {
+    return (
+        <>
+            {portals?.map((portal, i) => (
+                    <div
+                        key={`portal_${i}`}
+                        className="absolute flex items-center justify-center pointer-events-none"
+                        style={{ left: portal.x, top: portal.y, width: portal.width, height: portal.height, zIndex: portal.y }}
+                    >
+                        <div className="w-full h-full border-2 border-dashed border-white/50 rounded-lg animate-pulse shadow-[0_0_15px_rgba(255,255,255,0.3)] bg-white/5 flex flex-col items-center justify-center">
+                            <span className="text-[8px] font-bold text-white uppercase tracking-tighter opacity-70 mb-1">Portal</span>
+                            <span className="text-[10px] font-bold text-rpg-gold text-shadow-glow whitespace-nowrap">{portal.label}</span>
+                        </div>
+                    </div>
+            ))}
+        </>
+    );
+});
+
+// NPC list only changes on map/family/friends change (movement is applied via
+// direct DOM refs in the game loop, not state) — memoized so it doesn't get
+// re-diffed on every player movement re-render either.
+const NpcLayer = React.memo(function NpcLayer({ npcs, npcDOMRefs, onSelectNpc }) {
+    return (
+        <>
+            {npcs.map(npc => {
                     const npcChar = npc.state?.character || npc.character;
+                    const isAsleep = !npc.is_online;
                     return (
                         <div
                             key={npc.id}
                             ref={el => { if (el) npcDOMRefs.current[npc.id] = el; else delete npcDOMRefs.current[npc.id]; }}
                             className="absolute will-change-transform cursor-pointer group"
-                            onClick={() => setSelectedNpc(npc)}
+                            onClick={() => onSelectNpc(npc)}
                             style={{ left: npc.x, top: npc.y, transform: 'translate(-50%, -100%)', zIndex: Math.round(npc.y) }}
                         >
-                            <div className="flex flex-col items-center">
-                                <div className="bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full font-bold mb-1 border border-white/10 whitespace-nowrap group-hover:border-rpg-gold/50 group-hover:bg-rpg-gold/10 group-hover:text-rpg-gold transition-colors">
-                                    {npc.username || npc.name}
+                            <div className="flex flex-col items-center relative">
+                                {/* Floating Z's for sleeping (offline) friends */}
+                                {isAsleep && (
+                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 pointer-events-none select-none" aria-hidden="true">
+                                        <span className="sleep-z sleep-z-1 text-rpg-gold font-heading font-black text-base">z</span>
+                                        <span className="sleep-z sleep-z-2 text-rpg-gold/80 font-heading font-black text-sm">z</span>
+                                        <span className="sleep-z sleep-z-3 text-rpg-gold/60 font-heading font-black text-xs">z</span>
+                                    </div>
+                                )}
+                                <div className={`text-[9px] px-2 py-0.5 rounded-full font-bold mb-1 border whitespace-nowrap transition-colors ${
+                                    isAsleep
+                                      ? 'bg-black/40 text-gray-400 border-white/5 italic'
+                                      : 'bg-black/60 text-white border-white/10 group-hover:border-rpg-gold/50 group-hover:bg-rpg-gold/10 group-hover:text-rpg-gold'
+                                }`}>
+                                    {npc.username || npc.name}{isAsleep && ' · zzz'}
                                 </div>
                                 <div
-                                    className="npc-facing-wrapper animate-world-bob"
-                                    style={{ transform: npc.facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)' }}
+                                    className={`npc-facing-wrapper ${isAsleep ? '' : 'animate-world-bob'}`}
+                                    style={{
+                                        transform: npc.facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
+                                        filter: isAsleep ? 'brightness(0.6) saturate(0.7)' : 'none',
+                                        opacity: isAsleep ? 0.75 : 1,
+                                    }}
                                 >
-                                    <PixelAvatar type={npcChar?.avatarId || 'warrior'} scale={1.0} customColors={npcChar?.avatarColors} />
+                                    <MemoAvatar type={npcChar?.avatarId || 'warrior'} scale={1.0} customColors={npcChar?.avatarColors} />
                                 </div>
                                 <div className="w-8 h-2 bg-black/40 rounded-full blur-sm mt-[-4px]" />
                             </div>
                         </div>
                     );
-                })}
+            })}
+        </>
+    );
+});
+
+const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onClose, onInteract, className }) => {
+    // Engine State
+    const [currentMapId, setCurrentMapId] = useState('townSquare');
+    // Resolve the map with any prefab placements expanded into raw decorations
+    // and obstacles. Memoised so we don't re-expand on every render.
+    const map = React.useMemo(() => {
+        const raw = MAP_DATA[currentMapId];
+        if (!raw) return raw;
+        if (!raw.prefabs || raw.prefabs.length === 0) return raw;
+        const expanded = expandPrefabs(raw.prefabs);
+        return {
+            ...raw,
+            decorations: [...(raw.decorations || []), ...expanded.decorations],
+            obstacles: [...(raw.obstacles || []), ...expanded.obstacles],
+        };
+    }, [currentMapId]);
+
+    // Player State
+    const [pos, setPos] = useState({ x: map?.spawn?.x || 0, y: map?.spawn?.y || 0 });
+    const [facing, setFacing] = useState('right');
+    const [isMoving, setIsMoving] = useState(false);
+
+    // Input Refs (read in 60fps loop, no React state overhead)
+    const keys = useRef({ w: false, a: false, s: false, d: false });
+    const joyInput = useRef({ x: 0, y: 0 });
+    const viewportRef = useRef(null);
+    const viewportSizeRef = useRef({ w: 600, h: 400 });
+    const posRef = useRef(pos);
+    const mapDOMRef = useRef(null);
+    const playerDOMRef = useRef(null);
+    const isMovingRef = useRef(false);
+    const facingRef = useRef('right');
+    // When a teleport spawns the player INSIDE the destination portal's hitbox,
+    // the next frame would re-trigger the portal and bounce them back. We arm
+    // this cooldown after every teleport and release it only once the player
+    // has stepped OUT of every portal on the current map.
+    const portalCooldownRef = useRef(true);
+    const dustRef = useRef(null);
+
+    // Fade State for Map Transitions
+    const [fadeState, setFadeState] = useState('none');
+    // Mirror fadeState in a ref so the game loop can read it without being
+    // listed as an effect dependency (which would tear down & rebuild the RAF
+    // loop on every transition).
+    const fadeStateRef = useRef('none');
+    useEffect(() => { fadeStateRef.current = fadeState; }, [fadeState]);
+
+    // NPC State
+    const [npcs, setNpcs] = useState([]);
+    const npcDataRef = useRef({});  // { [id]: { x, y, tx, ty, facing, waitUntil } } — mutable, read in loop
+    const npcDOMRefs = useRef({});  // { [id]: HTMLElement } — DOM refs for direct position updates
+
+    // Interaction State
+    const [selectedNpc, setSelectedNpc] = useState(null);
+    const [chatNpc, setChatNpc] = useState(null);
+
+    // Proximity interaction (shop / pet sanctuary zones)
+    const [nearTarget, setNearTarget] = useState(null);
+    const nearTargetRef = useRef(null);
+    const onInteractRef = useRef(onInteract);
+    useEffect(() => { onInteractRef.current = onInteract; });
+    const triggerInteract = () => {
+        const target = nearTargetRef.current;
+        if (target && onInteractRef.current) onInteractRef.current(target);
+    };
+
+    // Keep posRef synced for the game loop
+    useEffect(() => { posRef.current = pos; }, [pos]);
+
+    // On map change: spawn NPCs + seed their wandering data
+    useEffect(() => {
+        const currentMap = MAP_DATA[currentMapId];
+        if (!currentMap) return;
+        setSelectedNpc(null);
+
+        const allOthers = [...(familyMembers || []), ...(friends || [])];
+
+        const generatedNpcs = allOthers.map(u => {
+            const x = 200 + Math.random() * (currentMap.width - 400);
+            const y = 200 + Math.random() * (currentMap.height - 400);
+            return { ...u, x, y, facing: Math.random() > 0.5 ? 'right' : 'left' };
+        });
+
+        setNpcs(generatedNpcs);
+
+        // Seed movement data in ref (not state — no re-renders during wandering)
+        const newNpcData = {};
+        generatedNpcs.forEach(npc => {
+            newNpcData[npc.id] = {
+                x: npc.x,
+                y: npc.y,
+                tx: 150 + Math.random() * (currentMap.width - 300),
+                ty: 150 + Math.random() * (currentMap.height - 300),
+                facing: npc.facing,
+                waitUntil: null,
+                isOnline: !!npc.is_online, // gated: offline NPCs don't wander
+            };
+        });
+        npcDataRef.current = newNpcData;
+    }, [currentMapId, familyMembers, friends]);
+
+    // Keyboard Listeners
+    useEffect(() => {
+        const down = (e) => {
+            if (e.code) keys.current[e.code] = true;
+            if (e.key) keys.current[e.key.toLowerCase()] = true;
+            if (e.key && e.key.toLowerCase() === 'e') triggerInteract();
+        };
+        const up = (e) => {
+            if (e.code) keys.current[e.code] = false;
+            if (e.key) keys.current[e.key.toLowerCase()] = false;
+        };
+        window.addEventListener('keydown', down);
+        window.addEventListener('keyup', up);
+        return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
+    }, []);
+
+    // Box collision check
+    const checkCollision = (newX, newY, mapRef) => {
+        const pLeft = newX - TILE_SIZE / 2;
+        const pRight = newX + TILE_SIZE / 2;
+        const pTop = newY - TILE_SIZE / 2;
+        const pBottom = newY + TILE_SIZE / 2;
+        for (const obs of mapRef.obstacles) {
+            if (pRight > obs.x && pLeft < obs.x + obs.width && pBottom > obs.y && pTop < obs.y + obs.height) return true;
+        }
+        return false;
+    };
+
+    // Portal collision check
+    const checkPortals = (x, y, mapRef) => {
+        for (const portal of mapRef.portals) {
+            if (x > portal.x && x < portal.x + portal.width && y > portal.y && y < portal.y + portal.height) return portal;
+        }
+        return null;
+    };
+
+    // Nearest interaction zone within its radius (shop / pet sanctuary)
+    const checkInteractables = (x, y, mapRef) => {
+        if (!mapRef.interactables) return null;
+        for (const it of mapRef.interactables) {
+            const cx = it.x + it.width / 2;
+            const cy = it.y + it.height / 2;
+            if (Math.hypot(x - cx, y - cy) < (it.radius || 90)) return it;
+        }
+        return null;
+    };
+
+    // Camera utility — shared between moving and idle branches
+    const updateCamera = (px, py, currentMap) => {
+        if (!mapDOMRef.current || viewportSizeRef.current.w <= 0) return;
+        const viewW = viewportSizeRef.current.w;
+        const viewH = viewportSizeRef.current.h;
+        let camX = Math.max(0, Math.min(currentMap.width - viewW, px - viewW / 2));
+        let camY = Math.max(0, Math.min(currentMap.height - viewH, py - viewH / 2));
+        mapDOMRef.current.style.transform = `translate3d(-${camX}px, -${camY}px, 0)`;
+    };
+
+    // Viewport resize observer
+    useEffect(() => {
+        if (!viewportRef.current) return;
+        viewportSizeRef.current = { w: viewportRef.current.clientWidth, h: viewportRef.current.clientHeight };
+        const ro = new ResizeObserver(entries => {
+            for (const e of entries) viewportSizeRef.current = { w: e.contentRect.width, h: e.contentRect.height };
+            // Keep the player framed when the playable area is resized (orientation, layout shifts)
+            updateCamera(posRef.current.x, posRef.current.y, MAP_DATA[currentMapId]);
+        });
+        ro.observe(viewportRef.current);
+        return () => ro.disconnect();
+    }, [currentMapId]);
+
+    // MAIN GAME LOOP (60fps)
+    useEffect(() => {
+        let rafId;
+        let lastParticleTime = 0;
+
+        const loop = (timestamp) => {
+            const currentMap = MAP_DATA[currentMapId];
+            if (!currentMap) { rafId = requestAnimationFrame(loop); return; }
+
+            // --- Player input ---
+            let dx = 0, dy = 0;
+            if (keys.current['KeyW'] || keys.current['ArrowUp'] || keys.current['w']) dy -= 1;
+            if (keys.current['KeyS'] || keys.current['ArrowDown'] || keys.current['s']) dy += 1;
+            if (keys.current['KeyA'] || keys.current['ArrowLeft'] || keys.current['a']) dx -= 1;
+            if (keys.current['KeyD'] || keys.current['ArrowRight'] || keys.current['d']) dx += 1;
+            if (joyInput.current.x !== 0 || joyInput.current.y !== 0) { dx = joyInput.current.x; dy = joyInput.current.y; }
+
+            // Normalize diagonal (keyboard only)
+            if (dx !== 0 && dy !== 0 && joyInput.current.x === 0) {
+                const len = Math.sqrt(dx * dx + dy * dy);
+                dx /= len; dy /= len;
+            }
+
+            if (dx !== 0 || dy !== 0) {
+                let nx = Math.max(TILE_SIZE, Math.min(currentMap.width - TILE_SIZE, posRef.current.x + dx * SPEED));
+                let ny = Math.max(TILE_SIZE, Math.min(currentMap.height - TILE_SIZE, posRef.current.y + dy * SPEED));
+                if (!checkCollision(nx, posRef.current.y, currentMap)) posRef.current.x = nx;
+                if (!checkCollision(posRef.current.x, ny, currentMap)) posRef.current.y = ny;
+
+                // Dust particles — pushed into the isolated dust layer so they
+                // don't re-render the whole world while walking.
+                if (timestamp - lastParticleTime > 150) {
+                    dustRef.current?.spawn(posRef.current.x, posRef.current.y);
+                    lastParticleTime = timestamp;
+                }
+
+                if (playerDOMRef.current) {
+                    playerDOMRef.current.style.left = `${posRef.current.x}px`;
+                    playerDOMRef.current.style.top = `${posRef.current.y}px`;
+                    playerDOMRef.current.style.zIndex = Math.round(posRef.current.y);
+                }
+
+                if (!isMovingRef.current) { isMovingRef.current = true; setIsMoving(true); }
+                if (dx > 0 && facingRef.current !== 'right') { facingRef.current = 'right'; setFacing('right'); }
+                if (dx < 0 && facingRef.current !== 'left') { facingRef.current = 'left'; setFacing('left'); }
+
+                updateCamera(posRef.current.x, posRef.current.y, currentMap);
+
+                const portal = checkPortals(posRef.current.x, posRef.current.y, currentMap);
+                if (portal) {
+                    // After teleport the player can spawn inside the destination
+                    // portal's hitbox; suppress triggers until they've walked out.
+                    if (portalCooldownRef.current) {
+                        // still inside a portal — keep cooldown armed
+                    } else if (fadeStateRef.current === 'none') {
+                        portalCooldownRef.current = true;
+                        setFadeState('exit');
+                        setTimeout(() => {
+                            setCurrentMapId(portal.targetMap);
+                            setPos({ x: portal.targetX, y: portal.targetY });
+                            posRef.current = { x: portal.targetX, y: portal.targetY };
+                            setFadeState('enter');
+                            setTimeout(() => setFadeState('none'), 400);
+                        }, 400);
+                    }
+                } else if (portalCooldownRef.current) {
+                    // Player has cleared all portal hitboxes — re-arm portal triggers
+                    portalCooldownRef.current = false;
+                }
+            } else {
+                if (isMovingRef.current) { isMovingRef.current = false; setIsMoving(false); setPos({ ...posRef.current }); }
+                updateCamera(posRef.current.x, posRef.current.y, currentMap);
+            }
+
+            // --- NPC wandering (DOM-direct, no setState) ---
+            for (const [id, data] of Object.entries(npcDataRef.current)) {
+                if (!data.isOnline) continue; // offline NPCs are asleep — no movement
+                const ndx = data.tx - data.x;
+                const ndy = data.ty - data.y;
+                const dist = Math.sqrt(ndx * ndx + ndy * ndy);
+
+                if (dist < NPC_STOP_DIST) {
+                    // Arrived — wait, then pick new target
+                    if (!data.waitUntil) data.waitUntil = timestamp + 1500 + Math.random() * 2500;
+                    if (timestamp > data.waitUntil) {
+                        data.waitUntil = null;
+                        data.tx = 150 + Math.random() * (currentMap.width - 300);
+                        data.ty = 150 + Math.random() * (currentMap.height - 300);
+                    }
+                } else {
+                    data.waitUntil = null;
+                    data.x += (ndx / dist) * NPC_SPEED;
+                    data.y += (ndy / dist) * NPC_SPEED;
+
+                    const newFacing = ndx > 0 ? 'right' : 'left';
+                    if (newFacing !== data.facing) {
+                        data.facing = newFacing;
+                        const domEl = npcDOMRefs.current[id];
+                        if (domEl) {
+                            const wrapper = domEl.querySelector('.npc-facing-wrapper');
+                            if (wrapper) wrapper.style.transform = newFacing === 'left' ? 'scaleX(-1)' : 'scaleX(1)';
+                        }
+                    }
+
+                    const domEl = npcDOMRefs.current[id];
+                    if (domEl) {
+                        domEl.style.left = `${data.x}px`;
+                        domEl.style.top = `${data.y}px`;
+                        domEl.style.zIndex = Math.round(data.y);
+                    }
+                }
+            }
+
+            // --- Proximity to interaction zones (shop / pet sanctuary) ---
+            const near = checkInteractables(posRef.current.x, posRef.current.y, currentMap);
+            const prevTarget = nearTargetRef.current?.target || null;
+            if ((near?.target || null) !== prevTarget) {
+                nearTargetRef.current = near;
+                setNearTarget(near);
+            }
+
+            rafId = requestAnimationFrame(loop);
+        };
+
+        rafId = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(rafId);
+    }, [currentMapId]);
+
+    // Pre-compute the floor tile data URL once per map (expensive: 4096 cells → SVG)
+    const tileBackground = React.useMemo(() => {
+        if (!map?.tileSprite) return null;
+        const buffer = SPRITES[map.tileSprite];
+        if (!buffer) return null;
+        const tilePx = map.tileSize || 64;
+        return {
+            backgroundColor: map.baseColor || '#000',
+            backgroundImage: `url("${pixelBufferToDataUrl(buffer, 64)}")`,
+            backgroundSize: `${tilePx}px ${tilePx}px`,
+            backgroundRepeat: 'repeat',
+            imageRendering: 'pixelated'
+        };
+    }, [map?.tileSprite, map?.tileSize, map?.baseColor]);
+
+    if (!map) return <div className="text-white p-10">Loading map...</div>;
+
+    const charData = activeProfile?.state?.character || { name: 'Player', class: 'Novice', avatarId: 'warrior' };
+
+    return (
+        <div
+            className={(className || 'w-full h-full relative') + ' overflow-hidden transition-colors duration-1000'}
+            style={{ backgroundColor: map?.baseColor || '#000' }}
+            ref={viewportRef}
+        >
+            {/* Map Transition Overlay */}
+            {fadeState !== 'none' && (
+                <div className={`map-transition-overlay ${fadeState === 'exit' ? 'map-fade-exit' : 'map-fade-enter'}`} />
+            )}
+
+            {/* Map Container (Camera Layer) */}
+            <div
+                ref={mapDOMRef}
+                className={`origin-top-left will-change-transform ${tileBackground ? '' : (map.className || '')}`}
+                style={{ width: map.width, height: map.height, position: 'relative', ...(map.background || {}), ...(tileBackground || {}) }}
+            >
+                {/* Ambient atmosphere: warm wash + soft vignette (only on outdoor cobbled maps) */}
+                {map.className === 'medieval-town-bg' && (
+                    <>
+                        <div
+                            className="absolute inset-0 pointer-events-none"
+                            style={{
+                                background: 'radial-gradient(ellipse at 50% 40%, rgba(255,180,90,0.10) 0%, transparent 55%)',
+                                mixBlendMode: 'screen',
+                                zIndex: 0
+                            }}
+                        />
+                        <div
+                            className="absolute inset-0 pointer-events-none"
+                            style={{
+                                background: 'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%)',
+                                zIndex: 0
+                            }}
+                        />
+                    </>
+                )}
+
+                {/* Portals */}
+                <PortalsLayer portals={map.portals} />
+
+                {/* Dust Particles — isolated layer, owns its own state */}
+                <DustParticles ref={dustRef} />
+
+                {/* Decorations */}
+                <DecorationsLayer decorations={map.decorations} />
+
+                {/* NPCs (family & friends) — positions updated via DOM refs in game loop */}
+                <NpcLayer npcs={npcs} npcDOMRefs={npcDOMRefs} onSelectNpc={setSelectedNpc} />
 
                 {/* Player */}
                 <div
@@ -901,7 +974,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                             className={`transform origin-bottom transition-transform duration-100 ${isMoving ? 'animate-world-bob' : ''}`}
                             style={{ transform: facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)' }}
                         >
-                            <PixelAvatar type={charData.avatarId} scale={1.0} customColors={charData.avatarColors} />
+                            <MemoAvatar type={charData.avatarId} scale={1.0} customColors={charData.avatarColors} />
                         </div>
                         <div className="w-10 h-2 bg-black/60 rounded-full blur-md mt-[-6px]" />
                     </div>
@@ -910,7 +983,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
 
             {/* HUD — Area name */}
             <div className="absolute top-4 left-4 z-40 pointer-events-none">
-                <div className="glass-panel px-4 py-2 flex items-center gap-3 backdrop-blur-xl bg-[#1a102e]/80 w-max shadow-xl">
+                <div className="glass-panel px-4 py-2 flex items-center gap-3 backdrop-blur-xl bg-rpg-panel/80 w-max shadow-xl">
                     <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
                     <div>
                         <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Current Area</div>
@@ -953,7 +1026,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
 
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-14 h-14 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl border border-white/10 flex items-center justify-center flex-shrink-0">
-                                <PixelAvatar
+                                <ModernPixelAvatar
                                     type={npcChar.avatarId || 'warrior'}
                                     scale={1.5}
                                     customColors={npcChar.avatarColors}

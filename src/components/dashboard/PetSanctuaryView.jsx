@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import PixelPet from '../common/PixelPet';
+import ModernPixelPet from '../common/ModernPixelPet';
 import PixelIcon from '../common/PixelIcon';
 import { useGame } from '../../context/GameContext';
 import { useToast } from '../common/Toast';
+
+// Pets grow visually at level milestones, mirroring the evolution curve
+// the retired legacy PixelPet wrapper used to apply.
+const evolutionScale = (level) => {
+    if (level >= 20) return 1.4;
+    if (level >= 10) return 1.2;
+    return 1;
+};
 
 const PetSanctuaryView = ({ currentUser }) => {
     const { state, actions } = useGame();
@@ -188,7 +196,7 @@ const PetSanctuaryView = ({ currentUser }) => {
                                         className="transform transition-transform duration-300 filter drop-shadow-xl animate-bounce"
                                         style={{ animationDuration: '3s', animationDelay: `${delay}s` }}
                                     >
-                                        <PixelPet type={pet.type} scale={2} level={pet.level} />
+                                        <ModernPixelPet type={pet.type} scale={2 * evolutionScale(pet.level)} />
                                     </div>
                                     <div className="w-12 h-2 bg-black/40 rounded-[50%] blur-sm mt-[-4px]" />
                                 </div>
@@ -232,7 +240,7 @@ const PetSanctuaryView = ({ currentUser }) => {
                                 <div className="flex items-center gap-4">
                                     <div className="w-16 h-16 bg-gradient-to-br from-emerald-500/10 to-teal-500/20 rounded-xl flex items-center justify-center border border-emerald-500/20 shadow-inner overflow-hidden">
                                         <div className="transform scale-[1.5]">
-                                            <PixelPet type={pet.pet_type} level={pet.pet_level} />
+                                            <ModernPixelPet type={pet.pet_type} scale={evolutionScale(pet.pet_level)} />
                                         </div>
                                     </div>
                                     <div>

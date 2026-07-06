@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import PixelAvatar from '../common/PixelAvatar';
+import ModernPixelAvatar from '../common/ModernPixelAvatar';
 import { Send, X, MessageSquare } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useToast } from '../common/Toast';
@@ -124,14 +124,14 @@ const ChatModal = ({ isOpen, onClose, currentUser, friend, onUpdateUnread }) => 
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-[#1a102e]/95 border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md h-[85dvh] sm:h-[600px] sm:max-h-[90dvh] flex flex-col overflow-hidden relative">
+            <div className="bg-rpg-panel/95 border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md h-[85dvh] sm:h-[600px] sm:max-h-[90dvh] flex flex-col overflow-hidden relative">
 
                 {/* Header */}
                 <div className="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden">
                             {friendChar.avatarId ? (
-                                <PixelAvatar type={friendChar.avatarId} scale={1.5} customColors={friendChar.avatarColors} headOnly={true} />
+                                <ModernPixelAvatar type={friendChar.avatarId} scale={1.5} customColors={friendChar.avatarColors} headOnly={true} />
                             ) : (
                                 <div className="text-gray-500 font-bold">?</div>
                             )}

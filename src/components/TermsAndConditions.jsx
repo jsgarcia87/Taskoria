@@ -3,8 +3,8 @@ import { ChevronLeft } from 'lucide-react';
 
 const TermsAndConditions = ({ onBack }) => {
     return (
-        <div className="min-h-screen bg-[#0a0514] text-white font-sans selection:bg-rpg-gold selection:text-black">
-            <nav className="fixed top-0 w-full z-50 flex items-center px-6 py-4 border-b border-white/10 bg-[#0a0514]/80 backdrop-blur-xl">
+        <div className="min-h-screen bg-rpg-panelDark text-white font-sans selection:bg-rpg-gold selection:text-black">
+            <nav className="fixed top-0 w-full z-50 flex items-center px-6 py-4 border-b border-white/10 bg-rpg-panelDark/80 backdrop-blur-xl">
                 <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors cursor-pointer font-heading uppercase tracking-widest text-sm">
                     <ChevronLeft size={20} />
                     <span>Back</span>
@@ -12,7 +12,7 @@ const TermsAndConditions = ({ onBack }) => {
             </nav>
             <main className="container mx-auto px-6 pt-32 pb-24 max-w-4xl">
                 <h1 className="text-4xl md:text-5xl font-heading mb-8 text-transparent bg-clip-text bg-gradient-to-r from-rpg-gold to-amber-600">Terms of Service</h1>
-                <div className="space-y-6 text-gray-300 bg-[#1a102e]/60 p-8 md:p-12 rounded-3xl border border-white/10">
+                <div className="space-y-6 text-gray-300 bg-rpg-panel/60 p-8 md:p-12 rounded-3xl border border-white/10">
                     <p><strong>Last Updated:</strong> {new Date().toLocaleDateString('en-US')}</p>
 
                     <h2 className="text-2xl font-heading text-white mt-8 mb-4">1. Acceptance of Terms</h2>

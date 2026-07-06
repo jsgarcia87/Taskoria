@@ -1,11 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { GameProvider, useGame } from './context/GameContext';
+import { useToast } from './components/common/Toast';
 import CharacterCreation from './components/CharacterCreation';
 import CharacterSheet from './components/CharacterSheet';
-import Shop from './components/Shop';
+// Shop drags the entire items catalog + 757KB sprite sheet URL; defer it.
+const Shop = React.lazy(() => import('./components/Shop'));
 import Dashboard from './components/Dashboard';
 import Auth from './components/Auth';
-import LandingPage from './components/LandingPage';
+// Heavy / rarely-used routes are lazy-loaded so the initial bundle stays small.
+// Each becomes its own chunk via vite.config manualChunks. Suspense boundary
+// below the providers shows a minimal loader while the chunk arrives.
+const LandingPage = React.lazy(() => import('./components/LandingPage'));
+
+// Lightweight inline loader shown while a lazy chunk downloads — kept dependency-free
+// so it ships in the main bundle and never triggers another network round-trip.
+const ChunkLoader = ({ label = 'Loading…' }) => (
+  <div className="min-h-[200px] flex flex-col items-center justify-center gap-3 text-rpg-gold animate-pulse">
+    <div className="w-6 h-6 border-2 border-rpg-gold border-t-transparent rounded-full animate-spin" />
+    <div className="text-[10px] uppercase tracking-widest font-bold">{label}</div>
+  </div>
+);
 import CalendarView from './components/dashboard/CalendarView';
 import PixelIcon from './components/common/PixelIcon';
 import { TASK_DIFFICULTY, calculateXpReq } from './utils/gameUtils';
@@ -37,6 +52,15 @@ const migrateXpCurve = (familyData) => {
 import Layout_v2 from './components/Layout_v2';
 import Diary from './components/Diary';
 
+// Motion preset compartido para todas las transiciones de vista.
+// y: 6 + duration 0.2 = casi imperceptible pero se nota el "cuidado".
+const VIEW_MOTION = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -6 },
+  transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] },
+};
+
 const NavItem = ({ icon: Icon, label, active, onClick }) => (
   <button
     onClick={onClick}
@@ -56,18 +80,41 @@ import TaskList from './components/dashboard/TaskList';
 import TaskForm from './components/dashboard/TaskForm';
 import HabitForm from './components/dashboard/HabitForm';
 import FAQ from './components/dashboard/FAQ';
-import AdminPanel from './components/dashboard/AdminPanel';
-import CreationStudio from './components/dashboard/CreationStudio';
-import CreationGallery from './components/dashboard/CreationGallery';
+// Admin + Studio are admin-only / opt-in features → split into separate chunks.
+const AdminPanel = React.lazy(() => import('./components/dashboard/AdminPanel'));
+const CreationStudio = React.lazy(() => import('./components/dashboard/CreationStudio'));
+const StudioAccessGate = React.lazy(() => import('./components/dashboard/StudioAccessGate'));
+const CreationGallery = React.lazy(() => import('./components/dashboard/CreationGallery'));
 import LevelUpModal from './components/common/LevelUpModal';
 import DailyRewardModal from './components/dashboard/DailyRewardModal';
+import Tutorial from './components/Tutorial';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
+import DailyMissions from './components/dashboard/DailyMissions';
+import { usePetWarnings } from './utils/usePetWarnings';
 import Settings from './components/Settings';
 import Screensaver from './components/common/Screensaver';
 
 const GameContent = ({ currentUser, onLogout }) => {
-  const { state, actions } = useGame();
+  const { state, actions, dispatch, activeProfileId } = useGame();
+  const toast = useToast();
+  // Edge-triggered toast warnings when a pet stat dips below 25%
+  usePetWarnings(state.character?.pets);
   const { character, tasks } = state;
   const [activeView, setActiveView] = useState('home'); // home | profile | shop | party | tasks (mobile)
+
+  // Beta welcome — fires once per profile, 3.5s after the tutorial dismisses,
+  // pointing testers at the feedback button. Keeps the tone quiet: single toast,
+  // no modal, no CTA. Persisted in localStorage so it never fires twice.
+  useEffect(() => {
+    if (!character || character.hasSeenTutorial !== true || !activeProfileId) return;
+    const key = `beta-welcomed-${activeProfileId}`;
+    if (localStorage.getItem(key)) return;
+    const t = setTimeout(() => {
+      toast.info("You're in closed beta. Spot a bug or an idea? Tap the book icon on the corner and tell Sangar.");
+      localStorage.setItem(key, '1');
+    }, 3500);
+    return () => clearTimeout(t);
+  }, [character?.hasSeenTutorial, activeProfileId, toast]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showScreensaver, setShowScreensaver] = useState(false);
   const { screensaverSettings } = state;
@@ -135,12 +182,15 @@ const GameContent = ({ currentUser, onLogout }) => {
       >
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
-          {state.showLevelUpModal && (
-            <LevelUpModal
-              data={state.newLevelData}
-              onClose={() => actions.closeLevelUpModal()}
-            />
-          )}
+          <AnimatePresence>
+            {state.showLevelUpModal && (
+              <LevelUpModal
+                key="level-up"
+                data={state.newLevelData}
+                onClose={() => actions.closeLevelUpModal()}
+              />
+            )}
+          </AnimatePresence>
 
           {state.showDailyRewardModal && (
             <DailyRewardModal
@@ -150,92 +200,115 @@ const GameContent = ({ currentUser, onLogout }) => {
             />
           )}
 
-          {/* LEFT/CENTER COLUMN (Dashboard) */}
-          {activeView === 'home' && (
-            <Dashboard setActiveView={setActiveView} />
+          {/* First-time tutorial — runs once per character */}
+          {state.character && state.character.hasSeenTutorial === false && !state.showDailyRewardModal && !state.showLevelUpModal && (
+            <Tutorial onDismiss={() => dispatch({ type: 'DISMISS_TUTORIAL' })} />
           )}
 
-          {activeView === 'profile' && (
-            <div className="col-span-12 lg:col-span-10 lg:col-start-2">
-              <CharacterSheet />
-            </div>
-          )}
+          {/* PWA install prompt — surfaces only after Lvl 2+, dismissible, 14-day cooldown */}
+          <PWAInstallPrompt />
 
-          {activeView === 'party' && (
-            <div className="col-span-12 lg:col-span-10 lg:col-start-2">
-              <PartyView currentUser={currentUser} />
-            </div>
-          )}
+          {/* View transitions — sutil fade + micro-slide sincronizado entre vistas */}
+          <AnimatePresence mode="wait">
+            {activeView === 'home' && (
+              <motion.div key="home" {...VIEW_MOTION} className="col-span-12">
+                <Dashboard setActiveView={setActiveView} />
+              </motion.div>
+            )}
 
-          {activeView === 'shop' && (
-            <div className="col-span-12 lg:col-span-10 lg:col-start-2">
-              <Shop />
-            </div>
-          )}
+            {activeView === 'profile' && (
+              <motion.div key="profile" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
+                <CharacterSheet />
+              </motion.div>
+            )}
 
-          {activeView === 'calendar' && (
-            <div className="col-span-12 lg:col-span-10 lg:col-start-2">
-              <CalendarView />
-            </div>
-          )}
+            {activeView === 'party' && (
+              <motion.div key="party" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
+                <PartyView currentUser={currentUser} />
+              </motion.div>
+            )}
 
-          {activeView === 'diary' && (
-            <div className="col-span-12 lg:col-span-10 lg:col-start-2 h-[calc(100vh-140px)]">
-              <Diary />
-            </div>
-          )}
+            {activeView === 'shop' && (
+              <motion.div key="shop" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
+                <Suspense fallback={<ChunkLoader label="Loading shop…" />}>
+                  <Shop />
+                </Suspense>
+              </motion.div>
+            )}
 
-          {activeView === 'faq' && (
-            <div className="col-span-12 lg:col-span-10 lg:col-start-2">
-              <FAQ />
-            </div>
-          )}
+            {activeView === 'calendar' && (
+              <motion.div key="calendar" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
+                <CalendarView />
+              </motion.div>
+            )}
 
-          {activeView === 'studio' && (
-            <div className="col-span-12 lg:col-span-10 lg:col-start-2">
-              <CreationStudio currentUser={currentUser} />
-            </div>
-          )}
+            {activeView === 'diary' && (
+              <motion.div key="diary" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2 h-[calc(100vh-140px)]">
+                <Diary />
+              </motion.div>
+            )}
 
-          {activeView === 'creations' && (
-            <div className="col-span-12 lg:col-span-10 lg:col-start-2">
-              <CreationGallery currentUser={currentUser} />
-            </div>
-          )}
+            {activeView === 'faq' && (
+              <motion.div key="faq" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
+                <FAQ />
+              </motion.div>
+            )}
 
-          {activeView === 'admin' && currentUser?.is_admin && (
-            <div className="col-span-12 lg:col-span-10 lg:col-start-2">
-              <AdminPanel currentUser={currentUser} />
-            </div>
-          )}
+            {activeView === 'studio' && (
+              <motion.div key="studio" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
+                <Suspense fallback={<ChunkLoader label="Loading Pixel Studio…" />}>
+                  <StudioAccessGate currentUser={currentUser}>
+                    <CreationStudio currentUser={currentUser} />
+                  </StudioAccessGate>
+                </Suspense>
+              </motion.div>
+            )}
 
-          {activeView === 'settings' && (
-            <div className="col-span-12 lg:col-span-10 lg:col-start-2">
-              <Settings onClose={() => setActiveView('home')} />
-            </div>
-          )}
+            {activeView === 'creations' && (
+              <motion.div key="creations" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
+                <Suspense fallback={<ChunkLoader label="Loading gallery…" />}>
+                  <CreationGallery currentUser={currentUser} />
+                </Suspense>
+              </motion.div>
+            )}
 
-          {/* Mobile Tasks View */}
-          {activeView === 'tasks' && (
-            <div className="col-span-12">
-              <h2 className="text-2xl font-heading font-bold text-rpg-gold mb-6 text-center text-shadow-glow md:hidden">QUEST LOG</h2>
-              <TaskList isSidebar={false} setActiveView={setActiveView} />
-            </div>
-          )}
+            {activeView === 'admin' && currentUser?.is_admin && (
+              <motion.div key="admin" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
+                <Suspense fallback={<ChunkLoader label="Loading admin panel…" />}>
+                  <AdminPanel currentUser={currentUser} />
+                </Suspense>
+              </motion.div>
+            )}
 
-          {/* Mobile Create Task View */}
-          {activeView === 'createTask' && (
-            <div className="col-span-12">
-              <TaskForm onClose={() => setActiveView('tasks')} />
-            </div>
-          )}
+            {activeView === 'settings' && (
+              <motion.div key="settings" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
+                <Settings onClose={() => setActiveView('home')} currentUser={currentUser} />
+              </motion.div>
+            )}
 
-          {/* Mobile Create Habit View */}
-          {activeView === 'createHabit' && (
-            <div className="col-span-12">
-              <HabitForm onClose={() => setActiveView('tasks')} />
-            </div>
-          )}
+            {/* Mobile Tasks View */}
+            {activeView === 'tasks' && (
+              <motion.div key="tasks" {...VIEW_MOTION} className="col-span-12 space-y-4">
+                <h2 className="text-2xl font-heading font-bold text-rpg-gold mb-2 text-center text-shadow-glow md:hidden">QUEST LOG</h2>
+                <DailyMissions />
+                <TaskList isSidebar={false} setActiveView={setActiveView} />
+              </motion.div>
+            )}
+
+            {/* Mobile Create Task View */}
+            {activeView === 'createTask' && (
+              <motion.div key="createTask" {...VIEW_MOTION} className="col-span-12">
+                <TaskForm onClose={() => setActiveView('tasks')} />
+              </motion.div>
+            )}
+
+            {/* Mobile Create Habit View */}
+            {activeView === 'createHabit' && (
+              <motion.div key="createHabit" {...VIEW_MOTION} className="col-span-12">
+                <HabitForm onClose={() => setActiveView('tasks')} />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
         </div>
       </Layout_v2>
@@ -251,6 +324,11 @@ const GameContent = ({ currentUser, onLogout }) => {
         <p className="text-gray-400 max-w-md mb-8">
           A conflict in your profile data was detected. Don't worry, your data is safe! Please refresh the page to try again.
         </p>
+        {/* Surface the real error so we can diagnose instead of guessing */}
+        <pre className="max-w-xl text-left text-[10px] text-red-300/80 bg-black/60 border border-red-500/20 rounded-lg p-3 mb-6 overflow-auto whitespace-pre-wrap break-all">
+          {String(err?.message || err)}
+          {err?.stack && '\n\n' + err.stack.split('\n').slice(0, 5).join('\n')}
+        </pre>
         <button 
           onClick={() => window.location.reload()}
           className="glass-btn-primary px-8 py-4 font-bold text-lg shadow-rpg-gold/30"
@@ -418,7 +496,11 @@ function App() {
   };
 
   if (!currentUser) {
-    if (currentView === 'landing') return <LandingPage onGoToLogin={() => setCurrentView('auth')} onGoToTerms={() => setCurrentView('terms')} onGoToLegal={() => setCurrentView('legal')} />;
+    if (currentView === 'landing') return (
+      <Suspense fallback={<ChunkLoader label="Loading…" />}>
+        <LandingPage onGoToLogin={() => setCurrentView('auth')} onGoToTerms={() => setCurrentView('terms')} onGoToLegal={() => setCurrentView('legal')} />
+      </Suspense>
+    );
     if (currentView === 'auth') return <Auth onLogin={handleLogin} onBackToLanding={() => setCurrentView('landing')} />;
     if (currentView === 'terms') return <TermsAndConditions onBack={() => setCurrentView('landing')} />;
     if (currentView === 'legal') return <LegalNotice onBack={() => setCurrentView('landing')} />;

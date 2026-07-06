@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import PixelAvatar from '../common/PixelAvatar';
+import ModernPixelAvatar from '../common/ModernPixelAvatar';
 import PixelIcon from '../common/PixelIcon';
 
 const FOCUS_MESSAGES = [
@@ -78,7 +78,7 @@ const CoFocusingArea = ({ currentUser, activeProfile, familyMembers, friends }) 
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">A bustling medieval hub for your party!</p>
 
             {/* The Field */}
-            <div className="relative w-full h-96 medieval-town-bg border-4 border-[#1a102e] rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+            <div className="relative w-full h-96 medieval-town-bg border-4 border-rpg-panel rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
 
                 {/* Environmental Props (Fake CSS buildings/props) */}
                 {/* Town Bulletin Board */}
@@ -150,7 +150,7 @@ const CoFocusingArea = ({ currentUser, activeProfile, familyMembers, friends }) 
 
                         {/* Avatar */}
                         <div className={`transition-transform duration-500 hover:scale-125 ${!char.isFocusing ? 'opacity-60 saturate-50' : ''}`}>
-                            <PixelAvatar type={char.avatarId || 'warrior'} scale={1.5} customColors={char.colors} />
+                            <ModernPixelAvatar type={char.avatarId || 'warrior'} scale={1.5} customColors={char.colors} />
                         </div>
 
                         {/* Name tag */}
@@ -162,7 +162,7 @@ const CoFocusingArea = ({ currentUser, activeProfile, familyMembers, friends }) 
             </div>
 
             {/* Legend / Status bar */}
-            <div className="bg-[#2b254a] p-3 border-x-4 border-b-4 border-[#1a102e] rounded-b-lg flex justify-between items-center text-xs text-gray-400 font-bold uppercase tracking-widest">
+            <div className="bg-[#2b254a] p-3 border-x-4 border-b-4 border-rpg-panel rounded-b-lg flex justify-between items-center text-xs text-gray-400 font-bold uppercase tracking-widest">
                 <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1"><div className="w-2 h-2 bg-green-500"></div> Focused</span>
                     <span className="flex items-center gap-1"><div className="w-2 h-2 bg-gray-500"></div> Resting</span>

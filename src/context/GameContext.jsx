@@ -11,6 +11,7 @@ import { BattleProvider } from './BattleContext';
 
 import { playCoinSound, playHealSound, playHitSound, playLevelUpSound } from '../utils/sound';
 import { getEffectiveStats } from '../utils/gameUtils';
+import { usePageVisibility } from '../utils/usePageVisibility';
 
 const GameContext = createContext();
 
@@ -80,18 +81,47 @@ export const GameProvider = ({ children, currentUser, familyData, activeProfileI
         const profile = familyData.profiles.find(p => p.id === activeProfileId);
         if (profile && profile.state) {
             dispatch({ type: 'RESTORE_STATE', payload: profile.state });
-            dispatch({ type: 'CHECK_PENALTIES' });
+            // Per-profile daily-reward guard. The save loop is debounced + idle-
+            // scheduled, so a refresh shortly after closing the modal can find
+            // a stale `lastLoginDate` on the server and re-trigger CHECK_PENALTIES'
+            // reward branch. localStorage gives us an atomic, synchronous flag
+            // that survives any race with the server roundtrip.
+            const today = new Date().toLocaleDateString('en-CA');
+            const guardKey = `taskoria_daily_reward_${currentUser?.id}_${activeProfileId}`;
+            const lastReward = localStorage.getItem(guardKey);
+            const skipDailyReward = lastReward === today;
+            dispatch({ type: 'CHECK_PENALTIES', payload: { skipDailyReward } });
+            // Mark today *now* so the next refresh within the same day is guarded
+            // even if the network save hasn't flushed yet.
+            if (!skipDailyReward) localStorage.setItem(guardKey, today);
         }
     }, [activeProfileId]);
 
     useEffect(() => {
         if (!activeProfileId || !currentUser || !state.character) return;
+
+        // Schedule the heavy JSON.stringify + localStorage write inside
+        // `requestIdleCallback` so it never blocks a frame. The 1s debounce
+        // before the schedule still collapses bursts of reducer dispatches.
+        // Fallback to setTimeout 0 on Safari (no requestIdleCallback).
+        const schedule = (cb) =>
+            (typeof requestIdleCallback === 'function')
+                ? requestIdleCallback(cb, { timeout: 2000 })
+                : setTimeout(cb, 0);
+        const cancel = (id) =>
+            (typeof cancelIdleCallback === 'function')
+                ? cancelIdleCallback(id)
+                : clearTimeout(id);
+
         const saveGame = async () => {
             const currentFamily = familyDataRef.current;
             if (!currentFamily || !currentFamily.profiles) return;
             const updatedProfiles = currentFamily.profiles.map(p => p.id === activeProfileId ? { ...p, state: state } : p);
             const consolidatedSave = { ...currentFamily, profiles: updatedProfiles, lastActiveProfile: activeProfileId };
-            localStorage.setItem('taskoria_family_data_' + currentUser.id, JSON.stringify(consolidatedSave));
+            // The stringify of the full family snapshot is the expensive bit;
+            // it ran on the main thread inside the reducer flush before.
+            const serialized = JSON.stringify(consolidatedSave);
+            localStorage.setItem('taskoria_family_data_' + currentUser.id, serialized);
             setSyncStatus(SYNC_STATUS.SAVING);
             try {
                 const res = await fetch('api/save_game.php', {
@@ -104,20 +134,31 @@ export const GameProvider = ({ children, currentUser, familyData, activeProfileI
                 else { setFamilyData(consolidatedSave); setSyncStatus(SYNC_STATUS.SAVED); setTimeout(() => setSyncStatus(SYNC_STATUS.IDLE), 2000); }
             } catch (e) { setSyncStatus(SYNC_STATUS.ERROR); setFamilyData(consolidatedSave); }
         };
-        const timeoutId = setTimeout(saveGame, 1000);
-        return () => clearTimeout(timeoutId);
+
+        let idleId = null;
+        const debounceId = setTimeout(() => { idleId = schedule(saveGame); }, 1000);
+        return () => { clearTimeout(debounceId); if (idleId != null) cancel(idleId); };
     }, [state, activeProfileId, currentUser]);
+
+    // Pause heartbeats when the tab is hidden — saves battery on mobile and
+    // CPU on backgrounded desktop tabs (the OS already throttles us, but our
+    // own reducer + JSON.stringify save loop can still chew through cycles).
+    const pageVisible = usePageVisibility();
 
     useEffect(() => {
         if (!state.character?.pets?.length) return;
+        if (!pageVisible) return;
         const tickPets = () => dispatch({ type: 'PET_DECAY' });
         tickPets();
-        const intervalId = setInterval(tickPets, 60000);
+        // Decay is now half as aggressive (2/h hunger), so we can tick less
+        // often (every 5 min vs every 1 min). Cuts reducer dispatches by 5×.
+        const intervalId = setInterval(tickPets, 5 * 60_000);
         return () => clearInterval(intervalId);
-    }, [!!state.character]);
+    }, [!!state.character, pageVisible]);
 
     useEffect(() => {
         if (!currentUser || !activeProfileId) return;
+        if (!pageVisible) return;
         const checkMarketSales = async () => {
             try {
                 const res = await fetch(`api/check_sales.php?user_id=${currentUser.id}&profile_id=${activeProfileId}`);
@@ -133,7 +174,7 @@ export const GameProvider = ({ children, currentUser, familyData, activeProfileI
         checkMarketSales();
         const intervalId = setInterval(checkMarketSales, 60000);
         return () => clearInterval(intervalId);
-    }, [currentUser, activeProfileId]);
+    }, [currentUser, activeProfileId, pageVisible]);
 
     const actions = {
         createCharacter: (name, charClass, avatarId, stats, colors) => dispatch({ type: 'CREATE_CHARACTER', payload: { name, class: charClass, avatarId, stats, colors } }),
@@ -148,6 +189,7 @@ export const GameProvider = ({ children, currentUser, familyData, activeProfileI
         togglePetVisibility: (petId) => dispatch({ type: 'TOGGLE_PET_VISIBILITY', payload: petId }),
         toggleSanctuaryPet: (petId) => dispatch({ type: 'TOGGLE_SANCTUARY_PET', payload: petId }),
         releasePet: (petId) => dispatch({ type: 'RELEASE_PET', payload: petId }),
+        evolvePet: (petId) => { playLevelUpSound(); dispatch({ type: 'EVOLVE_PET', payload: petId }); },
         updateCharacter: (updates) => dispatch({ type: 'UPDATE_CHARACTER', payload: updates }),
         addTask: (title, difficulty, dueDate, recurrence = 'none', category = 'quest', extraInfo = '', assigneeId = 'self') => {
             const newTask = { id: Date.now().toString(), title, difficulty: parseInt(difficulty), dueDate, recurrence, category, extraInfo, assignerId: (assigneeId !== 'self' && assigneeId !== activeProfileId) ? activeProfileId : null, completed: false, lastCompleted: null, penalized: false };

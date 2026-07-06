@@ -1,0 +1,2482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Taskoria — Map Editor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;500;700&display=swap');
+:root {
+  --bg:      #0d0a14;
+  --bg2:     #160f22;
+  --panel:   #1e1530;
+  --border:  #2e2248;
+  --border2: #3e3258;
+  --gold:    #f0c040;
+  --gold2:   #c89a20;
+  --purple:  #7050b0;
+  --purple2: #9070d0;
+  --green:   #40a050;
+  --red:     #b03030;
+  --cyan:    #30a0b0;
+  --text:    #d0c0e8;
+  --dim:     #706090;
+  --tile:    40;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text);
+       font-family: 'Outfit', sans-serif; height: 100vh;
+       display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── TOPBAR ── */
+.topbar {
+  display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+  background: var(--bg2); border-bottom: 2px solid var(--border);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.logo { font-family: 'Press Start 2P', monospace; font-size: 9px;
+        color: var(--gold); text-shadow: 0 0 10px #f0c04044;
+        white-space: nowrap; }
+.logo span { color: var(--purple2); }
+
+.top-group { display: flex; gap: 4px; align-items: center; }
+.sep { width: 1px; height: 20px; background: var(--border2); margin: 0 4px; }
+
+.tbtn {
+  font-family: 'Press Start 2P', monospace; font-size: 6px;
+  padding: 5px 8px; border: 1px solid var(--border2); background: transparent;
+  color: var(--dim); cursor: pointer; border-radius: 3px; transition: all .12s;
+  white-space: nowrap;
+}
+.tbtn:hover { color: var(--text); border-color: var(--purple2); }
+.tbtn.active { background: var(--purple); color: #fff; border-color: var(--purple2); }
+.tbtn.gold { color: var(--gold); border-color: var(--gold2); }
+.tbtn.gold:hover { background: var(--gold2); color: #000; }
+.tbtn.green { color: var(--green); border-color: #305a38; }
+.tbtn.red { color: var(--red); border-color: #502020; }
+
+.map-size { display: flex; gap: 4px; align-items: center; font-size: 10px; color: var(--dim); }
+.map-size input { width: 42px; padding: 3px 5px; background: var(--panel);
+                  border: 1px solid var(--border2); border-radius: 3px;
+                  color: var(--text); font-family: 'Press Start 2P', monospace;
+                  font-size: 7px; text-align: center; }
+
+/* ── MAIN LAYOUT ── */
+.layout { display: flex; flex: 1; overflow: hidden; }
+
+/* ── ASSET PANEL (izquierda) ── */
+.asset-panel {
+  width: 200px; flex-shrink: 0; background: var(--bg2);
+  border-right: 2px solid var(--border); display: flex;
+  flex-direction: column; overflow: hidden;
+}
+.panel-title {
+  font-family: 'Press Start 2P', monospace; font-size: 6px;
+  color: var(--gold); padding: 8px 10px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* Categorías */
+.cat-tabs { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px;
+            border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.cat-tab { font-family: 'Press Start 2P', monospace; font-size: 5px;
+           padding: 4px 5px; border: 1px solid var(--border2); background: transparent;
+           color: var(--dim); cursor: pointer; border-radius: 2px; transition: all .12s; }
+.cat-tab:hover { color: var(--text); }
+.cat-tab.active { background: var(--panel); color: var(--gold); border-color: var(--gold2); }
+
+/* Asset grid */
+.asset-grid {
+  flex: 1; overflow-y: auto; padding: 8px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  align-content: start;
+}
+.asset-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 5px; border: 1px solid var(--border); border-radius: 4px;
+  cursor: pointer; transition: all .12s; background: var(--panel);
+}
+.asset-item:hover { border-color: var(--purple2); }
+.asset-item.selected { border-color: var(--gold); background: #2a1e3a; }
+.asset-item canvas { image-rendering: pixelated; border-radius: 2px; }
+.asset-label { font-family: 'Press Start 2P', monospace; font-size: 4px;
+               color: var(--dim); text-align: center; line-height: 1.3; }
+
+/* ── CANVAS AREA (centro) ── */
+.canvas-area {
+  flex: 1; overflow: auto; background: #080610;
+  position: relative; cursor: crosshair;
+  /* Prevents tablet/stylus from scrolling the canvas-area while drawing */
+  touch-action: none;
+}
+#mapCanvas { display: block; image-rendering: pixelated; position: absolute; top: 0; left: 0; }
+#overlayCanvas {
+  display: block; image-rendering: pixelated;
+  position: absolute; top: 0; left: 0; pointer-events: auto;
+  /* Stylus/finger drawing — disables browser pan/zoom gestures on this layer */
+  touch-action: none;
+}
+
+/* ── PROPS PANEL (derecha) ── */
+.props-panel {
+  width: 200px; flex-shrink: 0; background: var(--bg2);
+  border-left: 2px solid var(--border); display: flex;
+  flex-direction: column; overflow: hidden;
+}
+.props-content { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+
+.prop-section { border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.prop-section-title {
+  font-family: 'Press Start 2P', monospace; font-size: 5px; color: var(--gold);
+  padding: 5px 8px; background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.prop-row { display: flex; justify-content: space-between; align-items: center;
+            padding: 4px 8px; font-size: 10px; border-bottom: 1px solid var(--border); }
+.prop-row:last-child { border-bottom: none; }
+.prop-row .pl { color: var(--dim); }
+.prop-row .pv { color: var(--cyan); font-weight: 600; font-size: 10px; }
+.prop-row input[type=text],
+.prop-row input[type=number] {
+  width: 70px; padding: 2px 4px; background: var(--panel);
+  border: 1px solid var(--border2); border-radius: 2px; color: var(--text);
+  font-size: 10px;
+}
+.prop-row select {
+  background: var(--panel); border: 1px solid var(--border2); border-radius: 2px;
+  color: var(--text); font-size: 9px; padding: 2px;
+}
+
+/* Layers */
+.layer-row {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+  border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s;
+}
+.layer-row:hover { background: var(--panel); }
+.layer-row.active { background: #2a1e3a; }
+.layer-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.layer-name { font-size: 10px; color: var(--text); flex: 1; }
+.layer-vis { font-size: 9px; color: var(--dim); cursor: pointer; }
+
+/* Minimap */
+.minimap-wrap { padding: 8px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.minimap-title { font-family: 'Press Start 2P', monospace; font-size: 5px;
+                 color: var(--dim); margin-bottom: 6px; }
+#miniCanvas { display: block; image-rendering: pixelated; border: 1px solid var(--border2);
+              border-radius: 2px; width: 100%; height: auto; }
+
+/* ── STATUS BAR ── */
+.statusbar { display: flex; gap: 16px; padding: 4px 12px; background: var(--bg2);
+             border-top: 1px solid var(--border); font-size: 9px; color: var(--dim);
+             flex-shrink: 0; flex-wrap: wrap; }
+.statusbar span { color: var(--text); }
+.statusbar .tool-hint { color: var(--purple2); margin-left: auto; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">MAP <span>EDITOR</span></div>
+  <div class="sep"></div>
+
+  <!-- Herramientas -->
+  <div class="top-group">
+    <button class="tbtn active" id="tool-draw"   onclick="setTool('draw',this)"  title="Pincel (B)">✏ DRAW</button>
+    <button class="tbtn"        id="tool-erase"  onclick="setTool('erase',this)" title="Borrar (E)">⌫ ERASE</button>
+    <button class="tbtn"        id="tool-fill"   onclick="setTool('fill',this)"  title="Rellenar (F)">▣ FILL</button>
+    <button class="tbtn"        id="tool-select" onclick="setTool('select',this)" title="Selección (S)">⬚ SELECT</button>
+    <button class="tbtn"        id="tool-pick"   onclick="setTool('pick',this)"  title="Cuentagotas (I)">◉ PICK</button>
+  </div>
+  <div class="sep"></div>
+
+  <!-- Zoom -->
+  <div class="top-group">
+    <button class="tbtn" onclick="zoom(-1)">－</button>
+    <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--dim)" id="zoomLabel">1×</span>
+    <button class="tbtn" onclick="zoom(1)">＋</button>
+  </div>
+  <div class="sep"></div>
+
+  <!-- Capas -->
+  <div class="top-group">
+    <span style="font-size:9px;color:var(--dim)">Capa:</span>
+    <button class="tbtn active" id="layer-ground" onclick="setLayer('ground',this)">SUELO</button>
+    <button class="tbtn" id="layer-objects" onclick="setLayer('objects',this)">OBJETOS</button>
+    <button class="tbtn" id="layer-overhead" onclick="setLayer('overhead',this)">OVERHEAD</button>
+  </div>
+  <div class="sep"></div>
+
+  <!-- Mapa -->
+  <div class="map-size">
+    W:<input id="mw" type="number" value="20" min="8" max="60" onchange="resizeMap()">
+    H:<input id="mh" type="number" value="16" min="8" max="40" onchange="resizeMap()">
+  </div>
+  <div class="sep"></div>
+
+  <!-- Acciones -->
+  <div class="top-group">
+    <button class="tbtn" onclick="undo()" title="Ctrl+Z">↩ UNDO</button>
+    <button class="tbtn" onclick="redo()" title="Ctrl+Y">↪ REDO</button>
+    <button class="tbtn" onclick="clearMap()">🗑 CLEAR</button>
+    <button class="tbtn green" onclick="exportMapData()">⬇ EXPORT JS</button>
+    <button class="tbtn gold" onclick="saveToLocal()">💾 SAVE</button>
+    <button class="tbtn" onclick="saveToLibrary()" style="background:#3a2a5a;color:#f0c040;border-color:#5a4a7a">📥 SAVE TO LIBRARY</button>
+    <button class="tbtn" onclick="loadFromLocal()">📂 LOAD</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="layout">
+
+  <!-- PANEL IZQUIERDO — ASSETS -->
+  <div class="asset-panel">
+    <div class="panel-title">🏰 ASSETS</div>
+    <div class="cat-tabs" id="catTabs"></div>
+    <div class="asset-grid" id="assetGrid"></div>
+  </div>
+
+  <!-- CANVAS CENTRAL -->
+  <div class="canvas-area" id="canvasArea">
+    <canvas id="mapCanvas"></canvas>
+    <canvas id="overlayCanvas"></canvas>
+  </div>
+
+  <!-- PANEL DERECHO — PROPIEDADES -->
+  <div class="props-panel">
+    <div class="panel-title">⚙ PROPIEDADES</div>
+    <div class="props-content">
+
+      <!-- Info mapa -->
+      <div class="prop-section">
+        <div class="prop-section-title">📍 MAPA</div>
+        <div class="prop-row"><span class="pl">Nombre</span>
+          <input type="text" id="mapName" value="townSquare" style="width:90px">
+        </div>
+        <div class="prop-row"><span class="pl">Tamaño</span>
+          <span class="pv" id="infoSize">20×16</span>
+        </div>
+        <div class="prop-row"><span class="pl">Tiles</span>
+          <span class="pv" id="infoTiles">0</span>
+        </div>
+        <div class="prop-row"><span class="pl">Ambient</span>
+          <input type="number" id="mapAmbient" value="85" min="10" max="100" style="width:50px">
+          <span style="font-size:9px;color:var(--dim)">%</span>
+        </div>
+        <div class="prop-row"><span class="pl">BG Color</span>
+          <input type="color" id="mapBgColor" value="#2a1f12" style="width:40px;height:22px;border:1px solid var(--border2);border-radius:2px;cursor:pointer;background:transparent;">
+        </div>
+      </div>
+
+      <!-- Tile seleccionado -->
+      <div class="prop-section" id="selectionInfo">
+        <div class="prop-section-title">🎯 SELECCIÓN</div>
+        <div class="prop-row"><span class="pl">Pos</span><span class="pv" id="selPos">—</span></div>
+        <div class="prop-row"><span class="pl">Tipo</span><span class="pv" id="selType">—</span></div>
+        <div class="prop-row"><span class="pl">Capa</span><span class="pv" id="selLayer">—</span></div>
+        <div class="prop-row">
+          <span class="pl">Label</span>
+          <input type="text" id="selLabel" value="" placeholder="nombre..." oninput="updateSelLabel()">
+        </div>
+        <div class="prop-row" style="justify-content:center;padding:8px">
+          <button class="tbtn red" onclick="deleteSelected()" style="width:100%">🗑 BORRAR</button>
+        </div>
+      </div>
+
+      <!-- Capas -->
+      <div class="prop-section">
+        <div class="prop-section-title">📚 CAPAS</div>
+        <div class="layer-row active" id="lr-ground" onclick="setLayer('ground',null)">
+          <div class="layer-dot" style="background:#4a8a30"></div>
+          <span class="layer-name">Suelo</span>
+          <span class="layer-vis" onclick="toggleVis('ground',event)">👁</span>
+        </div>
+        <div class="layer-row" id="lr-objects" onclick="setLayer('objects',null)">
+          <div class="layer-dot" style="background:#5050a0"></div>
+          <span class="layer-name">Objetos</span>
+          <span class="layer-vis" onclick="toggleVis('objects',event)">👁</span>
+        </div>
+        <div class="layer-row" id="lr-overhead" onclick="setLayer('overhead',null)">
+          <div class="layer-dot" style="background:#a05050"></div>
+          <span class="layer-name">Overhead</span>
+          <span class="layer-vis" onclick="toggleVis('overhead',event)">👁</span>
+        </div>
+      </div>
+
+      <!-- Asset seleccionado preview -->
+      <div class="prop-section">
+        <div class="prop-section-title">🖌 PINCEL</div>
+        <div style="padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px">
+          <canvas id="brushPreview" width="64" height="64"
+            style="image-rendering:pixelated;border:1px solid var(--border2);border-radius:3px"></canvas>
+          <div style="font-family:'Press Start 2P',monospace;font-size:5px;color:var(--gold)" id="brushName">—</div>
+          <div style="font-size:9px;color:var(--dim)" id="brushCat">Ninguno seleccionado</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Minimap -->
+    <div class="minimap-wrap">
+      <div class="minimap-title">MINIMAPA</div>
+      <canvas id="miniCanvas" width="180" height="100"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- STATUSBAR -->
+<div class="statusbar">
+  <div>Herramienta: <span id="stTool">draw</span></div>
+  <div>Cursor: <span id="stCursor">—</span></div>
+  <div>Capa: <span id="stLayer">ground</span></div>
+  <div>Objetos: <span id="stObjs">0</span></div>
+  <div>Undo: <span id="stUndo">0</span></div>
+  <div class="tool-hint" id="toolHint">✏ Click para pintar · Rueda para zoom · Mayús+arrastrar para pan</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// PALETA COMPLETA SDV + Medieval
+// ═══════════════════════════════════════════════════════════
+const BAYER = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+function dither(x,y,c1,c2,thresh){
+  if(BAYER[y%4][x%4]<thresh) return c2; return c1;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SPRITE GENERATORS — todos los assets del mundo
+// ═══════════════════════════════════════════════════════════
+const S = 32; // tamaño de sprite en el editor
+
+function makeS(fn) {
+  const c = document.createElement('canvas'); c.width=c.height=S;
+  fn(c.getContext('2d'), S); return c;
+}
+function px(ctx,x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(x,y,w||1,h||1);}
+
+// ── TERRAIN ─────────────────────────────────────────────────
+const SPRITES = {};
+
+SPRITES.cobblestone = makeS((ctx,s)=>{
+  px(ctx,0,0,s,s,'#4a3e2e');
+  [[1,1,13,7],[15,0,8,7],[24,1,7,7],[1,9,6,7],[8,9,12,7],[21,9,8,7],
+   [1,17,14,7],[16,17,8,7],[25,17,6,7],[1,25,8,6],[10,25,10,6],[21,25,10,6]].forEach(([x,y,w,h])=>{
+    px(ctx,x,y,w,h,'#b8a882');
+    ctx.fillStyle='#d4c49c';ctx.fillRect(x,y,w,1);
+    ctx.fillStyle='#8a7a62';ctx.fillRect(x,y+h-1,w,1);
+    ctx.fillStyle='#9e8e72';ctx.fillRect(x+w-1,y,1,h);
+  });
+});
+
+SPRITES.grass = makeS((ctx,s)=>{
+  px(ctx,0,0,s,s,'#3a8022');
+  px(ctx,0,0,s/2,s/2,'#4a9a28'); px(ctx,s/2,s/2,s/2,s/2,'#38701e');
+  [[3,4],[7,1],[12,6],[17,2],[22,5],[27,1],[4,14],[9,18],[14,12],[20,16],[25,11]].forEach(([bx,by])=>{
+    ctx.fillStyle='#5ab030';ctx.fillRect(bx,by,1,2);ctx.fillRect(bx,by-1,1,1);
+  });
+  [[4,4,'#f8f060'],[14,18,'#f878a0'],[24,10,'#f8f8f0']].forEach(([x,y,c])=>{ctx.fillStyle=c;ctx.fillRect(x,y,2,2);});
+});
+
+SPRITES.grass_dark = makeS((ctx,s)=>{
+  px(ctx,0,0,s,s,'#286018');
+  [[3,3],[7,8],[13,2],[18,7],[23,4],[5,16],[11,14],[17,18],[24,12]].forEach(([x,y])=>{
+    ctx.fillStyle='#38801e';ctx.fillRect(x,y,1,2);
+  });
+  [[8,20,'#3a6a18'],[18,24,'#2a5010']].forEach(([x,y,c])=>{ctx.fillStyle=c;ctx.fillRect(x,y,4,3);});
+});
+
+SPRITES.dirt = makeS((ctx,s)=>{
+  px(ctx,0,0,s,s,'#a46c38');
+  for(let r=0;r<s;r+=5){
+    ctx.fillStyle=r%10===0?'#8c5c2c':'#bc8044';ctx.fillRect(0,r,s,2);
+  }
+  [[4,6],[12,14],[20,8],[8,20],[24,18]].forEach(([x,y])=>{
+    ctx.fillStyle='#c49458';ctx.fillRect(x,y,3,2);
+  });
+});
+
+SPRITES.stone_path = makeS((ctx,s)=>{
+  px(ctx,0,0,s,s,'#9a9288');
+  [[1,1,10,6],[13,0,8,6],[22,1,8,6],[0,8,8,6],[9,8,10,6],[21,8,10,6],
+   [1,15,12,6],[14,15,8,6],[23,15,8,6],[0,22,9,9],[10,22,10,9],[21,22,10,9]].forEach(([x,y,w,h])=>{
+    const v=(x+y)%2;
+    ctx.fillStyle=v?'#aca89c':'#bcb8ac';ctx.fillRect(x,y,w,h);
+    ctx.fillStyle='#c8c4b8';ctx.fillRect(x,y,w,1);
+    ctx.fillStyle='#808078';ctx.fillRect(x,y+h-1,w,1);
+  });
+});
+
+SPRITES.water = makeS((ctx,s)=>{
+  px(ctx,0,0,s,s,'#2870c0');
+  for(let r=2;r<s;r+=4){
+    ctx.fillStyle='#3888d8';ctx.fillRect(0,r,s,2);
+    ctx.fillStyle='#50a0f0';ctx.fillRect(0,r,s*0.5,1);
+  }
+  ctx.fillStyle='#78c0f888';ctx.fillRect(2,4,8,1);ctx.fillRect(18,10,6,1);
+});
+
+SPRITES.wood_floor = makeS((ctx,s)=>{
+  px(ctx,0,0,s,s,'#3a1e0a');
+  [{y:1,h:8,c:'#7a4820',hi:'#9a6030'},{y:10,h:8,c:'#6b3c1a',hi:'#8b5228'},
+   {y:19,h:8,c:'#7a4820',hi:'#9a6030'},{y:28,h:s-28,c:'#6b3c1a',hi:'#8b5228'}].forEach(({y,h,c,hi})=>{
+    px(ctx,0,y,s,h,c);px(ctx,0,y,s,1,hi);
+    for(let v=8;v<s;v+=8){ctx.fillStyle='#5a3010';ctx.fillRect(v,y,1,h);}
+    ctx.fillStyle='#6a3a18';ctx.fillRect(0,y+3,s,1);ctx.fillRect(0,y+6,s,1);
+  });
+});
+
+SPRITES.dungeon_stone = makeS((ctx,s)=>{
+  px(ctx,0,0,s,s,'#0e0e16');
+  [[1,1,13,8],[15,0,8,8],[24,1,7,8],[0,10,8,8],[9,10,14,8],[24,10,7,8],
+   [1,19,13,8],[15,19,8,8],[24,19,7,8],[0,28,8,s-28],[9,28,14,s-28],[24,28,7,s-28]].forEach(([x,y,w,h])=>{
+    px(ctx,x,y,w,h,'#2e2e3e');px(ctx,x+1,y+1,w-2,h-2,'#323244');
+    ctx.fillStyle='#3e3e52';ctx.fillRect(x,y,w,1);
+    ctx.fillStyle='#1a1a26';ctx.fillRect(x,y+h-1,w,1);
+  });
+});
+
+SPRITES.royal_stone = makeS((ctx,s)=>{
+  px(ctx,0,0,s,s,'#16162a');
+  [[1,1,13,13,'#242438','#30304c'],[15,1,s-16,13,'#222236','#2e2e4a'],
+   [1,15,13,s-16,'#262640','#32324e'],[15,15,s-16,s-16,'#242438','#30304c']].forEach(([x,y,w,h,b,hi])=>{
+    px(ctx,x,y,w,h,b);px(ctx,x+2,y+2,w-4,h-4,hi);
+    ctx.fillStyle='#3e3e5a';ctx.fillRect(x,y,w,1);
+    ctx.fillStyle='rgba(255,215,0,0.15)';ctx.fillRect(x,y,w,1);
+  });
+  ctx.fillStyle='rgba(255,215,0,0.2)';
+  ctx.fillRect(14,0,3,s);ctx.fillRect(0,14,s,3);
+  ctx.fillStyle='#ffd70066';ctx.fillRect(15,15,2,2);
+});
+
+// ── BUILDINGS ───────────────────────────────────────────────
+SPRITES.house_thatch = makeS((ctx,s)=>{
+  // Tejado paja
+  px(ctx,0,0,s,s*0.4,'#a07820');
+  for(let r=0;r<s*0.38;r+=3)for(let c=0;c<s;c+=4){
+    const t=r/(s*0.38);
+    ctx.fillStyle=t<0.3?'#e0c050':t<0.6?'#c8a030':'#a07820';
+    ctx.fillRect(c,r,4,2);ctx.fillStyle='#f0d070';ctx.fillRect(c,r,4,1);
+  }
+  ctx.fillStyle='#604008';ctx.fillRect(0,0,s,2);
+  // Cara sur
+  px(ctx,0,s*0.4,s,4,'#704808');
+  // Fachada
+  px(ctx,0,s*0.4+4,s,s*0.6-4,'#f0e4c8');
+  px(ctx,2,s*0.4+4,s-4,s*0.18,'#faf4e0');
+  // Vigas
+  const b='#6a3e18';
+  px(ctx,0,s*0.4+4,3,s*0.6,b);px(ctx,s-3,s*0.4+4,3,s*0.6,b);
+  px(ctx,s/2-1,s*0.4+4,3,s*0.6,b);
+  px(ctx,0,s*0.4+4,s,2,b);px(ctx,0,s*0.76,s,2,b);px(ctx,0,s-5,s,3,b);
+  for(let di=0;di<8;di++){ctx.fillStyle=b;ctx.fillRect(di*2,s*0.44+di*2,2,2);ctx.fillRect(s/2-di*2-2,s*0.44+di*2,2,2);}
+  // Ventana
+  px(ctx,3,s*0.48,s/3,s/5,'#4a3010');px(ctx,4,s*0.49,s/3-2,s/5-2,'#b0d8e8');
+  ctx.fillStyle='#6a3a18';ctx.fillRect(3+s/6,s*0.48,1,s/5);ctx.fillRect(3,s*0.48+s/10,s/3,1);
+  // Puerta
+  px(ctx,s*0.55,s*0.76,s*0.3,s*0.24,'#5a3010');
+  px(ctx,s*0.57,s*0.77,s*0.13,s*0.22,'#8a5228');
+  px(ctx,s*0.72,s*0.77,s*0.11,s*0.22,'#8a5228');
+  ctx.fillStyle='#d8a030';ctx.fillRect(s*0.68,s*0.87,3,3);
+  // Chimenea
+  px(ctx,s*0.76,0,6,s*0.38,'#888880');px(ctx,s*0.77,0,4,s*0.36,'#9898a0');
+});
+
+SPRITES.house_wood = makeS((ctx,s)=>{
+  // Tejado madera
+  px(ctx,0,0,s,s*0.38,'#7a4e22');
+  for(let r=0;r<s*0.36;r+=4)for(let c=0;c<s;c+=6){
+    ctx.fillStyle=(c/6+r/4)%2===0?'#9a622a':'#7a4e22';
+    ctx.fillRect(c,r,6,3);ctx.fillStyle='#b87632';ctx.fillRect(c,r,6,1);
+    ctx.fillStyle='#5c3a1a';ctx.fillRect(c,r+3,6,1);
+  }
+  px(ctx,0,0,s,2,'#3c2010');
+  px(ctx,0,s*0.38,s,3,'#6a3e18');
+  // Fachada
+  px(ctx,0,s*0.38+3,s,s*0.62-3,'#f0e4c8');
+  const b='#6a3e18';
+  px(ctx,0,s*0.38+3,3,s*0.62,b);px(ctx,s-3,s*0.38+3,3,s*0.62,b);
+  px(ctx,0,s*0.38+3,s,2,b);px(ctx,0,s*0.7,s,2,b);px(ctx,0,s-4,s,3,b);
+  for(let di=0;di<7;di++){ctx.fillStyle=b;ctx.fillRect(di*2,s*0.42+di*2,2,2);ctx.fillRect(s-di*2-2,s*0.42+di*2,2,2);}
+  // Ventana
+  px(ctx,3,s*0.46,12,10,'#4a3010');px(ctx,4,s*0.47,10,8,'#b0d8e8');
+  ctx.fillStyle='#5a3010';ctx.fillRect(9,s*0.46,1,10);ctx.fillRect(3,s*0.46+5,12,1);
+  // Puerta
+  px(ctx,s*0.55,s*0.7,11,s*0.3,'#5a3010');
+  px(ctx,s*0.57,s*0.71,5,s*0.28,'#8a5228');px(ctx,s*0.64,s*0.71,5,s*0.28,'#8a5228');
+  ctx.fillStyle='#d0a020';ctx.fillRect(s*0.68,s*0.83,2,2);
+});
+
+SPRITES.tavern = makeS((ctx,s)=>{
+  // Tejado marrón grande
+  px(ctx,0,0,s,s*0.42,'#7a4e22');
+  for(let r=0;r<s*0.4;r+=4)for(let c=0;c<s;c+=6){
+    ctx.fillStyle=(c/6+r/4)%2===0?'#9a622a':'#7a4e22';
+    ctx.fillRect(c,r,6,3);ctx.fillStyle='#c07832';ctx.fillRect(c,r,6,1);
+  }
+  px(ctx,0,0,s,2,'#3c2010');
+  // Estandarte
+  px(ctx,s-8,0,3,s*0.42,'#2a2a2a');
+  px(ctx,s-7,2,10,10,'#cc2222');px(ctx,s-7,4,10,2,'#ee3333');
+  // Fachada
+  px(ctx,0,s*0.42,s,s*0.58,'#f0e4c8');
+  const b='#5a3010';
+  px(ctx,0,s*0.42,3,s,b);px(ctx,s-3,s*0.42,3,s,b);
+  px(ctx,s/3-1,s*0.42,3,s,b);px(ctx,s*2/3-1,s*0.42,3,s,b);
+  px(ctx,0,s*0.42,s,2,b);px(ctx,0,s*0.68,s,2,b);px(ctx,0,s-4,s,3,b);
+  // Ventanas x2
+  [[3,s*0.47],[s/3+2,s*0.47]].forEach(([wx,wy])=>{
+    px(ctx,wx,wy,11,9,'#4a3010');px(ctx,wx+1,wy+1,9,7,'#b0d8e8');
+    ctx.fillStyle='#e4f4fc';ctx.fillRect(wx+2,wy+2,3,1);
+    ctx.fillStyle='#5a3010';ctx.fillRect(wx+5,wy,1,9);ctx.fillRect(wx,wy+5,11,1);
+    // macetero
+    ctx.fillStyle='#b06030';ctx.fillRect(wx+1,wy+8,9,4);
+    ctx.fillStyle='#e87898';ctx.fillRect(wx+2,wy+6,2,2);
+    ctx.fillStyle='#f8e060';ctx.fillRect(wx+5,wy+5,2,2);
+    ctx.fillStyle='#c0f0e0';ctx.fillRect(wx+8,wy+6,2,2);
+  });
+  // Puerta doble
+  const dx=s*0.55;
+  px(ctx,dx-2,s*0.68,s*0.45+2,s*0.32,'#4a2808');
+  px(ctx,dx,s*0.7,s/5,s*0.3,'#8a5228');px(ctx,dx+s/5+1,s*0.7,s/5,s*0.3,'#8a5228');
+  // Letrero
+  px(ctx,s*0.1,s*0.57,s*0.45,8,'#5a3010');
+  px(ctx,s*0.12,s*0.58,s*0.41,6,'#f0e4c8');
+  ctx.fillStyle='#3a1808';ctx.font='4px monospace';ctx.fillText('INN',s*0.16,s*0.63);
+});
+
+SPRITES.church = makeS((ctx,s)=>{
+  // Tejado piedra
+  px(ctx,2,0,s-4,s*0.42,'#787878');
+  for(let r=0;r<s*0.4;r+=5)for(let c=2;c<s-2;c+=7){
+    ctx.fillStyle=(c+r)%2===0?'#888888':'#707070';
+    ctx.fillRect(c,r,7,4);ctx.fillStyle='#989898';ctx.fillRect(c,r,7,1);
+    ctx.fillStyle='#585858';ctx.fillRect(c,r+4,7,1);
+  }
+  // Cruz encima
+  px(ctx,s/2-1,0,2,6,'#9898a0');px(ctx,s/2-3,2,6,2,'#9898a0');
+  // Fachada piedra
+  px(ctx,0,s*0.42,s,s*0.58,'#b8b8b0');
+  [[1,s*0.42,7,12],[8,s*0.42,s-10,12],[s-8,s*0.42,7,12],
+   [0,s*0.56,8,10],[8,s*0.56,s-16,10],[s-8,s*0.56,8,10]].forEach(([x,y,w,h])=>{
+    ctx.fillStyle=(x+y)%2===0?'#c0c0b8':'#a8a8a0';ctx.fillRect(x,y,w,h);
+    ctx.fillStyle='#d0d0c8';ctx.fillRect(x,y,w,1);
+    ctx.fillStyle='#888888';ctx.fillRect(x,y+h-1,w,1);
+  });
+  // Ventana arco
+  const ww=10,wy=s*0.5;
+  px(ctx,s/2-ww/2,wy,ww,14,'#4a4a5a');
+  px(ctx,s/2-ww/2+1,wy+2,ww-2,10,'#6080c8');
+  ctx.fillStyle='#f5e642';ctx.fillRect(s/2-1,wy+2,2,10);ctx.fillRect(s/2-4,wy+6,8,2);
+  // Puerta arco
+  px(ctx,s/2-6,s*0.76,12,s*0.24,'#4a3010');
+  px(ctx,s/2-5,s*0.78,5,s*0.22,'#3a1808');px(ctx,s/2,s*0.78,5,s*0.22,'#3a1808');
+  for(let ai=0;ai<5;ai++){ctx.fillStyle='#4a3010';ctx.fillRect(s/2-5+ai,s*0.76-ai,1,1);}
+});
+
+SPRITES.smithy = makeS((ctx,s)=>{
+  // Tejado oscuro
+  px(ctx,0,0,s,s*0.35,'#202020');
+  for(let r=0;r<s*0.33;r+=4)for(let c=0;c<s;c+=6){
+    ctx.fillStyle=(c+r)%2===0?'#303030':'#202020';
+    ctx.fillRect(c,r,6,3);ctx.fillStyle='#404040';ctx.fillRect(c,r,6,1);
+  }
+  // Chimenea con fuego
+  px(ctx,s*0.7,0,8,s*0.35,'#585858');px(ctx,s*0.72,0,4,s*0.33,'#686868');
+  ctx.fillStyle='#ff4400';ctx.fillRect(s*0.71,0,6,4);
+  ctx.fillStyle='#ff8800';ctx.fillRect(s*0.72,0,4,2);
+  // Fachada madera
+  for(let pi=0;pi<4;pi++){
+    ctx.fillStyle=pi%2===0?'#a09080':'#8a7868';
+    ctx.fillRect(pi*(s/4),s*0.35,s/4-1,s*0.65);
+    ctx.fillStyle='#b0a090';ctx.fillRect(pi*(s/4),s*0.35,s/4-1,1);
+    ctx.fillStyle='#3a2808';ctx.fillRect(pi*(s/4)+(s/4)-1,s*0.35,1,s*0.65);
+  }
+  // Ventana con reja
+  px(ctx,2,s*0.42,12,10,'#cc2222');
+  for(let gi=0;gi<4;gi++){ctx.fillStyle='#2a2a2a';ctx.fillRect(2+gi*3,s*0.42,1,10);}
+  // Puerta ancha
+  px(ctx,s*0.5,s*0.5,s*0.4,s*0.5,'#4a2808');
+  px(ctx,s*0.52,s*0.52,s*0.16,s*0.48,'#3a1808');
+  px(ctx,s*0.7,s*0.52,s*0.16,s*0.48,'#3a1808');
+  // Yunque
+  px(ctx,s*0.04,s*0.68,8,6,'#303030');px(ctx,s*0.05,s*0.66,6,4,'#404040');px(ctx,s*0.06,s*0.64,4,3,'#505050');
+});
+
+SPRITES.tower = makeS((ctx,s)=>{
+  // Cuerpo cilíndrico simulado
+  px(ctx,4,6,s-8,s-6,'#787878');px(ctx,6,8,s-12,s-10,'#989898');
+  // Líneas de sillería
+  for(let r=8;r<s;r+=6){
+    ctx.fillStyle='#585858';ctx.fillRect(4,r,s-8,1);
+    for(let c=4+(r/6)%2*8;c<s-4;c+=12){ctx.fillStyle='#585858';ctx.fillRect(c,r-5,1,5);}
+  }
+  // Almenas
+  for(let i=0;i<4;i++){
+    ctx.fillStyle='#686868';ctx.fillRect(4+i*7,0,5,8);
+    ctx.fillStyle='#787878';ctx.fillRect(5+i*7,0,3,7);
+  }
+  // Ventana
+  px(ctx,s/2-3,s*0.4,6,8,'#1a1a2a');px(ctx,s/2-2,s*0.41,4,6,'#6080c8');
+  ctx.fillStyle='#f0c030';ctx.fillRect(s/2-1,s*0.41,2,6);
+  // Base
+  px(ctx,2,s-6,s-4,6,'#686868');px(ctx,0,s-4,s,4,'#585858');
+});
+
+// ── PROPS ───────────────────────────────────────────────────
+SPRITES.oak_tree = makeS((ctx,s)=>{
+  // Tronco
+  px(ctx,s/2-3,s*0.65,6,s*0.38,'#7a4820');px(ctx,s/2-2,s*0.65,4,s*0.35,'#9a6030');
+  // Raíces
+  px(ctx,s/2-7,s*0.92,8,4,'#5a3010');px(ctx,s/2+1,s*0.92,7,4,'#5a3010');
+  // Copa sombra
+  ctx.fillStyle='#2a5218';ctx.beginPath();ctx.arc(s/2,s*0.4,s*0.36,0,Math.PI*2);ctx.fill();
+  // Copa base
+  ctx.fillStyle='#3a6a22';ctx.beginPath();ctx.arc(s/2,s*0.36,s*0.32,0,Math.PI*2);ctx.fill();
+  // Copa iluminada
+  ctx.fillStyle='#4a8a2a';ctx.beginPath();ctx.arc(s/2-4,s*0.3,s*0.22,0,Math.PI*2);ctx.fill();
+  // Highlight
+  ctx.fillStyle='#60a838';ctx.beginPath();ctx.arc(s/2-6,s*0.24,s*0.12,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(s/2-7,s*0.2,4,0,Math.PI*2);ctx.fill();
+  // Manzanas
+  [[s/2-4,s*0.44,'#d03030'],[s/2+6,s*0.4,'#cc2828']].forEach(([ax,ay,ac])=>{
+    ctx.fillStyle=ac;ctx.fillRect(ax,ay,4,4);ctx.fillStyle='#e04040';ctx.fillRect(ax,ay,4,2);
+  });
+  ctx.fillStyle='rgba(0,0,0,0.18)';ctx.beginPath();ctx.ellipse(s/2,s*0.98,s*0.28,4,0,0,Math.PI*2);ctx.fill();
+});
+
+SPRITES.pine_tree = makeS((ctx,s)=>{
+  // Tronco
+  px(ctx,s/2-2,s*0.7,5,s*0.32,'#7a4820');px(ctx,s/2-1,s*0.7,3,s*0.28,'#9a6030');
+  // Capas
+  [[0.7,s*0.28,s*0.88],[0.44,s*0.2,s*0.72],[0.22,s*0.12,s*0.56]].forEach(([yR,lH,tw],li)=>{
+    const ty=s*yR,cx=s/2;
+    ctx.fillStyle=['#1a5010','#248018','#2e9020'][li];
+    ctx.beginPath();ctx.moveTo(cx,ty-lH*0.35);ctx.lineTo(cx-tw/2,ty+lH*0.65);ctx.lineTo(cx+tw/2,ty+lH*0.65);ctx.closePath();ctx.fill();
+    ctx.fillStyle=['#286018','#389028','#44a030'][li];
+    ctx.beginPath();ctx.moveTo(cx,ty-lH*0.35);ctx.lineTo(cx-tw*0.07,ty);ctx.lineTo(cx-tw/2,ty+lH*0.65);ctx.closePath();ctx.fill();
+    ctx.fillStyle=['#1a5818','#2a7020','#38a028'][li];
+    ctx.beginPath();ctx.moveTo(cx,ty-lH*0.35);ctx.lineTo(cx+tw*0.08,ty);ctx.lineTo(cx+tw*0.5,ty+lH*0.65);ctx.closePath();ctx.fill();
+  });
+  ctx.fillStyle='rgba(0,0,0,0.15)';ctx.beginPath();ctx.ellipse(s/2,s*0.98,s*0.2,3,0,0,Math.PI*2);ctx.fill();
+});
+
+SPRITES.dead_tree = makeS((ctx,s)=>{
+  px(ctx,s/2-2,s*0.4,5,s*0.6,'#4a3010');px(ctx,s/2-1,s*0.4,3,s*0.58,'#5a3818');
+  px(ctx,s/2-10,s*0.52,10,3,'#4a3010');px(ctx,s/2+2,s*0.6,10,3,'#4a3010');
+  px(ctx,s/2-14,s*0.62,6,2,'#3a2808');px(ctx,s/2+5,s*0.72,8,2,'#3a2808');
+  ctx.fillStyle='rgba(0,0,0,0.15)';ctx.beginPath();ctx.ellipse(s/2,s*0.98,14,3,0,0,Math.PI*2);ctx.fill();
+});
+
+SPRITES.well = makeS((ctx,s)=>{
+  // Tejadillo
+  px(ctx,s*0.12,s*0.3,s*0.75,3,'#7a4820');
+  ctx.fillStyle='#cc2222';ctx.beginPath();ctx.moveTo(s/2,s*0.06);ctx.lineTo(s*0.12,s*0.3);ctx.lineTo(s*0.88,s*0.3);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#ee3333';ctx.fillRect(s*0.2,s*0.18,s*0.6,2);
+  // Poste
+  px(ctx,s/2-2,s*0.3,4,s*0.2,'#7a4820');
+  // Borde piedra
+  ctx.fillStyle='#9898a0';ctx.beginPath();ctx.ellipse(s/2,s*0.66,s*0.36,s*0.18,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#b0b0a8';ctx.beginPath();ctx.ellipse(s/2,s*0.64,s*0.33,s*0.16,0,0,Math.PI*2);ctx.fill();
+  // Agua
+  ctx.fillStyle='#2870c0';ctx.beginPath();ctx.ellipse(s/2,s*0.64,s*0.28,s*0.13,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#50a0f088';ctx.beginPath();ctx.ellipse(s/2-4,s*0.62,6,3,0,0,Math.PI*2);ctx.fill();
+  // Musgo
+  ctx.fillStyle='#2a5218';ctx.fillRect(s*0.14,s*0.68,3,2);
+});
+
+SPRITES.barrel = makeS((ctx,s)=>{
+  px(ctx,s*0.15,s*0.08,s*0.7,s*0.85,'#8a5228');
+  px(ctx,s*0.18,s*0.1,s*0.64,s*0.8,'#aa6838');
+  px(ctx,s*0.22,s*0.12,s*0.56,s*0.16,'#ca8448');
+  [0.08,0.24,0.56,0.78,0.9].forEach(r=>{
+    ctx.fillStyle='#2a2a2a';ctx.fillRect(s*0.12,s*r,s*0.76,2);
+    ctx.fillStyle='#4a4a4a';ctx.fillRect(s*0.12,s*r,s*0.76,1);
+  });
+  ctx.fillStyle='rgba(0,0,0,0.18)';ctx.beginPath();ctx.ellipse(s/2,s*0.96,s*0.3,4,0,0,Math.PI*2);ctx.fill();
+});
+
+SPRITES.chest = makeS((ctx,s)=>{
+  // Cuerpo
+  px(ctx,s*0.1,s*0.45,s*0.8,s*0.45,'#8a5228');
+  px(ctx,s*0.12,s*0.46,s*0.76,s*0.42,'#aa6838');
+  // Tapa
+  px(ctx,s*0.1,s*0.28,s*0.8,s*0.18,'#8a5228');
+  for(let i=0;i<5;i++){px(ctx,s*0.1+i,s*0.28+i,s*0.8-i*2,2,'#aa6838');}
+  px(ctx,s*0.12,s*0.3,s*0.76,2,'#ca8448');
+  // Herraje dorado
+  px(ctx,s*0.1,s*0.45,s*0.8,2,'#d8a030');px(ctx,s*0.1,s*0.45,s*0.8,1,'#f0c050');
+  // Candado
+  px(ctx,s*0.4,s*0.36,s*0.2,s*0.14,'#d8a030');
+  px(ctx,s*0.44,s*0.3,s*0.12,s*0.08,'#aa7820');
+  ctx.fillStyle='#f0c050';ctx.fillRect(s*0.42,s*0.38,s*0.16,s*0.08);
+  // Bisagras
+  [s*0.14,s*0.7].forEach(hx=>{px(ctx,hx,s*0.43,4,4,'#2a2a2a');px(ctx,hx,s*0.44,4,2,'#4a4a4a');});
+  ctx.fillStyle='rgba(0,0,0,0.18)';ctx.beginPath();ctx.ellipse(s/2,s*0.96,s*0.35,4,0,0,Math.PI*2);ctx.fill();
+});
+
+SPRITES.torch = makeS((ctx,s)=>{
+  // Palo
+  px(ctx,s/2-2,s*0.5,4,s*0.5,'#7a4820');px(ctx,s/2-1,s*0.5,2,s*0.48,'#9a6030');
+  // Trapo
+  px(ctx,s/2-4,s*0.38,8,s*0.15,'#8b4513');px(ctx,s/2-4,s*0.38,8,1,'#aa6633');
+  // Llama
+  [[s/2,s*0.12,14,10,'#cc2200'],[s/2,s*0.1,11,8,'#ee4400'],[s/2,s*0.08,9,6,'#ff6600'],
+   [s/2,s*0.06,7,5,'#ff8800'],[s/2,s*0.04,5,4,'#ffbb00'],[s/2,s*0.02,4,4,'#ffee44'],[s/2,0,3,3,'#ffffff']].forEach(([cx,cy,w,h,c])=>{
+    ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(cx,cy,w/2,h/2,0,0,Math.PI*2);ctx.fill();
+  });
+  // Glow
+  const grd=ctx.createRadialGradient(s/2,s*0.06,0,s/2,s*0.06,s*0.4);
+  grd.addColorStop(0,'rgba(255,180,60,0.4)');grd.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=grd;ctx.fillRect(0,0,s,s*0.5);
+  ctx.globalCompositeOperation='source-over';
+});
+
+SPRITES.market_stall = makeS((ctx,s)=>{
+  // Postes
+  px(ctx,3,s*0.3,3,s*0.7,'#7a4820');px(ctx,s-6,s*0.3,3,s*0.7,'#7a4820');
+  // Toldo rayado
+  for(let i=0;i<5;i++){
+    ctx.fillStyle=i%2===0?'#5080c8':'#f0f0e0';ctx.fillRect(i*(s/5),0,s/5,s*0.3);
+    ctx.fillStyle=i%2===0?'#3060a8':'#d8d8c8';ctx.fillRect(i*(s/5),s*0.28,s/5,3);
+  }
+  ctx.fillStyle='#1a0808';ctx.fillRect(0,0,s,2);
+  // Mostrador
+  px(ctx,2,s*0.3,s-4,s*0.35,'#8a5228');px(ctx,2,s*0.3,s-4,3,'#aa6838');
+  // Productos simulados
+  [[4,s*0.2,'#cc2222'],[10,s*0.18,'#e8c030'],[16,s*0.2,'#cc2222']].forEach(([x,y,c])=>{
+    ctx.fillStyle=c;ctx.fillRect(x,y,4,4);
+  });
+  // Patas
+  px(ctx,4,s*0.65,3,s*0.35,'#5a3010');px(ctx,s-7,s*0.65,3,s*0.35,'#5a3010');
+});
+
+SPRITES.fountain = makeS((ctx,s)=>{
+  // Base
+  ctx.fillStyle='#9898a0';ctx.beginPath();ctx.ellipse(s/2,s*0.78,s*0.42,s*0.2,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#b0b0a8';ctx.beginPath();ctx.ellipse(s/2,s*0.76,s*0.38,s*0.18,0,0,Math.PI*2);ctx.fill();
+  // Agua base
+  ctx.fillStyle='#3888d8';ctx.beginPath();ctx.ellipse(s/2,s*0.76,s*0.32,s*0.15,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#50a0f088';ctx.beginPath();ctx.ellipse(s/2-4,s*0.74,8,4,0,0,Math.PI*2);ctx.fill();
+  // Copa media
+  ctx.fillStyle='#9898a0';ctx.beginPath();ctx.ellipse(s/2,s*0.56,s*0.24,s*0.11,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#3888d8';ctx.beginPath();ctx.ellipse(s/2,s*0.54,s*0.18,s*0.08,0,0,Math.PI*2);ctx.fill();
+  // Columna
+  px(ctx,s/2-3,s*0.28,6,s*0.36,'#9898a0');px(ctx,s/2-2,s*0.3,4,s*0.32,'#b0b0a8');
+  // Copa cima
+  ctx.fillStyle='#9898a0';ctx.beginPath();ctx.ellipse(s/2,s*0.28,s*0.13,s*0.06,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#50a0f0';ctx.beginPath();ctx.ellipse(s/2,s*0.26,s*0.09,s*0.04,0,0,Math.PI*2);ctx.fill();
+  // Chorro central
+  ctx.fillStyle='#78c0f8';ctx.fillRect(s/2-1,s*0.04,2,s*0.24);
+  ctx.fillStyle='#a0d8f8';ctx.fillRect(s/2,s*0.04,1,s*0.2);
+});
+
+SPRITES.bench = makeS((ctx,s)=>{
+  // Patas
+  px(ctx,4,s*0.55,4,s*0.45,'#6a3e18');px(ctx,s-8,s*0.55,4,s*0.45,'#6a3e18');
+  px(ctx,5,s*0.55,2,s*0.4,'#8a5228');px(ctx,s-7,s*0.55,2,s*0.4,'#8a5228');
+  // Travesaño
+  px(ctx,4,s*0.72,s-8,3,'#5a3010');
+  // Asiento
+  px(ctx,2,s*0.42,s-4,s*0.15,'#8a5228');
+  px(ctx,2,s*0.42,s-4,2,'#aa6838');
+  px(ctx,2,s*0.55,s-4,2,'#5a3010');
+  // Respaldo
+  px(ctx,2,s*0.24,s-4,s*0.2,'#7a4820');
+  px(ctx,2,s*0.24,s-4,1,'#9a6030');
+  px(ctx,2,s*0.42,s-4,1,'#5a3010');
+});
+
+SPRITES.pillar = makeS((ctx,s)=>{
+  // Capitel
+  px(ctx,2,2,s-4,6,'#b0b0a8');px(ctx,1,2,s-2,2,'#c8c8c0');px(ctx,1,7,s-2,1,'#888880');
+  // Fuste
+  px(ctx,4,8,s-8,s-20,'#989890');px(ctx,5,8,s-10,s-22,'#a8a8a0');
+  // Estrías
+  for(let i=0;i<4;i++){px(ctx,5+i*(s/5),10,2,s-24,'#787870');}
+  // Highlight
+  px(ctx,5,8,3,s-22,'#b8b8b0');
+  // Base
+  px(ctx,2,s-12,s-4,6,'#b0b0a8');px(ctx,1,s-7,s-2,2,'#888880');px(ctx,1,s-5,s-2,4,'#c8c8c0');
+});
+
+SPRITES.banner = makeS((ctx,s)=>{
+  // Poste
+  px(ctx,s/2-2,2,4,s-2,'#4a4a5a');px(ctx,s/2-1,2,2,s-4,'#6a6a7a');
+  // Punta dorada
+  ctx.fillStyle='#f0c030';ctx.beginPath();ctx.moveTo(s/2,0);ctx.lineTo(s/2-4,6);ctx.lineTo(s/2+4,6);ctx.closePath();ctx.fill();
+  // Tela
+  px(ctx,s/2+2,4,s/2-4,s*0.55,'#cc2222');px(ctx,s/2+3,4,s/2-6,s*0.53,'#dd3333');
+  // Borde dorado
+  ctx.fillStyle='#f0c030';ctx.fillRect(s/2+2,4,1,s*0.55);ctx.fillRect(s/2+2,s*0.58,s/2-4,1);
+  // Emblema
+  ctx.fillStyle='#f0c030';ctx.fillRect(s/2+6,s*0.2,4,2);ctx.fillRect(s/2+8,s*0.18,2,6);
+  // Flecos
+  for(let i=0;i<4;i++){px(ctx,s/2+3+i*4,s*0.58,2,s*0.12,'#f0c030');}
+});
+
+SPRITES.statue = makeS((ctx,s)=>{
+  // Base/pedestal
+  px(ctx,s*0.2,s*0.75,s*0.6,s*0.25,'#9898a0');px(ctx,s*0.18,s*0.73,s*0.64,4,'#b0b0a8');
+  // Cuerpo
+  px(ctx,s*0.3,s*0.3,s*0.4,s*0.45,'#a0a098');px(ctx,s*0.32,s*0.32,s*0.36,s*0.4,'#b8b8b0');
+  // Detalle escudo
+  px(ctx,s*0.32,s*0.42,s*0.16,s*0.2,'#888880');ctx.fillStyle='#c8c8c0';ctx.fillRect(s*0.34,s*0.44,s*0.12,s*0.16);
+  // Brazo con espada
+  px(ctx,s*0.62,s*0.3,6,s*0.35,'#a0a098');
+  px(ctx,s*0.66,s*0.1,3,s*0.28,'#c0c0b8');px(ctx,s*0.67,s*0.06,2,4,'#c0c0b8');
+  // Cabeza/casco
+  px(ctx,s*0.32,s*0.18,s*0.36,s*0.15,'#a0a098');ctx.fillStyle='#888880';ctx.fillRect(s*0.32,s*0.3,s*0.36,2);
+  px(ctx,s*0.34,s*0.1,s*0.32,s*0.1,'#b8b8b0');
+  // Sombra
+  ctx.fillStyle='rgba(0,0,0,0.18)';ctx.beginPath();ctx.ellipse(s/2,s*0.98,s*0.28,4,0,0,Math.PI*2);ctx.fill();
+});
+
+// ── NPCs ────────────────────────────────────────────────────
+function makeNPC(body,pants,hair,skin,acc){
+  return makeS((ctx,s)=>{
+    ctx.fillStyle='rgba(0,0,0,0.15)';ctx.beginPath();ctx.ellipse(s/2,s*0.97,s*0.3,4,0,0,Math.PI*2);ctx.fill();
+    px(ctx,s*0.3,s*0.78,s*0.16,s*0.22,pants+'cc');px(ctx,s*0.54,s*0.78,s*0.16,s*0.22,pants+'cc');
+    px(ctx,s*0.28,s*0.9,s*0.18,s*0.1,P_dk);px(ctx,s*0.54,s*0.9,s*0.18,s*0.1,P_dk);
+    px(ctx,s*0.22,s*0.42,s*0.56,s*0.38,body);px(ctx,s*0.26,s*0.44,s*0.48,s*0.1,body+'cc');
+    ctx.fillStyle=acc;ctx.fillRect(s*0.3,s*0.55,s*0.4,s*0.1);
+    px(ctx,s*0.1,s*0.44,s*0.14,s*0.28,skin);px(ctx,s*0.76,s*0.44,s*0.14,s*0.28,skin);
+    px(ctx,s*0.26,s*0.18,s*0.48,s*0.28,skin);
+    ctx.fillStyle=hair;ctx.fillRect(s*0.26,s*0.12,s*0.48,s*0.14);
+    ctx.fillStyle=hair+'cc';ctx.fillRect(s*0.22,s*0.18,s*0.08,s*0.18);ctx.fillRect(s*0.7,s*0.18,s*0.08,s*0.18);
+    ctx.fillStyle=P_dk;ctx.fillRect(s*0.34,s*0.2,s*0.08,s*0.08);ctx.fillRect(s*0.58,s*0.2,s*0.08,s*0.08);
+  });
+}
+const P_dk='#200c08';
+SPRITES.npc_guard    = makeNPC('#667788','#2a3848','#603820','#e8c090','#cc2222');
+SPRITES.npc_merchant = makeNPC('#4a6890','#283050','#f0d050','#f0c888','#d8a030');
+SPRITES.npc_villager = makeNPC('#5a8040','#3a3050','#c07830','#f0c888','#a0c060');
+SPRITES.npc_bard     = makeNPC('#9050b0','#2a1848','#e0a030','#f0c898','#d040b8');
+
+// ═══════════════════════════════════════════════════════════
+// NUEVOS SPRITES — Castillo + 15 elementos medievales
+// ═══════════════════════════════════════════════════════════
+
+// ── CASTILLO (fiel a la referencia: torres, almenas, portón) ─
+SPRITES.castle = makeS((ctx,s)=>{
+  // Paleta fiel a la referencia
+  const cw0='#d8e0e8'; // blanco piedra (fachada)
+  const cw1='#b0b8c0'; // gris medio
+  const cw2='#8898a0'; // gris sombra
+  const cw3='#606870'; // gris oscuro (contorno)
+  const ct0='#c87820'; // marrón teja claro
+  const ct1='#8b5010'; // marrón teja oscuro (checkerboard)
+  const cr ='#cc1010'; // rojo bandera
+
+  // ── ALAS LATERALES (murallas) ──────────────────────────
+  // Ala izquierda
+  px(ctx,0,s*0.56,s*0.18,s*0.44,cw1);
+  px(ctx,1,s*0.58,s*0.14,s*0.38,cw0);
+  // Almenas ala izquierda
+  [0,4,8].forEach(ax=>{ px(ctx,ax,s*0.52,3,s*0.06,cw1);px(ctx,ax,s*0.53,2,s*0.04,cw0); });
+  // Sillería
+  for(let r=0;r<4;r++) for(let c=0;c<2;c++){
+    ctx.fillStyle=r%2===0?cw1:cw2;
+    ctx.fillRect(c*7+(r%2)*3,s*0.6+r*6,6,5);
+  }
+  // Ala derecha
+  px(ctx,s*0.82,s*0.56,s*0.18,s*0.44,cw1);
+  px(ctx,s*0.84,s*0.58,s*0.14,s*0.38,cw0);
+  [s*0.82,s*0.86,s*0.9].forEach(ax=>{ px(ctx,ax,s*0.52,3,s*0.06,cw1);px(ctx,ax,s*0.53,2,s*0.04,cw0); });
+  for(let r=0;r<4;r++) for(let c=0;c<2;c++){
+    ctx.fillStyle=r%2===0?cw1:cw2;
+    ctx.fillRect(s*0.82+c*7+(r%2)*3,s*0.6+r*6,6,5);
+  }
+
+  // ── TORRES LATERALES PEQUEÑAS (tejado marrón checkerboard) ─
+  [[s*0.02,s*0.28],[s*0.72,s*0.28]].forEach(([tx,ty])=>{
+    const tw=s*0.24, th=s*0.2;
+    // Tejado cónico checkerboard (firma del castillo)
+    for(let row=0;row<6;row++){
+      const rw=tw*(1-row/7)+2;
+      const rx=tx+tw/2-rw/2;
+      for(let c=0;c<Math.ceil(rw/4);c++){
+        ctx.fillStyle=(c+row)%2===0?ct0:ct1;
+        ctx.fillRect(rx+c*4,ty+row*3,4,3);
+      }
+    }
+    // Poste bandera
+    px(ctx,tx+tw/2-1,ty-8,2,10,cw3);
+    // Bandera roja
+    px(ctx,tx+tw/2+1,ty-8,7,5,cr);
+    px(ctx,tx+tw/2+1,ty-8,7,2,'#ee2020');
+    // Cuerpo de la torre
+    px(ctx,tx,ty+18,tw,th,cw1);
+    px(ctx,tx+2,ty+20,tw-4,th-2,cw0);
+    // Almenas en la cima
+    for(let ai=0;ai<4;ai++){
+      px(ctx,tx+ai*6,ty+16,4,4,cw1);
+      px(ctx,tx+ai*6,ty+17,3,3,cw0);
+    }
+    // Ventana
+    px(ctx,tx+tw/2-3,ty+24,6,7,'#2a3a4a');
+    px(ctx,tx+tw/2-2,ty+25,4,5,'#4a6080');
+    ctx.fillStyle='#6a90b0';ctx.fillRect(tx+tw/2-1,ty+25,2,3);
+    // Sillería
+    for(let r=0;r<3;r++){
+      ctx.fillStyle=cw2;ctx.fillRect(tx,ty+20+r*5,tw,1);
+    }
+  });
+
+  // ── TORRE CENTRAL ALTA (gris oscuro, sillería) ─────────
+  const tcy=0, tcx=s*0.3, tcw=s*0.4, tch=s*0.52;
+  px(ctx,tcx,tcy,tcw,tch,cw2);
+  px(ctx,tcx+2,tcy+2,tcw-4,tch-2,cw1);
+  // Sillería gris textura
+  for(let r=0;r<8;r++){
+    const off=r%2===0?0:5;
+    for(let c=0;c<5;c++){
+      ctx.fillStyle=c%2===0?cw1:cw2;
+      ctx.fillRect(tcx+off+c*8,tcy+r*6,7,5);
+      ctx.fillStyle=cw0;ctx.fillRect(tcx+off+c*8,tcy+r*6,7,1);
+    }
+  }
+  // Almenas superiores (patrón escalonado)
+  for(let ai=0;ai<5;ai++){
+    const ax=tcx+ai*8, h=ai%2===0?8:5;
+    px(ctx,ax,tcy-h,6,h+2,cw2);
+    px(ctx,ax+1,tcy-h+1,4,h,cw1);
+  }
+  // 2 banderas en la torre central
+  [[tcx+6,tcy-10],[tcx+tcw-12,tcy-10]].forEach(([fx,fy])=>{
+    px(ctx,fx,fy,2,12,cw3);
+    px(ctx,fx+2,fy,8,6,cr);
+    px(ctx,fx+2,fy,8,2,'#ee2020');
+  });
+  // Ventanas torre central
+  [[tcx+6,tcy+18],[tcx+tcw-14,tcy+18],[tcx+tcw/2-4,tcy+10]].forEach(([vx,vy])=>{
+    px(ctx,vx,vy,8,10,'#1a2830');
+    px(ctx,vx+1,vy+1,6,8,'#2a4860');
+    ctx.fillStyle='#4a70a0';ctx.fillRect(vx+2,vy+2,4,5);
+    // Arco superior
+    ctx.fillStyle='#1a2830';
+    ctx.fillRect(vx+2,vy,4,3);
+  });
+
+  // ── MURALLA PRINCIPAL (frente del castillo) ─────────────
+  const wy=s*0.44, wh=s*0.56;
+  px(ctx,s*0.12,wy,s*0.76,wh,cw1);
+  px(ctx,s*0.14,wy+2,s*0.72,wh-2,cw0);
+  // Almenas muralla
+  for(let ai=0;ai<8;ai++){
+    if(ai===3||ai===4) continue; // hueco para portón
+    px(ctx,s*0.12+ai*s*0.1,wy-6,s*0.08,8,cw1);
+    px(ctx,s*0.13+ai*s*0.1,wy-5,s*0.06,6,cw0);
+  }
+  // Sillería muralla
+  for(let r=0;r<4;r++){
+    const off=r%2===0?0:s*0.06;
+    ctx.fillStyle=cw2;ctx.fillRect(s*0.12,wy+r*12,s*0.76,1);
+    for(let c=0;c<7;c++){
+      ctx.fillStyle=c%2===0?cw0:cw1;
+      ctx.fillRect(s*0.13+off+c*s*0.1,wy+r*12+2,s*0.08,10);
+    }
+  }
+  // Ventanas en la muralla
+  [[s*0.22,wy+10],[s*0.65,wy+10]].forEach(([vx,vy])=>{
+    px(ctx,vx,vy,8,10,'#1a2830');px(ctx,vx+1,vy+1,6,8,'#3a5870');
+    ctx.fillStyle='#5888b0';ctx.fillRect(vx+2,vy+2,4,5);
+  });
+
+  // ── PORTÓN CENTRAL (arco + madera + herraje) ───────────
+  const pgx=s*0.38, pgy=s*0.6, pgw=s*0.24, pgh=s*0.4;
+  // Marco de piedra
+  px(ctx,pgx-3,pgy,pgw+6,pgh,cw2);
+  // Arco pixelado
+  const archR=Math.floor(pgw/2);
+  for(let ay=0;ay<archR;ay++){
+    const aw=Math.round(Math.sqrt(archR*archR-(ay-archR)*(ay-archR))*2);
+    ctx.fillStyle='#1a2830';
+    ctx.fillRect(pgx+pgw/2-aw/2,pgy-ay,aw,1);
+  }
+  // Interior portón (oscuro)
+  px(ctx,pgx,pgy,pgw,pgh,'#1a2010');
+  // Tablones madera (reja)
+  for(let ti=0;ti<4;ti++){
+    ctx.fillStyle=ti%2===0?'#7a4820':'#6a3818';
+    ctx.fillRect(pgx+ti*(pgw/4),pgy,pgw/4-1,pgh);
+    ctx.fillStyle='#9a6030';ctx.fillRect(pgx+ti*(pgw/4),pgy,pgw/4-1,2);
+  }
+  // Barras horizontales
+  [pgy+pgh*0.3,pgy+pgh*0.6].forEach(by=>{
+    px(ctx,pgx,by,pgw,3,'#4a2808');
+    px(ctx,pgx,by,pgw,1,'#6a3a18');
+  });
+  // Herraje central
+  px(ctx,pgx+pgw/2-3,pgy+pgh*0.45,6,6,'#2a2a2a');
+  px(ctx,pgx+pgw/2-2,pgy+pgh*0.46,4,4,'#f0c030');
+  ctx.fillStyle='#ffd700';ctx.fillRect(pgx+pgw/2-1,pgy+pgh*0.47,2,2);
+
+  // Sombra global
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.beginPath();ctx.ellipse(s/2,s*0.99,s*0.45,4,0,0,Math.PI*2);ctx.fill();
+});
+
+// ── GATE / PORTÓN DE MURALLA ─────────────────────────────────
+SPRITES.gate = makeS((ctx,s)=>{
+  const cw0='#d0d8e0',cw1='#a8b0b8',cw2='#808890',cw3='#505860';
+  px(ctx,0,0,s,s,cw1);
+  // Sillería
+  for(let r=0;r<5;r++) for(let c=0;c<3;c++){
+    ctx.fillStyle=r%2===0?cw0:cw1;
+    ctx.fillRect(c*11+(r%2)*5,r*6,10,5);
+    ctx.fillStyle=cw0+'88';ctx.fillRect(c*11+(r%2)*5,r*6,10,1);
+  }
+  // Almenas top
+  for(let i=0;i<4;i++){ px(ctx,i*8+1,0,6,7,cw1);px(ctx,i*8+2,1,4,6,cw0); }
+  // Arco portón
+  for(let ay=0;ay<10;ay++){
+    const aw=Math.round(Math.sqrt(100-(ay-10)*(ay-10))*1.4);
+    ctx.fillStyle='#2a1808';ctx.fillRect(s/2-aw/2,s*0.3+ay,aw,1);
+  }
+  px(ctx,s*0.2,s*0.4,s*0.6,s*0.6,'#1a1208');
+  // Rastrillo
+  for(let ri=0;ri<4;ri++){
+    ctx.fillStyle='#4a4030';ctx.fillRect(s*0.22+ri*s*0.14,s*0.42,4,s*0.55);
+    ctx.fillStyle='#6a5848';ctx.fillRect(s*0.22+ri*s*0.14,s*0.42,2,s*0.55);
+  }
+  for(let ri=0;ri<3;ri++){
+    ctx.fillStyle='#4a4030';ctx.fillRect(s*0.22,s*0.42+ri*12,s*0.6,3);
+  }
+  // Sombra
+  ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(0,s-4,s,4);
+});
+
+// ── WALL SEGMENT — muro de piedra (horizontal) ───────────────
+SPRITES.wall_h = makeS((ctx,s)=>{
+  const cw0='#d0d8e0',cw1='#a8b0b8',cw2='#808890';
+  px(ctx,0,0,s,s,cw2);
+  // Almenas
+  for(let i=0;i<4;i++){
+    px(ctx,i*8+1,0,6,8,cw1);px(ctx,i*8+2,1,4,7,cw0);
+  }
+  // Cuerpo con sillería
+  for(let r=0;r<4;r++){
+    const off=r%2===0?0:6;
+    for(let c=0;c<4;c++){
+      ctx.fillStyle=c%2===0?cw1:cw0;
+      ctx.fillRect(off+c*8,8+r*6,7,5);
+      ctx.fillStyle=cw0;ctx.fillRect(off+c*8,8+r*6,7,1);
+    }
+  }
+  px(ctx,0,s-4,s,4,cw2);
+});
+
+// ── WALL TOWER — torreta de muralla ──────────────────────────
+SPRITES.wall_tower = makeS((ctx,s)=>{
+  const cw0='#d0d8e0',cw1='#a8b0b8',cw2='#808890',cr='#cc1010';
+  // Base más ancha
+  px(ctx,s*0.05,s*0.25,s*0.9,s*0.75,cw2);
+  px(ctx,s*0.08,s*0.27,s*0.84,s*0.70,cw1);
+  px(ctx,s*0.1,s*0.29,s*0.8,s*0.66,cw0);
+  // Almenas en T
+  for(let i=0;i<5;i++){
+    px(ctx,i*6+1,s*0.24,5,s*0.06,cw1);px(ctx,i*6+2,s*0.25,3,s*0.05,cw0);
+  }
+  // Sillería
+  for(let r=0;r<5;r++){
+    ctx.fillStyle=cw2;ctx.fillRect(s*0.05,s*0.32+r*10,s*0.9,1);
+    const off=r%2===0?0:4;
+    for(let c=0;c<4;c++){
+      ctx.fillStyle=c%2===0?cw1:cw0;
+      ctx.fillRect(s*0.08+off+c*7,s*0.33+r*10,6,8);
+    }
+  }
+  // Ventana saeteras
+  [[s/2-3,s*0.35],[s/2-3,s*0.60]].forEach(([vx,vy])=>{
+    px(ctx,vx,vy,6,12,'#1a2830');px(ctx,vx+2,vy+1,2,10,'#3a5870');
+  });
+  // Bandera
+  px(ctx,s/2-1,0,2,s*0.25,'#606870');
+  px(ctx,s/2+1,2,8,6,cr);px(ctx,s/2+1,2,8,2,'#ee2020');
+});
+
+// ── DUNGEON ENTRANCE — entrada de mazmorra ───────────────────
+SPRITES.dungeon_entrance = makeS((ctx,s)=>{
+  px(ctx,0,0,s,s,'#1a1a22');
+  // Marco de piedra
+  for(let r=0;r<5;r++) for(let c=0;c<4;c++){
+    ctx.fillStyle=r%2===0?'#2e2e3e':'#3a3a4e';
+    ctx.fillRect(c*8+(r%2)*4,r*6,7,5);
+    ctx.fillStyle='#4a4a5e';ctx.fillRect(c*8+(r%2)*4,r*6,7,1);
+  }
+  // Arco de entrada
+  for(let ay=0;ay<10;ay++){
+    const aw=Math.round(Math.sqrt(100-(ay-10)*(ay-10))*1.2);
+    ctx.fillStyle='#050508';ctx.fillRect(s/2-aw/2,s*0.28+ay,aw,1);
+  }
+  px(ctx,s*0.25,s*0.38,s*0.5,s*0.62,'#050508');
+  // Puertas oxidadas
+  ctx.fillStyle='#3a3030';ctx.fillRect(s*0.27,s*0.4,s*0.22,s*0.58);
+  ctx.fillStyle='#3a3030';ctx.fillRect(s*0.51,s*0.4,s*0.22,s*0.58);
+  ctx.fillStyle='#4a4040';ctx.fillRect(s*0.28,s*0.4,s*0.2,3);
+  ctx.fillStyle='#4a4040';ctx.fillRect(s*0.52,s*0.4,s*0.2,3);
+  // Herraje oxidado
+  ctx.fillStyle='#6a5040';ctx.fillRect(s*0.44,s*0.6,5,5);
+  ctx.fillStyle='#8a6858';ctx.fillRect(s*0.45,s*0.61,3,3);
+  // Calavera
+  ctx.fillStyle='#a0a098';ctx.fillRect(s*0.43,s*0.2,7,6);
+  ctx.fillStyle='#050508';ctx.fillRect(s*0.44,s*0.21,2,2);ctx.fillRect(s*0.47,s*0.21,2,2);
+  ctx.fillRect(s*0.45,s*0.24,2,1);
+  // Musgo
+  ctx.fillStyle='#1a3818';ctx.fillRect(2,s*0.5,3,4);ctx.fillRect(s-5,s*0.6,3,4);
+});
+
+// ── BLACKSMITH FORGE — forja con fuego ───────────────────────
+SPRITES.forge = makeS((ctx,s)=>{
+  // Base de piedra
+  px(ctx,s*0.05,s*0.5,s*0.9,s*0.5,'#808890');
+  px(ctx,s*0.08,s*0.52,s*0.84,s*0.44,'#a0a8b0');
+  // Apertura del horno
+  px(ctx,s*0.2,s*0.36,s*0.6,s*0.2,'#1a1008');
+  px(ctx,s*0.22,s*0.37,s*0.56,s*0.16,'#2a1a08');
+  // Fuego (capas de colores)
+  [[s/2,s*0.42,12,8,'#ff2200'],[s/2,s*0.4,10,6,'#ff5500'],[s/2,s*0.38,8,5,'#ff8800'],
+   [s/2,s*0.36,6,4,'#ffbb00'],[s/2,s*0.34,4,3,'#ffee44']].forEach(([cx,cy,fw,fh,fc])=>{
+    ctx.fillStyle=fc;ctx.beginPath();ctx.ellipse(cx,cy,fw/2,fh/2,0,0,Math.PI*2);ctx.fill();
+  });
+  // Chimenea
+  px(ctx,s*0.38,0,s*0.24,s*0.38,'#606870');
+  px(ctx,s*0.4,0,s*0.2,s*0.36,'#808890');
+  // Glow del fuego
+  const grd=ctx.createRadialGradient(s/2,s*0.4,0,s/2,s*0.4,s*0.3);
+  grd.addColorStop(0,'rgba(255,150,30,0.4)');grd.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=grd;ctx.fillRect(0,s*0.2,s,s*0.35);
+  ctx.globalCompositeOperation='source-over';
+  // Yunque
+  px(ctx,s*0.55,s*0.44,s*0.3,s*0.08,'#303030');
+  px(ctx,s*0.58,s*0.4,s*0.24,s*0.06,'#404040');
+  px(ctx,s*0.62,s*0.36,s*0.16,s*0.06,'#505050');
+  px(ctx,s*0.65,s*0.34,s*0.08,s*0.04,'#606060');
+});
+
+// ── CAMPFIRE — hoguera ────────────────────────────────────────
+SPRITES.campfire = makeS((ctx,s)=>{
+  // Piedras del círculo
+  [[s/2,s*0.78,s*0.4,s*0.14],[s/2,s*0.76,s*0.36,s*0.12]].forEach(([cx,cy,rx,ry],i)=>{
+    ctx.fillStyle=i?'#9898a0':'#707078';
+    ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.fill();
+  });
+  // Interior oscuro (cenizas)
+  ctx.fillStyle='#282830';ctx.beginPath();ctx.ellipse(s/2,s*0.76,s*0.28,s*0.1,0,0,Math.PI*2);ctx.fill();
+  // Troncos cruzados
+  ctx.fillStyle='#5a3010';ctx.save();ctx.translate(s/2,s*0.7);ctx.rotate(0.5);
+  ctx.fillRect(-s*0.3,-3,s*0.6,6);ctx.restore();
+  ctx.fillStyle='#5a3010';ctx.save();ctx.translate(s/2,s*0.7);ctx.rotate(-0.5);
+  ctx.fillRect(-s*0.3,-3,s*0.6,6);ctx.restore();
+  // Llama (capas)
+  [[s/2,s*0.5,10,14,'#cc2200'],[s/2,s*0.46,8,11,'#ee4400'],[s/2,s*0.42,7,9,'#ff7700'],
+   [s/2,s*0.38,5,7,'#ffaa00'],[s/2,s*0.34,4,5,'#ffdd00'],[s/2,s*0.3,2,4,'#ffffaa']].forEach(([cx,cy,fw,fh,fc])=>{
+    ctx.fillStyle=fc;ctx.beginPath();ctx.ellipse(cx,cy,fw/2,fh/2,0,0,Math.PI*2);ctx.fill();
+  });
+  // Chispas
+  [[s*0.35,s*0.28,'#ffaa00'],[s*0.65,s*0.3,'#ff8800'],[s*0.3,s*0.35,'#ffdd00']].forEach(([sx,sy,sc])=>{
+    ctx.fillStyle=sc;ctx.fillRect(sx,sy,2,2);
+  });
+  // Humo
+  ctx.fillStyle='rgba(150,150,150,0.4)';ctx.beginPath();ctx.arc(s/2,s*0.2,5,0,Math.PI*2);ctx.fill();
+});
+
+// ── WINDMILL — molino de viento ───────────────────────────────
+SPRITES.windmill = makeS((ctx,s)=>{
+  // Cuerpo troncocónico
+  const pts=[[s*0.3,s],[s*0.7,s],[s*0.62,s*0.2],[s*0.38,s*0.2]];
+  ctx.fillStyle='#d0c8a0';ctx.beginPath();
+  pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();ctx.fill();
+  // Líneas horizontales (tablones)
+  for(let r=0;r<7;r++){
+    const ty=s*0.2+r*s*0.12;
+    ctx.fillStyle='#b0a880';ctx.fillRect(s*0.3+r*4,ty,s*0.4-r*8,2);
+  }
+  // Tejado cónico
+  ctx.fillStyle='#8a5228';ctx.beginPath();
+  ctx.moveTo(s/2,0);ctx.lineTo(s*0.35,s*0.22);ctx.lineTo(s*0.65,s*0.22);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#aa6838';ctx.beginPath();
+  ctx.moveTo(s/2,0);ctx.lineTo(s*0.38,s*0.15);ctx.lineTo(s*0.62,s*0.15);ctx.closePath();ctx.fill();
+  // Aspas (4, en cruz)
+  [[0,-1],[1,0],[0,1],[-1,0]].forEach(([dx,dy])=>{
+    ctx.save();ctx.translate(s/2,s*0.22);ctx.rotate(Math.atan2(dy,dx));
+    ctx.fillStyle='#8a5228';ctx.fillRect(0,-2,s*0.3,4);
+    ctx.fillStyle='#d0c8a0';ctx.fillRect(2,-5,s*0.26,10);
+    ctx.fillStyle='#b0a880';ctx.fillRect(2,-5,s*0.26,2);
+    ctx.restore();
+  });
+  // Centro
+  ctx.fillStyle='#6a3e18';ctx.beginPath();ctx.arc(s/2,s*0.22,4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#8a5228';ctx.beginPath();ctx.arc(s/2,s*0.22,2,0,Math.PI*2);ctx.fill();
+  // Puerta
+  px(ctx,s*0.42,s*0.7,s*0.16,s*0.3,'#5a3010');
+  px(ctx,s*0.44,s*0.72,s*0.12,s*0.27,'#7a4820');
+  ctx.fillStyle='#d8a030';ctx.fillRect(s*0.54,s*0.82,2,2);
+});
+
+// ── SCARECROW — espantapájaros ────────────────────────────────
+SPRITES.scarecrow = makeS((ctx,s)=>{
+  // Poste
+  px(ctx,s/2-1,s*0.2,3,s*0.8,'#7a4820');px(ctx,s/2,s*0.2,1,s*0.78,'#9a6030');
+  // Travesaño
+  px(ctx,s*0.15,s*0.38,s*0.7,3,'#7a4820');px(ctx,s*0.15,s*0.38,s*0.7,1,'#9a6030');
+  // Ropa (cuerpo)
+  ctx.fillStyle='#c87820';ctx.fillRect(s*0.25,s*0.38,s*0.5,s*0.3);
+  ctx.fillStyle='#e09020';ctx.fillRect(s*0.28,s*0.38,s*0.44,s*0.1);
+  // Parches
+  ctx.fillStyle='#a06010';ctx.fillRect(s*0.3,s*0.5,6,5);ctx.fillRect(s*0.54,s*0.44,5,5);
+  // Mangas
+  ctx.fillStyle='#c87820';ctx.fillRect(s*0.08,s*0.36,s*0.2,s*0.14);
+  ctx.fillStyle='#c87820';ctx.fillRect(s*0.72,s*0.36,s*0.2,s*0.14);
+  // Manos (guantes)
+  ctx.fillStyle='#e0e0a0';ctx.fillRect(s*0.05,s*0.42,6,8);ctx.fillRect(s*0.89,s*0.42,6,8);
+  // Cabeza (calabaza/saco)
+  ctx.fillStyle='#e0a020';ctx.beginPath();ctx.arc(s/2,s*0.24,s*0.16,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#c07010';ctx.beginPath();ctx.arc(s/2,s*0.26,s*0.13,0,Math.PI*2);ctx.fill();
+  // Cara
+  ctx.fillStyle='#1a0808';ctx.fillRect(s/2-5,s*0.2,3,3);ctx.fillRect(s/2+2,s*0.2,3,3);
+  ctx.fillStyle='#1a0808';
+  [s/2-3,s/2-1,s/2+1,s/2+3].forEach(mx=>{ctx.fillRect(mx,s*0.26,2,2);});
+  // Sombrero
+  ctx.fillStyle='#3a2010';ctx.fillRect(s/2-10,s*0.1,20,4);ctx.fillRect(s/2-7,s*0.04,14,s*0.07);
+  // Cuervos (detalle)
+  ctx.fillStyle='#1a1818';ctx.fillRect(s*0.08,s*0.28,5,3);ctx.fillRect(s*0.82,s*0.3,5,3);
+  ctx.fillStyle='#f0c030';ctx.fillRect(s*0.08,s*0.29,2,1);ctx.fillRect(s*0.85,s*0.3,2,1);
+  // Sombra
+  ctx.fillStyle='rgba(0,0,0,0.15)';ctx.beginPath();ctx.ellipse(s/2,s*0.99,10,3,0,0,Math.PI*2);ctx.fill();
+});
+
+// ── CROP FIELD — campo de cultivo ────────────────────────────
+SPRITES.crop_field = makeS((ctx,s)=>{
+  // Suelo arado
+  px(ctx,0,0,s,s,'#8c5c2c');
+  for(let r=0;r<s;r+=4){
+    ctx.fillStyle=r%8===0?'#7a4820':'#a06838';ctx.fillRect(0,r,s,2);
+  }
+  // Cultivos (trigo/maíz)
+  for(let c=0;c<4;c++){
+    const cx=c*(s/4)+s/8;
+    // Tallo
+    ctx.fillStyle='#4a8020';ctx.fillRect(cx-1,s*0.3,2,s*0.6);
+    ctx.fillStyle='#5a9830';ctx.fillRect(cx-1,s*0.3,1,s*0.58);
+    // Hojas
+    ctx.fillStyle='#3a7018';ctx.fillRect(cx-6,s*0.5,6,2);ctx.fillRect(cx+1,s*0.6,6,2);
+    ctx.fillStyle='#4a8020';ctx.fillRect(cx-5,s*0.5,4,1);
+    // Espiga
+    ctx.fillStyle='#d8a020';ctx.fillRect(cx-2,s*0.18,4,s*0.14);
+    ctx.fillStyle='#f0c030';ctx.fillRect(cx-1,s*0.18,2,s*0.12);
+    ctx.fillStyle='#e8b828';ctx.fillRect(cx-2,s*0.18,4,2);
+  }
+});
+
+// ── HAYBALE — bala de paja ───────────────────────────────────
+SPRITES.haybale = makeS((ctx,s)=>{
+  // Bala cilíndrica
+  ctx.fillStyle='#c8a030';ctx.beginPath();ctx.ellipse(s/2,s*0.72,s*0.4,s*0.22,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#e0c050';ctx.fillRect(s*0.1,s*0.44,s*0.8,s*0.28);
+  ctx.fillStyle='#d0b040';ctx.fillRect(s*0.1,s*0.44,s*0.8,s*0.06);
+  ctx.fillStyle='#f0d060';ctx.beginPath();ctx.ellipse(s/2,s*0.44,s*0.4,s*0.22,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#f8e070';ctx.beginPath();ctx.ellipse(s/2,s*0.42,s*0.36,s*0.18,0,0,Math.PI*2);ctx.fill();
+  // Ataduras
+  [s*0.28,s*0.6].forEach(bx=>{
+    ctx.fillStyle='#8a5020';ctx.fillRect(bx,s*0.44,3,s*0.28);
+    ctx.fillStyle='#c87828';ctx.beginPath();ctx.ellipse(bx+1.5,s*0.44,s*0.04,s*0.22,0,0,Math.PI*2);ctx.fill();
+  });
+  // Textura fibras
+  for(let fi=0;fi<6;fi++){
+    ctx.fillStyle='#d8b038';ctx.fillRect(s*0.12+fi*12,s*0.46,10,s*0.24);
+    ctx.fillStyle='#b89028';ctx.fillRect(s*0.12+fi*12+9,s*0.46,1,s*0.24);
+  }
+  ctx.fillStyle='rgba(0,0,0,0.15)';ctx.beginPath();ctx.ellipse(s/2,s*0.97,s*0.36,4,0,0,Math.PI*2);ctx.fill();
+});
+
+// ── GRAVESTONE — lápida ──────────────────────────────────────
+SPRITES.gravestone = makeS((ctx,s)=>{
+  // Tierra/hierba oscura
+  px(ctx,0,s*0.8,s,s*0.2,'#284018');
+  px(ctx,0,s*0.8,s,2,'#386020');
+  // Lápida
+  const lw=s*0.5, lh=s*0.7, lx=s/2-lw/2, ly=s*0.12;
+  ctx.fillStyle='#909098';ctx.fillRect(lx,ly,lw,lh);
+  ctx.fillStyle='#b0b0b8';ctx.fillRect(lx+2,ly+2,lw-4,lh-4);
+  // Arco superior
+  ctx.fillStyle='#909098';ctx.beginPath();ctx.arc(s/2,ly+s*0.12,s*0.24,Math.PI,0);ctx.fill();
+  ctx.fillStyle='#b0b0b8';ctx.beginPath();ctx.arc(s/2,ly+s*0.12,s*0.2,Math.PI,0);ctx.fill();
+  // Cruz tallada
+  ctx.fillStyle='#606068';ctx.fillRect(s/2-1,ly+4,2,s*0.3);ctx.fillRect(s/2-6,ly+s*0.14,12,2);
+  // Texto RIP (simulado)
+  ctx.fillStyle='#707078';ctx.font='5px "Press Start 2P"';ctx.fillText('RIP',lx+6,ly+lh-8);
+  // Musgo
+  ctx.fillStyle='#2a6018';ctx.fillRect(lx,ly+lh-6,4,4);ctx.fillRect(lx+lw-4,ly+lh-10,4,4);
+  // Flores en la base
+  ['#e87898','#f8e060'].forEach((fc,i)=>{
+    ctx.fillStyle='#3a6818';ctx.fillRect(lx-4+i*12,s*0.74,1,6);
+    ctx.fillStyle=fc;ctx.fillRect(lx-5+i*12,s*0.72,3,3);
+  });
+});
+
+// ── SIGN POST — cartel de madera ─────────────────────────────
+SPRITES.signpost = makeS((ctx,s)=>{
+  // Poste enterrado
+  px(ctx,s/2-2,s*0.3,5,s*0.7,'#7a4820');px(ctx,s/2-1,s*0.3,3,s*0.68,'#9a6030');
+  // Punta del poste (V)
+  ctx.fillStyle='#7a4820';
+  ctx.beginPath();ctx.moveTo(s/2-2,s*0.3);ctx.lineTo(s/2+3,s*0.3);ctx.lineTo(s/2,s*0.22);ctx.closePath();ctx.fill();
+  // Panel del letrero
+  const pw=s*0.78, ph=s*0.36, px2=s/2-pw/2, py=s*0.08;
+  ctx.fillStyle='#6a3e18';ctx.fillRect(px2,py,pw,ph);
+  ctx.fillStyle='#8a5228';ctx.fillRect(px2+2,py+2,pw-4,ph-4);
+  ctx.fillStyle='#aa6838';ctx.fillRect(px2+2,py+2,pw-4,2);
+  // Borde dorado
+  ctx.strokeStyle='#c8900f';ctx.lineWidth=1;ctx.strokeRect(px2+1.5,py+1.5,pw-3,ph-3);
+  // Texto simulado (puntos)
+  ctx.fillStyle='#f0d060';
+  for(let i=0;i<5;i++) ctx.fillRect(px2+6+i*8,py+8,5,3);
+  for(let i=0;i<4;i++) ctx.fillRect(px2+8+i*9,py+14,4,3);
+  // Cuerda de sujeción
+  ctx.strokeStyle='#5a3010';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(px2+4,py);ctx.lineTo(s/2-2,s*0.3);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(px2+pw-4,py);ctx.lineTo(s/2+3,s*0.3);ctx.stroke();
+  ctx.fillStyle='rgba(0,0,0,0.12)';ctx.fillRect(px2+2,py+ph,pw-4,3);
+});
+
+// ── CRATE — caja de madera ───────────────────────────────────
+SPRITES.crate = makeS((ctx,s)=>{
+  px(ctx,s*0.05,s*0.15,s*0.9,s*0.85,'#8a5228');
+  px(ctx,s*0.08,s*0.18,s*0.84,s*0.78,'#aa6838');
+  // Tablones
+  for(let i=0;i<3;i++){
+    ctx.fillStyle=i%2===0?'#9a5a28':'#c07840';
+    ctx.fillRect(s*0.08+i*(s*0.84/3),s*0.18,s*0.84/3-1,s*0.78);
+  }
+  // Vigas
+  ctx.fillStyle='#6a3818';
+  ctx.fillRect(s*0.05,s*0.15,s*0.9,3);
+  ctx.fillRect(s*0.05,s*0.15+s*0.85-3,s*0.9,3);
+  ctx.fillRect(s*0.05,s*0.15,3,s*0.85);
+  ctx.fillRect(s*0.95-3,s*0.15,3,s*0.85);
+  // Clavos
+  ctx.fillStyle='#4a4040';
+  [[s*0.12,s*0.22],[s*0.12,s*0.85],[s*0.82,s*0.22],[s*0.82,s*0.85]].forEach(([cx,cy])=>{
+    ctx.fillRect(cx,cy,3,3);ctx.fillStyle='#6a6060';ctx.fillRect(cx,cy,3,1);ctx.fillStyle='#4a4040';
+  });
+  ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(s*0.05,s*0.98,s*0.9,2);
+});
+
+// ── FENCE GATE — puerta de valla ─────────────────────────────
+SPRITES.fence_gate = makeS((ctx,s)=>{
+  // 2 postes
+  [s*0.05,s*0.75].forEach(fx=>{
+    px(ctx,fx,s*0.08,s*0.15,s*0.92,'#7a4820');
+    px(ctx,fx+2,s*0.08,s*0.1,s*0.9,'#9a6030');
+    // Punta
+    ctx.fillStyle='#7a4820';ctx.beginPath();
+    ctx.moveTo(fx,s*0.08);ctx.lineTo(fx+s*0.075,s*0.02);ctx.lineTo(fx+s*0.15,s*0.08);ctx.closePath();ctx.fill();
+  });
+  // Travesaños
+  [s*0.25,s*0.5,s*0.72].forEach(gy=>{
+    px(ctx,s*0.05,gy,s*0.9,4,'#7a4820');
+    px(ctx,s*0.05,gy,s*0.9,1,'#9a6030');
+  });
+  // Listones verticales (abierto en centro)
+  [s*0.22,s*0.38,s*0.54,s*0.7].forEach(vx=>{
+    ctx.fillStyle='#8a5228';ctx.fillRect(vx,s*0.25,4,s*0.49);
+    ctx.fillStyle='#aa6838';ctx.fillRect(vx,s*0.25,4,1);
+  });
+  // Bisagra
+  ctx.fillStyle='#3a3030';ctx.fillRect(s*0.18,s*0.24,5,5);ctx.fillRect(s*0.18,s*0.48,5,5);
+  ctx.fillStyle='#585050';ctx.fillRect(s*0.19,s*0.25,3,3);ctx.fillRect(s*0.19,s*0.49,3,3);
+});
+
+// ── BRIDGE — puente de madera ─────────────────────────────────
+SPRITES.bridge = makeS((ctx,s)=>{
+  // Agua bajo el puente
+  px(ctx,0,s*0.5,s,s*0.5,'#2870c0');
+  for(let r=0;r<3;r++){
+    ctx.fillStyle='#3888d8';ctx.fillRect(0,s*0.56+r*6,s,2);
+  }
+  // Tablones del puente
+  for(let i=0;i<6;i++){
+    ctx.fillStyle=i%2===0?'#9a6030':'#8a5228';
+    ctx.fillRect(i*(s/6),s*0.36,s/6-1,s*0.28);
+    ctx.fillStyle='#b07840';ctx.fillRect(i*(s/6),s*0.36,s/6-1,2);
+    ctx.fillStyle='#6a3818';ctx.fillRect(i*(s/6),s*0.36+s*0.26,s/6-1,2);
+  }
+  // Barandillas
+  px(ctx,0,s*0.32,s,4,'#7a4820');px(ctx,0,s*0.32,s,1,'#9a6030');
+  px(ctx,0,s*0.64,s,4,'#7a4820');px(ctx,0,s*0.64,s,1,'#9a6030');
+  // Postes barandilla
+  [0,s*0.25,s*0.5,s*0.75,s-4].forEach(px2=>{
+    ctx.fillStyle='#6a3818';ctx.fillRect(px2,s*0.2,4,s*0.48);
+    ctx.fillStyle='#8a5028';ctx.fillRect(px2+1,s*0.2,2,s*0.46);
+  });
+  // Sombra en el agua
+  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(0,s*0.5,s,8);
+});
+
+// ── PORTALS ─────────────────────────────────────────────────
+SPRITES.portal = makeS((ctx,s)=>{
+  for(let r=0;r<3;r++){
+    ctx.strokeStyle=`rgba(100,200,255,${0.3-r*0.08})`;ctx.lineWidth=1;
+    ctx.strokeRect(r*2,r*2,s-r*4,s-r*4);
+  }
+  const grd=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  grd.addColorStop(0,'rgba(100,200,255,0.3)');grd.addColorStop(1,'rgba(50,100,200,0.05)');
+  ctx.fillStyle=grd;ctx.fillRect(0,0,s,s);
+  ctx.fillStyle='rgba(150,220,255,0.8)';
+  [[s/2,4],[s/2,s-5],[4,s/2],[s-5,s/2]].forEach(([x,y])=>{ctx.fillRect(x-1,y-1,3,3);});
+  ctx.font='7px "Press Start 2P"';ctx.fillStyle='rgba(150,220,255,0.9)';
+  ctx.fillText('PORT',s*0.12,s*0.58);
+});
+
+SPRITES.spawn = makeS((ctx,s)=>{
+  ctx.strokeStyle='#00ff8877';ctx.lineWidth=1;ctx.setLineDash([3,2]);
+  ctx.strokeRect(2,2,s-4,s-4);ctx.setLineDash([]);
+  ctx.fillStyle='#00ff8822';ctx.fillRect(4,4,s-8,s-8);
+  ctx.font='5px "Press Start 2P"';ctx.fillStyle='#00ff88';ctx.fillText('SPAWN',3,s/2+2);
+});
+
+const CATEGORIES = {
+  'SUELO': [
+    { key:'cobblestone',   label:'Adoquín' },
+    { key:'grass',         label:'Hierba' },
+    { key:'grass_dark',    label:'Hierba D' },
+    { key:'dirt',          label:'Tierra' },
+    { key:'stone_path',    label:'Piedra' },
+    { key:'water',         label:'Agua' },
+    { key:'wood_floor',    label:'Madera' },
+    { key:'dungeon_stone', label:'Mazmorra' },
+    { key:'royal_stone',   label:'Real' },
+    { key:'crop_field',    label:'Cultivo' },
+  ],
+  'CASTILLO': [
+    { key:'castle',            label:'Castillo' },
+    { key:'gate',              label:'Portón' },
+    { key:'wall_h',            label:'Muro H' },
+    { key:'wall_tower',        label:'Torreta' },
+    { key:'dungeon_entrance',  label:'Mazmorra' },
+    { key:'tower',             label:'Torre' },
+  ],
+  'EDIFICIOS': [
+    { key:'house_thatch', label:'Casa Paja' },
+    { key:'house_wood',   label:'Casa Mad.' },
+    { key:'tavern',       label:'Taberna' },
+    { key:'church',       label:'Iglesia' },
+    { key:'smithy',       label:'Herrería' },
+    { key:'windmill',     label:'Molino' },
+    { key:'forge',        label:'Forja' },
+  ],
+  'ÁRBOLES': [
+    { key:'oak_tree',  label:'Roble' },
+    { key:'pine_tree', label:'Pino' },
+    { key:'dead_tree', label:'Seco' },
+  ],
+  'PROPS': [
+    { key:'well',         label:'Pozo' },
+    { key:'barrel',       label:'Barril' },
+    { key:'chest',        label:'Cofre' },
+    { key:'torch',        label:'Antorcha' },
+    { key:'market_stall', label:'Puesto' },
+    { key:'fountain',     label:'Fuente' },
+    { key:'bench',        label:'Banco' },
+    { key:'pillar',       label:'Columna' },
+    { key:'banner',       label:'Estandarte' },
+    { key:'statue',       label:'Estatua' },
+    { key:'campfire',     label:'Hoguera' },
+    { key:'scarecrow',    label:'Espantap.' },
+    { key:'haybale',      label:'Paja' },
+    { key:'gravestone',   label:'Lápida' },
+    { key:'signpost',     label:'Cartel' },
+    { key:'crate',        label:'Caja' },
+    { key:'fence_gate',   label:'Puerta V.' },
+    { key:'bridge',       label:'Puente' },
+  ],
+  'NPCs': [
+    { key:'npc_guard',    label:'Guardia' },
+    { key:'npc_merchant', label:'Mercader' },
+    { key:'npc_villager', label:'Aldeano' },
+    { key:'npc_bard',     label:'Bardo' },
+  ],
+  'ESPECIAL': [
+    { key:'portal', label:'Portal' },
+    { key:'spawn',  label:'Spawn' },
+  ],
+};
+
+// Qué capas acepta cada tipo
+const ASSET_LAYER = {
+  // Suelo
+  cobblestone:'ground', grass:'ground', grass_dark:'ground', dirt:'ground',
+  stone_path:'ground', water:'ground', wood_floor:'ground', dungeon_stone:'ground',
+  royal_stone:'ground', crop_field:'ground',
+  // Castillo y murallas
+  castle:'objects', gate:'objects', wall_h:'objects', wall_tower:'objects',
+  dungeon_entrance:'objects', tower:'objects',
+  // Edificios
+  house_thatch:'objects', house_wood:'objects', tavern:'objects', church:'objects',
+  smithy:'objects', windmill:'objects', forge:'objects',
+  // Árboles
+  oak_tree:'objects', pine_tree:'objects', dead_tree:'objects',
+  // Props
+  well:'objects', barrel:'objects', chest:'objects', torch:'objects',
+  market_stall:'objects', fountain:'objects', bench:'objects', pillar:'objects',
+  banner:'objects', statue:'objects', campfire:'objects', scarecrow:'objects',
+  haybale:'objects', gravestone:'objects', signpost:'objects', crate:'objects',
+  fence_gate:'objects', bridge:'objects',
+  // NPCs
+  npc_guard:'objects', npc_merchant:'objects', npc_villager:'objects', npc_bard:'objects',
+  // Especial
+  portal:'objects', spawn:'objects',
+};
+
+// ═══════════════════════════════════════════════════════════
+// ESTADO DEL EDITOR
+// ═══════════════════════════════════════════════════════════
+let mapW=20, mapH=16, tileSize=40;
+let zoomLevel=1;
+let currentTool='draw';
+let currentLayer='ground';
+let selectedAsset=null;
+let selectedCell=null;
+let isDrawing=false;
+let isPanning=false;
+let panStart={x:0,y:0};
+let viewOffset={x:0,y:0};
+let layerVisible={ground:true,objects:true,overhead:true};
+
+// Datos del mapa: 3 capas para tiles + array separado para instancias
+let layers={
+  ground:   [],   // array[y][x] — tile brush layer
+  objects:  [],
+  overhead: [],
+};
+
+// Instances — large/individual placeable objects with x,y,w,h that can be
+// moved and resized after placement (instead of being painted tile by tile).
+// Stored as { id, type, gridX, gridY, w, h, label? } with grid coordinates.
+let instances = [];
+let nextInstanceId = 1;
+let selectedInstanceId = null;
+let isMovingInstance = false;
+let isResizingInstance = false;
+let dragInstanceOffset = {x:0, y:0};
+
+// Assets that should be placed as movable+resizable instances instead of
+// painted as repeating tiles. Buildings, trees, large props.
+const INSTANCE_TYPE_SET = new Set([
+  // Castles & walls
+  'castle','gate','wall_h','wall_tower','dungeon_entrance','tower',
+  // Buildings
+  'house_thatch','house_wood','tavern','church','smithy','windmill','forge',
+  // Trees
+  'oak_tree','pine_tree','dead_tree',
+  // Big props
+  'well','fountain','bridge','statue','signpost','market_stall','campfire',
+]);
+// Default placement size in TILES per instance type
+const INSTANCE_DEFAULT_SIZE = {
+  castle:{w:4,h:4}, gate:{w:2,h:3}, wall_tower:{w:2,h:3}, wall_h:{w:3,h:1},
+  dungeon_entrance:{w:2,h:2}, tower:{w:2,h:3},
+  house_thatch:{w:2,h:2}, house_wood:{w:2,h:2}, tavern:{w:3,h:3},
+  church:{w:3,h:4}, smithy:{w:2,h:2}, windmill:{w:2,h:3}, forge:{w:2,h:2},
+  oak_tree:{w:1,h:1}, pine_tree:{w:1,h:1}, dead_tree:{w:1,h:1},
+  well:{w:1,h:1}, fountain:{w:2,h:2}, bridge:{w:3,h:1},
+  statue:{w:1,h:2}, signpost:{w:1,h:1}, market_stall:{w:2,h:2}, campfire:{w:1,h:1},
+};
+
+function isInstanceType(type){
+  if(!type) return false;
+  // Library houses always go as instances
+  if(typeof type === 'string' && type.startsWith('lib_')) return true;
+  return INSTANCE_TYPE_SET.has(type);
+}
+function defaultSizeFor(type){
+  const d = INSTANCE_DEFAULT_SIZE[type];
+  if(d) return {w:d.w, h:d.h};
+  if(typeof type === 'string' && type.startsWith('lib_')) return {w:2, h:2};
+  return {w:2, h:2};
+}
+function getInstanceAt(gridX, gridY){
+  // Iterate in reverse so top-most (last placed) wins on overlapping picks
+  for(let i = instances.length - 1; i >= 0; i--){
+    const ins = instances[i];
+    if(gridX >= ins.gridX && gridX < ins.gridX + ins.w &&
+       gridY >= ins.gridY && gridY < ins.gridY + ins.h) return ins;
+  }
+  return null;
+}
+function isResizeHandle(ins, gridX, gridY){
+  // Bottom-right tile of the instance acts as resize handle
+  return gridX === ins.gridX + ins.w - 1 && gridY === ins.gridY + ins.h - 1;
+}
+
+// Historial undo/redo
+let undoStack=[];
+let redoStack=[];
+
+function initMap(){
+  layers.ground=[];layers.objects=[];layers.overhead=[];
+  for(let y=0;y<mapH;y++){
+    layers.ground.push(new Array(mapW).fill(null));
+    layers.objects.push(new Array(mapW).fill(null));
+    layers.overhead.push(new Array(mapW).fill(null));
+  }
+  // Suelo por defecto
+  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+    layers.ground[y][x]={type:'cobblestone',label:''};
+  }
+  document.getElementById('infoSize').textContent=`${mapW}×${mapH}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CANVAS SETUP
+// ═══════════════════════════════════════════════════════════
+const mapCanvas=document.getElementById('mapCanvas');
+const mapCtx=mapCanvas.getContext('2d');
+const overlayCanvas=document.getElementById('overlayCanvas');
+const overlayCtx=overlayCanvas.getContext('2d');
+const miniCanvas=document.getElementById('miniCanvas');
+const miniCtx=miniCanvas.getContext('2d');
+const canvasArea=document.getElementById('canvasArea');
+
+function updateCanvasSize(){
+  const w=mapW*tileSize*zoomLevel, h=mapH*tileSize*zoomLevel;
+  mapCanvas.width=w; mapCanvas.height=h;
+  overlayCanvas.width=w; overlayCanvas.height=h;
+  mapCanvas.style.width=`${w}px`; mapCanvas.style.height=`${h}px`;
+  overlayCanvas.style.width=`${w}px`; overlayCanvas.style.height=`${h}px`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════
+function render(){
+  const ctx=mapCtx, TS=tileSize*zoomLevel;
+  ctx.clearRect(0,0,mapCanvas.width,mapCanvas.height);
+
+  // Fondo
+  ctx.fillStyle=document.getElementById('mapBgColor').value||'#2a1f12';
+  ctx.fillRect(0,0,mapCanvas.width,mapCanvas.height);
+
+  // Renderizar capas en orden
+  ['ground','objects','overhead'].forEach(layerKey=>{
+    if(!layerVisible[layerKey]) return;
+    for(let y=0;y<mapH;y++){
+      for(let x=0;x<mapW;x++){
+        const cell=layers[layerKey][y][x];
+        if(!cell) continue;
+        const spr=SPRITES[cell.type];
+        if(!spr) continue;
+        const dx=x*TS, dy=y*TS;
+        ctx.imageSmoothingEnabled=false;
+        ctx.drawImage(spr,dx,dy,TS,TS);
+        // Label
+        if(cell.label){
+          ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(dx+1,dy+1,TS-2,8);
+          ctx.fillStyle='#f0d060'; ctx.font=`${Math.max(5,zoomLevel*4)}px monospace`;
+          ctx.fillText(cell.label,dx+2,dy+8);
+        }
+      }
+    }
+  });
+
+  // ── Instancias (objects layer, on top of tiles, before grid) ──
+  if(layerVisible.objects){
+    instances.forEach(ins => {
+      const spr = SPRITES[ins.type];
+      if(!spr) return;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(spr, ins.gridX*TS, ins.gridY*TS, ins.w*TS, ins.h*TS);
+      // Subtle bounding box so users can tell it's an instance
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(ins.gridX*TS+0.5, ins.gridY*TS+0.5, ins.w*TS-1, ins.h*TS-1);
+    });
+  }
+
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+  for(let x=0;x<=mapW;x++){ ctx.beginPath();ctx.moveTo(x*TS,0);ctx.lineTo(x*TS,mapH*TS);ctx.stroke(); }
+  for(let y=0;y<=mapH;y++){ ctx.beginPath();ctx.moveTo(0,y*TS);ctx.lineTo(mapW*TS,y*TS);ctx.stroke(); }
+
+  // ── Selected instance: highlight + resize handle (drawn on top of grid) ──
+  if(selectedInstanceId){
+    const ins = instances.find(i => i.id === selectedInstanceId);
+    if(ins){
+      ctx.strokeStyle = '#f0c040';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(ins.gridX*TS+1, ins.gridY*TS+1, ins.w*TS-2, ins.h*TS-2);
+      ctx.fillStyle = 'rgba(240,192,64,0.10)';
+      ctx.fillRect(ins.gridX*TS, ins.gridY*TS, ins.w*TS, ins.h*TS);
+      // Resize handle on bottom-right corner — a small filled square
+      const hs = Math.max(8, TS*0.25);
+      const hx = (ins.gridX + ins.w) * TS - hs;
+      const hy = (ins.gridY + ins.h) * TS - hs;
+      ctx.fillStyle = '#f0c040';
+      ctx.fillRect(hx, hy, hs, hs);
+      ctx.fillStyle = '#0d0a14';
+      ctx.fillRect(hx + hs*0.35, hy + hs*0.35, hs*0.3, hs*0.3);
+    }
+  }
+
+  // Overlay capas apagadas (tint)
+  ['ground','objects','overhead'].forEach(k=>{
+    if(!layerVisible[k]){ ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(0,0,mapCanvas.width,mapCanvas.height); }
+  });
+
+  renderOverlay();
+  renderMini();
+  updateStats();
+}
+
+function renderOverlay(){
+  const ctx=overlayCtx, TS=tileSize*zoomLevel;
+  ctx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
+
+  // Resaltado celda seleccionada
+  if(selectedCell){
+    const {x,y}=selectedCell;
+    ctx.strokeStyle='#f0c040'; ctx.lineWidth=2;
+    ctx.strokeRect(x*TS+1,y*TS+1,TS-2,TS-2);
+    ctx.fillStyle='rgba(240,192,64,0.12)'; ctx.fillRect(x*TS,y*TS,TS,TS);
+  }
+}
+
+function renderMini(){
+  const ctx=miniCtx, mw=180, mh=100;
+  ctx.clearRect(0,0,mw,mh);
+  const scx=mw/mapW, scy=mh/mapH;
+  ctx.fillStyle='#0d0a14'; ctx.fillRect(0,0,mw,mh);
+  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+    const g=layers.ground[y][x];
+    const o=layers.objects[y][x];
+    const cell=o||g;
+    if(!cell) continue;
+    const colors={
+      cobblestone:'#b8a882',grass:'#4a9a28',grass_dark:'#286018',
+      dirt:'#a46c38',stone_path:'#9a9288',water:'#3888d8',wood_floor:'#7a4820',
+      dungeon_stone:'#2e2e3e',royal_stone:'#242438',crop_field:'#8c5c2c',
+      castle:'#9098a0',gate:'#708088',wall_h:'#a0a8b0',wall_tower:'#8898a0',
+      dungeon_entrance:'#2a2a32',
+      house_thatch:'#c8a030',house_wood:'#9a622a',tavern:'#9a622a',
+      church:'#787878',smithy:'#404040',windmill:'#d0c8a0',forge:'#808890',
+      tower:'#686868',oak_tree:'#3a6a22',pine_tree:'#248018',dead_tree:'#4a3010',
+      well:'#9898a0',barrel:'#8a5228',chest:'#8a5228',torch:'#ff8800',
+      market_stall:'#5080c8',fountain:'#3888d8',bench:'#8a5228',pillar:'#989890',
+      banner:'#cc2222',statue:'#a0a098',campfire:'#ff6600',scarecrow:'#c87820',
+      haybale:'#e0c050',gravestone:'#909098',signpost:'#8a5228',
+      crate:'#9a5a28',fence_gate:'#7a4820',bridge:'#9a6030',
+      npc_guard:'#667788',npc_merchant:'#4a6890',
+      npc_villager:'#5a8040',npc_bard:'#9050b0',portal:'#50a0f0',spawn:'#00ff88'};
+    ctx.fillStyle=colors[cell.type]||'#888';
+    ctx.fillRect(x*scx,y*scy,Math.ceil(scx),Math.ceil(scy));
+  }
+  // Viewport indicator
+  const va=canvasArea.getBoundingClientRect();
+  const vpx=(-viewOffset.x)/(tileSize*zoomLevel)*scx;
+  const vpy=(-viewOffset.y)/(tileSize*zoomLevel)*scy;
+  const vpw=va.width/(tileSize*zoomLevel)*scx;
+  const vph=va.height/(tileSize*zoomLevel)*scy;
+  ctx.strokeStyle='#f0c040'; ctx.lineWidth=1;
+  ctx.strokeRect(Math.max(0,vpx),Math.max(0,vpy),Math.min(vpw,mw),Math.min(vph,mh));
+}
+
+function updateStats(){
+  let count=0;
+  ['ground','objects','overhead'].forEach(k=>{
+    for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++) if(layers[k][y]?.[x]) count++;
+  });
+  document.getElementById('infoTiles').textContent=count;
+  document.getElementById('stObjs').textContent=count;
+  document.getElementById('stUndo').textContent=undoStack.length;
+}
+
+// ═══════════════════════════════════════════════════════════
+// HERRAMIENTAS
+// ═══════════════════════════════════════════════════════════
+function getTileFromEvent(e){
+  const rect=mapCanvas.getBoundingClientRect();
+  const TS=tileSize*zoomLevel;
+  const x=Math.floor((e.clientX-rect.left)/TS);
+  const y=Math.floor((e.clientY-rect.top)/TS);
+  if(x<0||x>=mapW||y<0||y>=mapH) return null;
+  return{x,y};
+}
+
+function paintTile(x,y){
+  if(!selectedAsset) return;
+  // Instance assets create a single placeable object instead of repeating tiles
+  if(isInstanceType(selectedAsset)){
+    placeInstance(selectedAsset, x, y);
+    return;
+  }
+  const targetLayer=ASSET_LAYER[selectedAsset]||currentLayer;
+  if(!layers[targetLayer][y]) return;
+  // Snapshot para undo
+  pushUndo();
+  layers[targetLayer][y][x]={type:selectedAsset,label:''};
+  render();
+}
+
+function placeInstance(type, gridX, gridY){
+  const {w, h} = defaultSizeFor(type);
+  // Clamp inside map bounds
+  const gx = Math.max(0, Math.min(mapW - w, gridX));
+  const gy = Math.max(0, Math.min(mapH - h, gridY));
+  pushUndo();
+  const ins = { id: nextInstanceId++, type, gridX: gx, gridY: gy, w, h, label: '' };
+  instances.push(ins);
+  selectedInstanceId = ins.id;
+  render();
+}
+
+function eraseTile(x,y){
+  // If there's an instance at this tile, remove it (whole instance)
+  const ins = getInstanceAt(x, y);
+  if(ins){
+    pushUndo();
+    instances = instances.filter(i => i.id !== ins.id);
+    if(selectedInstanceId === ins.id) selectedInstanceId = null;
+    render();
+    return;
+  }
+  pushUndo();
+  layers[currentLayer][y][x]=null;
+  render();
+}
+
+function fillTile(startX,startY){
+  if(!selectedAsset) return;
+  const targetLayer=ASSET_LAYER[selectedAsset]||currentLayer;
+  const targetType=layers[targetLayer][startY]?.[startX]?.type||null;
+  if(targetType===selectedAsset) return;
+  pushUndo();
+  const visited=new Set();
+  const queue=[{x:startX,y:startY}];
+  while(queue.length){
+    const{x,y}=queue.shift();
+    const key=`${x},${y}`;
+    if(visited.has(key)||x<0||x>=mapW||y<0||y>=mapH) continue;
+    const cur=layers[targetLayer][y]?.[x]?.type||null;
+    if(cur!==targetType) continue;
+    visited.add(key);
+    layers[targetLayer][y][x]={type:selectedAsset,label:''};
+    queue.push({x:x+1,y},{x:x-1,y},{x,y:y+1},{x,y:y-1});
+  }
+  render();
+}
+
+function pickTile(x,y){
+  for(const layerKey of['overhead','objects','ground']){
+    const cell=layers[layerKey][y]?.[x];
+    if(cell){
+      selectedAsset=cell.type;
+      updateBrushPreview();
+      document.querySelectorAll('.asset-item').forEach(el=>{
+        el.classList.toggle('selected',el.dataset.key===cell.type);
+      });
+      return;
+    }
+  }
+}
+
+// ── CANVAS EVENTS — pointer events for mouse + touch + stylus ─
+// Helper: detect the "draw button" across input types.
+//   mouse  → button 0 = left  → draw    | button 1 = mid → pan    | button 2 = right → erase
+//   pen    → buttons 1 = tip  → draw    | buttons 32 = eraser end → erase (Wacom/Surface)
+//   touch  → no buttons       → draw
+function pointerIntent(e){
+  if(e.pointerType==='pen'){
+    if(e.buttons===32) return 'erase';   // eraser end of stylus
+    if(e.shiftKey)     return 'pan';
+    return 'draw';
+  }
+  if(e.pointerType==='touch'){
+    // Two-finger tap = pan; we approximate via altKey, otherwise draw
+    if(e.altKey) return 'pan';
+    return 'draw';
+  }
+  // mouse
+  if(e.button===1 || (e.button===0 && e.shiftKey)) return 'pan';
+  if(e.button===2) return 'erase';
+  if(e.button===0) return 'draw';
+  return null;
+}
+
+overlayCanvas.addEventListener('pointerdown',e=>{
+  // Reserve mouse-right-click for the contextmenu erase shortcut
+  if(e.pointerType==='mouse' && e.button!==0 && e.button!==1) return;
+  const intent=pointerIntent(e);
+  if(intent==='pan'){
+    isPanning=true; panStart={x:e.clientX,y:e.clientY};
+    overlayCanvas.setPointerCapture(e.pointerId);
+    return;
+  }
+  const t=getTileFromEvent(e);
+  if(!t) return;
+  overlayCanvas.setPointerCapture(e.pointerId);
+  isDrawing=true;
+  if(intent==='erase'){ eraseTile(t.x,t.y); }
+  else if(currentTool==='draw')  { paintTile(t.x,t.y); }
+  else if(currentTool==='erase') { eraseTile(t.x,t.y); }
+  else if(currentTool==='fill')  { fillTile(t.x,t.y); isDrawing=false; }
+  else if(currentTool==='pick')  { pickTile(t.x,t.y); isDrawing=false; }
+  else if(currentTool==='select'){
+    // Pick instance under cursor first; if found, start move/resize drag.
+    // Otherwise fall back to original cell-select behavior.
+    const ins = getInstanceAt(t.x, t.y);
+    if(ins){
+      selectedInstanceId = ins.id;
+      selectedCell = null;
+      if(isResizeHandle(ins, t.x, t.y)){
+        isResizingInstance = true;
+        isDrawing = false;
+      } else {
+        isMovingInstance = true;
+        dragInstanceOffset = { x: t.x - ins.gridX, y: t.y - ins.gridY };
+        isDrawing = false;
+      }
+      render();
+    } else {
+      selectedInstanceId = null;
+      selectedCell = t;
+      render();
+      updateSelPanel(t);
+    }
+  }
+  document.getElementById('stCursor').textContent=`${t.x},${t.y}`;
+});
+
+overlayCanvas.addEventListener('pointermove',e=>{
+  if(isPanning){
+    viewOffset.x+=e.clientX-panStart.x;
+    viewOffset.y+=e.clientY-panStart.y;
+    panStart={x:e.clientX,y:e.clientY};
+    mapCanvas.style.transform=`translate(${viewOffset.x}px,${viewOffset.y}px)`;
+    overlayCanvas.style.transform=`translate(${viewOffset.x}px,${viewOffset.y}px)`;
+    renderMini(); return;
+  }
+  const t=getTileFromEvent(e);
+  if(t) document.getElementById('stCursor').textContent=`${t.x},${t.y}`;
+
+  // Drag-move or resize the selected instance (select tool only)
+  if(isMovingInstance && selectedInstanceId !== null && t){
+    const ins = instances.find(i => i.id === selectedInstanceId);
+    if(ins){
+      let nx = t.x - dragInstanceOffset.x;
+      let ny = t.y - dragInstanceOffset.y;
+      nx = Math.max(0, Math.min(mapW - ins.w, nx));
+      ny = Math.max(0, Math.min(mapH - ins.h, ny));
+      if(nx !== ins.gridX || ny !== ins.gridY){
+        ins.gridX = nx; ins.gridY = ny;
+        render();
+      }
+    }
+    return;
+  }
+  if(isResizingInstance && selectedInstanceId !== null && t){
+    const ins = instances.find(i => i.id === selectedInstanceId);
+    if(ins){
+      let nw = Math.max(1, t.x - ins.gridX + 1);
+      let nh = Math.max(1, t.y - ins.gridY + 1);
+      nw = Math.min(mapW - ins.gridX, nw);
+      nh = Math.min(mapH - ins.gridY, nh);
+      if(nw !== ins.w || nh !== ins.h){
+        ins.w = nw; ins.h = nh;
+        render();
+      }
+    }
+    return;
+  }
+
+  if(!isDrawing||!t) return;
+  // Pen eraser button kept active across drag → erase
+  if(e.pointerType==='pen' && e.buttons===32){ eraseTile(t.x,t.y); return; }
+  if(currentTool==='draw')  paintTile(t.x,t.y);
+  if(currentTool==='erase') eraseTile(t.x,t.y);
+});
+
+function endPointer(e){
+  isDrawing=false; isPanning=false;
+  isMovingInstance=false; isResizingInstance=false;
+  if(e && overlayCanvas.hasPointerCapture && overlayCanvas.hasPointerCapture(e.pointerId)){
+    overlayCanvas.releasePointerCapture(e.pointerId);
+  }
+}
+overlayCanvas.addEventListener('pointerup',endPointer);
+overlayCanvas.addEventListener('pointercancel',endPointer);
+overlayCanvas.addEventListener('pointerleave',()=>{ isDrawing=false; });
+
+overlayCanvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoom(e.deltaY<0?1:-1);
+},{passive:false});
+
+overlayCanvas.addEventListener('contextmenu',e=>{ e.preventDefault(); const t=getTileFromEvent(e); if(t) eraseTile(t.x,t.y); });
+
+// ─── UPDATE SELECTION PANEL ─────────────────────────────────
+function updateSelPanel(t){
+  const cell=layers.overhead[t.y]?.[t.x]||layers.objects[t.y]?.[t.x]||layers.ground[t.y]?.[t.x];
+  document.getElementById('selPos').textContent=`${t.x},${t.y}`;
+  document.getElementById('selType').textContent=cell?.type||'vacío';
+  document.getElementById('selLayer').textContent=cell?Object.keys(layers).find(k=>layers[k][t.y]?.[t.x]===cell):'—';
+  document.getElementById('selLabel').value=cell?.label||'';
+}
+function updateSelLabel(){
+  if(!selectedCell) return;
+  const val=document.getElementById('selLabel').value;
+  ['overhead','objects','ground'].forEach(k=>{
+    const c=layers[k][selectedCell.y]?.[selectedCell.x];
+    if(c) c.label=val;
+  });
+  render();
+}
+function deleteSelected(){
+  if(!selectedCell) return;
+  pushUndo();
+  ['ground','objects','overhead'].forEach(k=>{ layers[k][selectedCell.y][selectedCell.x]=null; });
+  selectedCell=null; render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONTROLES DE UI
+// ═══════════════════════════════════════════════════════════
+function setTool(t,btn){
+  currentTool=t;
+  document.querySelectorAll('[id^="tool-"]').forEach(b=>b.classList.remove('active'));
+  btn?.classList.add('active');
+  document.getElementById('stTool').textContent=t;
+  const hints={draw:'✏ Click pintar · Arrastrar para pintar · Clic derecho borrar',
+               erase:'⌫ Click borrar · Arrastrar para borrar',
+               fill:'▣ Click para rellenar zona',
+               select:'⬚ Click para seleccionar · Ver propiedades en panel der.',
+               pick:'◉ Click para copiar el tipo de tile'};
+  document.getElementById('toolHint').textContent=hints[t]||'';
+}
+
+function setLayer(l,btn){
+  currentLayer=l;
+  document.querySelectorAll('[id^="layer-"]').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('[id^="lr-"]').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById('lr-'+l)?.classList.add('active');
+  document.getElementById('stLayer').textContent=l;
+}
+
+function toggleVis(layer,e){
+  e.stopPropagation();
+  layerVisible[layer]=!layerVisible[layer];
+  e.target.style.opacity=layerVisible[layer]?'1':'0.3';
+  render();
+}
+
+function zoom(dir){
+  const levels=[0.5,0.75,1,1.5,2,3];
+  let idx=levels.indexOf(zoomLevel);
+  if(idx===-1) idx=2;
+  idx=Math.max(0,Math.min(levels.length-1,idx+dir));
+  zoomLevel=levels[idx];
+  document.getElementById('zoomLabel').textContent=`${zoomLevel}×`;
+  updateCanvasSize(); render();
+}
+
+function resizeMap(){
+  mapW=parseInt(document.getElementById('mw').value)||20;
+  mapH=parseInt(document.getElementById('mh').value)||16;
+  pushUndo();
+  // Expandir/contraer capas
+  ['ground','objects','overhead'].forEach(k=>{
+    while(layers[k].length<mapH) layers[k].push(new Array(mapW).fill(null));
+    layers[k]=layers[k].slice(0,mapH);
+    layers[k].forEach((row,i)=>{
+      while(row.length<mapW) row.push(null);
+      layers[k][i]=row.slice(0,mapW);
+    });
+    // Rellenar nuevo suelo en ground
+    if(k==='ground') for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+      if(!layers.ground[y][x]) layers.ground[y][x]={type:'cobblestone',label:''};
+    }
+  });
+  document.getElementById('infoSize').textContent=`${mapW}×${mapH}`;
+  updateCanvasSize(); render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// UNDO / REDO
+// ═══════════════════════════════════════════════════════════
+// Undo snapshots BOTH the tile layers and the instances list so move/resize
+// operations are undoable too.
+function snapshotState(){
+  return JSON.stringify({ layers, instances, nextInstanceId });
+}
+function restoreState(s){
+  const st = JSON.parse(s);
+  layers = st.layers;
+  instances = st.instances || [];
+  nextInstanceId = st.nextInstanceId || 1;
+}
+function pushUndo(){
+  undoStack.push(snapshotState());
+  if(undoStack.length>50) undoStack.shift();
+  redoStack=[];
+  document.getElementById('stUndo').textContent=undoStack.length;
+}
+function undo(){
+  if(!undoStack.length) return;
+  redoStack.push(snapshotState());
+  restoreState(undoStack.pop());
+  render();
+}
+function redo(){
+  if(!redoStack.length) return;
+  undoStack.push(snapshotState());
+  restoreState(redoStack.pop());
+  render();
+}
+function clearMap(){
+  if(!confirm('¿Limpiar el mapa? No se puede deshacer.')) return;
+  pushUndo();
+  instances = [];
+  selectedInstanceId = null;
+  initMap(); render();
+}
+
+// Teclado
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.key==='b'||e.key==='B') setTool('draw',document.getElementById('tool-draw'));
+  if(e.key==='e'||e.key==='E') setTool('erase',document.getElementById('tool-erase'));
+  if(e.key==='f'||e.key==='F') setTool('fill',document.getElementById('tool-fill'));
+  if(e.key==='s'||e.key==='S') setTool('select',document.getElementById('tool-select'));
+  if(e.key==='i'||e.key==='I') setTool('pick',document.getElementById('tool-pick'));
+  if(e.ctrlKey&&e.key==='z'){ e.preventDefault(); undo(); }
+  if(e.ctrlKey&&e.key==='y'){ e.preventDefault(); redo(); }
+  if(e.ctrlKey&&e.key==='s'){ e.preventDefault(); saveToLocal(); }
+  if(e.key==='Delete'){
+    // Priority: selected instance first, then selected cell
+    if(selectedInstanceId !== null){
+      pushUndo();
+      instances = instances.filter(i => i.id !== selectedInstanceId);
+      selectedInstanceId = null;
+      render();
+    } else if(selectedCell){
+      deleteSelected();
+    }
+  }
+  // Escape: deselect anything
+  if(e.key==='Escape'){
+    selectedInstanceId = null;
+    selectedCell = null;
+    isMovingInstance = false;
+    isResizingInstance = false;
+    render();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// ASSET PANEL
+// ═══════════════════════════════════════════════════════════
+let currentCat=Object.keys(CATEGORIES)[0];
+
+function buildAssetPanel(){
+  const catTabs=document.getElementById('catTabs');
+  const assetGrid=document.getElementById('assetGrid');
+  catTabs.innerHTML='';
+  Object.keys(CATEGORIES).forEach(cat=>{
+    const btn=document.createElement('button');
+    btn.className='cat-tab'+(cat===currentCat?' active':'');
+    btn.textContent=cat; btn.onclick=()=>{
+      currentCat=cat;
+      document.querySelectorAll('.cat-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      buildAssetGrid();
+    };
+    catTabs.appendChild(btn);
+  });
+  buildAssetGrid();
+}
+
+function buildAssetGrid(){
+  const grid=document.getElementById('assetGrid');
+  grid.innerHTML='';
+  (CATEGORIES[currentCat]||[]).forEach(({key,label})=>{
+    const spr=SPRITES[key];
+    if(!spr) return;
+    const item=document.createElement('div');
+    item.className='asset-item'+(selectedAsset===key?' selected':'');
+    item.dataset.key=key;
+    const cvs=document.createElement('canvas');
+    cvs.width=cvs.height=S*1.5;
+    const c=cvs.getContext('2d');
+    c.imageSmoothingEnabled=false;
+    c.drawImage(spr,0,0,S*1.5,S*1.5);
+    const lbl=document.createElement('div');
+    lbl.className='asset-label'; lbl.textContent=label;
+    item.appendChild(cvs); item.appendChild(lbl);
+    item.onclick=()=>{
+      selectedAsset=key;
+      document.querySelectorAll('.asset-item').forEach(el=>el.classList.remove('selected'));
+      item.classList.add('selected');
+      // Auto-cambiar capa
+      const targetLayer=ASSET_LAYER[key]||currentLayer;
+      setLayer(targetLayer,document.getElementById('layer-'+targetLayer));
+      updateBrushPreview();
+    };
+    grid.appendChild(item);
+  });
+}
+
+function updateBrushPreview(){
+  const cvs=document.getElementById('brushPreview');
+  const ctx=cvs.getContext('2d');
+  ctx.clearRect(0,0,64,64);
+  if(selectedAsset&&SPRITES[selectedAsset]){
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(SPRITES[selectedAsset],0,0,64,64);
+    document.getElementById('brushName').textContent=selectedAsset;
+    document.getElementById('brushCat').textContent=`Capa: ${ASSET_LAYER[selectedAsset]||currentLayer}`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════
+function exportMapData(){
+  const name=document.getElementById('mapName').value||'newMap';
+  const ambient=document.getElementById('mapAmbient').value||85;
+  const bgColor=document.getElementById('mapBgColor').value||'#2a1f12';
+
+  // Construir obstacles y decorations desde objetos
+  const obstacles=[], decorations=[], npcs=[], portals=[];
+  const spawnPos={x:Math.floor(mapW/2),y:Math.floor(mapH/2)};
+
+  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+    const obj=layers.objects[y]?.[x];
+    if(!obj) continue;
+    const {type,label}=obj;
+    if(type==='spawn'){ spawnPos.x=x; spawnPos.y=y; continue; }
+    if(type==='portal'){ portals.push({id:`portal_${x}_${y}`,x,y,w:1,h:1,target:'',targetSpawn:{x:0,y:0},label:label||'Portal'}); continue; }
+    if(type.startsWith('npc_')){ npcs.push({id:`${type}_${x}_${y}`,type,x,y,name:label||type}); continue; }
+    // Edificios como obstáculos
+    if(['house_thatch','house_wood','tavern','church','smithy','tower'].includes(type)){
+      obstacles.push({x,y,w:1,h:1,type:'shop_building',roofType:type.includes('thatch')?'thatch':type.includes('church')?'stone':'wood',label:label||type});
+    } else {
+      decorations.push({type,x,y,...(label?{label}:{})});
+    }
+  }
+
+  // Detectar tileSprite del suelo (el más frecuente en la capa ground)
+  const freq={};
+  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+    const t=layers.ground[y]?.[x]?.type;
+    if(t) freq[t]=(freq[t]||0)+1;
+  }
+  const tileSprite=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]||'cobblestone_warm';
+
+  // Movable/resizable instances become their own array — placed buildings,
+  // trees, big props that the runtime renders as positioned objects with size.
+  const instancesExport = instances.map(ins => ({
+    type: ins.type, x: ins.gridX, y: ins.gridY, w: ins.w, h: ins.h,
+    ...(ins.label ? { label: ins.label } : {}),
+  }));
+
+  const code=`// MapData generado por Taskoria Map Editor
+// ${new Date().toLocaleString()}
+
+export const ${name} = {
+  id: '${name}',
+  name: '${name}',
+  tileSprite: '${tileSprite}',
+  width: ${mapW},
+  height: ${mapH},
+  bgColor: '${bgColor}',
+  ambientLight: ${(ambient/100).toFixed(2)},
+  spawn: { x: ${spawnPos.x}, y: ${spawnPos.y} },
+
+  obstacles: ${JSON.stringify(obstacles, null, 4)},
+
+  decorations: ${JSON.stringify(decorations, null, 4)},
+
+  instances: ${JSON.stringify(instancesExport, null, 4)},
+
+  portals: ${JSON.stringify(portals, null, 4)},
+
+  npcs: ${JSON.stringify(npcs, null, 4)},
+};
+`;
+
+  const blob=new Blob([code],{type:'text/javascript'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`${name}.js`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SAVE / LOAD
+// ═══════════════════════════════════════════════════════════
+// SAVE TO TASKORIA ADMIN LIBRARY (postMessage bridge to parent React panel)
+function saveToLibrary(){
+  // Re-run the same logic as exportMapData to build the snippet, but send it
+  // to the parent window instead of triggering a file download.
+  const name=(document.getElementById('mapName').value||'').trim() || ('map_'+Date.now());
+  const ambient=document.getElementById('mapAmbient').value||85;
+  const bgColor=document.getElementById('mapBgColor').value||'#2a1f12';
+  const obstacles=[], decorations=[], npcs=[], portals=[];
+  const spawnPos={x:Math.floor(mapW/2),y:Math.floor(mapH/2)};
+  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+    const obj=layers.objects[y]?.[x]; if(!obj) continue;
+    const {type,label}=obj;
+    if(type==='spawn'){ spawnPos.x=x; spawnPos.y=y; continue; }
+    if(type==='portal'){ portals.push({id:`portal_${x}_${y}`,x,y,w:1,h:1,target:'',targetSpawn:{x:0,y:0},label:label||'Portal'}); continue; }
+    if(type.startsWith('npc_')){ npcs.push({id:`${type}_${x}_${y}`,type,x,y,name:label||type}); continue; }
+    if(['house_thatch','house_wood','tavern','church','smithy','tower'].includes(type)){
+      obstacles.push({x,y,w:1,h:1,type:'shop_building',roofType:type.includes('thatch')?'thatch':type.includes('church')?'stone':'wood',label:label||type});
+    } else {
+      decorations.push({type,x,y,...(label?{label}:{})});
+    }
+  }
+  const freq={};
+  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+    const t=layers.ground[y]?.[x]?.type; if(t) freq[t]=(freq[t]||0)+1;
+  }
+  const tileSprite=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]||'cobblestone_warm';
+  const instancesExport = instances.map(ins => ({
+    type: ins.type, x: ins.gridX, y: ins.gridY, w: ins.w, h: ins.h,
+    ...(ins.label ? { label: ins.label } : {}),
+  }));
+  const snippet = `// Map "${name}" — generated by Map Editor
+export const ${name} = {
+  id: '${name}',
+  name: '${name}',
+  tileSprite: '${tileSprite}',
+  width: ${mapW},
+  height: ${mapH},
+  bgColor: '${bgColor}',
+  ambientLight: ${(ambient/100).toFixed(2)},
+  spawn: { x: ${spawnPos.x}, y: ${spawnPos.y} },
+  obstacles: ${JSON.stringify(obstacles, null, 4)},
+  decorations: ${JSON.stringify(decorations, null, 4)},
+  instances: ${JSON.stringify(instancesExport, null, 4)},
+  portals: ${JSON.stringify(portals, null, 4)},
+  npcs: ${JSON.stringify(npcs, null, 4)},
+};
+`;
+  try {
+    window.parent.postMessage({
+      type: 'taskoria_design_save',
+      tool: 'map',
+      name,
+      snippet,
+      payload: { mapW, mapH, layers, instances, ambient, bgColor },
+    }, '*');
+  } catch (e) { console.error(e); }
+}
+
+function saveToLocal(){
+  const data={mapW,mapH,layers,instances,nextInstanceId,
+              mapName:document.getElementById('mapName').value,
+              ambient:document.getElementById('mapAmbient').value,
+              bgColor:document.getElementById('mapBgColor').value};
+  localStorage.setItem('taskoria_map',JSON.stringify(data));
+  const btn=document.querySelector('.tbtn.gold');
+  const orig=btn.textContent; btn.textContent='✓ SAVED';
+  setTimeout(()=>btn.textContent=orig,2000);
+}
+
+function loadFromLocal(){
+  const raw=localStorage.getItem('taskoria_map');
+  if(!raw){ alert('No hay mapa guardado'); return; }
+  const data=JSON.parse(raw);
+  mapW=data.mapW; mapH=data.mapH; layers=data.layers;
+  instances = Array.isArray(data.instances) ? data.instances : [];
+  nextInstanceId = data.nextInstanceId || (instances.reduce((m,i)=>Math.max(m, i.id||0), 0) + 1);
+  selectedInstanceId = null;
+  document.getElementById('mw').value=mapW;
+  document.getElementById('mh').value=mapH;
+  document.getElementById('mapName').value=data.mapName||'';
+  document.getElementById('mapAmbient').value=data.ambient||85;
+  document.getElementById('mapBgColor').value=data.bgColor||'#2a1f12';
+  document.getElementById('infoSize').textContent=`${mapW}×${mapH}`;
+  updateCanvasSize(); render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// LIBRARY BRIDGE — saved House Builder designs as palette assets
+//   Editor → parent: { type:'taskoria_request_designs', tool:'house' }
+//   Parent → editor: { type:'taskoria_designs_loaded',  designs: [...] }
+// Each design becomes a palette key 'lib_<id>' under the BIBLIOTECA category.
+// ═══════════════════════════════════════════════════════════
+function libSpriteFor(design){
+  // Render a thumbnail using the existing house sprite that best matches the
+  // design's roof, then overlay an 'L' badge so the user knows it's from the
+  // library. Sprites already cached in SPRITES so this stays cheap.
+  const payload = design.payload || {};
+  const roof = payload.roofType || 'thatch';
+  const baseKey = (roof === 'thatch') ? 'house_thatch'
+               : (roof === 'stone' || roof === 'dark') ? 'castle'
+               : 'house_wood';
+  const base = SPRITES[baseKey] || SPRITES.house_wood;
+  const cvs = document.createElement('canvas');
+  cvs.width = cvs.height = S;
+  const c = cvs.getContext('2d');
+  c.imageSmoothingEnabled = false;
+  if (base) c.drawImage(base, 0, 0, S, S);
+  // Library badge
+  c.fillStyle = '#f0c040';
+  c.fillRect(S - 12, 2, 10, 10);
+  c.fillStyle = '#0d0a14';
+  c.font = 'bold 8px monospace';
+  c.fillText('L', S - 9, 10);
+  return cvs;
+}
+
+function applyLibraryDesigns(designs){
+  if (!Array.isArray(designs) || designs.length === 0) return;
+  const libCategory = [];
+  designs.forEach(d => {
+    const key = 'lib_' + d.id;
+    SPRITES[key] = libSpriteFor(d);
+    ASSET_LAYER[key] = 'objects';
+    libCategory.push({ key, label: (d.name || 'design').slice(0, 12) });
+  });
+  CATEGORIES['BIBLIOTECA'] = libCategory;
+  // Rebuild the category tabs + grid to show the new section
+  buildAssetPanel();
+}
+
+window.addEventListener('message', e => {
+  const msg = e.data;
+  if (!msg || msg.type !== 'taskoria_designs_loaded') return;
+  applyLibraryDesigns(msg.designs || []);
+});
+
+function requestLibrary(){
+  try {
+    window.parent.postMessage({ type: 'taskoria_request_designs', tool: 'house' }, '*');
+  } catch (err) { /* iframe-less mode */ }
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+initMap();
+buildAssetPanel();
+updateCanvasSize();
+render();
+
+// Seleccionar cobblestone por defecto
+selectedAsset='cobblestone';
+updateBrushPreview();
+document.querySelector('.asset-item')?.classList.add('selected');
+
+// Pull saved House Builder designs from the parent's admin library
+requestLibrary();
+</script>
+</body>
+</html>

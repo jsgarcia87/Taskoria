@@ -7,6 +7,45 @@ import EpicBossCard from './dashboard/EpicBossCard';
 import TaskList from './dashboard/TaskList';
 import PixelIcon from './common/PixelIcon';
 import ProductivityHeatmap from './dashboard/ProductivityHeatmap';
+import DailyMissions from './dashboard/DailyMissions';
+
+// Pixel-art scroll banner end-cap matching the reference image.
+const BannerHolder = () => {
+    return (
+        <div className="relative shrink-0 self-stretch flex flex-col w-6 md:w-[30px]">
+            {/* Top SVG */}
+            <svg viewBox="0 0 6 4" className="w-full block shrink-0" shapeRendering="crispEdges">
+                <rect x="0" y="0" width="6" height="1" fill="#111" />
+                <rect x="0" y="1" width="1" height="1" fill="#111" />
+                <rect x="1" y="1" width="4" height="1" fill="#fdef3f" />
+                <rect x="5" y="1" width="1" height="1" fill="#111" />
+                <rect x="1" y="2" width="1" height="1" fill="#111" />
+                <rect x="2" y="2" width="2" height="1" fill="#fdef3f" />
+                <rect x="4" y="2" width="1" height="1" fill="#111" />
+                <rect x="0" y="3" width="6" height="1" fill="#111" />
+            </svg>
+            
+            {/* Middle Shaft */}
+            <svg viewBox="0 0 6 1" preserveAspectRatio="none" className="w-full flex-1 block" shapeRendering="crispEdges">
+                <rect x="1" y="0" width="4" height="1" fill="#fdef3f" />
+                <rect x="0" y="0" width="1" height="1" fill="#111" />
+                <rect x="5" y="0" width="1" height="1" fill="#111" />
+            </svg>
+
+            {/* Bottom SVG */}
+            <svg viewBox="0 0 6 4" className="w-full block shrink-0" shapeRendering="crispEdges">
+                <rect x="0" y="0" width="6" height="1" fill="#111" />
+                <rect x="1" y="1" width="1" height="1" fill="#111" />
+                <rect x="2" y="1" width="2" height="1" fill="#fdef3f" />
+                <rect x="4" y="1" width="1" height="1" fill="#111" />
+                <rect x="0" y="2" width="1" height="1" fill="#111" />
+                <rect x="1" y="2" width="4" height="1" fill="#fdef3f" />
+                <rect x="5" y="2" width="1" height="1" fill="#111" />
+                <rect x="0" y="3" width="6" height="1" fill="#111" />
+            </svg>
+        </div>
+    );
+};
 
 const Dashboard = ({ setActiveView }) => {
     const { state, actions } = useGame();
@@ -18,25 +57,36 @@ const Dashboard = ({ setActiveView }) => {
 
     return (
         <div className="col-span-12 space-y-6 pb-20 md:pb-0">
-            {/* PERSONALIZED GREETING */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-rpg-gold/10 via-transparent to-transparent p-4 rounded-2xl border-l-4 border-rpg-gold backdrop-blur-sm animate-in fade-in slide-in-from-left duration-700">
-                <div>
-                    <h2 className="text-xl md:text-2xl font-heading font-bold text-white tracking-tight">
-                        Hello, <span className="text-rpg-gold">{character?.name}</span>
+            {/* PERSONALIZED GREETING — yellow pixel-art scroll banner */}
+            <div className="relative flex items-center justify-center animate-in fade-in slide-in-from-top-2 duration-700 px-2 md:px-0">
+                {/* Left pole holder (pixel art) */}
+                <BannerHolder />
+
+                {/* Banner cloth */}
+                <div
+                    className="relative flex-1 max-w-4xl flex flex-col items-center justify-center text-center py-2 md:py-3 px-4 md:px-6 my-3 md:my-[15px] border-t-[4px] border-b-[4px] md:border-t-[5px] md:border-b-[5px]"
+                    style={{
+                        backgroundColor: '#fdef3f',
+                        borderColor: '#111',
+                        imageRendering: 'pixelated',
+                    }}
+                >
+                    <div className="relative font-pixel text-[14px] md:text-[16px] leading-none tracking-[0.2em] text-[#111] mb-1 uppercase">HELLO</div>
+                    <h2 className="relative font-heading font-extrabold text-2xl md:text-4xl text-[#111] tracking-tight my-0">
+                        {character?.name || 'Adventurer'}
                     </h2>
-                    <p className="text-gray-400 text-sm mt-1">
-                        Today is {weekDay}, it's a <span className="text-white font-bold">great day</span> to advance in your adventure.
+                    <p className="relative text-[10px] md:text-xs font-bold text-[#111] tracking-wide mt-1">
+                        {capitalizedDay} - Lv. {character?.level || 1} - A great day to adventure.
                     </p>
                 </div>
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-rpg-gold/60 bg-black/20 px-3 py-1.5 rounded-full border border-white/5">
-                    <div className="w-1.5 h-1.5 bg-rpg-gold rounded-full animate-pulse"></div>
-                    Current Realm: Taskoria Capital
-                </div>
+
+                {/* Right pole holder (pixel art) */}
+                <BannerHolder />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                {/* Main Content (Left/Center) */}
-                <div className="col-span-12 lg:col-span-8 space-y-6">
+                {/* Main Content (Left/Center) — 8 cols from md+ so tablet portrait gets the sidebar */}
+                <div className="col-span-12 md:col-span-8 space-y-6">
                     {/* Upper Row: Garden + Stats */}
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                         <div className="grid grid-cols-1 gap-6">
@@ -86,9 +136,10 @@ const Dashboard = ({ setActiveView }) => {
                     </div>
                 </div>
 
-                {/* Sidebar (Quest Log) - Integrated for perfect alignment */}
-                <div className="hidden lg:block col-span-4">
-                    <div className="glass-panel h-full mt-0 p-0 rounded-2xl overflow-hidden flex flex-col border border-white/10 shadow-glass">
+                {/* Sidebar (Quest Log + Daily Missions) — visible from md+ so iPad portrait has it too */}
+                <div className="hidden md:block col-span-4 space-y-4">
+                    <DailyMissions />
+                    <div className="glass-panel mt-0 p-0 rounded-2xl overflow-hidden flex flex-col border border-white/10 shadow-glass">
                         <div className="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center backdrop-blur-md">
                             <h2 className="text-sm font-bold text-rpg-gold uppercase tracking-wider flex items-center gap-2 font-heading">
                                 <PixelIcon name="checkSquare" size={16} /> Quest Log

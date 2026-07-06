@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Play, Pause, Skull, XCircle, Coffee, CheckCircle } from 'lucide-react';
 import AvatarBattle from './common/AvatarBattle';
 import PixelIcon from './common/PixelIcon';
-import PixelPet from './common/PixelPet';
+import ModernPixelPet from './common/ModernPixelPet';
 import { useGame } from '../context/GameContext';
 
 const Pomodoro = ({ initialDuration = 20, initialBreak = 5, selectedTaskIds = [], isHatchMode = false, selectedEgg = null, onComplete, onCancel }) => {
@@ -131,16 +131,27 @@ const Pomodoro = ({ initialDuration = 20, initialBreak = 5, selectedTaskIds = []
 
                     <div className="w-full space-y-3 bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col items-center gap-3">
                         <h3 className="text-rpg-gold text-center text-[10px] uppercase tracking-widest font-bold mb-1 font-heading">Rate Your Focus</h3>
-                        <div className="flex gap-4">
-                            {[1, 2, 3, 4, 5].map(rating => (
-                                <button
-                                    key={rating}
-                                    onClick={() => setFocusQuality(rating)}
-                                    className={`text-2xl transition-all ${focusQuality === rating ? 'scale-125 grayscale-0 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]' : 'grayscale opacity-40 hover:grayscale-0 hover:opacity-100 hover:scale-110'}`}
-                                >
-                                    {rating === 1 ? '😴' : rating === 2 ? '🥱' : rating === 3 ? '😐' : rating === 4 ? '😊' : '🔥'}
-                                </button>
-                            ))}
+                        <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map(rating => {
+                                const active = focusQuality >= rating;
+                                const isPeak = focusQuality === rating && rating === 5;
+                                return (
+                                    <button
+                                        key={rating}
+                                        onClick={() => setFocusQuality(rating)}
+                                        aria-label={`Focus quality ${rating}`}
+                                        className={`w-8 h-8 font-pixel text-lg leading-none rounded-md border-2 transition-all ${
+                                            active
+                                                ? (isPeak
+                                                    ? 'bg-orange-400 text-black border-orange-200 shadow-[0_0_10px_rgba(251,146,60,0.6)] scale-110'
+                                                    : 'bg-rpg-gold text-rpg-bg border-yellow-200 shadow-[0_0_8px_rgba(251,191,36,0.5)]')
+                                                : 'bg-black/40 text-gray-500 border-white/10 hover:border-white/30 hover:text-gray-300'
+                                        }`}
+                                    >
+                                        {rating}
+                                    </button>
+                                );
+                            })}
                         </div>
                         <div className="text-[10px] font-bold uppercase tracking-tighter h-4 flex items-center justify-center">
                             {focusQuality === 5 ? <span className="text-orange-400 animate-pulse">Legendary Focus! (+20% Rewards)</span> : 
@@ -172,7 +183,7 @@ const Pomodoro = ({ initialDuration = 20, initialBreak = 5, selectedTaskIds = []
     }
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0f0a1a]/90 backdrop-blur-md animate-in fade-in duration-300 sm:p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-rpg-panelDark/90 backdrop-blur-md animate-in fade-in duration-300 sm:p-4">
             {/* RPG FRAME */}
             <div className={`w-full h-full sm:h-[85vh] sm:max-w-lg glass-panel overflow-hidden flex flex-col md:h-[650px] rounded-none sm:rounded-2xl relative shadow-2xl transition-all duration-500 ${mode === 'work' ? 'border-red-500/30 ring-red-500/5' : 'border-blue-500/30 ring-blue-500/5'} ring-1`}>
 
@@ -215,12 +226,15 @@ const Pomodoro = ({ initialDuration = 20, initialBreak = 5, selectedTaskIds = []
                                 </div>
 
                                 {isHatchMode ? (
-                                    <div className="relative flex flex-col items-center">
+                                    // Shifted down (mt-20) so the bouncing egg stays inside the
+                                    // visible battle arena instead of clipping under the progress bar.
+                                    // Scale reduced 5 → 4 to fit short viewports (mobile).
+                                    <div className="relative flex flex-col items-center mt-20">
                                         {/* Pulsing Egg Visual */}
                                         <div className="animate-bounce-slow drop-shadow-[0_0_30px_rgba(245,158,11,0.6)]">
-                                            <PixelPet type="egg" scale={5} />
+                                            <ModernPixelPet type="dragon_egg" scale={4} isHatching />
                                         </div>
-                                        <div className="mt-8 text-amber-400 font-heading font-black tracking-widest text-shadow-glow animate-pulse">
+                                        <div className="mt-4 text-amber-400 font-heading font-black tracking-widest text-shadow-glow animate-pulse">
                                             INCUBATING...
                                         </div>
                                         <div className="mt-2 bg-black/60 px-4 py-1 rounded-full border border-amber-500/30 text-[10px] text-amber-200 font-bold uppercase tracking-widest">
@@ -255,7 +269,15 @@ const Pomodoro = ({ initialDuration = 20, initialBreak = 5, selectedTaskIds = []
                             </div>
                             <div className="max-h-32 overflow-y-auto space-y-2 pr-1 custom-scrollbar pointer-events-auto">
                                 {activeTasks.map(task => (
-                                    <div key={task.id} className="flex items-start gap-2 group cursor-pointer p-1 rounded-md hover:bg-white/5 transition-colors" onClick={(e) => handleCompleteTask(e, task.id)}>
+                                    <div
+                                        key={task.id}
+                                        className="flex items-start gap-2 group cursor-pointer p-1 rounded-md hover:bg-white/5 transition-colors"
+                                        onClick={(e) => handleCompleteTask(e, task.id)}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={`Complete quest: ${task.title}`}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCompleteTask(e, task.id); } }}
+                                    >
                                         <div className="w-4 h-4 rounded border border-white/30 flex-shrink-0 mt-0.5 group-hover:border-rpg-gold transition-colors flex items-center justify-center bg-black/50 overflow-hidden">
                                             <CheckCircle size={10} className="text-rpg-gold opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
@@ -278,7 +300,7 @@ const Pomodoro = ({ initialDuration = 20, initialBreak = 5, selectedTaskIds = []
                 </div>
 
                 {/* BOTTOM HALF: CONTROLS (40%) */}
-                <div className="flex-grow-[2] bg-gradient-to-b from-[#1a102e] to-[#0f0a1a] p-4 pb-8 sm:p-6 flex flex-col items-center justify-between relative z-20 shrink-0 min-h-[220px]">
+                <div className="flex-grow-[2] bg-gradient-to-b from-rpg-panel to-rpg-panelDark p-4 pb-8 sm:p-6 flex flex-col items-center justify-between relative z-20 shrink-0 min-h-[220px]">
 
                     {/* Timer Display */}
                     <div className="z-10 flex flex-col items-center">
