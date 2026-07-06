@@ -174,7 +174,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
             const data = await res.json();
             if (res.ok && data.success) {
                 setStatus('success');
-                setMessage(data.message || 'Welcome to the party! We\'ll let you know as soon as a slot opens up.');
+                setMessage(data.message || 'Check your inbox — your hero credentials just went out. See you in Taskoria!');
                 setEmail('');
             } else {
                 setStatus('error');
@@ -218,16 +218,15 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     <button
                         onClick={scrollToWaitlist}
                         className="hidden md:inline text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-white px-4 py-2 transition-colors"
-                    >Beta</button>
+                    >Join Beta</button>
                     <button
                         onClick={() => onGoToLogin?.()}
-                        className="relative overflow-hidden bg-rpg-gold text-rpg-panel hover:brightness-110 text-xs md:text-sm font-bold uppercase tracking-widest px-5 md:px-6 py-2.5 rounded-full transition-all group font-heading shadow-lg"
+                        className="bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs md:text-sm font-bold uppercase tracking-widest px-5 md:px-6 py-2.5 rounded-full transition-colors group font-heading"
                     >
-                        <span className="relative z-10 flex items-center gap-2">
-                            Play Now
+                        <span className="flex items-center gap-2">
+                            Sign In
                             <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                         </span>
-                        <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-white/0 via-white/40 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                     </button>
                 </div>
             </nav>
@@ -259,7 +258,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
 
                         <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start animate-[slideUpFade_0.8s_ease-out_0.3s_forwards] opacity-0">
                             <button
-                                onClick={() => onGoToLogin?.()}
+                                onClick={scrollToWaitlist}
                                 className="group relative overflow-hidden bg-rpg-gold text-rpg-panel hover:brightness-110 px-7 py-3.5 rounded-xl uppercase tracking-widest text-sm font-heading font-bold transition-all shadow-[0_8px_30px_rgba(251,191,36,0.3)] flex items-center justify-center gap-2"
                             >
                                 <Sword size={16}/> Start the Adventure
@@ -267,10 +266,11 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                             </button>
                             <button
-                                onClick={scrollToWaitlist}
+                                onClick={() => onGoToLogin?.()}
                                 className="bg-white/5 hover:bg-white/10 border border-white/20 px-7 py-3.5 rounded-xl uppercase tracking-widest text-sm font-heading font-bold transition-all flex items-center justify-center gap-2"
                             >
-                                <Sparkles size={16}/> Join the Beta
+                                I already have an account
+                                <ChevronRight size={16} className="opacity-60"/>
                             </button>
                         </div>
 
@@ -419,17 +419,8 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                             Ready to start your <span className="text-rpg-gold">first quest</span>?
                         </h2>
                         <p className="text-gray-400 mb-8 max-w-xl mx-auto">
-                            We're in closed beta. Drop your email and we'll let you know as soon as a slot opens. Already have an invite? Jump straight in.
+                            Drop your email below. Your hero credentials arrive by mail in seconds — no waiting, no callbacks. Then log in and start your first quest.
                         </p>
-
-                        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6 max-w-xl mx-auto">
-                            <button
-                                onClick={() => onGoToLogin?.()}
-                                className="flex-1 bg-rpg-gold text-rpg-panel hover:brightness-110 px-6 py-3.5 rounded-xl uppercase tracking-widest text-sm font-heading font-bold transition-all shadow-lg flex items-center justify-center gap-2"
-                            >
-                                <Sword size={16}/> I already have an account
-                            </button>
-                        </div>
 
                         <div className="relative max-w-xl mx-auto">
                             <div className="absolute -inset-1 bg-gradient-to-r from-rpg-gold via-amber-500 to-yellow-600 rounded-2xl blur opacity-30"></div>
@@ -453,10 +444,19 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                      <>Sign me up <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/></>}
                                 </button>
                             </form>
-                            <div className={`mt-4 overflow-hidden transition-all duration-300 ${message ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <div className={`mt-4 overflow-hidden transition-all duration-300 ${message ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
                                 <div className={`text-sm font-bold p-3 rounded-xl border backdrop-blur-sm ${status === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
                                     {message}
                                 </div>
+                                {status === 'success' && (
+                                    <button
+                                        onClick={() => onGoToLogin?.()}
+                                        className="mt-3 w-full bg-rpg-gold text-rpg-panel hover:brightness-110 px-6 py-3 rounded-xl uppercase tracking-widest text-sm font-heading font-bold transition-all shadow-lg flex items-center justify-center gap-2"
+                                    >
+                                        <Sword size={16}/> Sign in now
+                                        <ChevronRight size={16}/>
+                                    </button>
+                                )}
                             </div>
                         </div>
 
