@@ -6,6 +6,7 @@ import { TASK_DIFFICULTY } from '../../utils/gameUtils';
 import TaskForm from './TaskForm';
 import HabitForm from './HabitForm';
 import PixelIcon from '../common/PixelIcon';
+import { PeacefulRealm, CleanTavern, NoRituals } from '../common/PixelEmpty';
 
 // Presets compartidos para la animación de cada quest.
 // Salida corta (x: 24, no 60) y ease "gentle-out" → la tarea "se retira" en
@@ -241,10 +242,12 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
                 </div>
 
                 {activeTasks.length === 0 ? (
-                    <div className="text-center py-8 glass-panel border-dashed border-white/10 opacity-70 flex flex-col items-center justify-center group hover:opacity-100 transition-opacity">
-                        <PixelIcon name="shield" size={32} color="#9ca3af" className="mb-3 group-hover:text-amber-400 transition-colors" />
-                        <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">The Realm is Peaceful</div>
-                        <div className="text-xs text-gray-500 mt-1">Click + NEW QUEST to find trouble.</div>
+                    <div className="text-center py-8 px-4 glass-panel border-dashed border-white/10 opacity-80 flex flex-col items-center justify-center group hover:opacity-100 transition-opacity">
+                        <div className="mb-3 opacity-90 group-hover:opacity-100 transition-opacity">
+                            <PeacefulRealm size={80} />
+                        </div>
+                        <div className="text-sm font-bold text-gray-300 uppercase tracking-widest">The Realm is Peaceful</div>
+                        <div className="text-xs text-gray-500 mt-1 italic">Click + NEW QUEST to find trouble.</div>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -264,10 +267,12 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
                 </div>
 
                 {activeChores.length === 0 ? (
-                    <div className="text-center py-6 glass-panel border-dashed border-white/10 opacity-70 flex flex-col items-center justify-center">
-                        <span className="text-3xl mb-2 grayscale opacity-50">✨</span>
-                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">A Clean Tavern</div>
-                        <div className="text-xs text-gray-500 mt-1">All household chores are complete.</div>
+                    <div className="text-center py-6 px-4 glass-panel border-dashed border-white/10 opacity-80 flex flex-col items-center justify-center">
+                        <div className="mb-2">
+                            <CleanTavern size={72} />
+                        </div>
+                        <div className="text-xs font-bold text-gray-300 uppercase tracking-widest">A Clean Tavern</div>
+                        <div className="text-xs text-gray-500 mt-1 italic">All household chores are complete.</div>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -326,10 +331,12 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
 
                 <div className="space-y-2">
                     {state.habits.length === 0 && (
-                        <div className="text-center py-8 glass-panel border-dashed border-white/10 opacity-70 flex flex-col items-center justify-center group hover:opacity-100 transition-opacity mb-4">
-                            <PixelIcon name="clock" size={32} color="#9ca3af" className="mb-3 group-hover:text-blue-400 transition-colors" />
-                            <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">No Daily Rituals</div>
-                            <div className="text-[10px] text-gray-500 mt-1">Establish a new habit to gain steady EXP & CON.</div>
+                        <div className="text-center py-8 px-4 glass-panel border-dashed border-white/10 opacity-80 flex flex-col items-center justify-center group hover:opacity-100 transition-opacity mb-4">
+                            <div className="mb-3">
+                                <NoRituals size={80} />
+                            </div>
+                            <div className="text-sm font-bold text-gray-300 uppercase tracking-widest">No Daily Rituals</div>
+                            <div className="text-[10px] text-gray-500 mt-1 italic">Establish a new habit to gain steady EXP & CON.</div>
                         </div>
                     )}
 

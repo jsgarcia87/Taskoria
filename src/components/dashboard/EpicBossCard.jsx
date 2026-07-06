@@ -3,6 +3,7 @@ import { useGame } from '../../context/GameContext';
 import Sprite from '../common/Sprite';
 import PixelIcon from '../common/PixelIcon';
 import ProjectModal from './ProjectModal';
+import { NoThreats } from '../common/PixelEmpty';
 
 // Mock list of boss sprites available from the items sheet or custom
 const BOSS_TYPES = [
@@ -38,11 +39,11 @@ const EpicBossCard = () => {
         return (
             <div className="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center border border-white/10 hover:border-red-500/30 transition-all group relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                <div className="w-16 h-16 bg-red-950/50 rounded-full flex items-center justify-center mb-4 border border-red-500/30">
-                    <PixelIcon name="sword" size={32} className="text-red-500 group-hover:scale-110 transition-transform" />
+                <div className="mb-4 opacity-90 group-hover:opacity-100 transition-opacity">
+                    <NoThreats size={96} />
                 </div>
                 <h3 className="text-xl font-heading font-black text-white tracking-wide mb-2 uppercase">No Active Threats</h3>
-                <p className="text-gray-400 text-sm max-w-sm mb-6">The realm is currently peaceful. Have a massive long-term project? Summon an Epic Boss to represent it.</p>
+                <p className="text-gray-400 text-sm max-w-sm mb-6 italic">The realm is currently peaceful. Have a massive long-term project? Summon an Epic Boss to represent it.</p>
 
                 {isCreating || editingBoss ? (
                     <ProjectModal
