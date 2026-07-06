@@ -5,7 +5,7 @@ $data = json_decode(file_get_contents('php://input'), true);
 
 if (!isset($data['email']) || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Por favor introduce un correo electrónico válido.']);
+    echo json_encode(['error' => 'Please enter a valid email address.']);
     exit;
 }
 
@@ -33,7 +33,7 @@ try {
     $stmt->execute([$email]);
     if ($stmt->fetch()) {
         http_response_code(409); // Conflict
-        echo json_encode(['error' => '¡Ese correo ya está en la lista de espera de Taskoria!']);
+        echo json_encode(['error' => 'That email is already on the Taskoria beta list.']);
         exit;
     }
 
@@ -42,7 +42,7 @@ try {
     $stmtUser->execute([$email]);
     if ($stmtUser->fetch()) {
         http_response_code(409); // Conflict
-        echo json_encode(['error' => '¡Ya existe un usuario con ese correo electrónico registrado!']);
+        echo json_encode(['error' => 'A user with that email is already registered. Try signing in instead.']);
         exit;
     }
 
@@ -92,13 +92,13 @@ try {
     // Send the email and catch warnings
     $emailSent = send_taskoria_email($to, $subject, $message);
 
-    echo json_encode(['success' => true, 'message' => '¡Has entrado a la cola! Revisa tu email, es posible que el gremio te haya enviado un acceso VIP.']);
+    echo json_encode(['success' => true, 'message' => 'Check your inbox — your hero credentials just went out. See you in Taskoria!']);
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Error de base de datos: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Hubo un fallo general: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Something went wrong: ' . $e->getMessage()]);
 }
 ?>
