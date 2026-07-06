@@ -109,7 +109,7 @@ const TaskRow = memo(function TaskRow({ task, assignerName, onComplete, onToggle
     );
 });
 
-const TaskList = ({ isSidebar = false, setActiveView }) => {
+const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
     const { state, actions } = useGame();
     const { tasks } = state;
     const [isAddingTask, setIsAddingTask] = useState(false);
@@ -226,7 +226,7 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
             )}
 
             {/* ======= BLOQUE DE TAREAS (QUESTS) ======= */}
-            <div className="mb-8">
+            {!hideQuests && <div className="mb-8">
                 <div className="flex justify-between items-center mb-6">
                     {!isSidebar && (
                         <h3 className="font-bold text-white text-lg tracking-wide font-heading flex items-center gap-2">
@@ -256,7 +256,7 @@ const TaskList = ({ isSidebar = false, setActiveView }) => {
                         </AnimatePresence>
                     </div>
                 )}
-            </div>
+            </div>}
 
             {/* ======= BLOQUE DE CHORES ======= */}
             <div className="mb-8">

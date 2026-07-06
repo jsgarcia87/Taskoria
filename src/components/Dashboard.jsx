@@ -5,6 +5,7 @@ import FocusHero from './dashboard/FocusHero';
 import BossBattle from './dashboard/BossBattle';
 import EpicBossCard from './dashboard/EpicBossCard';
 import TaskList from './dashboard/TaskList';
+import Questbook from './dashboard/Questbook';
 import PixelIcon from './common/PixelIcon';
 import ProductivityHeatmap from './dashboard/ProductivityHeatmap';
 import DailyMissions from './dashboard/DailyMissions';
@@ -62,21 +63,45 @@ const Dashboard = ({ setActiveView }) => {
                 {/* Left pole holder (pixel art) */}
                 <BannerHolder />
 
-                {/* Banner cloth */}
+                {/* Banner cloth — refined hierarchy: pixel eyebrow, big display name, serif italic meta */}
                 <div
-                    className="relative flex-1 max-w-4xl flex flex-col items-center justify-center text-center py-2 md:py-3 px-4 md:px-6 my-3 md:my-[15px] border-t-[4px] border-b-[4px] md:border-t-[5px] md:border-b-[5px]"
+                    className="relative flex-1 max-w-4xl flex flex-col items-center justify-center text-center py-3 md:py-4 px-4 md:px-6 my-3 md:my-[15px] border-t-[4px] border-b-[4px] md:border-t-[5px] md:border-b-[5px]"
                     style={{
                         backgroundColor: '#fdef3f',
                         borderColor: '#111',
                         imageRendering: 'pixelated',
                     }}
                 >
-                    <div className="relative font-pixel text-[14px] md:text-[16px] leading-none tracking-[0.2em] text-[#111] mb-1 uppercase">HELLO</div>
-                    <h2 className="relative font-heading font-extrabold text-2xl md:text-4xl text-[#111] tracking-tight my-0">
+                    <div
+                        className="relative uppercase leading-none text-[#111] mb-1"
+                        style={{
+                            fontFamily: "'VT323', monospace",
+                            fontSize: '15px',
+                            letterSpacing: '0.28em',
+                            opacity: 0.75,
+                        }}
+                    >
+                        Hail
+                    </div>
+                    <h2
+                        className="relative font-heading font-extrabold text-[#111] my-0 leading-[0.9]"
+                        style={{
+                            fontSize: 'clamp(28px, 6vw, 52px)',
+                            letterSpacing: '-0.03em',
+                        }}
+                    >
                         {character?.name || 'Adventurer'}
                     </h2>
-                    <p className="relative text-[10px] md:text-xs font-bold text-[#111] tracking-wide mt-1">
-                        {capitalizedDay} - Lv. {character?.level || 1} - A great day to adventure.
+                    <p
+                        className="relative text-[#111] mt-2"
+                        style={{
+                            fontFamily: "'EB Garamond', Georgia, serif",
+                            fontSize: '13px',
+                            fontStyle: 'italic',
+                            opacity: 0.85,
+                        }}
+                    >
+                        {capitalizedDay}, Lv. {character?.level || 1} — a fine day to adventure.
                     </p>
                 </div>
 
@@ -96,28 +121,51 @@ const Dashboard = ({ setActiveView }) => {
                         </div>
 
                         <div className="space-y-6">
+                            {/* Today's Ledger — narrative sentence (was: 3 stat cards) */}
                             <div className="glass-card p-6 relative overflow-hidden group">
                                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-rpg-gold/10 rounded-full blur-3xl group-hover:bg-rpg-gold/20 transition-all duration-500"></div>
 
                                 <div className="flex justify-between items-center mb-4 relative z-10">
-                                    <h3 className="text-gray-400 font-bold uppercase text-xs tracking-wider">Session Overview</h3>
+                                    <h3 className="text-gray-400 font-bold uppercase text-xs tracking-wider">Today's Ledger</h3>
                                     <button className="text-xs text-rpg-gold hover:text-white transition-colors font-bold" onClick={() => setActiveView('profile')}>View Sheet</button>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-3 relative z-10">
-                                    <div className="bg-black/40 p-3 rounded-xl border border-white/5 text-center backdrop-blur-sm">
-                                        <div className="text-xl md:text-2xl font-bold text-rpg-blue mb-1 text-shadow-glow">00:00</div>
-                                        <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Focus</div>
-                                    </div>
-                                    <div className="bg-black/40 p-3 rounded-xl border border-white/5 text-center backdrop-blur-sm">
-                                        <div className="text-xl md:text-2xl font-bold text-rpg-green mb-1 text-shadow-glow">{character?.inventory?.length || 0}</div>
-                                        <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Items</div>
-                                    </div>
-                                    <div className="bg-black/40 p-3 rounded-xl border border-white/5 text-center backdrop-blur-sm">
-                                        <div className="text-xl md:text-2xl font-bold text-rpg-red mb-1 text-shadow-glow">{(state.log || []).filter(l => l.type === 'damage').length}</div>
-                                        <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Battles</div>
-                                    </div>
-                                </div>
+                                {(() => {
+                                    const battles = (state.log || []).filter(l => l.type === 'damage').length;
+                                    const items = character?.inventory?.length || 0;
+                                    return (
+                                        <p
+                                            className="relative z-10 leading-relaxed text-gray-300"
+                                            style={{
+                                                fontFamily: "'EB Garamond', Georgia, serif",
+                                                fontSize: '17px',
+                                            }}
+                                        >
+                                            Today you have focused for{' '}
+                                            <span
+                                                className="font-bold text-rpg-blue text-shadow-glow inline-block align-baseline"
+                                                style={{ fontFamily: "'VT323', monospace", fontSize: '24px', lineHeight: 1 }}
+                                            >
+                                                00:00
+                                            </span>
+                                            , fought{' '}
+                                            <span
+                                                className="font-bold text-rpg-red text-shadow-glow inline-block align-baseline"
+                                                style={{ fontFamily: "'VT323', monospace", fontSize: '24px', lineHeight: 1 }}
+                                            >
+                                                {battles}
+                                            </span>{' '}
+                                            {battles === 1 ? 'battle' : 'battles'} and gathered{' '}
+                                            <span
+                                                className="font-bold text-rpg-green text-shadow-glow inline-block align-baseline"
+                                                style={{ fontFamily: "'VT323', monospace", fontSize: '24px', lineHeight: 1 }}
+                                            >
+                                                {items}
+                                            </span>{' '}
+                                            {items === 1 ? 'item' : 'items'}.
+                                        </p>
+                                    );
+                                })()}
                             </div>
 
                             <FocusHero />
@@ -136,19 +184,13 @@ const Dashboard = ({ setActiveView }) => {
                     </div>
                 </div>
 
-                {/* Sidebar (Quest Log + Daily Missions) — visible from md+ so iPad portrait has it too */}
+                {/* Sidebar — Daily Missions, then the Questbook parchment (quests only),
+                    then TaskList carrying chores + habits + history in dark theme */}
                 <div className="hidden md:block col-span-4 space-y-4">
                     <DailyMissions />
-                    <div className="glass-panel mt-0 p-0 rounded-2xl overflow-hidden flex flex-col border border-white/10 shadow-glass">
-                        <div className="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center backdrop-blur-md">
-                            <h2 className="text-sm font-bold text-rpg-gold uppercase tracking-wider flex items-center gap-2 font-heading">
-                                <PixelIcon name="checkSquare" size={16} /> Quest Log
-                            </h2>
-                            <span className="text-[10px] bg-rpg-gold/20 text-rpg-gold px-2 py-0.5 rounded-full border border-rpg-gold/30 font-bold">{activeTasks.length} Active</span>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-black/20">
-                            <TaskList isSidebar={true} />
-                        </div>
+                    <Questbook />
+                    <div className="glass-panel mt-0 p-4 rounded-2xl border border-white/10 shadow-glass bg-black/20">
+                        <TaskList isSidebar={true} hideQuests={true} />
                     </div>
                 </div>
             </div>
