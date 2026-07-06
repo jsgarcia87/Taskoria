@@ -27,16 +27,17 @@ const ProfileSelection = ({ profiles, onSelectProfile, onCreateProfile, onLogout
 
                 {isCreating ? (
                     <div className="glass-panel p-8 w-full max-w-md animate-in zoom-in-95 duration-300">
-                        <h2 className="text-xl font-heading font-bold text-rpg-gold mb-6 text-center">NEW HERO</h2>
+                        <h2 className="text-xl font-heading font-bold text-rpg-gold mb-2 text-center">NEW PROFILE</h2>
+                        <p className="text-xs text-gray-400 text-center mb-6">One profile per family member. You'll pick a hero class next.</p>
                         <form onSubmit={handleCreate} className="space-y-6">
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Hero Name</label>
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Profile Name</label>
                                 <input
                                     type="text"
                                     value={newProfileName}
                                     onChange={(e) => setNewProfileName(e.target.value)}
                                     className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white placeholder:text-gray-500 focus:border-rpg-gold focus:ring-1 focus:ring-rpg-gold/50 outline-none transition-all font-sans"
-                                    placeholder="Enter name..."
+                                    placeholder="e.g. Alex, Kids, Sarah..."
                                     autoFocus
                                     maxLength={15}
                                     required
