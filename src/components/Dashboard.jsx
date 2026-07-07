@@ -73,15 +73,10 @@ const Dashboard = ({ setActiveView }) => {
                     }}
                 >
                     <div
-                        className="relative uppercase leading-none text-[#111] mb-1"
-                        style={{
-                            fontFamily: "'VT323', monospace",
-                            fontSize: '15px',
-                            letterSpacing: '0.28em',
-                            opacity: 0.75,
-                        }}
+                        className="relative uppercase leading-none text-[#111] mb-1 font-bold text-[11px]"
+                        style={{ letterSpacing: '0.28em', opacity: 0.7 }}
                     >
-                        Hail
+                        Hello
                     </div>
                     <h2
                         className="relative font-heading font-extrabold text-[#111] my-0 leading-[0.9]"
@@ -92,16 +87,8 @@ const Dashboard = ({ setActiveView }) => {
                     >
                         {character?.name || 'Adventurer'}
                     </h2>
-                    <p
-                        className="relative text-[#111] mt-2"
-                        style={{
-                            fontFamily: "'EB Garamond', Georgia, serif",
-                            fontSize: '13px',
-                            fontStyle: 'italic',
-                            opacity: 0.85,
-                        }}
-                    >
-                        {capitalizedDay}, Lv. {character?.level || 1} — a fine day to adventure.
+                    <p className="relative text-[#111] mt-2 text-[12px] md:text-[13px] font-medium opacity-80">
+                        {capitalizedDay} · Lv. {character?.level || 1} · a fine day to adventure.
                     </p>
                 </div>
 
@@ -134,31 +121,25 @@ const Dashboard = ({ setActiveView }) => {
                                     const battles = (state.log || []).filter(l => l.type === 'damage').length;
                                     const items = character?.inventory?.length || 0;
                                     return (
-                                        <p
-                                            className="relative z-10 leading-relaxed text-gray-300"
-                                            style={{
-                                                fontFamily: "'EB Garamond', Georgia, serif",
-                                                fontSize: '17px',
-                                            }}
-                                        >
+                                        <p className="relative z-10 leading-relaxed text-gray-300 text-[15px] md:text-base">
                                             Today you have focused for{' '}
                                             <span
                                                 className="font-bold text-rpg-blue text-shadow-glow inline-block align-baseline"
-                                                style={{ fontFamily: "'VT323', monospace", fontSize: '24px', lineHeight: 1 }}
+                                                style={{ fontFamily: "'VT323', monospace", fontSize: '1.5em', lineHeight: 1 }}
                                             >
                                                 00:00
                                             </span>
                                             , fought{' '}
                                             <span
                                                 className="font-bold text-rpg-red text-shadow-glow inline-block align-baseline"
-                                                style={{ fontFamily: "'VT323', monospace", fontSize: '24px', lineHeight: 1 }}
+                                                style={{ fontFamily: "'VT323', monospace", fontSize: '1.5em', lineHeight: 1 }}
                                             >
                                                 {battles}
                                             </span>{' '}
                                             {battles === 1 ? 'battle' : 'battles'} and gathered{' '}
                                             <span
                                                 className="font-bold text-rpg-green text-shadow-glow inline-block align-baseline"
-                                                style={{ fontFamily: "'VT323', monospace", fontSize: '24px', lineHeight: 1 }}
+                                                style={{ fontFamily: "'VT323', monospace", fontSize: '1.5em', lineHeight: 1 }}
                                             >
                                                 {items}
                                             </span>{' '}

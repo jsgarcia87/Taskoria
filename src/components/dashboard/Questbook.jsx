@@ -4,9 +4,9 @@ import { useGame } from '../../context/GameContext';
 import { PeacefulRealm } from '../common/PixelEmpty';
 import TaskForm from './TaskForm';
 
-// Serif for narrative body copy — feels like ink on parchment
-const SERIF = { fontFamily: "'EB Garamond', Georgia, 'Times New Roman', serif" };
-// Pixel monospace for rewards + eyebrow — feels like a stamp
+// One display font stack (Outfit) for the wordmark, Inter for everything else,
+// VT323 pixel monospace kept only for numerals — matches the app's existing
+// 3-font vocabulary. No italics, no serif — keeps mobile legibility clean.
 const PIXEL = { fontFamily: "'VT323', 'Courier New', monospace" };
 
 // Parchment surface tokens
@@ -54,33 +54,36 @@ const QuestRow = ({ task, onComplete, onEdit, onDelete }) => (
         />
         <button
             onClick={() => onEdit(task)}
-            className="text-left leading-snug text-[15px] hover:text-[#78350f] transition-colors"
-            style={{ ...SERIF, color: INK }}
+            className="text-left leading-snug text-[15px] md:text-[15px] hover:text-[#78350f] transition-colors font-medium"
+            style={{ color: INK }}
             title="Tap to edit"
         >
             {task.title}
-            {task.difficulty === 3 && <span className="ml-2 italic text-[11px] text-[#78350f]/70">— hard</span>}
+            {task.difficulty === 3 && (
+                <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-[#b91c1c]/80">
+                    HARD
+                </span>
+            )}
         </button>
         <div className="flex flex-col items-end">
             <span
                 className="text-right whitespace-nowrap font-bold leading-none"
-                style={{ ...PIXEL, fontSize: 14, color: INK_MID, letterSpacing: '0.03em' }}
+                style={{ ...PIXEL, fontSize: 15, color: INK_MID, letterSpacing: '0.03em' }}
             >
                 +{task.difficulty === 3 ? '40' : '20'} xp
             </span>
             <span
                 className="text-right whitespace-nowrap font-bold leading-none mt-0.5"
-                style={{ ...PIXEL, fontSize: 14, color: INK_MID, letterSpacing: '0.03em' }}
+                style={{ ...PIXEL, fontSize: 15, color: INK_MID, letterSpacing: '0.03em' }}
             >
                 +{task.difficulty === 3 ? '20' : '10'} g
             </span>
             <button
                 onClick={() => onDelete(task.id)}
-                className="opacity-0 group-hover:opacity-60 hover:!opacity-100 text-[10px] italic text-[#b91c1c] mt-1 transition-opacity"
-                style={SERIF}
+                className="opacity-0 group-hover:opacity-70 hover:!opacity-100 text-[10px] font-bold uppercase tracking-wider text-[#b91c1c] mt-1 transition-opacity"
                 title="Delete quest"
             >
-                strike out
+                strike
             </button>
         </div>
     </motion.div>
@@ -91,10 +94,9 @@ const QuestRow = ({ task, onComplete, onEdit, onDelete }) => (
  *
  * Renders active quests (excludes chores + habits, which stay in TaskList
  * below). Complete via the checkbox; tap the quest title to open the
- * edit modal; hover reveals a subtle "strike out" delete affordance.
+ * edit modal; hover reveals a subtle "strike" delete affordance.
  *
- * Empty state uses the PeacefulRealm pixel-art illustration, inverted onto
- * the parchment for warmth.
+ * Empty state uses the PeacefulRealm pixel-art illustration.
  */
 const Questbook = () => {
     const { state, actions } = useGame();
@@ -135,14 +137,14 @@ const Questbook = () => {
                 <div className="flex justify-between items-start pb-3 mb-3 border-b border-dashed border-[#3a2a15]/25">
                     <div>
                         <div
-                            className="uppercase font-bold"
-                            style={{ ...PIXEL, fontSize: 13, letterSpacing: '0.22em', color: '#78350f', opacity: 0.75 }}
+                            className="uppercase font-bold text-[10px]"
+                            style={{ letterSpacing: '0.18em', color: INK_MID, opacity: 0.7 }}
                         >
-                            Book · {dayLabel}
+                            {dayLabel}
                         </div>
                         <h3
-                            className="mt-0.5 font-medium italic leading-none"
-                            style={{ ...SERIF, color: INK, fontSize: 24 }}
+                            className="mt-1 font-heading font-extrabold uppercase leading-none"
+                            style={{ color: INK, fontSize: 20, letterSpacing: '-0.01em' }}
                         >
                             The Questbook
                         </h3>
@@ -155,7 +157,7 @@ const Questbook = () => {
                             color: '#FFD700',
                             boxShadow: 'inset 0 -3px 5px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.4)',
                             ...PIXEL,
-                            fontSize: 20,
+                            fontSize: 22,
                         }}
                         aria-label={`${activeTasks.length} open quests`}
                     >
@@ -167,13 +169,13 @@ const Questbook = () => {
                 {activeTasks.length === 0 ? (
                     <div className="py-5 text-center flex flex-col items-center gap-3">
                         <PeacefulRealm size={72} />
-                        <div style={{ ...SERIF, fontSize: 15, fontStyle: 'italic', color: INK }}>
+                        <div className="font-medium text-[14px]" style={{ color: INK }}>
                             The realm is peaceful.
                         </div>
                         <button
                             onClick={openNewQuest}
-                            className="text-[11px] font-bold uppercase tracking-widest border border-[#78350f]/40 hover:border-[#78350f] px-3 py-1.5 rounded-sm transition-colors"
-                            style={{ ...PIXEL, letterSpacing: '0.18em', color: INK_MID, fontSize: 12 }}
+                            className="text-[11px] font-bold uppercase tracking-widest border border-[#78350f]/40 hover:border-[#78350f] hover:bg-[#78350f]/5 px-3 py-1.5 rounded-sm transition-colors"
+                            style={{ color: INK_MID }}
                         >
                             Write a new quest
                         </button>
@@ -192,18 +194,18 @@ const Questbook = () => {
                             ))}
                         </AnimatePresence>
 
-                        {/* Footer — new quest CTA styled as an ink note */}
+                        {/* Footer — new quest CTA */}
                         <div className="mt-3 pt-3 border-t border-dashed border-[#3a2a15]/25 flex items-center justify-between">
                             <button
                                 onClick={openNewQuest}
-                                className="text-[11px] font-bold uppercase hover:text-[#3a2a15] transition-colors"
-                                style={{ ...PIXEL, letterSpacing: '0.18em', color: INK_MID, fontSize: 12 }}
+                                className="text-[11px] font-bold uppercase tracking-widest hover:text-[#3a2a15] transition-colors"
+                                style={{ color: INK_MID }}
                             >
                                 + Write a new quest
                             </button>
                             <span
-                                className="italic text-right"
-                                style={{ ...SERIF, fontSize: 11, color: INK_MID, opacity: 0.8 }}
+                                className="text-[11px] font-bold uppercase tracking-wider"
+                                style={{ color: INK_MID, opacity: 0.7 }}
                             >
                                 {activeTasks.length} open
                             </span>
