@@ -36,6 +36,9 @@ const CreationsModeration = ({ currentUser }) => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [working, setWorking] = useState({});
+    // Map creation_id -> admin-edited price (before approving). Falls back to
+    // item.price if the admin didn't touch it.
+    const [priceOverrides, setPriceOverrides] = useState({});
 
     const load = async () => {
         setLoading(true);
@@ -58,12 +61,24 @@ const CreationsModeration = ({ currentUser }) => {
         if (decision === 'rejected') {
             reason = prompt('Reason for rejection (optional):') || '';
         }
+        const item = items.find(it => it.id === id);
+        // If admin edited the price, send it as override; else backend keeps the creator's proposal
+        const override = priceOverrides[id];
+        const price = override !== undefined
+            ? Math.max(10, Math.min(500, parseInt(override, 10) || item?.price || 100))
+            : undefined;
         setWorking(w => ({ ...w, [id]: true }));
         try {
             await fetch('api/creations.php?action=moderate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ admin_id: currentUser.id, id, decision, reason }),
+                body: JSON.stringify({
+                    admin_id: currentUser.id,
+                    id,
+                    decision,
+                    reason,
+                    ...(price !== undefined && decision === 'approved' ? { price } : {}),
+                }),
             });
             setItems(prev => prev.filter(it => it.id !== id));
         } finally {
@@ -95,6 +110,20 @@ const CreationsModeration = ({ currentUser }) => {
                                     <div className="text-[10px] uppercase tracking-widest text-rpg-gold">{item.category}</div>
                                     <div className="text-[10px] text-gray-400">by {item.username}</div>
                                     <div className="text-[10px] text-gray-500">{new Date(item.created_at).toLocaleDateString()}</div>
+                                    {/* Price override — creator proposed X, admin can adjust before approving */}
+                                    <div className="mt-1 flex items-center gap-1">
+                                        <span className="text-[9px] uppercase tracking-widest text-gray-500">Price</span>
+                                        <input
+                                            type="number"
+                                            min={10}
+                                            max={500}
+                                            step={10}
+                                            value={priceOverrides[item.id] ?? item.price ?? 100}
+                                            onChange={(e) => setPriceOverrides(p => ({ ...p, [item.id]: e.target.value }))}
+                                            className="w-14 bg-black/60 border border-white/10 rounded px-1 py-0.5 text-[11px] font-mono text-rpg-gold focus:border-rpg-gold focus:outline-none"
+                                        />
+                                        <span className="text-[9px] uppercase tracking-widest text-rpg-gold">gold</span>
+                                    </div>
                                     <div className="mt-2 flex gap-1">
                                         <button
                                             disabled={!!working[item.id]}

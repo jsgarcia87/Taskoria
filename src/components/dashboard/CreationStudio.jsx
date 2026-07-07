@@ -29,6 +29,7 @@ const CreationStudio = ({ currentUser }) => {
     const [customColor, setCustomColor] = useState('#ff0000');
     const [name, setName] = useState('');
     const [category, setCategory] = useState(CATEGORIES[0].id);
+    const [price, setPrice] = useState(100); // Bazaar price in gold, capped 10-500 by backend
     const [refImage, setRefImage] = useState(null);
     const [refOpacity, setRefOpacity] = useState(0.5);
     const [refScale, setRefScale] = useState(100);
@@ -226,6 +227,7 @@ const CreationStudio = ({ currentUser }) => {
                     category,
                     grid_size: GRID_SIZE,
                     pixels: pixelsRef.current,
+                    price: Math.max(10, Math.min(500, parseInt(price, 10) || 100)),
                 }),
             });
             const data = await res.json();
@@ -366,6 +368,21 @@ const CreationStudio = ({ currentUser }) => {
                         >
                             {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                         </select>
+
+                        <label className="block text-xs text-gray-400 mb-1 mt-3">Bazaar price</label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                min={10}
+                                max={500}
+                                step={10}
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                                className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2 text-sm focus:border-rpg-gold focus:outline-none font-mono"
+                            />
+                            <span className="text-[10px] uppercase tracking-widest text-rpg-gold whitespace-nowrap">gold</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500 mt-1">Between 10 and 500. Sangar may adjust at approval.</p>
 
                         <button
                             onClick={publish}
