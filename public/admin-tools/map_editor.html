@@ -278,12 +278,22 @@ body { background: var(--bg); color: var(--text);
         <div class="prop-row"><span class="pl">Pos</span><span class="pv" id="selPos">—</span></div>
         <div class="prop-row"><span class="pl">Tipo</span><span class="pv" id="selType">—</span></div>
         <div class="prop-row"><span class="pl">Capa</span><span class="pv" id="selLayer">—</span></div>
+        <!-- Size row — only visible when an instance is selected -->
+        <div class="prop-row" id="selSizeRow" style="display:none">
+          <span class="pl">Size</span>
+          <input type="number" id="selW" min="1" max="10" value="1" style="width:44px" oninput="applySizeInputs()">
+          <span style="color:var(--dim);font-family:'Press Start 2P',monospace;font-size:8px">×</span>
+          <input type="number" id="selH" min="1" max="10" value="1" style="width:44px" oninput="applySizeInputs()">
+        </div>
         <div class="prop-row">
           <span class="pl">Label</span>
           <input type="text" id="selLabel" value="" placeholder="nombre..." oninput="updateSelLabel()">
         </div>
         <div class="prop-row" style="justify-content:center;padding:8px">
-          <button class="tbtn red" onclick="deleteSelected()" style="width:100%">🗑 BORRAR</button>
+          <button class="tbtn red" onclick="deleteSelected()" style="width:100%">🗑 BORRAR (Del)</button>
+        </div>
+        <div class="prop-row" style="justify-content:center;padding:0 8px 8px">
+          <button class="tbtn" onclick="duplicateSelectedInstance()" style="width:100%" title="Ctrl+C then Ctrl+V">📋 DUPLICAR (Ctrl+C/V)</button>
         </div>
       </div>
 
@@ -1708,19 +1718,35 @@ function render(){
   if(selectedInstanceId){
     const ins = instances.find(i => i.id === selectedInstanceId);
     if(ins){
+      // Dashed outline signals "editable object" — more scannable than a solid
+      // rectangle that reads like decoration.
+      ctx.save();
       ctx.strokeStyle = '#f0c040';
       ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
       ctx.strokeRect(ins.gridX*TS+1, ins.gridY*TS+1, ins.w*TS-2, ins.h*TS-2);
+      ctx.restore();
       ctx.fillStyle = 'rgba(240,192,64,0.10)';
       ctx.fillRect(ins.gridX*TS, ins.gridY*TS, ins.w*TS, ins.h*TS);
-      // Resize handle on bottom-right corner — a small filled square
-      const hs = Math.max(8, TS*0.25);
+      // Resize handle — a chunky corner marker that reads as "grab me".
+      // Sized proportionally to zoom so it stays discoverable at any level.
+      const hs = Math.max(14, TS*0.4);
       const hx = (ins.gridX + ins.w) * TS - hs;
       const hy = (ins.gridY + ins.h) * TS - hs;
+      // Base square with a dark outline for contrast on any background
+      ctx.fillStyle = '#0d0a14';
+      ctx.fillRect(hx-1, hy-1, hs+2, hs+2);
       ctx.fillStyle = '#f0c040';
       ctx.fillRect(hx, hy, hs, hs);
-      ctx.fillStyle = '#0d0a14';
-      ctx.fillRect(hx + hs*0.35, hy + hs*0.35, hs*0.3, hs*0.3);
+      // Diagonal grip marks (◢) so it's obvious this is a drag handle
+      ctx.strokeStyle = '#0d0a14';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(hx + hs*0.25, hy + hs*0.85);
+      ctx.lineTo(hx + hs*0.85, hy + hs*0.25);
+      ctx.moveTo(hx + hs*0.50, hy + hs*0.90);
+      ctx.lineTo(hx + hs*0.90, hy + hs*0.50);
+      ctx.stroke();
     }
   }
 
@@ -1835,18 +1861,29 @@ function placeInstance(type, gridX, gridY){
   render();
 }
 
-function eraseTile(x,y){
+function eraseTile(x,y, allLayers=false){
   // If there's an instance at this tile, remove it (whole instance)
   const ins = getInstanceAt(x, y);
   if(ins){
     pushUndo();
     instances = instances.filter(i => i.id !== ins.id);
-    if(selectedInstanceId === ins.id) selectedInstanceId = null;
+    if(selectedInstanceId === ins.id){
+      selectedInstanceId = null;
+      document.getElementById('selSizeRow').style.display = 'none';
+    }
     render();
     return;
   }
   pushUndo();
-  layers[currentLayer][y][x]=null;
+  if(allLayers){
+    // Alt+erase — wipe all three layers on this tile. Faster than switching
+    // layers three times when you just want the tile clean.
+    layers.ground[y][x] = null;
+    layers.objects[y][x] = null;
+    layers.overhead[y][x] = null;
+  } else {
+    layers[currentLayer][y][x]=null;
+  }
   render();
 }
 
@@ -1921,9 +1958,9 @@ overlayCanvas.addEventListener('pointerdown',e=>{
   if(!t) return;
   overlayCanvas.setPointerCapture(e.pointerId);
   isDrawing=true;
-  if(intent==='erase'){ eraseTile(t.x,t.y); }
+  if(intent==='erase'){ eraseTile(t.x,t.y, e.altKey); }
   else if(currentTool==='draw')  { paintTile(t.x,t.y); }
-  else if(currentTool==='erase') { eraseTile(t.x,t.y); }
+  else if(currentTool==='erase') { eraseTile(t.x,t.y, e.altKey); }
   else if(currentTool==='fill')  { fillTile(t.x,t.y); isDrawing=false; }
   else if(currentTool==='pick')  { pickTile(t.x,t.y); isDrawing=false; }
   else if(currentTool==='select'){
@@ -1933,6 +1970,10 @@ overlayCanvas.addEventListener('pointerdown',e=>{
     if(ins){
       selectedInstanceId = ins.id;
       selectedCell = null;
+      // Snapshot BEFORE any drag mutates the instance, so a single undo
+      // reverts the entire move/resize operation. Without this, drags were
+      // silently outside the history.
+      pushUndo();
       if(isResizeHandle(ins, t.x, t.y)){
         isResizingInstance = true;
         isDrawing = false;
@@ -1942,6 +1983,7 @@ overlayCanvas.addEventListener('pointerdown',e=>{
         isDrawing = false;
       }
       render();
+      updateSelInstancePanel(ins);
     } else {
       selectedInstanceId = null;
       selectedCell = t;
@@ -2017,10 +2059,12 @@ overlayCanvas.addEventListener('wheel',e=>{
   zoom(e.deltaY<0?1:-1);
 },{passive:false});
 
-overlayCanvas.addEventListener('contextmenu',e=>{ e.preventDefault(); const t=getTileFromEvent(e); if(t) eraseTile(t.x,t.y); });
+overlayCanvas.addEventListener('contextmenu',e=>{ e.preventDefault(); const t=getTileFromEvent(e); if(t) eraseTile(t.x,t.y, e.altKey); });
 
 // ─── UPDATE SELECTION PANEL ─────────────────────────────────
 function updateSelPanel(t){
+  // Cell selection hides the instance-only size row
+  document.getElementById('selSizeRow').style.display = 'none';
   const cell=layers.overhead[t.y]?.[t.x]||layers.objects[t.y]?.[t.x]||layers.ground[t.y]?.[t.x];
   document.getElementById('selPos').textContent=`${t.x},${t.y}`;
   document.getElementById('selType').textContent=cell?.type||'vacío';
@@ -2028,15 +2072,61 @@ function updateSelPanel(t){
   document.getElementById('selLabel').value=cell?.label||'';
 }
 function updateSelLabel(){
-  if(!selectedCell) return;
   const val=document.getElementById('selLabel').value;
+  // Label applies to whichever thing is selected — instance takes priority
+  if(selectedInstanceId !== null){
+    const ins = instances.find(i => i.id === selectedInstanceId);
+    if(ins){ ins.label = val; render(); }
+    return;
+  }
+  if(!selectedCell) return;
   ['overhead','objects','ground'].forEach(k=>{
     const c=layers[k][selectedCell.y]?.[selectedCell.x];
     if(c) c.label=val;
   });
   render();
 }
+// Panel view when an instance is selected — reveals size inputs + duplicate button
+function updateSelInstancePanel(ins){
+  if(!ins) return;
+  document.getElementById('selPos').textContent = `${ins.gridX},${ins.gridY}`;
+  document.getElementById('selType').textContent = ins.type;
+  document.getElementById('selLayer').textContent = 'instance';
+  document.getElementById('selSizeRow').style.display = 'flex';
+  document.getElementById('selW').value = ins.w;
+  document.getElementById('selH').value = ins.h;
+  document.getElementById('selLabel').value = ins.label || '';
+}
+// Apply W/H from the number inputs. Clamps so the instance stays inside the
+// map bounds, and coalesces spam into one undo entry via nudgeUndoPending.
+function applySizeInputs(){
+  if(selectedInstanceId === null) return;
+  const ins = instances.find(i => i.id === selectedInstanceId);
+  if(!ins) return;
+  const nw = Math.max(1, Math.min(10, parseInt(document.getElementById('selW').value)||1));
+  const nh = Math.max(1, Math.min(10, parseInt(document.getElementById('selH').value)||1));
+  const clampedW = Math.min(nw, mapW - ins.gridX);
+  const clampedH = Math.min(nh, mapH - ins.gridY);
+  if(clampedW === ins.w && clampedH === ins.h) return;
+  if(!nudgeUndoPending){ pushUndo(); nudgeUndoPending = true; }
+  ins.w = clampedW; ins.h = clampedH;
+  render();
+}
+// Duplicate button in the panel — one-click equivalent of Ctrl+C then Ctrl+V
+function duplicateSelectedInstance(){
+  if(!copySelectedInstance()) return;
+  pasteInstance();
+}
 function deleteSelected(){
+  // Priority: selected instance first, then selected cell
+  if(selectedInstanceId !== null){
+    pushUndo();
+    instances = instances.filter(i => i.id !== selectedInstanceId);
+    selectedInstanceId = null;
+    document.getElementById('selSizeRow').style.display = 'none';
+    render();
+    return;
+  }
   if(!selectedCell) return;
   pushUndo();
   ['ground','objects','overhead'].forEach(k=>{ layers[k][selectedCell.y][selectedCell.x]=null; });
@@ -2051,10 +2141,10 @@ function setTool(t,btn){
   document.querySelectorAll('[id^="tool-"]').forEach(b=>b.classList.remove('active'));
   btn?.classList.add('active');
   document.getElementById('stTool').textContent=t;
-  const hints={draw:'✏ Click pintar · Arrastrar para pintar · Clic derecho borrar',
-               erase:'⌫ Click borrar · Arrastrar para borrar',
+  const hints={draw:'✏ Click pintar · Arrastrar pintar · Clic-der borrar · Alt+borrar limpia todas las capas',
+               erase:'⌫ Click borrar capa actual · Alt+Click borra las 3 capas',
                fill:'▣ Click para rellenar zona',
-               select:'⬚ Click para seleccionar · Ver propiedades en panel der.',
+               select:'⬚ Click seleccionar · Arrastra para mover · Arrastra esquina ◢ para redimensionar · Del/Bksp borra · Flechas empujan · Ctrl+C/V duplica',
                pick:'◉ Click para copiar el tipo de tile'};
   document.getElementById('toolHint').textContent=hints[t]||'';
 }
@@ -2146,18 +2236,91 @@ function clearMap(){
   initMap(); render();
 }
 
+// ─── COPY / PASTE de instances ───────────────────────────────
+// The clipboard holds a shallow copy of the last instance the user pressed
+// Ctrl+C on. Paste places a new instance offset by (+1,+1) so it's visually
+// separate from the source; if that spot is off-map we clamp.
+let instanceClipboard = null;
+
+function copySelectedInstance(){
+  if(selectedInstanceId === null) return false;
+  const ins = instances.find(i => i.id === selectedInstanceId);
+  if(!ins) return false;
+  instanceClipboard = { type: ins.type, w: ins.w, h: ins.h, label: ins.label || '' };
+  return true;
+}
+function pasteInstance(){
+  if(!instanceClipboard) return false;
+  const src = instances.find(i => i.id === selectedInstanceId);
+  // Base position: next to the source if we still have it, else map center
+  const bx = src ? src.gridX + 1 : Math.floor(mapW/2) - Math.floor(instanceClipboard.w/2);
+  const by = src ? src.gridY + 1 : Math.floor(mapH/2) - Math.floor(instanceClipboard.h/2);
+  const gx = Math.max(0, Math.min(mapW - instanceClipboard.w, bx));
+  const gy = Math.max(0, Math.min(mapH - instanceClipboard.h, by));
+  pushUndo();
+  const ins = { id: nextInstanceId++, type: instanceClipboard.type, gridX: gx, gridY: gy,
+                w: instanceClipboard.w, h: instanceClipboard.h, label: instanceClipboard.label };
+  instances.push(ins);
+  selectedInstanceId = ins.id;
+  render();
+  return true;
+}
+// Arrow-key nudge: 1 tile per press, Shift = 5 tiles. Push a single undo so
+// spamming arrows doesn't blow up the undo stack.
+let nudgeUndoPending = false;
+function nudgeSelection(dx, dy){
+  if(selectedInstanceId !== null){
+    const ins = instances.find(i => i.id === selectedInstanceId);
+    if(!ins) return;
+    const nx = Math.max(0, Math.min(mapW - ins.w, ins.gridX + dx));
+    const ny = Math.max(0, Math.min(mapH - ins.h, ins.gridY + dy));
+    if(nx === ins.gridX && ny === ins.gridY) return;
+    if(!nudgeUndoPending){ pushUndo(); nudgeUndoPending = true; }
+    ins.gridX = nx; ins.gridY = ny;
+    render();
+  } else if(selectedCell){
+    const nx = Math.max(0, Math.min(mapW - 1, selectedCell.x + dx));
+    const ny = Math.max(0, Math.min(mapH - 1, selectedCell.y + dy));
+    selectedCell = { x: nx, y: ny };
+    render(); updateSelPanel(selectedCell);
+  }
+}
+document.addEventListener('keyup', e => {
+  // Reset the "coalesce a single undo per burst" flag on any key release
+  if(e.key.startsWith('Arrow')) nudgeUndoPending = false;
+});
+
 // Teclado
 document.addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT') return;
-  if(e.key==='b'||e.key==='B') setTool('draw',document.getElementById('tool-draw'));
-  if(e.key==='e'||e.key==='E') setTool('erase',document.getElementById('tool-erase'));
-  if(e.key==='f'||e.key==='F') setTool('fill',document.getElementById('tool-fill'));
-  if(e.key==='s'||e.key==='S') setTool('select',document.getElementById('tool-select'));
-  if(e.key==='i'||e.key==='I') setTool('pick',document.getElementById('tool-pick'));
-  if(e.ctrlKey&&e.key==='z'){ e.preventDefault(); undo(); }
-  if(e.ctrlKey&&e.key==='y'){ e.preventDefault(); redo(); }
-  if(e.ctrlKey&&e.key==='s'){ e.preventDefault(); saveToLocal(); }
-  if(e.key==='Delete'){
+  const inInput = e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA';
+  // Character-key tool shortcuts are silenced while typing in an input
+  if(!inInput){
+    if(e.key==='b'||e.key==='B') setTool('draw',document.getElementById('tool-draw'));
+    if(e.key==='e'||e.key==='E') setTool('erase',document.getElementById('tool-erase'));
+    if(e.key==='f'||e.key==='F') setTool('fill',document.getElementById('tool-fill'));
+    if(e.key==='s'||e.key==='S' && !e.ctrlKey && !e.metaKey) setTool('select',document.getElementById('tool-select'));
+    if(e.key==='i'||e.key==='I') setTool('pick',document.getElementById('tool-pick'));
+  }
+  // Global shortcuts still work everywhere (Ctrl+Z etc)
+  const meta = e.ctrlKey || e.metaKey;
+  if(meta && (e.key==='z' || e.key==='Z')){ e.preventDefault(); undo(); return; }
+  if(meta && (e.key==='y' || e.key==='Y')){ e.preventDefault(); redo(); return; }
+  if(meta && (e.key==='s' || e.key==='S')){ e.preventDefault(); saveToLocal(); return; }
+  if(meta && (e.key==='c' || e.key==='C') && !inInput){ e.preventDefault(); copySelectedInstance(); return; }
+  if(meta && (e.key==='v' || e.key==='V') && !inInput){ e.preventDefault(); pasteInstance(); return; }
+  // Arrow-key nudge — only when the user isn't editing an input
+  if(!inInput && e.key.startsWith('Arrow')){
+    e.preventDefault();
+    const step = e.shiftKey ? 5 : 1;
+    if(e.key==='ArrowLeft')  nudgeSelection(-step, 0);
+    if(e.key==='ArrowRight') nudgeSelection( step, 0);
+    if(e.key==='ArrowUp')    nudgeSelection(0, -step);
+    if(e.key==='ArrowDown')  nudgeSelection(0,  step);
+    return;
+  }
+  // Accept both Delete (Windows/Linux) and Backspace (macOS) so both keyboards
+  // remove the selection without the mac users tapping a dead key.
+  if(!inInput && (e.key==='Delete' || e.key==='Backspace')){
     // Priority: selected instance first, then selected cell
     if(selectedInstanceId !== null){
       pushUndo();
