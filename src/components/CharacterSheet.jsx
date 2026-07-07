@@ -505,14 +505,18 @@ const CharacterSheet = ({ setActiveView }) => {
                                 <div key={index} className="glass-card p-2 pr-4 flex justify-between items-center group hover:bg-white/5 transition-colors">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-black/30 rounded-lg flex items-center justify-center border border-white/10 relative">
-                                            <Sprite
-                                                src={item.sprite.src}
-                                                x={item.sprite.x}
-                                                y={item.sprite.y}
-                                                width={item.sprite.width}
-                                                height={item.sprite.height}
-                                                scale={1}
-                                            />
+                                            {item.sprite ? (
+                                                <Sprite
+                                                    src={item.sprite.src}
+                                                    x={item.sprite.x}
+                                                    y={item.sprite.y}
+                                                    width={item.sprite.width}
+                                                    height={item.sprite.height}
+                                                    scale={1}
+                                                />
+                                            ) : (
+                                                <PixelIcon name="box" size={20} className="text-gray-500" />
+                                            )}
                                             {item.count > 1 && (
                                                 <span className="absolute -top-2 -right-2 bg-rpg-gold text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-yellow-200 shadow-md">
                                                     x{item.count}
