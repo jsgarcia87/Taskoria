@@ -218,7 +218,7 @@ const GameContent = ({ currentUser, onLogout }) => {
 
             {activeView === 'profile' && (
               <motion.div key="profile" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
-                <CharacterSheet />
+                <CharacterSheet setActiveView={setActiveView} />
               </motion.div>
             )}
 

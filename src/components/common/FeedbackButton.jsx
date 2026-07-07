@@ -157,7 +157,7 @@ const FeedbackButton = ({ currentUser, activeProfileId }) => {
         aria-label="Send feedback"
         title="Send feedback"
       >
-        <PixelIcon name="book" size={16} />
+        <PixelIcon name="chat" size={16} />
       </motion.button>
 
       <AnimatePresence>

@@ -56,7 +56,7 @@ const BottomNav = ({ activeView, setActiveView, currentUser }) => {
         { id: 'home', label: 'Camp', icon: 'home' },
         { id: 'tasks', label: 'Quests', icon: 'checkSquare' },
         { id: 'party', label: 'Town', icon: 'users' },
-        { id: 'diary', label: 'Diary', icon: 'book' },
+        { id: 'diary', label: 'Diary', icon: 'scroll' },
     ];
 
     if (currentUser?.is_admin) {

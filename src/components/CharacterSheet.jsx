@@ -22,7 +22,7 @@ import DailyProgressChart from './dashboard/DailyProgressChart';
 import StatsRadarChart from './dashboard/StatsRadarChart';
 import { useToast } from './common/Toast';
 
-const CharacterSheet = () => {
+const CharacterSheet = ({ setActiveView }) => {
     const { state, actions, activeProfileId, familyData } = useGame();
     const toast = useToast();
     const { character } = state;
@@ -317,7 +317,7 @@ const CharacterSheet = () => {
                 {[
                     { id: 'stats', label: 'Stats', icon: 'zap' },
                     { id: 'skills', label: 'Skills', icon: 'book' },
-                    { id: 'inventory', label: 'Gear', icon: 'box' },
+                    { id: 'inventory', label: 'Gear', icon: 'gear' },
                     { id: 'companion', label: 'Pet', icon: 'heart' },
                     { id: 'medals', label: 'Medals', icon: 'star' },
                 ].map(tab => (
@@ -551,10 +551,20 @@ const CharacterSheet = () => {
                                 </div>
                             ))
                         ) : (
-                            <div className="text-center py-12 glass-panel border-dashed border-white/10 opacity-70 flex flex-col items-center justify-center group hover:opacity-100 transition-opacity">
-                                <PixelIcon name="box" size={48} className="text-gray-600 mb-3 group-hover:text-rpg-gold transition-colors" />
-                                <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">Empty Satchel</div>
-                                <div className="text-xs text-gray-500 mt-1 max-w-[260px]">Complete quests and battle bosses to find loot. Visit the Shop to buy gear.</div>
+                            <div className="text-center py-10 px-4 glass-panel border-dashed border-white/10 opacity-80 flex flex-col items-center justify-center gap-3">
+                                <PixelIcon name="box" size={40} className="text-gray-500" />
+                                <div>
+                                    <div className="text-sm font-bold text-gray-300 uppercase tracking-widest">Empty Satchel</div>
+                                    <div className="text-xs text-gray-500 mt-1 max-w-[260px] mx-auto">Complete quests and defeat bosses to find loot.</div>
+                                </div>
+                                {setActiveView && (
+                                    <button
+                                        onClick={() => setActiveView('shop')}
+                                        className="text-[11px] font-bold uppercase tracking-widest border border-rpg-gold/40 text-rpg-gold hover:bg-rpg-gold/10 hover:border-rpg-gold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+                                    >
+                                        <PixelIcon name="coins" size={12} color="#fbbf24" /> Visit the Shop
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
