@@ -1,18 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useGame } from '../context/GameContext';
-import { Coins, Clock, ShoppingBag, Gift, Plus, Trash2 } from 'lucide-react';
+import { Coins, Clock, ShoppingBag, Gift, Plus, Trash2, Loader2, Hammer, RefreshCw } from 'lucide-react';
 import { ITEMS, ITEM_TYPES, RARITY } from '../data/items';
 import Sprite from './common/Sprite';
+import PixelIcon from './common/PixelIcon';
+import { PressButton } from './common/PressButton';
 import { playCoinSound, playHealSound } from '../utils/sound';
 import { useToast } from './common/Toast';
+
+// Bazaar categories mirror what CreationStudio publishes with an extra "All".
+const BAZAAR_CATEGORIES = [
+    { id: 'all',        label: 'All' },
+    { id: 'casas',      label: 'Houses' },
+    { id: 'castillos',  label: 'Castles' },
+    { id: 'monturas',   label: 'Mounts' },
+    { id: 'arboles',    label: 'Trees' },
+    { id: 'decoracion', label: 'Decoration' },
+    { id: 'props',      label: 'Props' },
+];
+
+// Renders a Studio creation as a pixel-perfect square canvas. Duplicated from
+// CreationGallery so the Shop doesn't reach across features — small, cheap.
+const BazaarPreview = ({ pixels, gridSize = 64, size = 128 }) => {
+    const ref = useRef(null);
+    useEffect(() => {
+        const c = ref.current;
+        if (!c) return;
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.clearRect(0, 0, gridSize, gridSize);
+        let arr = pixels;
+        if (typeof pixels === 'string') {
+            try { arr = JSON.parse(pixels); } catch (e) { arr = []; }
+        }
+        if (!Array.isArray(arr)) return;
+        for (let i = 0; i < arr.length; i++) {
+            const p = arr[i];
+            if (!p || p === 'transparent') continue;
+            ctx.fillStyle = p;
+            ctx.fillRect(i % gridSize, Math.floor(i / gridSize), 1, 1);
+        }
+    }, [pixels, gridSize]);
+    return (
+        <canvas
+            ref={ref}
+            width={gridSize}
+            height={gridSize}
+            style={{ width: size, height: size, imageRendering: 'pixelated' }}
+            className="bg-[#0f0a1f] border border-white/10 rounded-lg"
+        />
+    );
+};
 
 const Shop = ({ currentUser }) => {
     const { state, dispatch, actions } = useGame();
     const { character, rewards } = state;
     const toast = useToast();
-    const [activeTab, setActiveTab] = useState('items'); // items | rewards | community
+    const [activeTab, setActiveTab] = useState('items'); // items | community | bazaar | rewards
     const [marketItems, setMarketItems] = useState([]);
     const [isLoadingMarket, setIsLoadingMarket] = useState(false);
+
+    // Bazaar state — approved Studio creations that can be bought with gold
+    const [bazaarItems, setBazaarItems] = useState([]);
+    const [ownedCreationIds, setOwnedCreationIds] = useState(() => new Set());
+    const [isLoadingBazaar, setIsLoadingBazaar] = useState(false);
+    const [bazaarCategory, setBazaarCategory] = useState('all');
+    const [buyingCreationId, setBuyingCreationId] = useState(null);
 
     // New Reward Form
     const [rewardName, setRewardName] = useState('');
@@ -63,7 +117,74 @@ const Shop = ({ currentUser }) => {
         if (activeTab === 'community') {
             fetchMarketItems();
         }
-    }, [activeTab]);
+        if (activeTab === 'bazaar') {
+            fetchBazaar();
+        }
+    }, [activeTab, bazaarCategory]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Fetch approved creations + the current user's owned creation ids in
+    // parallel. Owned status lets us render the Owned pill instead of a Buy
+    // button without a second round-trip per card.
+    const fetchBazaar = async () => {
+        setIsLoadingBazaar(true);
+        try {
+            const catQ = bazaarCategory !== 'all' ? `&category=${bazaarCategory}` : '';
+            const [approvedRes, ownedRes] = await Promise.all([
+                fetch(`api/creations.php?action=list_approved${catQ}`),
+                currentUser?.id
+                    ? fetch(`api/creations.php?action=list_owned&user_id=${currentUser.id}`)
+                    : Promise.resolve(null),
+            ]);
+            const approved = await approvedRes.json();
+            const owned = ownedRes ? await ownedRes.json() : { items: [] };
+            setBazaarItems(approved.success ? (approved.items || []) : []);
+            setOwnedCreationIds(new Set((owned.items || []).map(i => Number(i.id))));
+        } catch (e) {
+            console.error('Failed to fetch Bazaar', e);
+            setBazaarItems([]);
+        } finally {
+            setIsLoadingBazaar(false);
+        }
+    };
+
+    const buyBazaarItem = async (item) => {
+        if (buyingCreationId === item.id) return; // guard double-click
+        const price = Number(item.price) || 0;
+        if (character.gold < price) {
+            toast.error(`Not enough gold — need ${price}, you have ${character.gold}.`);
+            return;
+        }
+        if (ownedCreationIds.has(Number(item.id))) return;
+
+        setBuyingCreationId(item.id);
+        try {
+            const res = await fetch('api/creations.php?action=buy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: currentUser.id, creation_id: item.id }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                // already_owned is idempotent — don't double-charge on it
+                if (!data.already_owned) {
+                    playCoinSound();
+                    dispatch({ type: 'UPDATE_CHARACTER', payload: { gold: character.gold - price } });
+                    toast.success(`Bought "${item.name}" from ${item.username} — added to your Collection.`);
+                }
+                setOwnedCreationIds(prev => {
+                    const next = new Set(prev);
+                    next.add(Number(item.id));
+                    return next;
+                });
+            } else {
+                toast.error(data.error || 'Failed to buy creation.');
+            }
+        } catch (e) {
+            toast.error('Network error while buying.');
+        } finally {
+            setBuyingCreationId(null);
+        }
+    };
 
     const buyMarketItem = async (listing) => {
         if (character.gold < listing.price) {
@@ -160,7 +281,18 @@ const Shop = ({ currentUser }) => {
                                 : 'text-gray-400 hover:text-white hover:bg-white/5'}
                         `}
                     >
-                        COMMUNITY
+                        MARKET
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('bazaar')}
+                        className={`
+                            flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-bold text-xs transition-all duration-300 flex-1 sm:flex-none
+                            ${activeTab === 'bazaar'
+                                ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(147,51,234,0.5)]'
+                                : 'text-gray-400 hover:text-white hover:bg-white/5'}
+                        `}
+                    >
+                        <Hammer size={14} /> BAZAAR
                     </button>
                     <button
                         onClick={() => setActiveTab('rewards')}
@@ -274,6 +406,137 @@ const Shop = ({ currentUser }) => {
                                     </div>
                                 )
                             })
+                        )}
+                    </div>
+                ) : activeTab === 'bazaar' ? (
+                    /* ═══════════════════════════════════════════════════════
+                       COMMUNITY BAZAAR — buy approved Studio creations w/ gold
+                       ═══════════════════════════════════════════════════════ */
+                    <div className="space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <p className="text-xs text-purple-300 uppercase font-bold tracking-widest border border-purple-500/30 bg-purple-500/10 inline-block px-4 py-1.5 rounded-full">
+                                Curated by Sangar · Built by the community
+                            </p>
+                            <button
+                                onClick={fetchBazaar}
+                                disabled={isLoadingBazaar}
+                                title="Refresh"
+                                className="text-xs text-gray-400 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors border border-white/5 inline-flex items-center gap-1.5 disabled:opacity-50"
+                            >
+                                <RefreshCw size={12} className={isLoadingBazaar ? 'animate-spin' : ''} /> Refresh
+                            </button>
+                        </div>
+
+                        {/* Category filter */}
+                        <div className="flex flex-wrap gap-1.5">
+                            {BAZAAR_CATEGORIES.map(c => (
+                                <button
+                                    key={c.id}
+                                    onClick={() => setBazaarCategory(c.id)}
+                                    className={`text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-full border transition-colors ${
+                                        bazaarCategory === c.id
+                                            ? 'bg-purple-500/25 border-purple-400/60 text-purple-100'
+                                            : 'bg-white/5 hover:bg-white/10 border-white/10 text-gray-400 hover:text-white'
+                                    }`}
+                                >
+                                    {c.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Grid */}
+                        {isLoadingBazaar ? (
+                            <div className="flex items-center justify-center py-16 text-gray-400">
+                                <Loader2 className="animate-spin mr-2" size={18} /> Loading Bazaar…
+                            </div>
+                        ) : bazaarItems.length === 0 ? (
+                            <div className="text-center py-16 glass-panel border-dashed border-white/10 opacity-80 flex flex-col items-center justify-center gap-3">
+                                <Hammer size={32} className="text-gray-500" />
+                                <div>
+                                    <div className="text-sm font-bold text-gray-300 uppercase tracking-widest">
+                                        The Bazaar is quiet
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1 max-w-[320px] mx-auto">
+                                        No approved creations{bazaarCategory !== 'all' ? ' in this category ' : ' '}yet. Sangar is still curating the first pieces.
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                                <AnimatePresence mode="popLayout" initial={false}>
+                                    {bazaarItems.map((item, idx) => {
+                                        const price = Number(item.price) || 0;
+                                        const owned = ownedCreationIds.has(Number(item.id));
+                                        const canAfford = character.gold >= price;
+                                        const buying = buyingCreationId === item.id;
+                                        return (
+                                            <motion.div
+                                                key={item.id}
+                                                layout
+                                                initial={{ opacity: 0, y: 8 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 8, transition: { duration: 0.15 } }}
+                                                transition={{
+                                                    type: 'spring',
+                                                    stiffness: 320,
+                                                    damping: 30,
+                                                    delay: Math.min(idx * 0.03, 0.25),
+                                                }}
+                                                className={`glass-panel rounded-xl p-3 flex flex-col items-center text-center border transition-colors ${
+                                                    owned ? 'border-emerald-400/30 bg-emerald-500/5' : 'border-white/10 hover:border-purple-400/40'
+                                                }`}
+                                            >
+                                                <BazaarPreview
+                                                    pixels={item.pixels}
+                                                    gridSize={item.grid_size || 64}
+                                                    size={120}
+                                                />
+                                                <div
+                                                    className="mt-2.5 font-bold text-sm text-white truncate w-full"
+                                                    title={item.name}
+                                                >
+                                                    {item.name}
+                                                </div>
+                                                <div className="mt-0.5 text-[10px] uppercase tracking-widest text-purple-300">
+                                                    {item.category}
+                                                </div>
+                                                {item.username && (
+                                                    <div className="text-[10px] text-gray-500 mt-0.5">
+                                                        by <span className="text-gray-300">{item.username}</span>
+                                                    </div>
+                                                )}
+                                                <div className="mt-2 w-full">
+                                                    {owned ? (
+                                                        <div className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-400/40 text-emerald-300 text-[11px] font-bold uppercase tracking-widest">
+                                                            <PixelIcon name="checkSquare" size={12} color="#6ee7b7" /> Owned
+                                                        </div>
+                                                    ) : (
+                                                        <PressButton
+                                                            onClick={() => buyBazaarItem(item)}
+                                                            disabled={!canAfford || buying}
+                                                            className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-colors ${
+                                                                buying
+                                                                    ? 'bg-purple-500/20 text-purple-200 border border-purple-400/50 cursor-wait'
+                                                                    : canAfford
+                                                                        ? 'bg-rpg-gold/15 border border-rpg-gold/50 text-rpg-gold hover:bg-rpg-gold/25'
+                                                                        : 'bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed'
+                                                            }`}
+                                                        >
+                                                            {buying ? (
+                                                                <><Loader2 size={12} className="animate-spin" /> Buying…</>
+                                                            ) : (
+                                                                <>
+                                                                    <Coins size={12} /> {price} {canAfford ? 'gold' : 'need more'}
+                                                                </>
+                                                            )}
+                                                        </PressButton>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </AnimatePresence>
+                            </div>
                         )}
                     </div>
                 ) : (
