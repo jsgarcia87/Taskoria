@@ -117,6 +117,11 @@ function oakTree() {
     rect(buf, w, h, 22, 44, 5, 20, PAL.woodMid);
     rect(buf, w, h, 23, 44, 1, 20, PAL.woodHi);
     rect(buf, w, h, 27, 44, 1, 20, PAL.woodDark);
+    // Canopy occlusion — the leaves above cast a dark ring on the top of
+    // the trunk. Cheap 3/4 volume cue: this is what makes the canopy feel
+    // like a 3D dome instead of a flat sticker glued to the trunk.
+    rect(buf, w, h, 21, 44, 7, 2, PAL.woodDark);
+    rect(buf, w, h, 22, 46, 5, 1, PAL.woodBase);
     // Roots flare
     set(20, 62, PAL.woodBase); set(20, 63, PAL.woodBase);
     set(28, 62, PAL.woodBase); set(28, 63, PAL.woodBase);
@@ -607,9 +612,12 @@ function marketStall(accent) {
     }
     // Roof beam
     rect(buf, w, h, 2, 1, 44, 1, PAL.woodDark);
+    // Awning shadow — the striped awning above projects a soft shadow onto the
+    // ground / counter top. Angled top-down (Pokémon RSE) reads volume by shade.
+    rect(buf, w, h, 4, 20, 40, 2, 'rgba(0,0,0,0.35)');
     // Counter
     rect(buf, w, h, 4, 22, 40, 14, PAL.woodMid);
-    rect(buf, w, h, 4, 22, 40, 2, PAL.woodLite);
+    rect(buf, w, h, 4, 22, 40, 2, PAL.woodBase);
     rect(buf, w, h, 4, 34, 40, 2, PAL.woodDark);
     // Counter front panels
     for (let x = 4; x < 44; x += 8) rect(buf, w, h, x, 24, 1, 10, PAL.woodDark);
@@ -635,6 +643,10 @@ function shopBuilding() {
     rect(buf, w, h, 2, 22, 76, 32, PAL.woodLite);
     // Wall planks (vertical)
     for (let x = 4; x < 78; x += 6) rect(buf, w, h, x, 22, 1, 30, PAL.woodMid);
+    // Eave shadow — the roof projects out and casts a dark band on the
+    // wall top. This is what sells the 3/4 angled top-down (Pokémon RSE) look.
+    rect(buf, w, h, 2, 22, 76, 2, PAL.woodBase);
+    rect(buf, w, h, 2, 23, 76, 1, PAL.woodDark);
     // Wall horizontal beam
     rect(buf, w, h, 2, 36, 76, 2, PAL.woodBase);
     rect(buf, w, h, 2, 36, 76, 1, PAL.woodHi);

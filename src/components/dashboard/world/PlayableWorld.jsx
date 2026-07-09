@@ -13,6 +13,11 @@ const SPEED = 5;
 const NPC_SPEED = SPEED * 0.35; // ~1.75px/frame, more leisurely than player
 const NPC_STOP_DIST = 5;
 
+// Angled top-down (Pokémon Gen 3/4) collision: narrow band at the player's feet,
+// not a full-body box. Lets you walk close to obstacles from the sides / above.
+const FOOT_W = 26;
+const FOOT_H = 14;
+
 // Avatars re-run their rect generation on every render. Memoize so they only
 // re-render when their own props actually change (not when the world re-renders).
 const MemoAvatar = ModernPixelAvatar;
@@ -71,7 +76,7 @@ const DecorationsLayer = React.memo(function DecorationsLayer({ decorations }) {
                     }
                     if (dec.type === 'torch') {
                         return (
-                            <div key={`dec_${i}`} className="absolute flex flex-col items-center" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size * 2, zIndex: dec.y }}>
+                            <div key={`dec_${i}`} className="absolute flex flex-col items-center" style={{ left: dec.x, top: dec.y, width: dec.size, height: dec.size * 2, zIndex: dec.y + dec.size * 2 }}>
                                 <div className="w-[40%] h-[60%] bg-[#451a03] border-x-2 border-black/40 rounded-b-sm"></div>
                                 <div className="w-full h-[40%] bg-orange-500 rounded-full animate-flicker shadow-[0_0_20px_rgba(249,115,22,0.8)]"></div>
                             </div>
@@ -79,7 +84,7 @@ const DecorationsLayer = React.memo(function DecorationsLayer({ decorations }) {
                     }
                     if (dec.type === 'pillar') {
                         return (
-                            <div key={`dec_${i}`} className="absolute flex flex-col items-center justify-end" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, zIndex: dec.y }}>
+                            <div key={`dec_${i}`} className="absolute flex flex-col items-center justify-end" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, zIndex: dec.y + dec.height }}>
                                 <div className="w-full h-4 bg-gray-800 border-b-2 border-black/50"></div>
                                 <div className="w-[80%] h-full bg-gray-700 border-x-4 border-gray-900 shadow-inner relative">
                                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
@@ -92,7 +97,7 @@ const DecorationsLayer = React.memo(function DecorationsLayer({ decorations }) {
                         const sz = dec.size || 80;
                         return (
                             <div key={`dec_${i}`} className="absolute pointer-events-none"
-                                style={{ left: dec.x - sz / 2, top: dec.y - sz * 0.5, width: sz, height: sz * 1.5, zIndex: dec.y }}>
+                                style={{ left: dec.x - sz / 2, top: dec.y - sz * 0.5, width: sz, height: sz * 1.5, zIndex: dec.y + sz }}>
                                 <svg width={sz} height={sz * 1.5} viewBox="0 0 16 24" shapeRendering="crispEdges"
                                     style={{ imageRendering: 'pixelated', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))' }}>
                                     <rect x="1" y="20" width="14" height="4" fill="#4a4a6a" />
@@ -708,12 +713,14 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
         return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
     }, []);
 
-    // Box collision check
+    // Foot hitbox — narrow band anchored at the player's feet (pos.y).
+    // In angled top-down the player collides with what their FEET touch,
+    // not what their head/body overlaps.
     const checkCollision = (newX, newY, mapRef) => {
-        const pLeft = newX - TILE_SIZE / 2;
-        const pRight = newX + TILE_SIZE / 2;
-        const pTop = newY - TILE_SIZE / 2;
-        const pBottom = newY + TILE_SIZE / 2;
+        const pLeft = newX - FOOT_W / 2;
+        const pRight = newX + FOOT_W / 2;
+        const pTop = newY - FOOT_H;
+        const pBottom = newY;
         for (const obs of mapRef.obstacles) {
             if (pRight > obs.x && pLeft < obs.x + obs.width && pBottom > obs.y && pTop < obs.y + obs.height) return true;
         }

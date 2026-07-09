@@ -231,7 +231,7 @@ export const MAP_DATA = {
             { x: 120, y: 100, type: 'fire', size: 60 },
             
             // Rug
-            { x: 300, y: 550, type: 'rect', width: 200, height: 140, color: '#7f1d1d', opacity: 0.8, radius: '10px' }
+            { x: 300, y: 550, type: 'rect', width: 200, height: 140, color: '#7f1d1d', opacity: 0.8, radius: '10px', z: 0 }
         ]
     },
     mysticForest: {
@@ -293,9 +293,9 @@ export const MAP_DATA = {
         ],
         decorations: [
             // River visual
-            { x: 800, y: 0, type: 'rect', width: 200, height: 1000, color: '#3b82f6', opacity: 0.6 },
+            { x: 800, y: 0, type: 'rect', width: 200, height: 1000, color: '#3b82f6', opacity: 0.6, z: 0 },
             // Bridge visual
-            { x: 780, y: 400, type: 'rect', width: 240, height: 200, color: '#78350f' },
+            { x: 780, y: 400, type: 'rect', width: 240, height: 200, color: '#78350f', z: 0 },
             // Bridge plank texture
             { x: 780, y: 420, type: 'rect', width: 240, height: 4, color: '#5c3a21', opacity: 0.8, z: 1 },
             { x: 780, y: 460, type: 'rect', width: 240, height: 4, color: '#5c3a21', opacity: 0.8, z: 1 },

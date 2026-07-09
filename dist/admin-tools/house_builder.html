@@ -301,6 +301,34 @@ canvas.house.main-view{border-color:#c87820;box-shadow:0 0 20px #c8782033;}
       </div>
     </div>
 
+    <!-- Castle-only elements (hidden until buildingType=castle) -->
+    <div class="p-section castle-only" style="display:none;">
+      <div class="p-title">🏰 ELEMENTOS DE CASTILLO</div>
+      <div class="p-row">
+        <span class="lbl">Torres esquineras</span>
+        <input type="checkbox" id="cornerTowersToggle" onchange="setParam('cornerTowers', this.checked)">
+        <span class="val" id="cornerTowersVal">no</span>
+      </div>
+      <div class="p-row">
+        <span class="lbl">Portón levadizo</span>
+        <input type="checkbox" id="portcullisToggle" onchange="setParam('portcullis', this.checked)">
+        <span class="val" id="portcullisVal">no</span>
+      </div>
+      <div class="p-row">
+        <span class="lbl">Musgo / desgaste</span>
+        <input type="checkbox" id="mossToggle" onchange="setParam('moss', this.checked)">
+        <span class="val" id="mossVal">no</span>
+      </div>
+      <div class="p-row">
+        <span class="lbl">Cornisa gruesa</span>
+        <input type="checkbox" id="heavyBaseToggle" onchange="setParam('heavyBase', this.checked)">
+        <span class="val" id="heavyBaseVal">no</span>
+      </div>
+      <div style="margin-top:8px;font-size:9px;color:#8a7050;line-height:1.4;">
+        Cambios visibles al instante. La fachada de piedra realza el musgo y la cornisa; portón + torres cambian la silueta.
+      </div>
+    </div>
+
     <!-- Presets — CASAS -->
     <div class="p-section preset-house">
       <div class="p-title">PRESETS · CASAS</div>
@@ -340,6 +368,11 @@ const CONFIG = {
   // Construction type — drives preset family + library categorization
   buildingType: 'house',     // 'house' | 'castle'
   battlements:  false,       // crenellations along the top edge (castles)
+  // Castle-only elements (ignored when buildingType='house')
+  cornerTowers: false,       // flanking turrets with mini-crenellations
+  portcullis:   false,       // iron-barred gate replacing the door
+  moss:         false,       // weathered green patches on stone facade
+  heavyBase:    false,       // thick stone cornice at the wall base
   // Tejado
   roofType:    'thatch',
   roofRatio:   40,      // % de la altura total
@@ -406,20 +439,26 @@ const PRESETS = {
   // ── CASTILLOS ──────────────────────────────────────────────
   // Built atop the existing parametric pipeline. Stone roof + stone facade +
   // tall proportions + battlements toggle gives a clear castle silhouette.
+  // Watchtower — narrow, tall, no towers (it IS a tower). Heavy base + arrow-slits vibe.
   watchtower:  {buildingType:'castle', battlements:true,
+    cornerTowers:false, portcullis:false, moss:true, heavyBase:true,
     roofType:'dark', roofRatio:25, eaveSize:3, perspH:6,
     facadeType:'stone', beamCount:1, winCount:1, flowerBox:false, winLight:true,
     doorType:'arch', chimney:false, smoke:false, sign:false,
     roofLight:'#787878', roofDark:'#383838', plasterCol:'#a8a8a8', beamCol:'#484848', doorCol:'#4a3010'},
+  // Fortress — the full castle look: towers + portcullis + moss + heavy base
   fortress:    {buildingType:'castle', battlements:true,
+    cornerTowers:true, portcullis:true, moss:true, heavyBase:true,
     roofType:'stone', roofRatio:30, eaveSize:4, perspH:8,
     facadeType:'stone', beamCount:2, winCount:3, flowerBox:false, winLight:true,
-    doorType:'double', chimney:true, smoke:false, sign:false,
+    doorType:'portcullis', chimney:true, smoke:false, sign:false,
     roofLight:'#a0a0a0', roofDark:'#505050', plasterCol:'#c0c0c0', beamCol:'#505050', doorCol:'#3a2010'},
+  // Royal keep — regal palette, towers + portcullis, no moss (well kept)
   royal_keep:  {buildingType:'castle', battlements:true,
+    cornerTowers:true, portcullis:true, moss:false, heavyBase:true,
     roofType:'stone', roofRatio:48, eaveSize:6, perspH:12,
     facadeType:'stone', beamCount:3, winCount:3, flowerBox:false, winLight:true,
-    doorType:'arch', chimney:true, smoke:true, sign:true,
+    doorType:'portcullis', chimney:true, smoke:true, sign:true,
     roofLight:'#5078a8', roofDark:'#202848', plasterCol:'#d8d0b8', beamCol:'#383028', doorCol:'#4a2810'},
   // ── CASAS ADICIONALES ─────────────────────────────────────
   cottage:     {buildingType:'house', battlements:false,
@@ -552,6 +591,13 @@ function drawHouse(ctx, W, H, cfg, fr) {
   // ── FACHADA ─────────────────────────────────────────────
   drawFacade(ctx, 0, faceY, W, faceH, cfg);
 
+  // ── ELEMENTOS DE CASTILLO (fachada) ─────────────────────
+  // Moss + heavy base overlay the facade before windows so windows sit
+  // clean on top. Corner towers come AFTER windows so they properly
+  // clip the outer window if one falls near the edge.
+  drawMoss(ctx, W, faceY, faceH, cfg);
+  drawHeavyBase(ctx, W, H, cfg);
+
   // ── VENTANAS ────────────────────────────────────────────
   if(cfg.winCount > 0) {
     const spacing = W / (cfg.winCount + 1);
@@ -561,6 +607,9 @@ function drawHouse(ctx, W, H, cfg, fr) {
       drawWindow(ctx, wx, wy, cfg, fr);
     }
   }
+
+  // ── TORRES ESQUINERAS (castillos) ───────────────────────
+  if (cfg.cornerTowers) drawCornerTowers(ctx, W, H, cfg);
 
   // ── PUERTA ──────────────────────────────────────────────
   const dx = Math.round(W * (cfg.doorX/100) - 10);
@@ -893,6 +942,47 @@ function drawDoor(ctx, dx, dy, cfg) {
     ctx.fillStyle='#c8900f'; ctx.fillRect(dx+14,dy+14,4,4);
     ctx.fillStyle='#f0c030'; ctx.fillRect(dx+14,dy+14,4,2);
 
+  } else if(cfg.doorType==='portcullis' || cfg.portcullis){
+    // ─── PORTCULLIS ───────────────────────────────────────────
+    // Wide iron-barred castle gate: stone jambs + arched header + iron
+    // grid falling from the arch, giving the impression of a raised gate.
+    const gw = 40, gh = 34, gx = dx - 9, gy = dy - 6;
+    // Stone jambs (bases of the arch, darker so the iron reads)
+    const stoneCol   = lighten(B, 0.10);
+    const stoneShade = darken(B, 0.4);
+    ctx.fillStyle = stoneShade; ctx.fillRect(gx, gy, gw, gh);
+    ctx.fillStyle = stoneCol;   ctx.fillRect(gx+2, gy+2, gw-4, gh-4);
+    // Arched opening — a dark cavity behind the bars
+    const cavX = gx+3, cavY = gy+3, cavW = gw-6, cavH = gh-6;
+    ctx.fillStyle = '#0a0a12'; ctx.fillRect(cavX, cavY, cavW, cavH);
+    // Rounded arch top — clear a small notch on each corner
+    ctx.fillStyle = stoneCol;
+    for (let ai = 0; ai < 3; ai++) {
+      ctx.fillRect(cavX + ai, cavY + ai, 1, 1);
+      ctx.fillRect(cavX + cavW - 1 - ai, cavY + ai, 1, 1);
+    }
+    // Iron portcullis grid — vertical bars slightly wider than horizontals
+    ctx.fillStyle = '#2a2a34';
+    for (let bx = cavX + 2; bx < cavX + cavW - 1; bx += 4) {
+      ctx.fillRect(bx, cavY + 3, 2, cavH - 4);
+    }
+    for (let by = cavY + 4; by < cavY + cavH - 1; by += 6) {
+      ctx.fillRect(cavX + 1, by, cavW - 2, 1);
+    }
+    // Iron highlight down one edge of each bar for volume
+    ctx.fillStyle = '#4a4a58';
+    for (let bx = cavX + 2; bx < cavX + cavW - 1; bx += 4) {
+      ctx.fillRect(bx, cavY + 3, 1, cavH - 4);
+    }
+    // Spiked tips at the bottom of vertical bars (portcullis look)
+    ctx.fillStyle = '#1a1a22';
+    for (let bx = cavX + 2; bx < cavX + cavW - 1; bx += 4) {
+      ctx.fillRect(bx, cavY + cavH - 1, 2, 2);
+    }
+    // Keystone at the top of the arch
+    ctx.fillStyle = lighten(stoneCol, 0.15);
+    ctx.fillRect(gx + gw/2 - 2, gy, 4, 3);
+
   } else { // double
     ctx.fillStyle=B; ctx.fillRect(dx-8,dy+2,38,26);
     ctx.fillStyle=Dd; ctx.fillRect(dx-6,dy+4,34,22);
@@ -956,6 +1046,106 @@ function drawSign(ctx, sx, sy, cfg) {
   });
 }
 
+// ── CASTLE-ONLY ELEMENTS ────────────────────────────────────
+// Deterministic pseudo-random so the moss pattern is stable across
+// redraws (no jitter when tweaking sliders).
+function seededRand(seed) {
+  return function() {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+}
+
+// Corner towers — flanking turrets with their own mini-crenellations.
+// Occupy the outer ~14px on each side, extending from top to base.
+function drawCornerTowers(ctx, W, H, cfg) {
+  const tw     = 14;
+  const roofRh = Math.round(H * (cfg.roofRatio/100));
+  const stone  = cfg.roofLight || '#a0a0a0';
+  const shade  = darken(stone, 0.5);
+  const lite   = lighten(stone, 0.15);
+  const roofY  = 4; // towers start slightly below the top so they don't clip
+
+  [0, W - tw].forEach(tx => {
+    // Tower body
+    ctx.fillStyle = stone; ctx.fillRect(tx, roofY, tw, H - roofY - 4);
+    // Right-hand vertical shade for volume
+    ctx.fillStyle = shade; ctx.fillRect(tx + tw - 2, roofY, 2, H - roofY - 4);
+    // Left-hand light column
+    ctx.fillStyle = lite; ctx.fillRect(tx, roofY, 1, H - roofY - 4);
+    // Horizontal stone courses (subtle brick banding)
+    ctx.fillStyle = shade;
+    for (let ry = roofY + 6; ry < H - 6; ry += 8) {
+      ctx.fillRect(tx + 1, ry, tw - 2, 1);
+    }
+    // Mini-crenellations on top of each tower
+    ctx.fillStyle = stone;
+    ctx.fillRect(tx - 1, roofY - 4, tw + 2, 4);
+    ctx.fillStyle = shade;
+    ctx.fillRect(tx - 1, roofY - 1, tw + 2, 1);
+    // Merlons: 3 blocks of 3px with 2px gaps
+    ctx.fillStyle = '#000';
+    for (let mx = 1; mx < tw - 1; mx += 5) {
+      ctx.clearRect(tx + mx + 3, roofY - 4, 2, 3);
+    }
+    // Arrow-slit window mid-tower
+    ctx.fillStyle = '#0d0a14';
+    ctx.fillRect(tx + Math.floor(tw/2) - 1, Math.round(H * 0.35), 2, 6);
+    // Base stone footing — slightly wider than the tower
+    ctx.fillStyle = shade;
+    ctx.fillRect(tx - 1, H - 8, tw + 2, 4);
+    ctx.fillStyle = stone;
+    ctx.fillRect(tx, H - 8, tw, 1);
+  });
+}
+
+// Moss — pseudorandom green patches on stone surfaces. Reads best on stone
+// facades; on other facades the effect is subtle.
+function drawMoss(ctx, W, faceY, faceH, cfg) {
+  if (!cfg.moss) return;
+  const rand = seededRand(97);
+  const mossDark = '#2a5028';
+  const mossLite = '#4a7838';
+  const patches = 14;
+  for (let i = 0; i < patches; i++) {
+    const px = Math.floor(rand() * W);
+    const py = faceY + Math.floor(rand() * faceH);
+    const ps = 2 + Math.floor(rand() * 3);
+    ctx.fillStyle = rand() > 0.5 ? mossDark : mossLite;
+    // Cluster: main blob + 1-2 satellite pixels for organic feel
+    ctx.fillRect(px, py, ps, ps);
+    if (rand() > 0.4) ctx.fillRect(px + ps + 1, py + 1, 1, 1);
+    if (rand() > 0.5) ctx.fillRect(px - 1, py + ps, 1, 1);
+  }
+  // Extra concentrated moss at the base of the walls (natural runoff)
+  const baseCount = 8;
+  for (let i = 0; i < baseCount; i++) {
+    const px = Math.floor(rand() * W);
+    const py = faceY + faceH - 3 - Math.floor(rand() * 4);
+    ctx.fillStyle = rand() > 0.5 ? mossDark : mossLite;
+    ctx.fillRect(px, py, 2, 2);
+  }
+}
+
+// Heavy base — thick stone cornice running along the bottom of the walls,
+// with darker joints so it reads as a foundation course.
+function drawHeavyBase(ctx, W, H, cfg) {
+  if (!cfg.heavyBase) return;
+  const stone = cfg.roofLight || '#a0a0a0';
+  const shade = darken(stone, 0.45);
+  const lite  = lighten(stone, 0.10);
+  const baseH = 8;
+  const by    = H - baseH - 2;
+  ctx.fillStyle = stone; ctx.fillRect(0, by, W, baseH);
+  ctx.fillStyle = lite;  ctx.fillRect(0, by, W, 1);
+  ctx.fillStyle = shade; ctx.fillRect(0, by + baseH - 1, W, 1);
+  // Stone block seams every 12px
+  ctx.fillStyle = shade;
+  for (let sx = 12; sx < W; sx += 12) {
+    ctx.fillRect(sx, by + 1, 1, baseH - 2);
+  }
+}
+
 // ── COLOR UTILS ─────────────────────────────────────────────
 function hexToRgbArr(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
 function rgbToHex(r,g,b){return`#${Math.round(r).toString(16).padStart(2,'0')}${Math.round(g).toString(16).padStart(2,'0')}${Math.round(b).toString(16).padStart(2,'0')}`;}
@@ -980,8 +1170,10 @@ function setParam(key, val, btn) {
     parent.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('sel'));
     btn.classList.add('sel');
   }
-  if (key === 'battlements') {
-    const v = document.getElementById('battlementsVal');
+  // Boolean toggles show sí/no under their label
+  const boolLabels = ['battlements','cornerTowers','portcullis','moss','heavyBase'];
+  if (boolLabels.includes(key)) {
+    const v = document.getElementById(key+'Val');
     if (v) v.textContent = val ? 'sí' : 'no';
   }
   scheduleRedraw();
@@ -997,13 +1189,45 @@ function setBuildingType(type, btn) {
   // Swap which preset section is visible — castles get their own row
   document.querySelectorAll('.preset-house').forEach(el => el.style.display = type === 'house' ? '' : 'none');
   document.querySelectorAll('.preset-castle').forEach(el => el.style.display = type === 'castle' ? '' : 'none');
-  // Default battlements off for houses, on for castles
-  if (type === 'castle' && !CONFIG.battlements) {
-    CONFIG.battlements = true;
-    const cb = document.getElementById('battlementsToggle');
-    if (cb) cb.checked = true;
-    const v = document.getElementById('battlementsVal');
-    if (v) v.textContent = 'sí';
+  // Show/hide castle-only feature section
+  document.querySelectorAll('.castle-only').forEach(el => el.style.display = type === 'castle' ? '' : 'none');
+  // When entering castle mode, auto-enable a sensible default set so the
+  // visual change is immediate. Users can toggle any of them off after.
+  if (type === 'castle') {
+    const castleDefaults = {
+      battlements:  true,
+      cornerTowers: true,
+      portcullis:   true,
+      moss:         true,
+      heavyBase:    true,
+    };
+    Object.entries(castleDefaults).forEach(([k, v]) => {
+      if (!CONFIG[k]) {
+        CONFIG[k] = v;
+        const cb = document.getElementById(k+'Toggle');
+        if (cb) cb.checked = true;
+        const lbl = document.getElementById(k+'Val');
+        if (lbl) lbl.textContent = v ? 'sí' : 'no';
+      }
+    });
+    // Stone facade + roof reads unambiguously as castle
+    if (CONFIG.facadeType !== 'stone') {
+      CONFIG.facadeType = 'stone';
+      const row = document.getElementById('facadeTypeRow');
+      if (row) row.querySelectorAll('.vbtn').forEach(b => {
+        b.classList.toggle('sel', b.getAttribute('onclick').includes("'stone'"));
+      });
+    }
+  } else {
+    // Leaving castle mode — turn OFF the castle-only flags so a subsequent
+    // house preset doesn't accidentally keep towers/portcullis lingering.
+    ['cornerTowers','portcullis','moss','heavyBase'].forEach(k => {
+      CONFIG[k] = false;
+      const cb = document.getElementById(k+'Toggle');
+      if (cb) cb.checked = false;
+      const lbl = document.getElementById(k+'Val');
+      if (lbl) lbl.textContent = 'no';
+    });
   }
   scheduleRedraw();
 }
@@ -1045,6 +1269,13 @@ function loadPreset(name) {
   ['flowerBox','winLight','doorStep','chimney','smoke','sign','shadow','dither'].forEach(k=>{
     const el=document.getElementById('sw_'+k);
     if(el) el.classList.toggle('on',!!CONFIG[k]);
+  });
+  // Sync castle-only checkboxes (a preset may set these directly)
+  ['battlements','cornerTowers','portcullis','moss','heavyBase'].forEach(k=>{
+    const cb = document.getElementById(k+'Toggle');
+    if (cb) cb.checked = !!CONFIG[k];
+    const lbl = document.getElementById(k+'Val');
+    if (lbl) lbl.textContent = CONFIG[k] ? 'sí' : 'no';
   });
   // Sync variant buttons
   [{key:'roofType',row:'roofTypeRow'},{key:'facadeType',row:'facadeTypeRow'}].forEach(({key,row})=>{

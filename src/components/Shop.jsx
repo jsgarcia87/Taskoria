@@ -283,17 +283,9 @@ const Shop = ({ currentUser }) => {
                     >
                         MARKET
                     </button>
-                    <button
-                        onClick={() => setActiveTab('bazaar')}
-                        className={`
-                            flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-bold text-xs transition-all duration-300 flex-1 sm:flex-none
-                            ${activeTab === 'bazaar'
-                                ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(147,51,234,0.5)]'
-                                : 'text-gray-400 hover:text-white hover:bg-white/5'}
-                        `}
-                    >
-                        <Hammer size={14} /> BAZAAR
-                    </button>
+                    {/* BAZAAR tab hidden until the open world is properly built.
+                        Keep state, fetchBazaar and the panel intact — re-enable
+                        by uncommenting this button. */}
                     <button
                         onClick={() => setActiveTab('rewards')}
                         className={`
@@ -413,10 +405,7 @@ const Shop = ({ currentUser }) => {
                        COMMUNITY BAZAAR — buy approved Studio creations w/ gold
                        ═══════════════════════════════════════════════════════ */
                     <div className="space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <p className="text-xs text-purple-300 uppercase font-bold tracking-widest border border-purple-500/30 bg-purple-500/10 inline-block px-4 py-1.5 rounded-full">
-                                Curated by Sangar · Built by the community
-                            </p>
+                        <div className="flex flex-wrap items-center justify-end gap-3">
                             <button
                                 onClick={fetchBazaar}
                                 disabled={isLoadingBazaar}
