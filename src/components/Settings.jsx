@@ -176,7 +176,7 @@ const Settings = ({ onClose, currentUser }) => {
 
             <div className="mt-12 pt-6 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-600 font-mono">
                 <span>TASKORIA VERSION 1.0.4-BETA</span>
-                <span className="text-rpg-gold/40">Sangar Studio © 2024</span>
+                <span className="text-rpg-gold/40">Sangar Studio © {new Date().getFullYear()}</span>
             </div>
         </div>
     );
