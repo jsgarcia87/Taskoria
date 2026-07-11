@@ -200,11 +200,16 @@ export const MAP_DATA = {
             { x: 200, y: 400, width: 120, height: 80 },
             { x: 500, y: 400, width: 120, height: 80 }
         ],
+        // Council interaction zones. Ledgar sits in the right nook past the
+        // bar and opens the beta-feedback modal when the hero speaks with him.
+        interactables: [
+            { x: 640, y: 210, width: 80, height: 100, radius: 80, target: 'ledgar', label: 'Send word to Ledgar' }
+        ],
         portals: [
             // Door to outside
-            { 
-                x: 350, y: 700, width: 100, height: 60, 
-                targetMap: 'townSquare', 
+            {
+                x: 350, y: 700, width: 100, height: 60,
+                targetMap: 'townSquare',
                 targetX: 950, targetY: 150,
                 label: 'Exit'
             }
@@ -229,9 +234,14 @@ export const MAP_DATA = {
 
             // Fireplace
             { x: 120, y: 100, type: 'fire', size: 60 },
-            
+
             // Rug
-            { x: 300, y: 550, type: 'rect', width: 200, height: 140, color: '#7f1d1d', opacity: 0.8, radius: '10px', z: 0 }
+            { x: 300, y: 550, type: 'rect', width: 200, height: 140, color: '#7f1d1d', opacity: 0.8, radius: '10px', z: 0 },
+
+            // Archivist Ledgar of the Parchment — Council NPC for bug reports.
+            // Placed in the right nook so he's visible on entry but not blocking
+            // the bar or the tables.
+            { x: 680, y: 310, type: 'ledgar_npc', size: 60 }
         ]
     },
     mysticForest: {

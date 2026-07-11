@@ -346,9 +346,14 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                                 familyMembers={familyMembers}
                                 friends={friends}
                                 onInteract={(target) => {
+                                    // Council members open in-world dialogs instead of switching tabs.
+                                    if (target.target === 'ledgar') {
+                                        window.dispatchEvent(new CustomEvent('taskoria:open-feedback'));
+                                        return;
+                                    }
                                     setActiveTab(target.target);
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
                             />
                         </Suspense>
 

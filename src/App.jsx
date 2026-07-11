@@ -110,7 +110,7 @@ const GameContent = ({ currentUser, onLogout }) => {
     const key = `beta-welcomed-${activeProfileId}`;
     if (localStorage.getItem(key)) return;
     const t = setTimeout(() => {
-      toast.info("You're in closed beta. Spot a bug or an idea? Tap the book icon on the corner and tell Sangar.");
+      toast.info("You're in closed beta. Spot an Archive rift or a spark of an idea? Tap the book icon on the corner — Archivist Ledgar will log it at the Tavern.");
       localStorage.setItem(key, '1');
     }, 3500);
     return () => clearTimeout(t);

@@ -213,6 +213,25 @@ const DecorationsLayer = React.memo(function DecorationsLayer({ decorations }) {
                             <div className="w-8 h-2 bg-black/40 rounded-full blur-sm mt-[-4px]" />
                         </div>
                     );
+                    if (dec.type === 'ledgar_npc') return (
+                        // Archivist Ledgar of the Parchment — Council member for bug reports.
+                        // Scholarly parchment/burgundy palette; a floating quill hovers to signal
+                        // "he's the one who writes things down" without an extra sprite.
+                        <div key={`dec_${i}`} className="absolute flex flex-col items-center" style={{ left: dec.x, top: dec.y, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
+                            <div className="bg-black/70 text-rpg-gold text-[8px] px-2 py-0.5 rounded-full mb-1 border border-rpg-gold/40 font-bold uppercase tracking-wider">Archivist Ledgar</div>
+                            <div className="animate-world-bob relative">
+                                <ModernPixelAvatar
+                                    type="mage"
+                                    scale={1.05}
+                                    customColors={{ primary: '#8b3a2a', primaryDark: '#5a2418', skin: '#f0c090', hair: '#4a3020' }}
+                                />
+                                {/* Floating quill — pixel diamond that gently bobs. Marks him as
+                                    "the scribe" at a glance across a full tavern. */}
+                                <div className="absolute -top-1 -right-2 text-[10px] leading-none rotate-[-25deg] animate-pulse text-rpg-gold/90 select-none">✒</div>
+                            </div>
+                            <div className="w-8 h-2 bg-black/40 rounded-full blur-sm mt-[-4px]" />
+                        </div>
+                    );
 
                     if (dec.type === 'well') {
                         const cx = dec.x + (dec.width || 96) / 2;

@@ -382,7 +382,7 @@ const CreationStudio = ({ currentUser }) => {
                             />
                             <span className="text-[10px] uppercase tracking-widest text-rpg-gold whitespace-nowrap">gold</span>
                         </div>
-                        <p className="text-[10px] text-gray-500 mt-1">Between 10 and 500. Sangar may adjust at approval.</p>
+                        <p className="text-[10px] text-gray-500 mt-1">Between 10 and 500. Quartermistress Coinhilda may adjust at approval — the Treasury guards a fair rate.</p>
 
                         <button
                             onClick={publish}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 import PixelIcon from './PixelIcon';
@@ -76,10 +76,10 @@ const FeedbackModal = ({ onClose, currentUser, activeProfileId }) => {
         </button>
 
         <div>
-          <div className="text-gray-400 font-bold uppercase tracking-[0.3em] text-[10px] mb-1">Beta feedback</div>
-          <h3 className="text-xl font-heading font-bold text-rpg-gold text-shadow-glow">Tell the guild</h3>
+          <div className="text-gray-400 font-bold uppercase tracking-[0.3em] text-[10px] mb-1">Archive rift report</div>
+          <h3 className="text-xl font-heading font-bold text-rpg-gold text-shadow-glow">Send word to Ledgar</h3>
           <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-            Bugs, ideas, confusing bits — anything you noticed. This goes straight to Sangar.
+            Bugs, ideas, confusing bits — anything you noticed. Archivist Ledgar will log it in the Great Book of Sealed Grievances.
           </p>
         </div>
 
@@ -130,7 +130,7 @@ const FeedbackModal = ({ onClose, currentUser, activeProfileId }) => {
               if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submit(e);
             }}
           >
-            {submitting ? 'Sending…' : 'Send to Sangar'}
+            {submitting ? 'Sealing…' : 'Seal in the Book'}
           </PressButton>
         </div>
       </motion.form>
@@ -145,6 +145,15 @@ const FeedbackModal = ({ onClose, currentUser, activeProfileId }) => {
  */
 const FeedbackButton = ({ currentUser, activeProfileId }) => {
   const [open, setOpen] = useState(false);
+
+  // In-world Archivist Ledgar (tavernInterior) dispatches this event when the
+  // hero interacts with him; PartyView wires the interactable → event bridge.
+  // Keeps the world layer decoupled from the modal's internal state.
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener('taskoria:open-feedback', handler);
+    return () => window.removeEventListener('taskoria:open-feedback', handler);
+  }, []);
 
   return (
     <>
