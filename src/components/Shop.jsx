@@ -446,7 +446,7 @@ const Shop = ({ currentUser }) => {
                                         The Bazaar is quiet
                                     </div>
                                     <div className="text-xs text-gray-500 mt-1 max-w-[320px] mx-auto">
-                                        No approved creations{bazaarCategory !== 'all' ? ' in this category ' : ' '}yet. Sangar is still curating the first pieces.
+                                        No approved creations{bazaarCategory !== 'all' ? ' in this category ' : ' '}yet. Quartermistress Coinhilda is still weighing the first pieces at the Treasury.
                                     </div>
                                 </div>
                             </div>
