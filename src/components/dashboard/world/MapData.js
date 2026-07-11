@@ -61,18 +61,18 @@ export const MAP_DATA = {
             { name: 'market_corner',  x: 520,  y: 760, accent: '#16a34a' },
             { name: 'market_corner',  x: 1050, y: 220, accent: '#7c3aed' },
             { name: 'sanctuary_pen',  x: 1120, y: 560, width: 360, height: 320 },
-            // Coherent forest clusters that frame the plaza instead of loose trees
+            // Coherent forest clusters framing the ACTIVE zone (top edge where
+            // the tavern/keep portals sit). Bottom groves removed — they lived
+            // outside the player's usual arc and were the single biggest
+            // paint cost in the plaza (16 decs × 2 = 32 elements per frame).
             { name: 'forest_grove',   x: 200,  y: 140, seed: 11 },
             { name: 'forest_grove',   x: 1450, y: 140, seed: 23 },
-            { name: 'forest_grove',   x: 180,  y: 880, seed: 37 },
-            { name: 'forest_grove',   x: 1480, y: 880, seed: 47 },
             // Residential blocks — give the town actual urban density
             { name: 'town_houses',    x: 460,  y: 820, count: 1, seed: 3 },
             { name: 'town_houses',    x: 920,  y: 820, count: 1, seed: 7 },
-            // Decorative garden patches for empty space — coherent flower+bush+grass clusters
-            { name: 'garden_patch',   x: 540,  y: 140, seed: 5 },
+            // One central garden patch survives — the corner ones were pure
+            // filler and cost 20 decs for no navigational or narrative value.
             { name: 'garden_patch',   x: 300,  y: 620, seed: 12 },
-            { name: 'garden_patch',   x: 1080, y: 500, seed: 18 },
         ],
         decorations: [
             // --- ROADS — visible warm-sand paths carved across the cobblestone ---
@@ -85,20 +85,16 @@ export const MAP_DATA = {
             //   Vertical road across the town (north-south, from tavern/keep portals to bottom)
             { type: 'rect', x: 760, y: 0, width: 90, height: 1000, color: '#c8a878', opacity: 0.55, z: 0 },
             { type: 'rect', x: 780, y: 0, width: 50, height: 1000, color: '#b89868', opacity: 0.5, z: 0 },
-            //   Side spur to the shop (from horizontal road, branching NW)
+            //   Side spurs to the two functional interactables only. Spurs to
+            //   the two market corners removed — the wide horizontal road
+            //   already leads there and the extra rects added paint cost
+            //   without new navigational information.
             { type: 'rect', x: 320, y: 380, width: 60, height: 180, color: '#c8a878', opacity: 0.5, z: 0 },
-            //   Side spur to sanctuary
             { type: 'rect', x: 1100, y: 540, width: 60, height: 80, color: '#c8a878', opacity: 0.5, z: 0 },
-            //   Side spur to south market
-            { type: 'rect', x: 560, y: 560, width: 60, height: 220, color: '#c8a878', opacity: 0.5, z: 0 },
-            //   Side spur to north market
-            { type: 'rect', x: 1080, y: 320, width: 60, height: 180, color: '#c8a878', opacity: 0.5, z: 0 },
 
-            // --- Worn patches & cracks on the roads ---
+            // --- Worn patch at the central intersection ---
             { type: 'cobble_patch', x: 800, y: 500, width: 220, height: 140, color: '#8a6a40', opacity: 0.45, z: 0 },
             { type: 'crack', x: 700, y: 520, length: 80, angle: 15, z: 0 },
-            { type: 'crack', x: 880, y: 580, length: 60, angle: -25, z: 0 },
-            { type: 'puddle', x: 720, y: 660, size: 70, z: 0 },
 
             // --- Central well (anchored plaza centerpiece, flanked by benches) ---
             { type: 'well', x: 752, y: 352, width: 96, height: 96 },
@@ -115,7 +111,9 @@ export const MAP_DATA = {
             { type: 'lamp',         x: 600,  y: 760, size: 64 },
             { type: 'lantern_glow', x: 1000, y: 780, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
             { type: 'lamp',         x: 1000, y: 760, size: 64 },
-            { type: 'lantern_glow', x: 800,  y: 400, radius: 120, color: 'rgba(255,200,120,0.22)', z: 1 },
+            // Central well already reads as the plaza focal point via its own
+            // sprite + the two concentric dirt rings. The extra ambient halo
+            // here was a radial-gradient composite on every scroll frame.
 
             // --- Banners on the north wall ---
             { type: 'banner', x: 320,  y: 40, color: '#7c3aed', icon: '⚔' },
