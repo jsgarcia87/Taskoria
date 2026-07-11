@@ -315,6 +315,113 @@ export const MAP_DATA = {
             // Path patches near portals
             { type: 'cobble_patch', x: 150, y: 460, width: 120, height: 80, color: '#8a7a5c', opacity: 0.35, z: 0 },
             { type: 'cobble_patch', x: 1830, y: 480, width: 120, height: 80, color: '#8a7a5c', opacity: 0.35, z: 0 },
+
+            // ─── Stone trail — town portal ↔ bridge ↔ crypts portal ────────
+            // Small worn patches trace the well-trod route so the map reads as
+            // a "path with two edges" instead of an aimless grove field.
+            { type: 'cobble_patch', x: 1650, y: 490, width: 120, height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
+            { type: 'cobble_patch', x: 1450, y: 500, width: 120, height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
+            { type: 'cobble_patch', x: 1240, y: 490, width: 120, height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
+            { type: 'cobble_patch', x: 1080, y: 500, width: 90,  height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
+            { type: 'cobble_patch', x: 700,  y: 500, width: 90,  height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
+            { type: 'cobble_patch', x: 540,  y: 495, width: 120, height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
+            { type: 'cobble_patch', x: 340,  y: 490, width: 120, height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
+
+            // ─── River banks — reeds + lily pads ───────────────────────────
+            // Grass tufts on both shores break the flat blue rectangle, and
+            // a few dark-green ellipses read as floating lily pads on the water.
+            { type: 'sprite', name: 'grass_tuft', x: 770, y: 140, scale: 1.6, z: 140 },
+            { type: 'sprite', name: 'grass_tuft', x: 770, y: 260, scale: 1.5, z: 260 },
+            { type: 'sprite', name: 'grass_tuft', x: 770, y: 670, scale: 1.6, z: 670 },
+            { type: 'sprite', name: 'grass_tuft', x: 770, y: 790, scale: 1.5, z: 790 },
+            { type: 'sprite', name: 'grass_tuft', x: 770, y: 890, scale: 1.4, z: 890 },
+            { type: 'sprite', name: 'grass_tuft', x: 1030, y: 150, scale: 1.5, z: 150 },
+            { type: 'sprite', name: 'grass_tuft', x: 1030, y: 270, scale: 1.6, z: 270 },
+            { type: 'sprite', name: 'grass_tuft', x: 1030, y: 680, scale: 1.5, z: 680 },
+            { type: 'sprite', name: 'grass_tuft', x: 1030, y: 800, scale: 1.4, z: 800 },
+            { type: 'sprite', name: 'grass_tuft', x: 1030, y: 895, scale: 1.5, z: 895 },
+            // Lily pads — small dark-green ovals floating on the river surface
+            { type: 'rect', x: 856, y: 200, width: 28, height: 14, color: '#16a34a', opacity: 0.75, radius: '50%', z: 1 },
+            { type: 'rect', x: 934, y: 320, width: 26, height: 14, color: '#16a34a', opacity: 0.75, radius: '50%', z: 1 },
+            { type: 'rect', x: 880, y: 700, width: 28, height: 14, color: '#16a34a', opacity: 0.75, radius: '50%', z: 1 },
+            { type: 'rect', x: 928, y: 830, width: 26, height: 14, color: '#16a34a', opacity: 0.75, radius: '50%', z: 1 },
+
+            // ─── Forest glow — filtered light through the canopy ───────────
+            // Soft yellow-green halos scattered on the ground. Sells the
+            // "magic forest" bioma without needing a canopy sprite pass.
+            { type: 'lantern_glow', x: 380,  y: 200, radius: 110, color: 'rgba(180,255,140,0.14)', z: 1 },
+            { type: 'lantern_glow', x: 580,  y: 660, radius: 100, color: 'rgba(180,255,140,0.14)', z: 1 },
+            { type: 'lantern_glow', x: 1230, y: 200, radius: 110, color: 'rgba(180,255,140,0.14)', z: 1 },
+            { type: 'lantern_glow', x: 1520, y: 860, radius: 100, color: 'rgba(180,255,140,0.14)', z: 1 },
+            { type: 'lantern_glow', x: 350,  y: 500, radius: 90,  color: 'rgba(180,255,140,0.14)', z: 1 },
+            { type: 'lantern_glow', x: 1650, y: 400, radius: 100, color: 'rgba(180,255,140,0.14)', z: 1 },
+
+            // ─── Fairy mushroom circle (east narrative point) ──────────────
+            // 8 mushrooms in a ring around a soft green glow — the "wondrous"
+            // side of the forest, closer to town. Places a spot the player
+            // will remember without needing a quest hook attached.
+            { type: 'lantern_glow', x: 1620, y: 720, radius: 55, color: 'rgba(120,255,120,0.28)', z: 1 },
+            { type: 'sprite', name: 'mushroom', x: 1620, y: 660, scale: 1.4, z: 660 },
+            { type: 'sprite', name: 'mushroom', x: 1665, y: 675, scale: 1.4, z: 675 },
+            { type: 'sprite', name: 'mushroom', x: 1680, y: 720, scale: 1.4, z: 720 },
+            { type: 'sprite', name: 'mushroom', x: 1665, y: 765, scale: 1.4, z: 765 },
+            { type: 'sprite', name: 'mushroom', x: 1620, y: 780, scale: 1.4, z: 780 },
+            { type: 'sprite', name: 'mushroom', x: 1575, y: 765, scale: 1.4, z: 765 },
+            { type: 'sprite', name: 'mushroom', x: 1560, y: 720, scale: 1.4, z: 720 },
+            { type: 'sprite', name: 'mushroom', x: 1575, y: 675, scale: 1.4, z: 675 },
+            // Small flower ring right next to the circle to soften the edge
+            { type: 'flowers', x: 1620, y: 620, size: 32 },
+            { type: 'flowers', x: 1620, y: 820, size: 32 },
+
+            // ─── Ancient shrine (west narrative point) ─────────────────────
+            // Weathered statue flanked by two pillars — foreshadows the Shadow
+            // Crypts on the other side of the west portal. Cracks and a dim
+            // violet glow mark it as "old and haunted", not "friendly rest".
+            { type: 'lantern_glow', x: 240, y: 300, radius: 90, color: 'rgba(120,80,180,0.22)', z: 1 },
+            { type: 'statue', x: 240, y: 300, size: 60 },
+            { type: 'pillar', x: 165, y: 355, width: 40, height: 90 },
+            { type: 'pillar', x: 315, y: 355, width: 40, height: 90 },
+            { type: 'crack', x: 240, y: 380, length: 90, angle: 0, z: 0 },
+            { type: 'crack', x: 195, y: 420, length: 60, angle: -18, z: 0 },
+            { type: 'crack', x: 285, y: 420, length: 60, angle: 18, z: 0 },
+            // Scattered skulls near the shrine — ominous
+            { type: 'sprite', name: 'skull', x: 175, y: 460, scale: 1.6, z: 460 },
+            { type: 'sprite', name: 'skull', x: 310, y: 470, scale: 1.4, z: 470 },
+
+            // ─── Wandering critters ────────────────────────────────────────
+            // Wild slimes prowl the west (closer to the crypts); rabbits play
+            // in the east (closer to the friendly town). One lonely blue
+            // slime hangs by the river as a stress-test for the crossing.
+            { type: 'critter', variant: 'slime', color: '#22c55e', x: 320, y: 250 },
+            { type: 'critter', variant: 'slime', color: '#22c55e', x: 460, y: 720 },
+            { type: 'critter', variant: 'slime', color: '#166534', x: 600, y: 300 },
+            { type: 'critter', variant: 'slime', color: '#3b82f6', x: 760, y: 440 },
+            { type: 'critter', variant: 'cat',   color: '#e2e8f0', x: 1300, y: 300 },
+            { type: 'critter', variant: 'cat',   color: '#f5deb3', x: 1440, y: 720 },
+            { type: 'critter', variant: 'cat',   color: '#e2e8f0', x: 1720, y: 500 },
+
+            // ─── Density fill — scattered undergrowth between prefabs ──────
+            // Loose mushrooms, flowers and bushes fill the empty strips
+            // between the seeded grove clusters so the eye never lands on a
+            // patch of pure grass tile.
+            { type: 'sprite', name: 'mushroom', x: 280, y: 400, scale: 1.2, z: 400 },
+            { type: 'sprite', name: 'mushroom', x: 620, y: 380, scale: 1.3, z: 380 },
+            { type: 'sprite', name: 'mushroom', x: 1130, y: 380, scale: 1.2, z: 380 },
+            { type: 'sprite', name: 'mushroom', x: 1420, y: 360, scale: 1.3, z: 360 },
+            { type: 'sprite', name: 'mushroom', x: 700, y: 720, scale: 1.2, z: 720 },
+            { type: 'sprite', name: 'mushroom', x: 1100, y: 700, scale: 1.4, z: 700 },
+            { type: 'sprite', name: 'grass_tuft', x: 420, y: 380, scale: 1.4, z: 380 },
+            { type: 'sprite', name: 'grass_tuft', x: 660, y: 640, scale: 1.5, z: 640 },
+            { type: 'sprite', name: 'grass_tuft', x: 1160, y: 640, scale: 1.4, z: 640 },
+            { type: 'sprite', name: 'grass_tuft', x: 1400, y: 340, scale: 1.5, z: 340 },
+            { type: 'flowers', x: 470, y: 330, size: 30 },
+            { type: 'flowers', x: 650, y: 620, size: 32 },
+            { type: 'flowers', x: 1150, y: 340, size: 30 },
+            { type: 'flowers', x: 1430, y: 620, size: 32 },
+            { type: 'bush', x: 260, y: 660, size: 46 },
+            { type: 'bush', x: 640, y: 260, size: 44 },
+            { type: 'bush', x: 1240, y: 640, size: 46 },
+            { type: 'bush', x: 1500, y: 260, size: 44 },
         ]
     },
     shadowCrypts: {
