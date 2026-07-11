@@ -473,7 +473,114 @@ export const MAP_DATA = {
 
             // Skeletons
             { type: 'sprite', name: 'skull', x: 200, y: 400, scale: 2.0, z: 400 },
-            { type: 'sprite', name: 'skull', x: 900, y: 900, scale: 2.0, z: 900 }
+            { type: 'sprite', name: 'skull', x: 900, y: 900, scale: 2.0, z: 900 },
+
+            // ─── Central aisle runner + spawn approach ─────────────────────
+            // Dark red rug from the altar down to the spawn portal.
+            // Reads as a ceremonial descent — the hero enters the crypt on a
+            // path that leads straight to what the Archive Council mourns.
+            { type: 'rect', x: 540, y: 520, width: 120, height: 880, color: '#450a0a', opacity: 0.55, z: 0 },
+            { type: 'rect', x: 450, y: 260, width: 300, height: 100, color: '#450a0a', opacity: 0.45, z: 0 },
+            // Aisle worn stone patches
+            { type: 'cobble_patch', x: 600, y: 400, width: 100, height: 80, color: '#0f0f18', opacity: 0.45, z: 0 },
+            { type: 'cobble_patch', x: 600, y: 800, width: 100, height: 80, color: '#0f0f18', opacity: 0.45, z: 0 },
+            { type: 'cobble_patch', x: 600, y: 1200, width: 100, height: 80, color: '#0f0f18', opacity: 0.45, z: 0 },
+
+            // ─── The Archive of Broken Vows (central altar) ────────────────
+            // Sarcophagus-altar with the "cursed tome" (skull as stand-in
+            // sprite) glowing red. Every unresolved Archive rift ends here.
+            // This is the crypt's WHY: it's not a monster den — it's a mausoleum
+            // for the app's promises the world couldn't keep.
+            { type: 'rect', x: 540, y: 440, width: 120, height: 80, color: '#1a1a24', z: 0 },
+            { type: 'rect', x: 540, y: 440, width: 120, height: 4, color: '#3a3a4a', z: 1 },
+            { type: 'rect', x: 540, y: 516, width: 120, height: 4, color: '#050508', z: 1 },
+            { type: 'lantern_glow', x: 600, y: 480, radius: 110, color: 'rgba(220,60,60,0.35)', z: 1 },
+            { type: 'sprite', name: 'skull', x: 600, y: 470, scale: 1.6, z: 470 },
+
+            // Ring of fractures around the altar — the ground can't hold what's inside
+            { type: 'crack', x: 460, y: 470, length: 80, angle: 30, z: 0 },
+            { type: 'crack', x: 740, y: 470, length: 80, angle: -30, z: 0 },
+            { type: 'crack', x: 600, y: 380, length: 100, angle: 0, z: 0 },
+            { type: 'crack', x: 600, y: 560, length: 100, angle: 0, z: 0 },
+
+            // ─── Collapsed bookshelves behind the altar ────────────────────
+            // Three broken shelves in a semicircle. The scrolls scattered on
+            // the floor are the physical form of every Archive rift Ledgar
+            // couldn't seal in time.
+            { type: 'sprite', name: 'bookshelf', x: 450, y: 300, scale: 1.4, z: 300 },
+            { type: 'sprite', name: 'bookshelf', x: 600, y: 260, scale: 1.4, z: 260 },
+            { type: 'sprite', name: 'bookshelf', x: 750, y: 300, scale: 1.4, z: 300 },
+            { type: 'rect', x: 420, y: 340, width: 22, height: 8, color: '#c9a86a', opacity: 0.7, radius: '3px', z: 1 },
+            { type: 'rect', x: 500, y: 380, width: 20, height: 6, color: '#c9a86a', opacity: 0.7, radius: '3px', z: 1 },
+            { type: 'rect', x: 680, y: 360, width: 24, height: 7, color: '#c9a86a', opacity: 0.7, radius: '3px', z: 1 },
+            { type: 'rect', x: 760, y: 340, width: 22, height: 8, color: '#c9a86a', opacity: 0.7, radius: '3px', z: 1 },
+            { type: 'rect', x: 540, y: 400, width: 18, height: 6, color: '#c9a86a', opacity: 0.7, radius: '3px', z: 1 },
+
+            // ─── Wall torches on the pillars + warm halos ──────────────────
+            // Bolts the existing torch decorations onto the pillar tops with
+            // a per-pillar halo so the crypt has a rhythmic light cadence
+            // instead of pure black voids between the pillars.
+            { type: 'sprite', name: 'wall_torch', x: 300, y: 260, scale: 1.4, z: 260 },
+            { type: 'sprite', name: 'wall_torch', x: 800, y: 260, scale: 1.4, z: 260 },
+            { type: 'sprite', name: 'wall_torch', x: 300, y: 660, scale: 1.4, z: 660 },
+            { type: 'sprite', name: 'wall_torch', x: 800, y: 660, scale: 1.4, z: 660 },
+            { type: 'sprite', name: 'wall_torch', x: 300, y: 1060, scale: 1.4, z: 1060 },
+            { type: 'sprite', name: 'wall_torch', x: 800, y: 1060, scale: 1.4, z: 1060 },
+            { type: 'lantern_glow', x: 300, y: 260, radius: 130, color: 'rgba(255,140,60,0.28)', z: 1 },
+            { type: 'lantern_glow', x: 800, y: 260, radius: 130, color: 'rgba(255,140,60,0.28)', z: 1 },
+            { type: 'lantern_glow', x: 300, y: 660, radius: 130, color: 'rgba(255,140,60,0.28)', z: 1 },
+            { type: 'lantern_glow', x: 800, y: 660, radius: 130, color: 'rgba(255,140,60,0.28)', z: 1 },
+            { type: 'lantern_glow', x: 300, y: 1060, radius: 130, color: 'rgba(255,140,60,0.28)', z: 1 },
+            { type: 'lantern_glow', x: 800, y: 1060, radius: 130, color: 'rgba(255,140,60,0.28)', z: 1 },
+
+            // ─── Necrotic pools in the lower corners ───────────────────────
+            // Sickly green ooze puddles + green halos + skulls scattered
+            // around them. Signals "sealed evil bleeds out here".
+            { type: 'rect', x: 150, y: 1250, width: 90, height: 50, color: '#22c55e', opacity: 0.18, radius: '50%', z: 0 },
+            { type: 'lantern_glow', x: 195, y: 1275, radius: 70, color: 'rgba(80,255,120,0.16)', z: 1 },
+            { type: 'rect', x: 960, y: 1250, width: 90, height: 50, color: '#22c55e', opacity: 0.18, radius: '50%', z: 0 },
+            { type: 'lantern_glow', x: 1005, y: 1275, radius: 70, color: 'rgba(80,255,120,0.16)', z: 1 },
+            { type: 'sprite', name: 'skull', x: 180, y: 1200, scale: 1.3, z: 1200 },
+            { type: 'sprite', name: 'skull', x: 220, y: 1240, scale: 1.4, z: 1240 },
+            { type: 'sprite', name: 'skull', x: 980, y: 1200, scale: 1.3, z: 1200 },
+            { type: 'sprite', name: 'skull', x: 1020, y: 1240, scale: 1.4, z: 1240 },
+
+            // ─── Wandering shadow oozes ────────────────────────────────────
+            // Dark purple slimes patrolling. Reuses the critter type with a
+            // cursed palette so no new sprite is needed.
+            { type: 'critter', variant: 'slime', color: '#4c1d95', x: 400, y: 900 },
+            { type: 'critter', variant: 'slime', color: '#4c1d95', x: 800, y: 900 },
+            { type: 'critter', variant: 'slime', color: '#1e1b4b', x: 500, y: 1200 },
+
+            // ─── Ground grime — cracks, puddles, wear ──────────────────────
+            { type: 'crack', x: 400, y: 500, length: 60, angle: 15, z: 0 },
+            { type: 'crack', x: 800, y: 500, length: 60, angle: -15, z: 0 },
+            { type: 'crack', x: 350, y: 900, length: 70, angle: 45, z: 0 },
+            { type: 'crack', x: 850, y: 900, length: 70, angle: -45, z: 0 },
+            { type: 'crack', x: 500, y: 1000, length: 80, angle: 0, z: 0 },
+            { type: 'crack', x: 700, y: 1000, length: 80, angle: 0, z: 0 },
+            { type: 'crack', x: 200, y: 500, length: 60, angle: 30, z: 0 },
+            { type: 'crack', x: 1000, y: 500, length: 60, angle: -30, z: 0 },
+            { type: 'crack', x: 500, y: 1350, length: 100, angle: 5, z: 0 },
+            { type: 'crack', x: 700, y: 1350, length: 100, angle: -5, z: 0 },
+            { type: 'puddle', x: 400, y: 200, size: 60, z: 0 },
+            { type: 'puddle', x: 900, y: 300, size: 55, z: 0 },
+            { type: 'puddle', x: 500, y: 700, size: 65, z: 0 },
+            { type: 'puddle', x: 700, y: 1300, size: 60, z: 0 },
+
+            // ─── Broken barrels & crates in shadowed side aisles ───────────
+            { type: 'barrel', x: 180, y: 500, size: 40 },
+            { type: 'crate', x: 220, y: 550, size: 40 },
+            { type: 'barrel', x: 980, y: 500, size: 40 },
+            { type: 'crate', x: 1020, y: 550, size: 40 },
+            { type: 'barrel', x: 180, y: 900, size: 40 },
+            { type: 'crate', x: 1020, y: 900, size: 40 },
+
+            // ─── Scattered bone piles ──────────────────────────────────────
+            { type: 'sprite', name: 'skull', x: 240, y: 700, scale: 1.5, z: 700 },
+            { type: 'sprite', name: 'skull', x: 960, y: 700, scale: 1.5, z: 700 },
+            { type: 'sprite', name: 'skull', x: 260, y: 300, scale: 1.4, z: 300 },
+            { type: 'sprite', name: 'skull', x: 940, y: 300, scale: 1.4, z: 300 }
         ]
     }
 };
