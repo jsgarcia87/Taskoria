@@ -3,19 +3,83 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="./Icono_taskoria.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-  <!-- PWA iOS Optimizations -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Taskoria">
-  <link rel="apple-touch-icon" href="./Icono_taskoria.svg">
-  <link rel="manifest" href="./manifest.webmanifest">
-  <meta name="theme-color" content="#130f1e">
+  <!-- Primary SEO -->
+  <title>Taskoria — Turn your day into an RPG adventure</title>
+  <meta name="description" content="Taskoria is a habits &amp; tasks app with a real pixel-art world. Complete quests, level up your hero, explore a town with your party and build the game together. Closed beta open now." />
+  <meta name="keywords" content="gamified productivity, habit tracker, RPG task app, pixel art productivity, quest tracker, level up your day, gamified to-do, taskoria" />
+  <meta name="author" content="Sangar Studio" />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="https://taskoria.es/" />
 
-  <title>Taskoria</title>
+  <!-- Open Graph (Facebook, LinkedIn, WhatsApp, Slack, Discord) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Taskoria" />
+  <meta property="og:url" content="https://taskoria.es/" />
+  <meta property="og:title" content="Taskoria — Turn your day into an RPG adventure" />
+  <meta property="og:description" content="A habits &amp; tasks app with a real pixel-art world. Complete quests, level up your hero and build the game together with the community." />
+  <meta property="og:image" content="https://taskoria.es/og-image.png" />
+  <meta property="og:image:secure_url" content="https://taskoria.es/og-image.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Taskoria — Turn your day into an RPG adventure. Pixel-art hero card mockup." />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:locale:alternate" content="es_ES" />
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://taskoria.es/" />
+  <meta name="twitter:title" content="Taskoria — Turn your day into an RPG adventure" />
+  <meta name="twitter:description" content="A habits &amp; tasks app with a real pixel-art world. Complete quests, level up your hero and build the game together with the community." />
+  <meta name="twitter:image" content="https://taskoria.es/og-image.png" />
+  <meta name="twitter:image:alt" content="Taskoria — Turn your day into an RPG adventure. Pixel-art hero card mockup." />
+
+  <!-- Icons + PWA -->
+  <link rel="icon" type="image/svg+xml" href="/Icono_taskoria.svg" />
+  <link rel="apple-touch-icon" href="/Icono_taskoria.svg" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Taskoria" />
+  <meta name="theme-color" content="#130f1e" />
+
+  <!-- Structured data — Organization + WebApplication for rich results -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://taskoria.es/#organization",
+        "name": "Taskoria",
+        "url": "https://taskoria.es/",
+        "logo": "https://taskoria.es/logo_taskoria.svg",
+        "sameAs": ["https://sangar.studio"]
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://taskoria.es/#app",
+        "name": "Taskoria",
+        "url": "https://taskoria.es/",
+        "description": "A habits and tasks app with a real pixel-art world. Complete quests, level up your hero and build the game together with the community.",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Web, iOS, Android (PWA)",
+        "browserRequirements": "Requires JavaScript. Modern browser.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR",
+          "availability": "https://schema.org/InStock"
+        },
+        "publisher": { "@id": "https://taskoria.es/#organization" },
+        "inLanguage": ["en", "es"]
+      }
+    ]
+  }
+  </script>
 </head>
 
 <body>

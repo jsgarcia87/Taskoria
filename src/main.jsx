@@ -1,11 +1,12 @@
 import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import { MotionConfig } from 'motion/react'
 import './index.css'
 import App from './App.jsx'
 import { ToastProvider } from './components/common/Toast'
 
-createRoot(document.getElementById('root')).render(
+const rootEl = document.getElementById('root')
+const tree = (
   <StrictMode>
     <MotionConfig
       reducedMotion="user"
@@ -15,5 +16,14 @@ createRoot(document.getElementById('root')).render(
         <App />
       </ToastProvider>
     </MotionConfig>
-  </StrictMode>,
+  </StrictMode>
 )
+
+// When vite-prerender-plugin has injected the landing into #root at build
+// time, hydrate instead of blowing away the SEO markup. Fresh SPA renders
+// (dev, non-prerendered routes) fall through to createRoot.
+if (rootEl.hasChildNodes()) {
+  hydrateRoot(rootEl, tree)
+} else {
+  createRoot(rootEl).render(tree)
+}

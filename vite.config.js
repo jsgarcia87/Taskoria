@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { vitePrerenderPlugin } from 'vite-prerender-plugin'
 import { cpSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -24,6 +25,15 @@ export default defineConfig({
   plugins: [
     react(),
     copyApi(),
+    // Prerender the landing route at build time so crawlers (Google, LinkedIn,
+    // X, Slack, WhatsApp) get real HTML on first byte instead of an empty
+    // <div id="root">. Client-side, main.jsx hydrates over the prerendered
+    // markup. Only the '/' route is prerendered; the auth-gated dashboard
+    // remains a pure SPA.
+    vitePrerenderPlugin({
+      renderTarget: '#root',
+      prerenderScript: resolve(__dirname, 'src/prerender.jsx'),
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
