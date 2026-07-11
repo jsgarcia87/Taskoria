@@ -55,24 +55,22 @@ export const MAP_DATA = {
                 label: 'Taskoria Keep'
             }
         ],
-        // Composite scenes — buildings + their surroundings as a single unit
+        // Composite scenes — kept to the bare-minimum that gives Town Square
+        // its identity while staying under paint budget on lower-end devices.
+        // These maps are provisional (user-built maps will replace them via
+        // the map editor), so we err hard toward performance over decoration.
         prefabs: [
+            // Both interactables are covered by prefabs that draw their
+            // building/enclosure, so they must stay.
             { name: 'shop_complete',  x: 170,  y: 230 },
-            { name: 'market_corner',  x: 520,  y: 760, accent: '#16a34a' },
-            { name: 'market_corner',  x: 1050, y: 220, accent: '#7c3aed' },
             { name: 'sanctuary_pen',  x: 1120, y: 560, width: 360, height: 320 },
-            // Coherent forest clusters framing the ACTIVE zone (top edge where
-            // the tavern/keep portals sit). Bottom groves removed — they lived
-            // outside the player's usual arc and were the single biggest
-            // paint cost in the plaza (16 decs × 2 = 32 elements per frame).
+            // A single forest grove frames the mystic-forest portal on the
+            // west edge. The east grove and the two markets were removed —
+            // they were the single largest paint sinks per frame.
             { name: 'forest_grove',   x: 200,  y: 140, seed: 11 },
-            { name: 'forest_grove',   x: 1450, y: 140, seed: 23 },
-            // Residential blocks — give the town actual urban density
+            // One residential block for urban density. The second house block
+            // was symmetric filler; cutting it saves 6 decs per frame.
             { name: 'town_houses',    x: 460,  y: 820, count: 1, seed: 3 },
-            { name: 'town_houses',    x: 920,  y: 820, count: 1, seed: 7 },
-            // One central garden patch survives — the corner ones were pure
-            // filler and cost 20 decs for no navigational or narrative value.
-            { name: 'garden_patch',   x: 300,  y: 620, seed: 12 },
         ],
         decorations: [
             // --- ROADS — visible warm-sand paths carved across the cobblestone ---
@@ -92,33 +90,29 @@ export const MAP_DATA = {
             { type: 'rect', x: 320, y: 380, width: 60, height: 180, color: '#c8a878', opacity: 0.5, z: 0 },
             { type: 'rect', x: 1100, y: 540, width: 60, height: 80, color: '#c8a878', opacity: 0.5, z: 0 },
 
-            // --- Worn patch at the central intersection ---
-            { type: 'cobble_patch', x: 800, y: 500, width: 220, height: 140, color: '#8a6a40', opacity: 0.45, z: 0 },
-            { type: 'crack', x: 700, y: 520, length: 80, angle: 15, z: 0 },
-
             // --- Central well (anchored plaza centerpiece, flanked by benches) ---
+            // The intersection cobble_patch, its crack, and the flowers by
+            // the well were pure texture — invisible under the well sprite at
+            // most zoom levels, but they still cost paint time on every scroll.
             { type: 'well', x: 752, y: 352, width: 96, height: 96 },
             { type: 'bench', x: 624, y: 520, size: 60 },
             { type: 'bench', x: 920, y: 520, size: 60 },
-            { type: 'flowers', x: 760, y: 470, size: 30 },
 
-            // --- Lamps lighting the plaza corners (kept manual, paired with their glow) ---
-            { type: 'lantern_glow', x: 600,  y: 320, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
-            { type: 'lamp',         x: 600,  y: 300, size: 64 },
-            { type: 'lantern_glow', x: 1000, y: 320, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
-            { type: 'lamp',         x: 1000, y: 300, size: 64 },
-            { type: 'lantern_glow', x: 600,  y: 780, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
-            { type: 'lamp',         x: 600,  y: 760, size: 64 },
-            { type: 'lantern_glow', x: 1000, y: 780, radius: 130, color: 'rgba(253,224,71,0.32)', z: 1 },
-            { type: 'lamp',         x: 1000, y: 760, size: 64 },
-            // Central well already reads as the plaza focal point via its own
-            // sprite + the two concentric dirt rings. The extra ambient halo
-            // here was a radial-gradient composite on every scroll frame.
+            // --- Lamps at the plaza corners ---
+            // Lamp sprites are cheap. Their paired lantern_glow halos were
+            // radial-gradient divs re-composited every frame the map scrolled,
+            // which was the largest single source of navigation lag. Removed;
+            // the plaza reads as "lit" from the lamp sprite alone.
+            { type: 'lamp', x: 600,  y: 300, size: 64 },
+            { type: 'lamp', x: 1000, y: 300, size: 64 },
+            { type: 'lamp', x: 600,  y: 760, size: 64 },
+            { type: 'lamp', x: 1000, y: 760, size: 64 },
 
-            // --- Banners on the north wall ---
-            { type: 'banner', x: 320,  y: 40, color: '#7c3aed', icon: '⚔' },
-            { type: 'banner', x: 800,  y: 40, color: '#fbbf24', icon: '✦' },
-            { type: 'banner', x: 1120, y: 40, color: '#dc2626', icon: '★' },
+            // --- Banner on the north wall (one, centered) ---
+            // Three banners had swaying animations that kept the compositor
+            // busy while the player walked. One centered banner still tells
+            // the medieval-town story.
+            { type: 'banner', x: 800, y: 40, color: '#fbbf24', icon: '✦' },
         ]
     },
     taskoriaKeep: {
