@@ -18,6 +18,15 @@ const NPC_STOP_DIST = 5;
 const FOOT_W = 26;
 const FOOT_H = 14;
 
+// Viewport culling — quantum for camera-position-triggered re-renders. Camera
+// moves in single-pixel steps, but we only re-cull the decoration list when
+// it crosses a CULL_CHUNK boundary. CULL_MARGIN is the buffer around the
+// visible rectangle inside which decorations still render — keeps props from
+// popping in at the screen edge during fast movement and covers offset from
+// bottom-center / center anchoring on WorldSprite props.
+const CULL_CHUNK = 240;
+const CULL_MARGIN = 320;
+
 // Avatars re-run their rect generation on every render. Memoize so they only
 // re-render when their own props actually change (not when the world re-renders).
 const MemoAvatar = ModernPixelAvatar;
@@ -671,6 +680,43 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
     const [selectedNpc, setSelectedNpc] = useState(null);
     const [chatNpc, setChatNpc] = useState(null);
 
+    // Viewport culling — track which chunk of the map is visible so the
+    // decoration layer can render only the props inside (plus a margin) and
+    // skip the rest. State updates only when the camera crosses a chunk
+    // boundary, so this adds ~one re-render per second of walking, not per
+    // frame. Bigger CULL_CHUNK = fewer re-renders + more over-render;
+    // 240 px is a sweet spot for the current map scales.
+    const [visibleChunk, setVisibleChunk] = useState({ x: 0, y: 0 });
+    const visibleChunkRef = useRef({ x: -999, y: -999 });
+
+    // Filtered decoration list — only what falls inside the visible chunk's
+    // rectangle plus CULL_MARGIN. AABB test uses whatever size the decoration
+    // exposes (width/height/size/length) with a small padding to catch the
+    // bottom-center anchor used by WorldSprite props. Big floor rects (roads,
+    // rugs) survive naturally because their width extends across the whole map.
+    const visibleDecorations = React.useMemo(() => {
+        if (!map?.decorations) return null;
+        const viewW = viewportSizeRef.current.w || 800;
+        const viewH = viewportSizeRef.current.h || 600;
+        const camX = visibleChunk.x * CULL_CHUNK;
+        const camY = visibleChunk.y * CULL_CHUNK;
+        const minX = camX - CULL_MARGIN;
+        const maxX = camX + viewW + CULL_MARGIN;
+        const minY = camY - CULL_MARGIN;
+        const maxY = camY + viewH + CULL_MARGIN;
+        return map.decorations.filter(d => {
+            const x = d.x ?? 0;
+            const y = d.y ?? 0;
+            const w = d.width || d.size || d.length || (d.radius ? d.radius * 2 : 100);
+            const h = d.height || d.size || (d.radius ? d.radius * 2 : 100);
+            // AABB overlap: dec box [x, x+w] × [y, y+h] vs visible box.
+            // Padded upward to account for bottom-center anchoring on sprites
+            // (their visual extends up-and-left from the anchor point).
+            return (x + w) >= minX && (x - w) <= maxX &&
+                   (y + h) >= minY && (y - h) <= maxY;
+        });
+    }, [map, visibleChunk]);
+
     // Proximity interaction (shop / pet sanctuary zones)
     const [nearTarget, setNearTarget] = useState(null);
     const nearTargetRef = useRef(null);
@@ -773,6 +819,14 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
         let camX = Math.max(0, Math.min(currentMap.width - viewW, px - viewW / 2));
         let camY = Math.max(0, Math.min(currentMap.height - viewH, py - viewH / 2));
         mapDOMRef.current.style.transform = `translate3d(-${camX}px, -${camY}px, 0)`;
+        // Culling: only trigger a React update when the camera crosses a
+        // chunk boundary. Cheap per-frame arithmetic; near-zero re-renders.
+        const cx = Math.floor(camX / CULL_CHUNK);
+        const cy = Math.floor(camY / CULL_CHUNK);
+        if (cx !== visibleChunkRef.current.x || cy !== visibleChunkRef.current.y) {
+            visibleChunkRef.current = { x: cx, y: cy };
+            setVisibleChunk({ x: cx, y: cy });
+        }
     };
 
     // Viewport resize observer
@@ -979,8 +1033,8 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                 {/* Dust Particles — isolated layer, owns its own state */}
                 <DustParticles ref={dustRef} />
 
-                {/* Decorations */}
-                <DecorationsLayer decorations={map.decorations} />
+                {/* Decorations — viewport-culled to only what's visible + margin */}
+                <DecorationsLayer decorations={visibleDecorations || map.decorations} />
 
                 {/* NPCs (family & friends) — positions updated via DOM refs in game loop */}
                 <NpcLayer npcs={npcs} npcDOMRefs={npcDOMRefs} onSelectNpc={setSelectedNpc} />
