@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Taskoria — Map Editor</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;500;700&display=swap');
@@ -25,7 +25,7 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text);
-       font-family: 'Outfit', sans-serif; height: 100vh;
+       font-family: 'Outfit', sans-serif; height: 100vh; height: 100dvh;
        display: flex; flex-direction: column; overflow: hidden; }
 
 /* ── TOPBAR ── */
@@ -175,6 +175,42 @@ body { background: var(--bg); color: var(--text);
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── PANEL TOGGLE FABS (tablet) ── */
+.panel-fab{display:none;position:fixed;z-index:200;width:44px;height:44px;border-radius:50%;
+           border:2px solid var(--purple2);background:var(--panel);color:var(--gold);
+           font-size:18px;cursor:pointer;align-items:center;justify-content:center;
+           box-shadow:0 4px 16px rgba(0,0,0,.5);transition:transform .2s;}
+.panel-fab:active{transform:scale(.9);}
+.fab-left{bottom:16px;left:16px;}
+.fab-right{bottom:16px;right:16px;}
+.panel-backdrop{display:none;position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.55);}
+
+/* ── RESPONSIVE ── */
+@media (max-width:900px){
+  .layout{position:relative;}
+  .asset-panel{position:fixed;left:0;top:0;bottom:0;z-index:100;width:220px;max-width:75vw;
+               transform:translateX(-100%);transition:transform .3s cubic-bezier(.22,1,.36,1);
+               box-shadow:4px 0 24px rgba(0,0,0,.6);}
+  .asset-panel.open{transform:translateX(0);}
+  .props-panel{position:fixed;right:0;top:0;bottom:0;z-index:100;width:220px;max-width:75vw;
+               transform:translateX(100%);transition:transform .3s cubic-bezier(.22,1,.36,1);
+               box-shadow:-4px 0 24px rgba(0,0,0,.6);}
+  .props-panel.open{transform:translateX(0);}
+  .panel-fab{display:flex;}
+  .panel-backdrop.open{display:block;}
+  .sep{display:none;}
+  .topbar{gap:4px;padding:4px 8px;}
+  .tbtn{padding:6px 7px;font-size:5px;}
+  .top-group{flex-wrap:wrap;}
+  .map-size{font-size:9px;}
+  .map-size input{width:36px;font-size:6px;}
+  .statusbar{font-size:8px;gap:8px;padding:3px 8px;}
+  .statusbar .tool-hint{display:none;}
+}
+@media (max-width:600px){
+  .topbar .top-group:nth-child(n+4){display:none;}
+}
 </style>
 </head>
 <body>
@@ -278,12 +314,22 @@ body { background: var(--bg); color: var(--text);
         <div class="prop-row"><span class="pl">Pos</span><span class="pv" id="selPos">—</span></div>
         <div class="prop-row"><span class="pl">Tipo</span><span class="pv" id="selType">—</span></div>
         <div class="prop-row"><span class="pl">Capa</span><span class="pv" id="selLayer">—</span></div>
-        <!-- Size row — only visible when an instance is selected -->
-        <div class="prop-row" id="selSizeRow" style="display:none">
-          <span class="pl">Size</span>
-          <input type="number" id="selW" min="1" max="10" value="1" style="width:44px" oninput="applySizeInputs()">
-          <span style="color:var(--dim);font-family:'Press Start 2P',monospace;font-size:8px">×</span>
-          <input type="number" id="selH" min="1" max="10" value="1" style="width:44px" oninput="applySizeInputs()">
+        <!-- Instance transform — only visible when an instance is selected -->
+        <div id="selInsBlock" style="display:none">
+          <div class="prop-row" id="selSizeRow">
+            <span class="pl">X</span>
+            <input type="number" id="selX" step="1" style="width:56px" oninput="applyInstanceInputs()">
+            <span style="width:6px"></span>
+            <span class="pl">Y</span>
+            <input type="number" id="selY" step="1" style="width:56px" oninput="applyInstanceInputs()">
+          </div>
+          <div class="prop-row">
+            <span class="pl">Scale</span>
+            <input type="number" id="selScale" min="0.25" max="8" step="0.25" style="width:56px" oninput="applyInstanceInputs()">
+            <span style="width:6px"></span>
+            <span class="pl">Rot°</span>
+            <input type="number" id="selRotation" step="15" style="width:56px" oninput="applyInstanceInputs()">
+          </div>
         </div>
         <div class="prop-row">
           <span class="pl">Label</span>
@@ -338,6 +384,11 @@ body { background: var(--bg); color: var(--text);
   </div>
 
 </div>
+
+<!-- PANEL TOGGLE FABS (tablet) -->
+<button class="panel-fab fab-left" id="fabLeft" onclick="toggleAssetPanel()">🏰</button>
+<button class="panel-fab fab-right" id="fabRight" onclick="togglePropsPanel()">⚙</button>
+<div class="panel-backdrop" id="editorBackdrop" onclick="closeAllPanels()"></div>
 
 <!-- STATUSBAR -->
 <div class="statusbar">
@@ -1603,7 +1654,13 @@ function isInstanceType(type){
   if(!type) return false;
   // Library houses always go as instances
   if(typeof type === 'string' && type.startsWith('lib_')) return true;
-  return INSTANCE_TYPE_SET.has(type);
+  // Everything that isn't a floor tile is placed as a free instance —
+  // props, NPCs, castles, walls, buildings, trees. Painting is reserved for
+  // ground (grass/dirt/stone/water). Grow beyond INSTANCE_TYPE_SET by
+  // reading ASSET_LAYER; the whitelist is kept only as a strong hint.
+  if(INSTANCE_TYPE_SET.has(type)) return true;
+  const layer = ASSET_LAYER[type];
+  return !!(layer && layer !== 'ground');
 }
 function defaultSizeFor(type){
   const d = INSTANCE_DEFAULT_SIZE[type];
@@ -1611,18 +1668,73 @@ function defaultSizeFor(type){
   if(typeof type === 'string' && type.startsWith('lib_')) return {w:2, h:2};
   return {w:2, h:2};
 }
-function getInstanceAt(gridX, gridY){
+
+// ═══════════════════════════════════════════════════════════
+// Instance model — new shape is px-based with a float scale so props can be
+// moved and resized continuously. Legacy records saved before this refactor
+// used tile grid coords (gridX/gridY/w/h); we auto-migrate them on any code
+// path that reads instances. Export writes the new shape; the runtime map
+// data still reads the same fields whether saved before or after.
+//   New:    { id, type, x, y, scale, rotation, label }
+//   Legacy: { id, type, gridX, gridY, w, h, label }
+// ═══════════════════════════════════════════════════════════
+function migrateInstance(ins){
+  if(!ins) return ins;
+  if(typeof ins.x === 'number' && typeof ins.scale === 'number') return ins;
+  // Legacy migration: gridX/gridY become px in TILE-units of the source
+  // canvas (tileSize). scale collapses w & h into a single float — legacy
+  // instances were placed with defaults that had w == h, so aspect is safe.
+  return {
+    id: ins.id,
+    type: ins.type,
+    x: (ins.gridX || 0) * tileSize,
+    y: (ins.gridY || 0) * tileSize,
+    scale: ins.w || ins.h || defaultSizeFor(ins.type).w,
+    rotation: ins.rotation || 0,
+    label: ins.label || '',
+  };
+}
+function migrateAllInstances(arr){
+  return (arr || []).map(migrateInstance);
+}
+// Instance bounding box in PX (unrotated). Rotation is applied only at
+// render + hit-test time; storage stays axis-aligned.
+function instanceBox(ins){
+  const size = ins.scale * tileSize;
+  return { x: ins.x, y: ins.y, w: size, h: size };
+}
+
+function getInstanceAt(px, py){
   // Iterate in reverse so top-most (last placed) wins on overlapping picks
   for(let i = instances.length - 1; i >= 0; i--){
     const ins = instances[i];
-    if(gridX >= ins.gridX && gridX < ins.gridX + ins.w &&
-       gridY >= ins.gridY && gridY < ins.gridY + ins.h) return ins;
+    const b = instanceBox(ins);
+    // Un-rotate the hit point around the instance center for a fair test
+    let hx = px, hy = py;
+    if(ins.rotation){
+      const cx = b.x + b.w/2, cy = b.y + b.h/2;
+      const a = -ins.rotation * Math.PI / 180;
+      const dx = px - cx, dy = py - cy;
+      hx = cx + dx * Math.cos(a) - dy * Math.sin(a);
+      hy = cy + dx * Math.sin(a) + dy * Math.cos(a);
+    }
+    if(hx >= b.x && hx <= b.x + b.w && hy >= b.y && hy <= b.y + b.h) return ins;
   }
   return null;
 }
-function isResizeHandle(ins, gridX, gridY){
-  // Bottom-right tile of the instance acts as resize handle
-  return gridX === ins.gridX + ins.w - 1 && gridY === ins.gridY + ins.h - 1;
+// Handle sizes tuned for touch + mouse: chunky enough to grab confidently.
+const INS_HANDLE_PX = 16;
+function isResizeHandle(ins, px, py){
+  const b = instanceBox(ins);
+  const hx = b.x + b.w - INS_HANDLE_PX, hy = b.y + b.h - INS_HANDLE_PX;
+  return px >= hx && px <= hx + INS_HANDLE_PX && py >= hy && py <= hy + INS_HANDLE_PX;
+}
+function isRotationHandle(ins, px, py){
+  // Small circular knob 22 px above the top-center of the instance.
+  const b = instanceBox(ins);
+  const cx = b.x + b.w/2;
+  const cy = b.y - 22;
+  return Math.hypot(px - cx, py - cy) <= 12;
 }
 
 // Historial undo/redo
@@ -1695,17 +1807,31 @@ function render(){
     }
   });
 
-  // ── Instancias (objects layer, on top of tiles, before grid) ──
+  // ── Instances (objects layer, drawn above tiles, below grid) ──
+  // Positions are stored in tile-space PX (independent of zoom). Multiply
+  // by zoomLevel at render time. Rotation is applied around the instance
+  // center; storage remains axis-aligned.
   if(layerVisible.objects){
     instances.forEach(ins => {
       const spr = SPRITES[ins.type];
       if(!spr) return;
+      const size = ins.scale * tileSize * zoomLevel;
+      const dx = ins.x * zoomLevel;
+      const dy = ins.y * zoomLevel;
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(spr, ins.gridX*TS, ins.gridY*TS, ins.w*TS, ins.h*TS);
+      if(ins.rotation){
+        ctx.save();
+        ctx.translate(dx + size/2, dy + size/2);
+        ctx.rotate(ins.rotation * Math.PI / 180);
+        ctx.drawImage(spr, -size/2, -size/2, size, size);
+        ctx.restore();
+      } else {
+        ctx.drawImage(spr, dx, dy, size, size);
+      }
       // Subtle bounding box so users can tell it's an instance
       ctx.strokeStyle = 'rgba(255,255,255,0.18)';
       ctx.lineWidth = 1;
-      ctx.strokeRect(ins.gridX*TS+0.5, ins.gridY*TS+0.5, ins.w*TS-1, ins.h*TS-1);
+      ctx.strokeRect(dx + 0.5, dy + 0.5, size - 1, size - 1);
     });
   }
 
@@ -1714,31 +1840,41 @@ function render(){
   for(let x=0;x<=mapW;x++){ ctx.beginPath();ctx.moveTo(x*TS,0);ctx.lineTo(x*TS,mapH*TS);ctx.stroke(); }
   for(let y=0;y<=mapH;y++){ ctx.beginPath();ctx.moveTo(0,y*TS);ctx.lineTo(mapW*TS,y*TS);ctx.stroke(); }
 
-  // ── Selected instance: highlight + resize handle (drawn on top of grid) ──
+  // ── Selected instance: highlight + resize handle + rotation knob ──
+  // All drawn in canvas-px (screen) coords. Handles are big enough to grab
+  // reliably even at low zoom.
   if(selectedInstanceId){
     const ins = instances.find(i => i.id === selectedInstanceId);
     if(ins){
-      // Dashed outline signals "editable object" — more scannable than a solid
-      // rectangle that reads like decoration.
+      const size = ins.scale * tileSize * zoomLevel;
+      const dx = ins.x * zoomLevel;
+      const dy = ins.y * zoomLevel;
+      // Dashed outline signals "editable object" — more scannable than solid.
       ctx.save();
       ctx.strokeStyle = '#f0c040';
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 4]);
-      ctx.strokeRect(ins.gridX*TS+1, ins.gridY*TS+1, ins.w*TS-2, ins.h*TS-2);
+      ctx.strokeRect(dx + 1, dy + 1, size - 2, size - 2);
       ctx.restore();
       ctx.fillStyle = 'rgba(240,192,64,0.10)';
-      ctx.fillRect(ins.gridX*TS, ins.gridY*TS, ins.w*TS, ins.h*TS);
-      // Resize handle — a chunky corner marker that reads as "grab me".
-      // Sized proportionally to zoom so it stays discoverable at any level.
-      const hs = Math.max(14, TS*0.4);
-      const hx = (ins.gridX + ins.w) * TS - hs;
-      const hy = (ins.gridY + ins.h) * TS - hs;
-      // Base square with a dark outline for contrast on any background
+      ctx.fillRect(dx, dy, size, size);
+      // Foot Y indicator — magenta line at the sprite's bottom edge, hints
+      // where the runtime will Y-sort this prop against the player.
+      ctx.strokeStyle = 'rgba(255,80,220,0.85)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(dx, dy + size);
+      ctx.lineTo(dx + size, dy + size);
+      ctx.stroke();
+
+      // Resize handle (bottom-right, chunky)
+      const hs = INS_HANDLE_PX * zoomLevel;
+      const hx = dx + size - hs;
+      const hy = dy + size - hs;
       ctx.fillStyle = '#0d0a14';
-      ctx.fillRect(hx-1, hy-1, hs+2, hs+2);
+      ctx.fillRect(hx - 1, hy - 1, hs + 2, hs + 2);
       ctx.fillStyle = '#f0c040';
       ctx.fillRect(hx, hy, hs, hs);
-      // Diagonal grip marks (◢) so it's obvious this is a drag handle
       ctx.strokeStyle = '#0d0a14';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -1747,6 +1883,30 @@ function render(){
       ctx.moveTo(hx + hs*0.50, hy + hs*0.90);
       ctx.lineTo(hx + hs*0.90, hy + hs*0.50);
       ctx.stroke();
+
+      // Rotation knob — small circle above top-center. Stem connects to the
+      // instance so the affordance reads "spin me".
+      const kx = dx + size/2;
+      const ky = dy - 22 * zoomLevel;
+      ctx.strokeStyle = '#f0c040';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(kx, dy);
+      ctx.lineTo(kx, ky + 12 * zoomLevel);
+      ctx.stroke();
+      ctx.fillStyle = '#0d0a14';
+      ctx.beginPath();
+      ctx.arc(kx, ky, 12 * zoomLevel, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#f0c040';
+      ctx.beginPath();
+      ctx.arc(kx, ky, 10 * zoomLevel, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#0d0a14';
+      ctx.font = `${10*zoomLevel}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('↻', kx, ky + 1);
     }
   }
 
@@ -1833,12 +1993,24 @@ function getTileFromEvent(e){
   if(x<0||x>=mapW||y<0||y>=mapH) return null;
   return{x,y};
 }
+// Continuous px position (tile-space, before zoom). Instances live here.
+function getPxFromEvent(e){
+  const rect=mapCanvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) / zoomLevel,
+    y: (e.clientY - rect.top) / zoomLevel,
+  };
+}
 
 function paintTile(x,y){
   if(!selectedAsset) return;
-  // Instance assets create a single placeable object instead of repeating tiles
+  // Instance assets create a single placeable object instead of repeating tiles.
+  // Painting stays as before for floor tiles.
   if(isInstanceType(selectedAsset)){
-    placeInstance(selectedAsset, x, y);
+    // paintTile is only called for tile-grid paths; instances get a
+    // dedicated px-based path in pointerdown. We keep this fallback so a
+    // legacy call site (fill, drag-continue) doesn't crash.
+    placeInstance(selectedAsset, x * tileSize, y * tileSize);
     return;
   }
   const targetLayer=ASSET_LAYER[selectedAsset]||currentLayer;
@@ -1849,27 +2021,35 @@ function paintTile(x,y){
   render();
 }
 
-function placeInstance(type, gridX, gridY){
-  const {w, h} = defaultSizeFor(type);
-  // Clamp inside map bounds
-  const gx = Math.max(0, Math.min(mapW - w, gridX));
-  const gy = Math.max(0, Math.min(mapH - h, gridY));
+// Place an instance at cursor px position. Sprite is centered on the click.
+function placeInstance(type, px, py){
+  const {w:defTiles} = defaultSizeFor(type);
+  const scale = defTiles;
+  const size = scale * tileSize;
+  // Center the newly-placed sprite on the click, then clamp to the map
+  const nx = Math.max(0, Math.min(mapW * tileSize - size, px - size / 2));
+  const ny = Math.max(0, Math.min(mapH * tileSize - size, py - size / 2));
   pushUndo();
-  const ins = { id: nextInstanceId++, type, gridX: gx, gridY: gy, w, h, label: '' };
+  const ins = { id: nextInstanceId++, type, x: nx, y: ny, scale, rotation: 0, label: '' };
   instances.push(ins);
   selectedInstanceId = ins.id;
   render();
+  updateSelInstancePanel(ins);
 }
 
 function eraseTile(x,y, allLayers=false){
-  // If there's an instance at this tile, remove it (whole instance)
-  const ins = getInstanceAt(x, y);
+  // If there's an instance at the tile center (px), remove it (whole instance).
+  // eraseTile is called with tile coords from the pointer path; instances
+  // live in a continuous px space so we sample at the tile center.
+  const centerPx = { x: x * tileSize + tileSize/2, y: y * tileSize + tileSize/2 };
+  const ins = getInstanceAt(centerPx.x, centerPx.y);
   if(ins){
     pushUndo();
     instances = instances.filter(i => i.id !== ins.id);
     if(selectedInstanceId === ins.id){
       selectedInstanceId = null;
-      document.getElementById('selSizeRow').style.display = 'none';
+      const block = document.getElementById('selInsBlock');
+      if(block) block.style.display = 'none';
     }
     render();
     return;
@@ -1945,6 +2125,10 @@ function pointerIntent(e){
   return null;
 }
 
+let isRotatingInstance = false;
+let rotationStartAngle = 0;
+let rotationStartValue = 0;
+
 overlayCanvas.addEventListener('pointerdown',e=>{
   // Reserve mouse-right-click for the contextmenu erase shortcut
   if(e.pointerType==='mouse' && e.button!==0 && e.button!==1) return;
@@ -1955,33 +2139,58 @@ overlayCanvas.addEventListener('pointerdown',e=>{
     return;
   }
   const t=getTileFromEvent(e);
+  const p=getPxFromEvent(e);
   if(!t) return;
   overlayCanvas.setPointerCapture(e.pointerId);
   isDrawing=true;
   if(intent==='erase'){ eraseTile(t.x,t.y, e.altKey); }
-  else if(currentTool==='draw')  { paintTile(t.x,t.y); }
+  else if(currentTool==='draw')  {
+    // Instance vs paint split at the very entry point — objects place at
+    // px precision, floors keep their tile-grid stamping behavior.
+    if(isInstanceType(selectedAsset)){
+      placeInstance(selectedAsset, p.x, p.y);
+      isDrawing=false;
+    } else {
+      paintTile(t.x, t.y);
+    }
+  }
   else if(currentTool==='erase') { eraseTile(t.x,t.y, e.altKey); }
   else if(currentTool==='fill')  { fillTile(t.x,t.y); isDrawing=false; }
   else if(currentTool==='pick')  { pickTile(t.x,t.y); isDrawing=false; }
   else if(currentTool==='select'){
-    // Pick instance under cursor first; if found, start move/resize drag.
-    // Otherwise fall back to original cell-select behavior.
-    const ins = getInstanceAt(t.x, t.y);
+    // Try rotation knob first (extends above the sprite), then resize
+    // handle, then generic body hit.
+    let ins = null;
+    if(selectedInstanceId !== null){
+      const sel = instances.find(i => i.id === selectedInstanceId);
+      if(sel){
+        if(isRotationHandle(sel, p.x, p.y)){
+          pushUndo();
+          isRotatingInstance = true;
+          isDrawing = false;
+          const cx = sel.x + sel.scale*tileSize/2;
+          const cy = sel.y + sel.scale*tileSize/2;
+          rotationStartAngle = Math.atan2(p.y - cy, p.x - cx);
+          rotationStartValue = sel.rotation || 0;
+          return;
+        }
+        if(isResizeHandle(sel, p.x, p.y)){
+          pushUndo();
+          isResizingInstance = true;
+          isDrawing = false;
+          render();
+          return;
+        }
+      }
+    }
+    ins = getInstanceAt(p.x, p.y);
     if(ins){
       selectedInstanceId = ins.id;
       selectedCell = null;
-      // Snapshot BEFORE any drag mutates the instance, so a single undo
-      // reverts the entire move/resize operation. Without this, drags were
-      // silently outside the history.
       pushUndo();
-      if(isResizeHandle(ins, t.x, t.y)){
-        isResizingInstance = true;
-        isDrawing = false;
-      } else {
-        isMovingInstance = true;
-        dragInstanceOffset = { x: t.x - ins.gridX, y: t.y - ins.gridY };
-        isDrawing = false;
-      }
+      isMovingInstance = true;
+      dragInstanceOffset = { x: p.x - ins.x, y: p.y - ins.y };
+      isDrawing = false;
       render();
       updateSelInstancePanel(ins);
     } else {
@@ -2004,33 +2213,64 @@ overlayCanvas.addEventListener('pointermove',e=>{
     renderMini(); return;
   }
   const t=getTileFromEvent(e);
+  const p=getPxFromEvent(e);
   if(t) document.getElementById('stCursor').textContent=`${t.x},${t.y}`;
 
-  // Drag-move or resize the selected instance (select tool only)
-  if(isMovingInstance && selectedInstanceId !== null && t){
+  // Rotation drag — track cursor around instance center, angle from start.
+  if(isRotatingInstance && selectedInstanceId !== null){
     const ins = instances.find(i => i.id === selectedInstanceId);
     if(ins){
-      let nx = t.x - dragInstanceOffset.x;
-      let ny = t.y - dragInstanceOffset.y;
-      nx = Math.max(0, Math.min(mapW - ins.w, nx));
-      ny = Math.max(0, Math.min(mapH - ins.h, ny));
-      if(nx !== ins.gridX || ny !== ins.gridY){
-        ins.gridX = nx; ins.gridY = ny;
+      const cx = ins.x + ins.scale*tileSize/2;
+      const cy = ins.y + ins.scale*tileSize/2;
+      const cur = Math.atan2(p.y - cy, p.x - cx);
+      let deg = rotationStartValue + (cur - rotationStartAngle) * 180 / Math.PI;
+      // Snap to 15° increments while Shift is held
+      if(e.shiftKey) deg = Math.round(deg / 15) * 15;
+      // Normalize to (-180, 180]
+      deg = ((deg + 540) % 360) - 180;
+      ins.rotation = deg;
+      render();
+      updateSelInstancePanel(ins);
+    }
+    return;
+  }
+  // Free movement in px (tile-space). Ctrl snaps to 8-px grid for tight layouts.
+  if(isMovingInstance && selectedInstanceId !== null){
+    const ins = instances.find(i => i.id === selectedInstanceId);
+    if(ins){
+      let nx = p.x - dragInstanceOffset.x;
+      let ny = p.y - dragInstanceOffset.y;
+      if(e.ctrlKey || e.metaKey){
+        nx = Math.round(nx / 8) * 8;
+        ny = Math.round(ny / 8) * 8;
+      }
+      const size = ins.scale * tileSize;
+      nx = Math.max(0, Math.min(mapW * tileSize - size, nx));
+      ny = Math.max(0, Math.min(mapH * tileSize - size, ny));
+      if(nx !== ins.x || ny !== ins.y){
+        ins.x = nx; ins.y = ny;
         render();
+        updateSelInstancePanel(ins);
       }
     }
     return;
   }
-  if(isResizingInstance && selectedInstanceId !== null && t){
+  // Continuous scale — drag from the bottom-right corner and the diagonal
+  // distance to the top-left sets the new sprite size.
+  if(isResizingInstance && selectedInstanceId !== null){
     const ins = instances.find(i => i.id === selectedInstanceId);
     if(ins){
-      let nw = Math.max(1, t.x - ins.gridX + 1);
-      let nh = Math.max(1, t.y - ins.gridY + 1);
-      nw = Math.min(mapW - ins.gridX, nw);
-      nh = Math.min(mapH - ins.gridY, nh);
-      if(nw !== ins.w || nh !== ins.h){
-        ins.w = nw; ins.h = nh;
+      const dx = p.x - ins.x;
+      const dy = p.y - ins.y;
+      // Use the max of dx/dy so square handle drag feels natural at any
+      // angle. Divide by tileSize to convert back to tile-scale units.
+      let sc = Math.max(dx, dy) / tileSize;
+      if(e.ctrlKey || e.metaKey) sc = Math.round(sc * 4) / 4; // snap to .25
+      sc = Math.max(0.25, Math.min(8, sc));
+      if(sc !== ins.scale){
+        ins.scale = sc;
         render();
+        updateSelInstancePanel(ins);
       }
     }
     return;
@@ -2046,6 +2286,7 @@ overlayCanvas.addEventListener('pointermove',e=>{
 function endPointer(e){
   isDrawing=false; isPanning=false;
   isMovingInstance=false; isResizingInstance=false;
+  isRotatingInstance=false;
   if(e && overlayCanvas.hasPointerCapture && overlayCanvas.hasPointerCapture(e.pointerId)){
     overlayCanvas.releasePointerCapture(e.pointerId);
   }
@@ -2063,8 +2304,9 @@ overlayCanvas.addEventListener('contextmenu',e=>{ e.preventDefault(); const t=ge
 
 // ─── UPDATE SELECTION PANEL ─────────────────────────────────
 function updateSelPanel(t){
-  // Cell selection hides the instance-only size row
-  document.getElementById('selSizeRow').style.display = 'none';
+  // Cell selection hides the instance-only inputs
+  const block = document.getElementById('selInsBlock');
+  if(block) block.style.display = 'none';
   const cell=layers.overhead[t.y]?.[t.x]||layers.objects[t.y]?.[t.x]||layers.ground[t.y]?.[t.x];
   document.getElementById('selPos').textContent=`${t.x},${t.y}`;
   document.getElementById('selType').textContent=cell?.type||'vacío';
@@ -2086,30 +2328,44 @@ function updateSelLabel(){
   });
   render();
 }
-// Panel view when an instance is selected — reveals size inputs + duplicate button
+// Panel view when an instance is selected — reveals X/Y/Scale/Rotation inputs
+// and the duplicate button. Position is shown in tile-space px, matching what
+// the runtime consumes.
 function updateSelInstancePanel(ins){
   if(!ins) return;
-  document.getElementById('selPos').textContent = `${ins.gridX},${ins.gridY}`;
+  document.getElementById('selPos').textContent = `${Math.round(ins.x)},${Math.round(ins.y)} px`;
   document.getElementById('selType').textContent = ins.type;
   document.getElementById('selLayer').textContent = 'instance';
-  document.getElementById('selSizeRow').style.display = 'flex';
-  document.getElementById('selW').value = ins.w;
-  document.getElementById('selH').value = ins.h;
+  const block = document.getElementById('selInsBlock');
+  if(block) block.style.display = 'block';
+  const setVal = (id, v) => { const el = document.getElementById(id); if(el && document.activeElement !== el) el.value = v; };
+  setVal('selX', Math.round(ins.x));
+  setVal('selY', Math.round(ins.y));
+  setVal('selScale', +(ins.scale ?? 1).toFixed(2));
+  setVal('selRotation', Math.round(ins.rotation || 0));
   document.getElementById('selLabel').value = ins.label || '';
 }
-// Apply W/H from the number inputs. Clamps so the instance stays inside the
-// map bounds, and coalesces spam into one undo entry via nudgeUndoPending.
-function applySizeInputs(){
+// Apply numeric inputs to the selected instance. Coalesces rapid keypresses
+// into one undo entry via nudgeUndoPending.
+function applyInstanceInputs(){
   if(selectedInstanceId === null) return;
   const ins = instances.find(i => i.id === selectedInstanceId);
   if(!ins) return;
-  const nw = Math.max(1, Math.min(10, parseInt(document.getElementById('selW').value)||1));
-  const nh = Math.max(1, Math.min(10, parseInt(document.getElementById('selH').value)||1));
-  const clampedW = Math.min(nw, mapW - ins.gridX);
-  const clampedH = Math.min(nh, mapH - ins.gridY);
-  if(clampedW === ins.w && clampedH === ins.h) return;
+  const nx = parseFloat(document.getElementById('selX').value);
+  const ny = parseFloat(document.getElementById('selY').value);
+  const nsc = parseFloat(document.getElementById('selScale').value);
+  const nrot = parseFloat(document.getElementById('selRotation').value);
+  const size = (isFinite(nsc) ? nsc : ins.scale) * tileSize;
+  const clampedX = isFinite(nx) ? Math.max(0, Math.min(mapW * tileSize - size, nx)) : ins.x;
+  const clampedY = isFinite(ny) ? Math.max(0, Math.min(mapH * tileSize - size, ny)) : ins.y;
+  const clampedScale = isFinite(nsc) ? Math.max(0.25, Math.min(8, nsc)) : ins.scale;
+  const clampedRot = isFinite(nrot) ? nrot : ins.rotation;
+  const changed = clampedX !== ins.x || clampedY !== ins.y ||
+                  clampedScale !== ins.scale || clampedRot !== ins.rotation;
+  if(!changed) return;
   if(!nudgeUndoPending){ pushUndo(); nudgeUndoPending = true; }
-  ins.w = clampedW; ins.h = clampedH;
+  ins.x = clampedX; ins.y = clampedY;
+  ins.scale = clampedScale; ins.rotation = clampedRot;
   render();
 }
 // Duplicate button in the panel — one-click equivalent of Ctrl+C then Ctrl+V
@@ -2123,7 +2379,8 @@ function deleteSelected(){
     pushUndo();
     instances = instances.filter(i => i.id !== selectedInstanceId);
     selectedInstanceId = null;
-    document.getElementById('selSizeRow').style.display = 'none';
+    const block = document.getElementById('selInsBlock');
+    if(block) block.style.display = 'none';
     render();
     return;
   }
@@ -2207,7 +2464,9 @@ function snapshotState(){
 function restoreState(s){
   const st = JSON.parse(s);
   layers = st.layers;
-  instances = st.instances || [];
+  // Restoring an older undo snapshot may resurrect legacy-shaped instances,
+  // so run every load path through the migrator.
+  instances = migrateAllInstances(st.instances || []);
   nextInstanceId = st.nextInstanceId || 1;
 }
 function pushUndo(){
@@ -2246,38 +2505,56 @@ function copySelectedInstance(){
   if(selectedInstanceId === null) return false;
   const ins = instances.find(i => i.id === selectedInstanceId);
   if(!ins) return false;
-  instanceClipboard = { type: ins.type, w: ins.w, h: ins.h, label: ins.label || '' };
+  instanceClipboard = {
+    type: ins.type,
+    scale: ins.scale ?? 1,
+    rotation: ins.rotation ?? 0,
+    label: ins.label || '',
+  };
   return true;
 }
 function pasteInstance(){
   if(!instanceClipboard) return false;
+  const size = instanceClipboard.scale * tileSize;
   const src = instances.find(i => i.id === selectedInstanceId);
-  // Base position: next to the source if we still have it, else map center
-  const bx = src ? src.gridX + 1 : Math.floor(mapW/2) - Math.floor(instanceClipboard.w/2);
-  const by = src ? src.gridY + 1 : Math.floor(mapH/2) - Math.floor(instanceClipboard.h/2);
-  const gx = Math.max(0, Math.min(mapW - instanceClipboard.w, bx));
-  const gy = Math.max(0, Math.min(mapH - instanceClipboard.h, by));
+  // Offset the paste 16 px right + down of the source so it's immediately
+  // visible without overlapping the original.
+  const bx = src ? src.x + 16 : (mapW * tileSize)/2 - size/2;
+  const by = src ? src.y + 16 : (mapH * tileSize)/2 - size/2;
+  const nx = Math.max(0, Math.min(mapW * tileSize - size, bx));
+  const ny = Math.max(0, Math.min(mapH * tileSize - size, by));
   pushUndo();
-  const ins = { id: nextInstanceId++, type: instanceClipboard.type, gridX: gx, gridY: gy,
-                w: instanceClipboard.w, h: instanceClipboard.h, label: instanceClipboard.label };
+  const ins = {
+    id: nextInstanceId++,
+    type: instanceClipboard.type,
+    x: nx, y: ny,
+    scale: instanceClipboard.scale,
+    rotation: instanceClipboard.rotation,
+    label: instanceClipboard.label,
+  };
   instances.push(ins);
   selectedInstanceId = ins.id;
   render();
+  updateSelInstancePanel(ins);
   return true;
 }
 // Arrow-key nudge: 1 tile per press, Shift = 5 tiles. Push a single undo so
 // spamming arrows doesn't blow up the undo stack.
 let nudgeUndoPending = false;
+// dx/dy are in tile units for cell selection; for instances they become
+// 1-px nudges (Shift = 8 px) so arrow-keys can position with precision.
 function nudgeSelection(dx, dy){
   if(selectedInstanceId !== null){
     const ins = instances.find(i => i.id === selectedInstanceId);
     if(!ins) return;
-    const nx = Math.max(0, Math.min(mapW - ins.w, ins.gridX + dx));
-    const ny = Math.max(0, Math.min(mapH - ins.h, ins.gridY + dy));
-    if(nx === ins.gridX && ny === ins.gridY) return;
+    const size = ins.scale * tileSize;
+    const nx = Math.max(0, Math.min(mapW * tileSize - size, ins.x + dx));
+    const ny = Math.max(0, Math.min(mapH * tileSize - size, ins.y + dy));
+    if(nx === ins.x && ny === ins.y) return;
     if(!nudgeUndoPending){ pushUndo(); nudgeUndoPending = true; }
-    ins.gridX = nx; ins.gridY = ny;
+    ins.x = nx; ins.y = ny;
     render();
+    updateSelInstancePanel(ins);
   } else if(selectedCell){
     const nx = Math.max(0, Math.min(mapW - 1, selectedCell.x + dx));
     const ny = Math.max(0, Math.min(mapH - 1, selectedCell.y + dy));
@@ -2308,10 +2585,35 @@ document.addEventListener('keydown',e=>{
   if(meta && (e.key==='s' || e.key==='S')){ e.preventDefault(); saveToLocal(); return; }
   if(meta && (e.key==='c' || e.key==='C') && !inInput){ e.preventDefault(); copySelectedInstance(); return; }
   if(meta && (e.key==='v' || e.key==='V') && !inInput){ e.preventDefault(); pasteInstance(); return; }
+  // Ctrl/Cmd+D — duplicate selected instance in place (copy + paste combined)
+  if(meta && (e.key==='d' || e.key==='D') && !inInput){
+    e.preventDefault();
+    if(copySelectedInstance()) pasteInstance();
+    return;
+  }
+  // R — rotate selected instance 90° clockwise (Shift+R = counter-clockwise)
+  if(!inInput && !meta && (e.key==='r' || e.key==='R')){
+    if(selectedInstanceId !== null){
+      const ins = instances.find(i => i.id === selectedInstanceId);
+      if(ins){
+        e.preventDefault();
+        pushUndo();
+        const delta = e.shiftKey ? -90 : 90;
+        let rot = ((ins.rotation || 0) + delta + 540) % 360 - 180;
+        ins.rotation = rot;
+        render();
+        updateSelInstancePanel(ins);
+        return;
+      }
+    }
+  }
   // Arrow-key nudge — only when the user isn't editing an input
   if(!inInput && e.key.startsWith('Arrow')){
     e.preventDefault();
-    const step = e.shiftKey ? 5 : 1;
+    // Instances step in pixels (1 / Shift = 8); cell selection stays in tiles.
+    const insStep = e.shiftKey ? 8 : 1;
+    const cellStep = e.shiftKey ? 5 : 1;
+    const step = selectedInstanceId !== null ? insStep : cellStep;
     if(e.key==='ArrowLeft')  nudgeSelection(-step, 0);
     if(e.key==='ArrowRight') nudgeSelection( step, 0);
     if(e.key==='ArrowUp')    nudgeSelection(0, -step);
@@ -2402,8 +2704,19 @@ function updateBrushPreview(){
     ctx.imageSmoothingEnabled=false;
     ctx.drawImage(SPRITES[selectedAsset],0,0,64,64);
     document.getElementById('brushName').textContent=selectedAsset;
-    document.getElementById('brushCat').textContent=`Capa: ${ASSET_LAYER[selectedAsset]||currentLayer}`;
+    // Reflect the mode the current asset triggers: paint tile vs place instance.
+    // The distinction is the biggest source of confusion when building maps.
+    const mode = isInstanceType(selectedAsset) ? '🎯 COLOCAR OBJETO' : '🖌 PINTAR SUELO';
+    document.getElementById('brushCat').textContent = mode;
   }
+  // Cursor style hints at the current mode too
+  const canvas = document.getElementById('mapCanvas');
+  const overlay = document.getElementById('overlayCanvas');
+  const cursor = selectedAsset
+    ? (isInstanceType(selectedAsset) ? 'crosshair' : 'cell')
+    : 'default';
+  if(canvas) canvas.style.cursor = cursor;
+  if(overlay) overlay.style.cursor = cursor;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2443,8 +2756,14 @@ function exportMapData(){
 
   // Movable/resizable instances become their own array — placed buildings,
   // trees, big props that the runtime renders as positioned objects with size.
+  // Movable/resizable instances become their own array. Format is the new
+  // px + scale + rotation shape; the runtime engine reads directly from it.
   const instancesExport = instances.map(ins => ({
-    type: ins.type, x: ins.gridX, y: ins.gridY, w: ins.w, h: ins.h,
+    type: ins.type,
+    x: Math.round(ins.x),
+    y: Math.round(ins.y),
+    scale: +(ins.scale ?? 1).toFixed(3),
+    ...(ins.rotation ? { rotation: +ins.rotation.toFixed(2) } : {}),
     ...(ins.label ? { label: ins.label } : {}),
   }));
 
@@ -2509,8 +2828,14 @@ function saveToLibrary(){
     const t=layers.ground[y]?.[x]?.type; if(t) freq[t]=(freq[t]||0)+1;
   }
   const tileSprite=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]||'cobblestone_warm';
+  // Movable/resizable instances become their own array. Format is the new
+  // px + scale + rotation shape; the runtime engine reads directly from it.
   const instancesExport = instances.map(ins => ({
-    type: ins.type, x: ins.gridX, y: ins.gridY, w: ins.w, h: ins.h,
+    type: ins.type,
+    x: Math.round(ins.x),
+    y: Math.round(ins.y),
+    scale: +(ins.scale ?? 1).toFixed(3),
+    ...(ins.rotation ? { rotation: +ins.rotation.toFixed(2) } : {}),
     ...(ins.label ? { label: ins.label } : {}),
   }));
   const snippet = `// Map "${name}" — generated by Map Editor
@@ -2557,7 +2882,9 @@ function loadFromLocal(){
   if(!raw){ alert('No hay mapa guardado'); return; }
   const data=JSON.parse(raw);
   mapW=data.mapW; mapH=data.mapH; layers=data.layers;
-  instances = Array.isArray(data.instances) ? data.instances : [];
+  // Auto-migrate legacy tile-grid instances (gridX/gridY/w/h) into the new
+  // px + scale shape. Users don't lose maps saved before this refactor.
+  instances = migrateAllInstances(Array.isArray(data.instances) ? data.instances : []);
   nextInstanceId = data.nextInstanceId || (instances.reduce((m,i)=>Math.max(m, i.id||0), 0) + 1);
   selectedInstanceId = null;
   document.getElementById('mw').value=mapW;
@@ -2640,6 +2967,29 @@ document.querySelector('.asset-item')?.classList.add('selected');
 
 // Pull saved House Builder designs from the parent's admin library
 requestLibrary();
+
+// ═══════════════════════════════════════════════════════════
+// RESPONSIVE PANEL TOGGLES
+// ═══════════════════════════════════════════════════════════
+function toggleAssetPanel(){
+  const p=document.querySelector('.asset-panel');
+  const bd=document.getElementById('editorBackdrop');
+  document.querySelector('.props-panel').classList.remove('open');
+  const open=p.classList.toggle('open');
+  bd.classList.toggle('open',open);
+}
+function togglePropsPanel(){
+  const p=document.querySelector('.props-panel');
+  const bd=document.getElementById('editorBackdrop');
+  document.querySelector('.asset-panel').classList.remove('open');
+  const open=p.classList.toggle('open');
+  bd.classList.toggle('open',open);
+}
+function closeAllPanels(){
+  document.querySelector('.asset-panel').classList.remove('open');
+  document.querySelector('.props-panel').classList.remove('open');
+  document.getElementById('editorBackdrop').classList.remove('open');
+}
 </script>
 </body>
 </html>

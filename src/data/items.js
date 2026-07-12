@@ -3,7 +3,8 @@ import spriteSheet from '../assets/sprites_items.png';
 export const ITEM_TYPES = {
     GEAR: 'gear',
     CONSUMABLE: 'consumable',
-    PET_FOOD: 'pet_food'
+    PET_FOOD: 'pet_food',
+    MATERIAL: 'material'
 };
 
 export const RARITY = {
@@ -372,6 +373,16 @@ export const ITEMS = [
         icon: 'book', color: '#3b82f6',
         rarity: RARITY.RARE,
     },
+
+    // ─────────────────────────────────────────────────────────────────
+    //  MATERIALS — droppable crafting ingredients (not buyable)
+    // ─────────────────────────────────────────────────────────────────
+    { id: 'iron_ore', name: 'Iron Ore', cost: 0, description: 'Ore refined in the forge', type: ITEM_TYPES.MATERIAL, sprite: { src: spriteSheet, x: 0, y: 0, width: 32, height: 32 }, icon: 'hammer', color: '#94a3b8', rarity: RARITY.COMMON },
+    { id: 'ancient_wood', name: 'Ancient Wood', cost: 0, description: 'Timber from the Mystic Forest', type: ITEM_TYPES.MATERIAL, sprite: { src: spriteSheet, x: 0, y: 0, width: 32, height: 32 }, icon: 'tree-pine', color: '#65a30d', rarity: RARITY.COMMON },
+    { id: 'crystal_shard', name: 'Crystal Shard', cost: 0, description: 'A shard humming with magic', type: ITEM_TYPES.MATERIAL, sprite: { src: spriteSheet, x: 0, y: 0, width: 32, height: 32 }, icon: 'diamond', color: '#38bdf8', rarity: RARITY.COMMON },
+    { id: 'shadow_silk', name: 'Shadow Silk', cost: 0, description: 'Thread spun from shadow', type: ITEM_TYPES.MATERIAL, sprite: { src: spriteSheet, x: 0, y: 0, width: 32, height: 32 }, icon: 'wind', color: '#6b21a8', rarity: RARITY.RARE },
+    { id: 'dragon_scale', name: 'Dragon Scale', cost: 0, description: 'Scale of a fallen world boss', type: ITEM_TYPES.MATERIAL, sprite: { src: spriteSheet, x: 0, y: 0, width: 32, height: 32 }, icon: 'flame', color: '#dc2626', rarity: RARITY.EPIC },
+    { id: 'void_essence', name: 'Void Essence', cost: 0, description: 'Essence of the crypts', type: ITEM_TYPES.MATERIAL, sprite: { src: spriteSheet, x: 0, y: 0, width: 32, height: 32 }, icon: 'skull', color: '#4c1d95', rarity: RARITY.EPIC },
 ];
 
 export const SET_BONUSES = {

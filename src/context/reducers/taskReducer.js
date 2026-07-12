@@ -11,6 +11,7 @@ import {
     getPetPerks,
     TASK_DIFFICULTY
 } from '../../utils/gameUtils';
+import { generateLoot } from '../../utils/lootUtils';
 
 // Random suffix to avoid Date.now() id collisions when multiple things happen in the same tick.
 const uid = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -169,8 +170,11 @@ export const taskReducer = (state, action) => {
             // Quests are the main XP source. Daily quests get a consistency bonus.
             // Was diff × (12 daily / 8 normal) → bumped to (20 daily / 15 normal).
             const xpBase = task.recurrence === 'daily' ? 20 : 15;
-            let xpGain = Math.floor(task.difficulty * xpBase * intBonus * petBonus * (1 + perks.xpMult));
-            let goldGain = Math.floor(task.difficulty * 5 * chaBonus * (1 + perks.goldMult));
+            const streakMult = (task.recurrence && task.recurrence !== 'none' && task.streakCount > 0)
+                ? 1 + Math.min(task.streakCount, 30) * 0.02
+                : 1;
+            let xpGain = Math.floor(task.difficulty * xpBase * intBonus * petBonus * (1 + perks.xpMult) * streakMult);
+            let goldGain = Math.floor(task.difficulty * 5 * chaBonus * (1 + perks.goldMult) * streakMult);
 
             const rewardRes = processRewardsAndLevelUp(state.character, xpGain, goldGain);
             let updatedChar = rewardRes ? rewardRes.newChar : state.character;
@@ -189,12 +193,9 @@ export const taskReducer = (state, action) => {
                 if (x !== null && y !== null) newFloatingTexts.push({ id: uid('ft'), text: `+${inc} ${stat.toUpperCase()}`, x: x + 20, y: y - 40, color: '#3b82f6' });
             }
 
-            // Loot
-            if (Math.random() < (task.difficulty === 3 ? 0.35 : (task.difficulty > 3 ? 0.50 : 0.15))) {
-                const roll = Math.random();
-                const droppedItem = roll < 0.10 ? { id: uid('item'), name: 'Mystery Chest', type: 'consumable', cost: 0, description: 'Contains mysterious treasures.', icon: 'box' }
-                               : roll < 0.40 ? { id: uid('item'), name: 'Gold Pouch', type: 'consumable', cost: 0, description: 'Grants 100-300 Gold.', icon: 'coins' }
-                               : { id: uid('item'), name: 'Health Potion', type: 'consumable', cost: 0, description: 'Restores 50 HP.', icon: 'heart' };
+            // Loot — drops gear, consumables and materials from the catalog
+            const droppedItem = generateLoot(task.difficulty, 'task');
+            if (droppedItem) {
                 updatedChar = { ...updatedChar, inventory: [...(updatedChar.inventory || []), droppedItem] };
                 logMessage += ` [LOOT] Found a ${droppedItem.name}!`;
             }

@@ -1,4 +1,5 @@
 import { processRewardsAndLevelUp, recordActivity, bumpDailyMissions, getPetMoodBonus, getPetPerks } from '../../utils/gameUtils';
+import { generateLoot } from '../../utils/lootUtils';
 
 const uid = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -69,6 +70,13 @@ export const battleReducer = (state, action) => {
             updatedChar = { ...updatedChar, dailyMissions: bumpDailyMissions(updatedChar.dailyMissions, 'pomodoro', 1) };
             updatedChar = { ...updatedChar, dailyMissions: bumpDailyMissions(updatedChar.dailyMissions, 'focus_minutes', totalMinutesWorked) };
 
+            // Loot — consumables + materials only (no gear from focus sessions)
+            const pomoDifficulty = Math.min(5, Math.floor(enemiesDefeated / 3) + focusQuality - 2);
+            const droppedItem = generateLoot(Math.max(1, pomoDifficulty), 'pomodoro');
+            if (droppedItem) {
+                updatedChar = { ...updatedChar, inventory: [...(updatedChar.inventory || []), droppedItem] };
+            }
+
             if (updatedChar.achievements) {
                 updatedChar = {
                     ...updatedChar,
@@ -105,13 +113,14 @@ export const battleReducer = (state, action) => {
             }
 
             const actualXpGain = rewardRes?.xpGained ?? xpGain;
+            const lootMsg = droppedItem ? ` [LOOT] Found a ${droppedItem.name}!` : '';
 
             return {
                 ...state,
                 character: updatedChar,
                 activeDungeon: { ...state.activeDungeon, hp: newDungeonHp },
                 epicQuests: newEpicQuests,
-                log: [{ id: uid('log'), message: `FOCUS CONCLUDED! (${totalMinutesWorked} mins). +${goldGain} G, +${timeGain} TP, +${actualXpGain} XP.`, type: 'reward' }, ...bossLogs, ...state.log],
+                log: [{ id: uid('log'), message: `FOCUS CONCLUDED! (${totalMinutesWorked} mins). +${goldGain} G, +${timeGain} TP, +${actualXpGain} XP.${lootMsg}`, type: 'reward' }, ...bossLogs, ...state.log],
                 ...(anyLevelUp && updatedChar.level > initialLevel ? { showLevelUpModal: true, newLevelData: { level: updatedChar.level, stats: updatedChar.stats, class: updatedChar.class } } : {})
             };
         }

@@ -20,11 +20,24 @@ const copyApi = () => ({
   },
 })
 
+const copySpriteRegistry = () => ({
+  name: 'copy-sprite-registry',
+  apply: 'build',
+  closeBundle() {
+    const src = resolve(__dirname, 'src/data/sprite-registry.js')
+    const dest = resolve(__dirname, 'dist/admin-tools/sprite-registry.js')
+    if (existsSync(src)) {
+      cpSync(src, dest)
+    }
+  },
+})
+
 // Minimal config to isolate build error
 export default defineConfig({
   plugins: [
     react(),
     copyApi(),
+    copySpriteRegistry(),
     // Prerender the landing route at build time so crawlers (Google, LinkedIn,
     // X, Slack, WhatsApp) get real HTML on first byte instead of an empty
     // <div id="root">. Client-side, main.jsx hydrates over the prerendered
