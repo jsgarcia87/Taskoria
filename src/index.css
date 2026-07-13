@@ -1,5 +1,5 @@
 /* stylelint-disable */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Handjet:wght@700;800;900&family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&family=VT323&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -378,6 +378,58 @@
   .animate-bubble-popup {
     animation: pop-up-bubble 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
+}
+
+/* Landing page — pixel grid scanline overlay */
+.landing-pixel-grid {
+  background-image:
+    radial-gradient(circle, rgba(139,92,246,0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Landing stat bar fill animation */
+@keyframes stat-fill {
+  from { width: 0%; }
+}
+.animate-stat-fill {
+  animation: stat-fill 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+/* Landing quest path connector */
+.quest-path-line {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(251,191,36,0.4) 0px,
+    rgba(251,191,36,0.4) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+
+/* Landing feature card accent */
+.feature-accent-top {
+  position: relative;
+  overflow: hidden;
+}
+.feature-accent-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-color);
+  opacity: 0.7;
+}
+.feature-accent-top:hover::before {
+  opacity: 1;
+  height: 3px;
+}
+
+/* Landing section divider */
+.landing-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(251,191,36,0.2) 30%, rgba(139,92,246,0.2) 70%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

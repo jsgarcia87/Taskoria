@@ -119,7 +119,7 @@ const StatBar = ({ label, value, color }) => (
     <div className="flex items-center gap-1.5">
         <span className="text-[8px] font-bold text-gray-400 uppercase w-5">{label}</span>
         <div className="flex-1 h-1.5 bg-black/60 rounded-full overflow-hidden border border-white/5">
-            <div className={`h-full ${color}`} style={{ width: `${value}%` }}></div>
+            <div className={`h-full ${color} animate-stat-fill`} style={{ width: `${value}%` }}></div>
         </div>
     </div>
 );
@@ -198,7 +198,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
             {/* Animated background */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-rpg-panelDark to-rpg-panelDark transition-transform duration-700 ease-out" style={parallaxBg1}></div>
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+                <div className="absolute inset-0 landing-pixel-grid opacity-60"></div>
                 <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-blue-900/40 blur-[120px] rounded-full transition-transform duration-700 ease-out" style={parallaxBg2}></div>
                 <div className="absolute top-[30%] -right-[10%] w-[40%] h-[60%] bg-amber-900/20 blur-[150px] rounded-full transition-transform duration-1000 ease-out" style={parallaxBg1}></div>
                 <div className="absolute top-[80%] left-[20%] w-[30%] h-[40%] bg-purple-900/30 blur-[150px] rounded-full transition-transform duration-500 ease-out" style={parallaxBg2}></div>
@@ -244,7 +244,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                             Closed Beta · Limited slots
                         </div>
 
-                        <h1 className="text-5xl md:text-6xl lg:text-7xl font-heading tracking-tight mb-6 animate-[slideUpFade_0.8s_ease-out_0.1s_forwards] opacity-0 leading-[1.05]">
+                        <h1 className="text-5xl md:text-6xl lg:text-7xl font-landing font-extrabold tracking-tight mb-6 animate-[slideUpFade_0.8s_ease-out_0.1s_forwards] opacity-0 leading-[1.05]">
                             Turn your day into an{' '}
                             <span className="relative inline-block">
                                 <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-rpg-gold to-amber-600">RPG adventure</span>
@@ -288,55 +288,66 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 </div>
             </main>
 
-            {/* HOW IT WORKS */}
+            {/* Divider */}
+            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
+
+            {/* HOW IT WORKS — Quest Path */}
             <section className="relative z-10 container mx-auto px-6 py-20">
                 <Reveal className="text-center mb-14">
-                    <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">How it works</div>
-                    <h2 className="text-3xl md:text-5xl font-heading text-white max-w-3xl mx-auto leading-tight">
+                    <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">Your quest begins</div>
+                    <h2 className="text-3xl md:text-5xl font-landing font-bold text-white max-w-3xl mx-auto leading-tight">
                         Three steps to turn your to-do list into an <span className="text-rpg-gold">adventure</span>.
                     </h2>
                 </Reveal>
 
-                <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                    {[
-                        { n: '01', icon: Target, title: 'Create your quests', body: 'Log your tasks, daily habits and goals. Set difficulty and XP rewards. Everything you complete levels you up.' },
-                        { n: '02', icon: Sword, title: 'Level up your hero', body: 'Pick a class (Mage, Warrior, Rogue…), customize your pixel-art avatar, equip gear, adopt pets, defeat your sprint boss.' },
-                        { n: '03', icon: Map, title: 'Explore and build the world', body: 'Walk around town with your party, talk to NPCs, browse shops, and craft houses, mounts and decorations with the community that will live on the map.' },
-                    ].map((step, i) => (
-                        <Reveal key={step.n} delay={i * 120}>
-                            <div className="relative bg-gradient-to-br from-rpg-panel/80 to-[#0f0a1f]/80 border border-white/10 rounded-2xl p-6 h-full hover:border-rpg-gold/40 transition-all group">
-                                <div className="absolute -top-3 -right-3 bg-rpg-gold text-black font-heading text-xs px-3 py-1 rounded-full shadow-lg font-bold">{step.n}</div>
-                                <div className="w-12 h-12 bg-rpg-gold/15 border border-rpg-gold/30 rounded-xl flex items-center justify-center text-rpg-gold mb-4 group-hover:scale-110 transition-transform">
-                                    <step.icon size={22}/>
+                <div className="relative max-w-6xl mx-auto">
+                    {/* Connecting quest path line — desktop only */}
+                    <div className="hidden md:block absolute top-[52px] left-[16.67%] right-[16.67%] h-[2px] quest-path-line z-0"></div>
+
+                    <div className="grid md:grid-cols-3 gap-6">
+                        {[
+                            { icon: Target, title: 'Create your quests', body: 'Log your tasks, daily habits and goals. Set difficulty and XP rewards. Everything you complete levels you up.' },
+                            { icon: Sword, title: 'Level up your hero', body: 'Pick a class (Mage, Warrior, Rogue…), customize your pixel-art avatar, equip gear, adopt pets, defeat your sprint boss.' },
+                            { icon: Map, title: 'Explore and build the world', body: 'Walk around town with your party, talk to NPCs, browse shops, and craft houses, mounts and decorations with the community that will live on the map.' },
+                        ].map((step, i) => (
+                            <Reveal key={step.title} delay={i * 150}>
+                                <div className="relative flex flex-col items-center text-center group">
+                                    {/* Quest waypoint marker */}
+                                    <div className="relative z-10 w-[72px] h-[72px] bg-rpg-panel border-2 border-rpg-gold/50 rounded-2xl flex items-center justify-center text-rpg-gold mb-5 shadow-[0_0_20px_rgba(251,191,36,0.15)] group-hover:border-rpg-gold group-hover:shadow-[0_0_30px_rgba(251,191,36,0.25)] transition-all">
+                                        <step.icon size={28}/>
+                                    </div>
+                                    <h3 className="text-xl font-heading text-white mb-2">{step.title}</h3>
+                                    <p className="text-sm text-gray-400 leading-relaxed max-w-xs">{step.body}</p>
                                 </div>
-                                <h3 className="text-xl font-heading text-white mb-2">{step.title}</h3>
-                                <p className="text-sm text-gray-400 leading-relaxed">{step.body}</p>
-                            </div>
-                        </Reveal>
-                    ))}
+                            </Reveal>
+                        ))}
+                    </div>
                 </div>
             </section>
+
+            {/* Divider */}
+            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
 
             {/* FEATURES */}
             <section className="relative z-10 container mx-auto px-6 py-20">
                 <Reveal className="text-center mb-14">
                     <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">What's inside</div>
-                    <h2 className="text-3xl md:text-5xl font-heading text-white max-w-3xl mx-auto leading-tight">
+                    <h2 className="text-3xl md:text-5xl font-landing font-bold text-white max-w-3xl mx-auto leading-tight">
                         Everything you need to <span className="text-rpg-gold">not let your future self down</span>.
                     </h2>
                 </Reveal>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-7xl mx-auto">
                     {[
-                        { icon: Scroll, classes: 'bg-blue-500/20 text-blue-400 border-blue-500/40', halo: 'bg-blue-500/10', title: 'Habits + Tasks + Diary', body: 'Three tools in one: daily habits, task list with due dates and priorities, and personal diary. All synced with your level.' },
-                        { icon: Timer, classes: 'bg-red-500/20 text-red-400 border-red-500/40', halo: 'bg-red-500/10', title: 'Pomodoro Focus Combat', body: 'Start a Pomodoro session and fight a procrastination monster. Lose focus and it strikes back. Hold the line and you defeat it.' },
-                        { icon: Map, classes: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40', halo: 'bg-emerald-500/10', title: 'Open world to explore', body: 'Town Square, Mystic Forest, Shadow Crypts, Taskoria Keep. Wandering NPCs. Chat with shopkeepers, open doors, meet other heroes online.' },
-                        { icon: Users, classes: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40', halo: 'bg-indigo-500/10', title: 'Party & Guilds', body: 'Create a party with friends or family. Watch their progress in real time. Guilds with rankings, shared challenges and built-in chat.' },
-                        { icon: Hammer, classes: 'bg-amber-500/20 text-amber-400 border-amber-500/40', halo: 'bg-amber-500/10', title: 'Collaborative Pixel Studio', body: 'Design houses, castles, mounts, trees, props… with a built-in pixel-art editor. If approved, your creation lives on the map for everyone.' },
-                        { icon: Heart, classes: 'bg-pink-500/20 text-pink-400 border-pink-500/40', halo: 'bg-pink-500/10', title: 'Multi-profile for families', body: 'One login, multiple heroes. Built for families: each member with their own character, tasks and progress.' },
+                        { icon: Scroll, classes: 'bg-blue-500/20 text-blue-400 border-blue-500/40', halo: 'bg-blue-500/10', accent: '#60a5fa', title: 'Habits + Tasks + Diary', body: 'Three tools in one: daily habits, task list with due dates and priorities, and personal diary. All synced with your level.' },
+                        { icon: Timer, classes: 'bg-red-500/20 text-red-400 border-red-500/40', halo: 'bg-red-500/10', accent: '#f87171', title: 'Pomodoro Focus Combat', body: 'Start a Pomodoro session and fight a procrastination monster. Lose focus and it strikes back. Hold the line and you defeat it.' },
+                        { icon: Map, classes: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40', halo: 'bg-emerald-500/10', accent: '#34d399', title: 'Open world to explore', body: 'Town Square, Mystic Forest, Shadow Crypts, Taskoria Keep. Wandering NPCs. Chat with shopkeepers, open doors, meet other heroes online.' },
+                        { icon: Users, classes: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40', halo: 'bg-indigo-500/10', accent: '#818cf8', title: 'Party & Guilds', body: 'Create a party with friends or family. Watch their progress in real time. Guilds with rankings, shared challenges and built-in chat.' },
+                        { icon: Hammer, classes: 'bg-amber-500/20 text-amber-400 border-amber-500/40', halo: 'bg-amber-500/10', accent: '#fbbf24', title: 'Collaborative Pixel Studio', body: 'Design houses, castles, mounts, trees, props… with a built-in pixel-art editor. If approved, your creation lives on the map for everyone.' },
+                        { icon: Heart, classes: 'bg-pink-500/20 text-pink-400 border-pink-500/40', halo: 'bg-pink-500/10', accent: '#f472b6', title: 'Multi-profile for families', body: 'One login, multiple heroes. Built for families: each member with their own character, tasks and progress.' },
                     ].map((f, i) => (
                         <Reveal key={f.title} delay={i * 80}>
-                            <div className="bg-rpg-panel/70 border-2 border-white/5 p-6 hover:border-rpg-gold/40 transition-all duration-300 group hover:-translate-y-1 relative overflow-hidden rounded-2xl h-full">
+                            <div className="feature-accent-top bg-rpg-panel/70 border-2 border-white/5 p-6 hover:border-rpg-gold/40 transition-all duration-300 group hover:-translate-y-1 relative overflow-hidden rounded-2xl h-full" style={{'--accent-color': f.accent}}>
                                 <div className={`absolute top-0 right-0 w-32 h-32 ${f.halo} rounded-bl-full translate-x-12 -translate-y-12 transition-colors`}></div>
                                 <div className={`w-12 h-12 ${f.classes} rounded-xl flex items-center justify-center mb-4 border relative z-10`}>
                                     <f.icon size={22}/>
@@ -348,6 +359,9 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     ))}
                 </div>
             </section>
+
+            {/* Divider */}
+            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
 
             {/* PIXEL STUDIO — Collaborative */}
             <section className="relative z-10 container mx-auto px-6 py-20">
@@ -361,7 +375,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rpg-gold/10 border border-rpg-gold/30 text-rpg-gold text-[10px] font-bold uppercase tracking-widest mb-4">
                                     <Hammer size={10}/> Built with the community
                                 </div>
-                                <h2 className="text-3xl md:text-4xl font-heading mb-4 text-white leading-tight">
+                                <h2 className="text-3xl md:text-4xl font-landing font-bold mb-4 text-white leading-tight">
                                     The world of Taskoria <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-rpg-gold to-amber-600">is built by you</span>.
                                 </h2>
                                 <p className="text-gray-300 leading-relaxed mb-6">
@@ -410,12 +424,15 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 </div>
             </section>
 
+            {/* Divider */}
+            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
+
             {/* FINAL CTA + WAITLIST */}
             <section ref={waitlistRef} className="relative z-10 container mx-auto px-6 py-24">
                 <Reveal>
                     <div className="max-w-3xl mx-auto text-center">
                         <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">Closed Beta</div>
-                        <h2 className="text-4xl md:text-5xl font-heading mb-4 text-white leading-tight">
+                        <h2 className="text-4xl md:text-5xl font-landing font-bold mb-4 text-white leading-tight">
                             Ready to start your <span className="text-rpg-gold">first quest</span>?
                         </h2>
                         <p className="text-gray-400 mb-8 max-w-xl mx-auto">
@@ -515,7 +532,7 @@ const GalleryPropCard = ({ title, cat, name, scale = 1 }) => {
 const SmallStat = ({ icon: Icon, value, label }) => (
     <div className="flex flex-col items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-3">
         <Icon size={16} className="text-rpg-gold"/>
-        <div className="text-2xl font-heading font-bold text-white">{value}</div>
+        <div className="text-3xl font-pixel text-white leading-none">{value}</div>
         <div className="text-[9px] uppercase tracking-widest text-gray-500">{label}</div>
     </div>
 );

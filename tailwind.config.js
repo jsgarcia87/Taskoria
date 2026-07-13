@@ -29,6 +29,7 @@ export default {
       fontFamily: {
         sans: ['"Inter"', 'sans-serif'], // Default to Inter
         heading: ['"Outfit"', 'sans-serif'], // Headings
+        landing: ['"Handjet"', 'sans-serif'], // Landing page headlines
         pixel: ['"VT323"', 'monospace'], // Keep for retro flavor
       },
       boxShadow: {
