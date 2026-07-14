@@ -349,6 +349,7 @@ const GameContent = ({ currentUser, onLogout }) => {
 import ProfileSelection from './components/ProfileSelection';
 import TermsAndConditions from './components/TermsAndConditions';
 import LegalNotice from './components/LegalNotice';
+import CookieBanner from './components/common/CookieBanner';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null); // The actual logged-in web user
@@ -499,6 +500,7 @@ function App() {
     if (currentView === 'landing') return (
       <Suspense fallback={<ChunkLoader label="Loading…" />}>
         <LandingPage onGoToLogin={() => setCurrentView('auth')} onGoToTerms={() => setCurrentView('terms')} onGoToLegal={() => setCurrentView('legal')} />
+        <CookieBanner />
       </Suspense>
     );
     if (currentView === 'auth') return <Auth onLogin={handleLogin} onBackToLanding={() => setCurrentView('landing')} />;
@@ -544,6 +546,7 @@ function App() {
       setFamilyData={setFamilyData}
     >
       <GameContent currentUser={{ ...currentUser, unreadMessages: globalUnreadMsgCount }} onLogout={onGameLogout} />
+      <CookieBanner />
     </GameProvider>
   );
 }

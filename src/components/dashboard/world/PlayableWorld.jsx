@@ -680,6 +680,9 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
     const [selectedNpc, setSelectedNpc] = useState(null);
     const [chatNpc, setChatNpc] = useState(null);
 
+    // Filter State
+    const [retroMode, setRetroMode] = useState('crt'); // 'none', 'crt', 'gameboy'
+
     // Viewport culling — track which chunk of the map is visible so the
     // decoration layer can render only the props inside (plus a margin) and
     // skip the rest. State updates only when the camera crosses a chunk
@@ -1003,7 +1006,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
             {/* Map Container (Camera Layer) */}
             <div
                 ref={mapDOMRef}
-                className={`origin-top-left will-change-transform ${tileBackground ? '' : (map.className || '')}`}
+                className={`origin-top-left will-change-transform ${tileBackground ? '' : (map.className || '')} ${retroMode === 'gameboy' ? 'gameboy-palette' : ''}`}
                 style={{ width: map.width, height: map.height, position: 'relative', ...(map.background || {}), ...(tileBackground || {}) }}
             >
                 {/* Ambient atmosphere: warm wash + soft vignette (only on outdoor cobbled maps) */}
@@ -1061,6 +1064,14 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                 </div>
             </div>
 
+            {/* Retro Overlays (viewport locked) */}
+            {retroMode !== 'none' && (
+                <>
+                    <div className="retro-crt-filter pointer-events-none absolute inset-0 z-40"></div>
+                    {retroMode === 'gameboy' && <div className="gameboy-filter pointer-events-none absolute inset-0 z-40"></div>}
+                </>
+            )}
+
             {/* HUD — Area name */}
             <div className="absolute top-4 left-4 z-40 pointer-events-none">
                 <div className="glass-panel px-4 py-2 flex items-center gap-3 backdrop-blur-xl bg-rpg-panel/80 w-max shadow-xl">
@@ -1072,9 +1083,15 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                 </div>
             </div>
 
-            {/* HUD — Keyboard hint (desktop) */}
-            <div className="absolute top-4 right-16 z-40 pointer-events-none text-right hidden lg:block">
-                <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 text-[10px] text-gray-300 font-mono w-max ml-auto">
+            {/* HUD — Keyboard hint & Controls (desktop) */}
+            <div className="absolute top-4 right-16 z-50 pointer-events-none text-right hidden lg:flex items-center gap-3 ml-auto">
+                <button 
+                    onClick={() => setRetroMode(m => m === 'none' ? 'crt' : m === 'crt' ? 'gameboy' : 'none')}
+                    className="pointer-events-auto bg-black/60 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 text-[10px] text-gray-300 font-bold uppercase tracking-wider hover:bg-white/10 transition-colors shadow-lg"
+                >
+                    {retroMode === 'none' ? 'Normal' : retroMode === 'crt' ? 'CRT Scanlines' : 'GameBoy'} Mode
+                </button>
+                <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 text-[10px] text-gray-300 font-mono w-max">
                     <span className="font-bold text-white">W A S D</span> or <span className="font-bold text-white">ARROWS</span> to move
                 </div>
             </div>

@@ -18,17 +18,17 @@ const BannerHolder = () => {
             <svg viewBox="0 0 6 4" className="w-full block shrink-0" shapeRendering="crispEdges">
                 <rect x="0" y="0" width="6" height="1" fill="#111" />
                 <rect x="0" y="1" width="1" height="1" fill="#111" />
-                <rect x="1" y="1" width="4" height="1" fill="#fdef3f" />
+                <rect x="1" y="1" width="4" height="1" fill="#fedf8c" />
                 <rect x="5" y="1" width="1" height="1" fill="#111" />
                 <rect x="1" y="2" width="1" height="1" fill="#111" />
-                <rect x="2" y="2" width="2" height="1" fill="#fdef3f" />
+                <rect x="2" y="2" width="2" height="1" fill="#fedf8c" />
                 <rect x="4" y="2" width="1" height="1" fill="#111" />
                 <rect x="0" y="3" width="6" height="1" fill="#111" />
             </svg>
             
             {/* Middle Shaft */}
             <svg viewBox="0 0 6 1" preserveAspectRatio="none" className="w-full flex-1 block" shapeRendering="crispEdges">
-                <rect x="1" y="0" width="4" height="1" fill="#fdef3f" />
+                <rect x="1" y="0" width="4" height="1" fill="#fedf8c" />
                 <rect x="0" y="0" width="1" height="1" fill="#111" />
                 <rect x="5" y="0" width="1" height="1" fill="#111" />
             </svg>
@@ -37,10 +37,10 @@ const BannerHolder = () => {
             <svg viewBox="0 0 6 4" className="w-full block shrink-0" shapeRendering="crispEdges">
                 <rect x="0" y="0" width="6" height="1" fill="#111" />
                 <rect x="1" y="1" width="1" height="1" fill="#111" />
-                <rect x="2" y="1" width="2" height="1" fill="#fdef3f" />
+                <rect x="2" y="1" width="2" height="1" fill="#fedf8c" />
                 <rect x="4" y="1" width="1" height="1" fill="#111" />
                 <rect x="0" y="2" width="1" height="1" fill="#111" />
-                <rect x="1" y="2" width="4" height="1" fill="#fdef3f" />
+                <rect x="1" y="2" width="4" height="1" fill="#fedf8c" />
                 <rect x="5" y="2" width="1" height="1" fill="#111" />
                 <rect x="0" y="3" width="6" height="1" fill="#111" />
             </svg>
@@ -67,7 +67,7 @@ const Dashboard = ({ setActiveView }) => {
                 <div
                     className="relative flex-1 max-w-4xl flex flex-col items-center justify-center text-center py-3 md:py-4 px-4 md:px-6 my-3 md:my-[15px] border-t-[4px] border-b-[4px] md:border-t-[5px] md:border-b-[5px]"
                     style={{
-                        backgroundColor: '#fdef3f',
+                        backgroundColor: '#fedf8c',
                         borderColor: '#111',
                         imageRendering: 'pixelated',
                     }}

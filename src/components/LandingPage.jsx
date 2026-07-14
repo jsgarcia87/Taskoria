@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     Sword, Shield, Scroll, Users, CheckCircle2, ChevronRight, Loader2, Crown, Hammer,
-    Sparkles, Map, Timer, Heart, Target, Trophy, Flame, Star, Zap, BookOpen
+    Sparkles, Map, Timer, Heart, Target, Trophy, Flame, Star, Zap, BookOpen, TreePine, Castle, Eraser, Square
 } from 'lucide-react';
 import ModernPixelAvatar from './common/ModernPixelAvatar';
 import ModernPixelPet from './common/ModernPixelPet';
+import LoreScroll from './common/LoreScroll';
 import { WorldSprite, WORLD_PROPS } from './dashboard/world/worldProps';
 
 // Reveal-on-scroll wrapper using IntersectionObserver (robust, no scroll math)
@@ -41,18 +42,18 @@ const HeroMockup = () => {
             {/* Floating glow halo */}
             <div className="absolute -inset-8 bg-gradient-to-tr from-rpg-gold/20 via-purple-500/10 to-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
 
-            {/* Browser-window chrome */}
-            <div className="relative bg-rpg-panelDark border-2 border-white/10 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl">
-                <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/5 bg-black/40">
+            {/* Browser-window / UI Panel chrome */}
+            <div className="relative bg-rpg-bg border-[6px] border-rpg-panelLight rounded-xl shadow-[12px_12px_0_rgba(0,0,0,0.6)] overflow-hidden">
+                <div className="flex items-center gap-1.5 px-3 py-2 border-b-4 border-rpg-panelLight bg-rpg-panel">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500/70"></div>
                     <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70"></div>
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500/70"></div>
                     <div className="ml-2 text-[9px] uppercase tracking-widest text-gray-500 font-mono">taskoria.app/camp</div>
                 </div>
 
-                <div className="grid grid-cols-12 gap-3 p-4 bg-gradient-to-b from-rpg-panelDark to-rpg-panelDark">
-                    {/* Avatar showcase — wider, taller, with character info */}
-                    <div className="col-span-12 sm:col-span-6 bg-black/40 border border-white/10 rounded-lg p-5 flex flex-col">
+                <div className="grid grid-cols-12 gap-3 p-4 bg-rpg-bg">
+                    {/* Avatar showcase */}
+                    <div className="col-span-12 sm:col-span-6 bg-rpg-panel border-4 border-rpg-panelLight rounded-lg p-5 flex flex-col">
                         <div className="flex items-center justify-between mb-3">
                             <div>
                                 <div className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Hero</div>
@@ -85,7 +86,7 @@ const HeroMockup = () => {
                     </div>
 
                     {/* Quest list */}
-                    <div className="col-span-12 sm:col-span-6 bg-black/40 border border-white/10 rounded-lg p-5 flex flex-col">
+                    <div className="col-span-12 sm:col-span-6 bg-rpg-panel border-4 border-rpg-panelLight rounded-lg p-5 flex flex-col">
                         <div className="flex items-center justify-between mb-3">
                             <div>
                                 <div className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Today</div>
@@ -100,7 +101,7 @@ const HeroMockup = () => {
                             <QuestItem label="Study English" reward="+25 XP" />
                             <QuestItem label="Meditate 10 min" reward="+10 XP" />
                         </ul>
-                        <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] uppercase tracking-widest">
+                        <div className="mt-3 pt-3 border-t-2 border-rpg-panelLight flex items-center justify-between text-[10px] uppercase tracking-widest">
                             <span className="text-gray-500">Daily streak</span>
                             <span className="text-rpg-gold font-bold flex items-center gap-1"><Flame size={11}/> 12 days</span>
                         </div>
@@ -110,7 +111,7 @@ const HeroMockup = () => {
             </div>
 
             {/* Floating "+50 XP" pip */}
-            <div className="absolute -top-3 right-6 bg-rpg-gold text-black font-heading text-xs px-3 py-1 rounded-full shadow-lg animate-bounce font-bold">+50 XP</div>
+            <div className="absolute -top-3 right-6 bg-rpg-gold text-black font-heading text-xs px-3 py-1 rounded-sm border-2 border-black shadow-[4px_4px_0_rgba(0,0,0,0.4)] animate-bounce font-bold">+50 XP</div>
         </div>
     );
 };
@@ -118,7 +119,7 @@ const HeroMockup = () => {
 const StatBar = ({ label, value, color }) => (
     <div className="flex items-center gap-1.5">
         <span className="text-[8px] font-bold text-gray-400 uppercase w-5">{label}</span>
-        <div className="flex-1 h-1.5 bg-black/60 rounded-full overflow-hidden border border-white/5">
+        <div className="flex-1 h-2 bg-rpg-panelDark rounded-full overflow-hidden border-2 border-rpg-panelLight">
             <div className={`h-full ${color} animate-stat-fill`} style={{ width: `${value}%` }}></div>
         </div>
     </div>
@@ -135,6 +136,73 @@ const QuestItem = ({ checked, label, reward }) => (
         <span className={`text-[9px] font-bold whitespace-nowrap ${checked ? 'text-gray-600' : 'text-rpg-gold'}`}>{reward}</span>
     </li>
 );
+
+const InteractiveBuilder = () => {
+    const [grid, setGrid] = useState(Array(6 * 6).fill(null));
+    const [activeTool, setActiveTool] = useState('tree');
+    const [isDrawing, setIsDrawing] = useState(false);
+
+    const tools = [
+        { id: 'tree', icon: TreePine, color: 'text-green-400', bg: 'bg-green-400/20' },
+        { id: 'house', icon: Castle, color: 'text-rpg-gold', bg: 'bg-rpg-gold/20' },
+        { id: 'path', icon: Square, color: 'text-[#d2a679]', bg: 'bg-[#8b5a2b]/30' },
+        { id: 'eraser', icon: Eraser, color: 'text-red-400', bg: 'bg-red-400/20' }
+    ];
+
+    const handlePaint = (index) => {
+        setGrid(prev => {
+            const newGrid = [...prev];
+            newGrid[index] = activeTool === 'eraser' ? null : activeTool;
+            return newGrid;
+        });
+    };
+
+    return (
+        <div className="relative z-10 flex flex-col sm:flex-row gap-6 bg-[#1a1322] border-4 border-rpg-panelLight p-6 rounded-xl shadow-[8px_8px_0_rgba(0,0,0,0.5)]">
+            {/* Palette */}
+            <div className="flex sm:flex-col gap-3 justify-center">
+                {tools.map(t => (
+                    <button
+                        key={t.id}
+                        onClick={() => setActiveTool(t.id)}
+                        className={`w-12 h-12 rounded-xl border-4 flex items-center justify-center transition-all ${activeTool === t.id ? 'border-rpg-gold bg-rpg-panelDark scale-110 shadow-[4px_4px_0_rgba(253,223,140,0.3)]' : 'border-rpg-panelLight bg-rpg-panel hover:bg-rpg-panelLight/50'}`}
+                    >
+                        <t.icon size={24} className={t.color} />
+                    </button>
+                ))}
+            </div>
+            
+            {/* Grid */}
+            <div 
+                className="grid grid-cols-6 gap-1 bg-rpg-panelDark p-2 border-4 border-rpg-panelLight rounded-xl shadow-inner mx-auto sm:mx-0"
+                onMouseLeave={() => setIsDrawing(false)}
+                onMouseUp={() => setIsDrawing(false)}
+            >
+                {grid.map((cell, i) => (
+                    <div 
+                        key={i}
+                        onMouseDown={() => { setIsDrawing(true); handlePaint(i); }}
+                        onMouseEnter={() => { if (isDrawing) handlePaint(i); }}
+                        className={`w-10 h-10 sm:w-12 sm:h-12 border-2 border-rpg-panelLight/30 rounded flex items-center justify-center cursor-pointer transition-colors select-none ${cell === 'path' ? 'bg-[#5c4033] border-[#3e2b22]' : 'bg-[#2a2233] hover:bg-[#473d54]'}`}
+                    >
+                        {cell === 'tree' && <TreePine size={24} className="text-green-400 animate-bounce drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" />}
+                        {cell === 'house' && <Castle size={24} className="text-rpg-gold animate-bounce drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" />}
+                    </div>
+                ))}
+            </div>
+            
+            {/* CTA */}
+            <div className="absolute -top-12 -right-4 sm:-right-8 hidden md:block z-20">
+                <div className="pixel-bubble p-4 text-center animate-float">
+                    <div className="bubble-body font-bold text-[#2a2a2a] text-xs">
+                        "Build your town here!"
+                    </div>
+                    <div className="absolute -bottom-3 left-6 text-[#2a2a2a] text-xl leading-none -rotate-90 drop-shadow-[2px_0_0_rgba(0,0,0,0.5)]">◀</div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // Renders a real game prop inside the landing mini map, positioned by % coords.
 // The sprite anchors at its bottom (feet on the ground), like in the real world.
@@ -194,7 +262,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
     const parallaxBg2 = { transform: `translate(${mousePosition.x * 1.5}px, ${mousePosition.y * 1.5}px)` };
 
     return (
-        <div className="min-h-screen bg-rpg-panelDark text-white overflow-x-hidden font-sans selection:bg-rpg-gold selection:text-black">
+        <div className="min-h-screen bg-rpg-bg text-white overflow-x-hidden font-sans selection:bg-rpg-gold selection:text-black">
             {/* Animated background */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-rpg-panelDark to-rpg-panelDark transition-transform duration-700 ease-out" style={parallaxBg1}></div>
@@ -212,7 +280,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                     aria-label="Scroll to top"
                 >
-                    <img src="./logo_taskoria.svg" alt="Taskoria Logo" className="h-8 md:h-10 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)] group-hover:scale-105 transition-transform" />
+                    <img src="./logo_taskoria.svg" alt="Taskoria Logo - Gamified RPG Habit Tracker" className="h-8 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)] group-hover:scale-105 transition-transform" />
                 </button>
                 <div className="flex items-center gap-2">
                     <button
@@ -221,7 +289,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     >Join Beta</button>
                     <button
                         onClick={() => onGoToLogin?.()}
-                        className="bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs md:text-sm font-bold uppercase tracking-widest px-5 md:px-6 py-2.5 rounded-full transition-colors group font-heading"
+                        className="bg-rpg-panel border-[3px] border-rpg-panelLight hover:border-rpg-gold text-white text-xs md:text-sm font-bold uppercase tracking-widest px-5 md:px-6 py-2 rounded-xl transition-colors group font-heading shadow-[4px_4px_0_rgba(0,0,0,0.5)] active:translate-y-1 active:shadow-none"
                     >
                         <span className="flex items-center gap-2">
                             Sign In
@@ -231,62 +299,80 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 </div>
             </nav>
 
-            {/* HERO */}
-            <main className="relative z-10 container mx-auto px-6 pt-32 pb-16 md:pt-40 md:pb-24">
-                <div className="grid lg:grid-cols-2 gap-12 items-center">
-                    {/* Left: copy + CTA */}
-                    <div className="text-center lg:text-left">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rpg-gold/10 border border-rpg-gold/30 text-rpg-gold text-xs font-bold font-heading tracking-widest uppercase mb-6 animate-[slideUpFade_0.8s_ease-out_forwards] opacity-0">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rpg-gold opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-400"></span>
-                            </span>
-                            Closed Beta · Limited slots
-                        </div>
-
-                        <h1 className="text-5xl md:text-6xl lg:text-7xl font-landing font-extrabold tracking-tight mb-6 animate-[slideUpFade_0.8s_ease-out_0.1s_forwards] opacity-0 leading-[1.05]">
-                            Turn your day into an{' '}
-                            <span className="relative inline-block">
-                                <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-rpg-gold to-amber-600">RPG adventure</span>
-                                <span className="absolute inset-0 bg-rpg-gold blur-3xl opacity-20 -z-10 rounded-full"></span>
-                            </span>.
-                        </h1>
-
-                        <p className="text-lg md:text-xl text-gray-300 max-w-xl mx-auto lg:mx-0 mb-8 animate-[slideUpFade_0.8s_ease-out_0.2s_forwards] opacity-0 leading-relaxed">
-                            Taskoria is a habits &amp; tasks app with a real pixel-art world: complete quests, level up, explore a town with your party, and <strong className="text-white">build the game world together</strong> with the whole community.
-                        </p>
-
-                        <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start animate-[slideUpFade_0.8s_ease-out_0.3s_forwards] opacity-0">
-                            <button
-                                onClick={scrollToWaitlist}
-                                className="group relative overflow-hidden bg-rpg-gold text-rpg-panel hover:brightness-110 px-7 py-3.5 rounded-xl uppercase tracking-widest text-sm font-heading font-bold transition-all shadow-[0_8px_30px_rgba(251,191,36,0.3)] flex items-center justify-center gap-2"
-                            >
-                                <Sword size={16}/> Start the Adventure
-                                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/>
-                                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                            </button>
-                            <button
-                                onClick={() => onGoToLogin?.()}
-                                className="bg-white/5 hover:bg-white/10 border border-white/20 px-7 py-3.5 rounded-xl uppercase tracking-widest text-sm font-heading font-bold transition-all flex items-center justify-center gap-2"
-                            >
-                                I already have an account
-                                <ChevronRight size={16} className="opacity-60"/>
-                            </button>
-                        </div>
-
-                        <div className="mt-8 flex items-center gap-6 justify-center lg:justify-start text-[11px] uppercase tracking-widest text-gray-500 animate-[slideUpFade_0.8s_ease-out_0.4s_forwards] opacity-0">
-                            <span className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-green-400"/> Free in beta</span>
-                            <span className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-green-400"/> No ads</span>
-                            <span className="flex items-center gap-1.5 hidden sm:inline-flex"><CheckCircle2 size={12} className="text-green-400"/> PWA · Mobile + web</span>
-                        </div>
+            {/* HERO - CHAPTER I: THE GATES */}
+            <main className="relative z-10 container mx-auto px-6 pt-40 pb-32 flex flex-col items-center justify-center min-h-[85vh] text-center">
+                <div className="max-w-4xl mx-auto flex flex-col items-center">
+                    
+                    <div className="mb-10 flex items-center justify-center animate-breathe">
+                        <img src="./icono_taskoria_white.png" alt="Taskoria Crest - Gamified Productivity App" className="w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_0_30px_rgba(253,223,140,0.7)]" />
                     </div>
 
-                    {/* Right: mockup */}
-                    <div className="animate-[zoomInFade_1s_ease-out_0.4s_forwards] opacity-0">
-                        <HeroMockup/>
+                    <h1 className="sr-only">Taskoria: Gamified Productivity App and RPG Habit Tracker</h1>
+                    
+                    <h2 className="text-4xl md:text-5xl lg:text-7xl font-landing font-extrabold tracking-widest uppercase mb-8 animate-[slideUpFade_1s_ease-out_forwards] opacity-0 text-white drop-shadow-[0_0_15px_rgba(253,223,140,0.5)] leading-tight">
+                        The Royal Archive<br/>is seeking new citizens.
+                    </h2>
+
+                    <p className="text-lg md:text-2xl text-rpg-gold font-heading max-w-2xl mx-auto mb-12 animate-[slideUpFade_1s_ease-out_0.3s_forwards] opacity-0 leading-relaxed drop-shadow-[0_0_10px_rgba(253,223,140,0.3)]">
+                        Every unfinished duty weakens the Kingdom.<br className="hidden md:block"/> Every completed quest restores it.
+                    </p>
+
+                    <div className="animate-[slideUpFade_1s_ease-out_0.6s_forwards] opacity-0 flex flex-col items-center">
+                        <button
+                            onClick={scrollToWaitlist}
+                            className="bg-rpg-gold text-rpg-panel border-b-[6px] border-yellow-600 active:border-b-0 active:translate-y-[6px] rounded-xl px-10 py-4 uppercase tracking-widest text-base md:text-lg font-heading font-extrabold transition-all flex items-center justify-center gap-3 group shadow-xl"
+                        >
+                            Enter the Kingdom
+                            <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform"/>
+                        </button>
+                        
+                        <button
+                            onClick={() => onGoToLogin?.()}
+                            className="mt-6 text-gray-500 hover:text-rpg-gold text-xs md:text-sm uppercase tracking-widest font-bold transition-colors font-heading"
+                        >
+                            I am already a citizen
+                        </button>
                     </div>
                 </div>
             </main>
+
+            {/* Divider */}
+            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
+
+            {/* CHAPTER II: THE ORIGIN */}
+            <section className="relative z-10 container mx-auto px-6 py-24 text-center">
+                <Reveal>
+                    <div className="max-w-3xl mx-auto bg-rpg-panel border-4 border-rpg-panelLight rounded-xl p-10 md:p-16 shadow-[12px_12px_0_rgba(0,0,0,0.5)] relative overflow-hidden">
+                        {/* Decorative corners */}
+                        <div className="absolute top-0 left-0 w-8 h-8 bg-rpg-panelLight"></div>
+                        <div className="absolute top-0 right-0 w-8 h-8 bg-rpg-panelLight"></div>
+                        <div className="absolute bottom-0 left-0 w-8 h-8 bg-rpg-panelLight"></div>
+                        <div className="absolute bottom-0 right-0 w-8 h-8 bg-rpg-panelLight"></div>
+
+                        <div className="mb-10">
+                            <BookOpen size={48} className="mx-auto text-rpg-gold opacity-80 drop-shadow-[0_0_15px_rgba(253,223,140,0.5)]" />
+                        </div>
+                        
+                        <div className="space-y-10 font-heading text-lg md:text-xl text-gray-300 leading-relaxed">
+                            <p className="animate-breathe">
+                                <span className="block text-sm uppercase tracking-widest text-rpg-gold/70 mb-2 font-bold">Long ago...</span>
+                                The Royal Archive began transforming<br className="hidden md:block"/> every mundane duty into a grand Quest.
+                            </p>
+                            <p>
+                                Six guardians were appointed to protect it,<br className="hidden md:block"/> ensuring that no deed goes unrecorded and no effort is forgotten.
+                            </p>
+                            <p className="text-rpg-gold font-bold text-2xl md:text-3xl drop-shadow-[0_0_15px_rgba(253,223,140,0.4)] mt-12">
+                                <span className="block text-sm uppercase tracking-widest text-rpg-gold/70 mb-2">Now...</span>
+                                The Archive has summoned you.
+                            </p>
+
+                            <div className="mt-8 flex justify-center">
+                                <LoreScroll />
+                            </div>
+                        </div>
+                    </div>
+                </Reveal>
+            </section>
 
             {/* Divider */}
             <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
@@ -306,15 +392,15 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
 
                     <div className="grid md:grid-cols-3 gap-6">
                         {[
-                            { icon: Target, title: 'Create your quests', body: 'Log your tasks, daily habits and goals. Set difficulty and XP rewards. Everything you complete levels you up.' },
-                            { icon: Sword, title: 'Level up your hero', body: 'Pick a class (Mage, Warrior, Rogue…), customize your pixel-art avatar, equip gear, adopt pets, defeat your sprint boss.' },
-                            { icon: Map, title: 'Explore and build the world', body: 'Walk around town with your party, talk to NPCs, browse shops, and craft houses, mounts and decorations with the community that will live on the map.' },
+                            { icon: Target, title: 'Create your quests', body: 'Log your tasks, daily habits and goals in our RPG task manager. Set difficulty and XP rewards. Everything you complete levels you up.' },
+                            { icon: Sword, title: 'Level up your hero', body: 'Pick a class (Mage, Warrior, Rogue…), customize your pixel-art avatar, equip gear, adopt pets, and defeat your procrastination boss.' },
+                            { icon: Map, title: 'Explore and build the world', body: 'Walk around the gamified town with your party, talk to NPCs, browse shops, and craft houses and mounts with a pixel art productivity community.' },
                         ].map((step, i) => (
                             <Reveal key={step.title} delay={i * 150}>
                                 <div className="relative flex flex-col items-center text-center group">
                                     {/* Quest waypoint marker */}
-                                    <div className="relative z-10 w-[72px] h-[72px] bg-rpg-panel border-2 border-rpg-gold/50 rounded-2xl flex items-center justify-center text-rpg-gold mb-5 shadow-[0_0_20px_rgba(251,191,36,0.15)] group-hover:border-rpg-gold group-hover:shadow-[0_0_30px_rgba(251,191,36,0.25)] transition-all">
-                                        <step.icon size={28}/>
+                                    <div className="relative z-10 w-[80px] h-[80px] bg-rpg-panel border-4 border-rpg-panelLight rounded-xl flex items-center justify-center text-rpg-gold mb-5 shadow-[6px_6px_0_rgba(0,0,0,0.5)] group-hover:border-rpg-gold group-hover:-translate-y-2 transition-all">
+                                        <step.icon size={32}/>
                                     </div>
                                     <h3 className="text-xl font-heading text-white mb-2">{step.title}</h3>
                                     <p className="text-sm text-gray-400 leading-relaxed max-w-xs">{step.body}</p>
@@ -322,38 +408,72 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                             </Reveal>
                         ))}
                     </div>
+
+                    {/* Moved HeroMockup below How it works */}
+                    <div className="mt-24">
+                        <Reveal>
+                            <div className="text-center mb-10">
+                                <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">The Laws of the Archive</div>
+                                <h3 className="text-2xl md:text-3xl font-landing font-bold text-white max-w-2xl mx-auto">
+                                    Your legend begins with your daily duties.
+                                </h3>
+                            </div>
+                            <HeroMockup/>
+                        </Reveal>
+                    </div>
                 </div>
             </section>
 
             {/* Divider */}
             <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
 
-            {/* FEATURES */}
+            {/* CHAPTER III: THE COUNCIL */}
             <section className="relative z-10 container mx-auto px-6 py-20">
-                <Reveal className="text-center mb-14">
-                    <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">What's inside</div>
+                <Reveal className="text-center mb-20">
+                    <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">Meet the Council</div>
                     <h2 className="text-3xl md:text-5xl font-landing font-bold text-white max-w-3xl mx-auto leading-tight">
-                        Everything you need to <span className="text-rpg-gold">not let your future self down</span>.
+                        Six guardians. Six ways to <span className="text-rpg-gold">conquer your day</span>.
                     </h2>
                 </Reveal>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-8 max-w-5xl mx-auto">
                     {[
-                        { icon: Scroll, classes: 'bg-blue-500/20 text-blue-400 border-blue-500/40', halo: 'bg-blue-500/10', accent: '#60a5fa', title: 'Habits + Tasks + Diary', body: 'Three tools in one: daily habits, task list with due dates and priorities, and personal diary. All synced with your level.' },
-                        { icon: Timer, classes: 'bg-red-500/20 text-red-400 border-red-500/40', halo: 'bg-red-500/10', accent: '#f87171', title: 'Pomodoro Focus Combat', body: 'Start a Pomodoro session and fight a procrastination monster. Lose focus and it strikes back. Hold the line and you defeat it.' },
-                        { icon: Map, classes: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40', halo: 'bg-emerald-500/10', accent: '#34d399', title: 'Open world to explore', body: 'Town Square, Mystic Forest, Shadow Crypts, Taskoria Keep. Wandering NPCs. Chat with shopkeepers, open doors, meet other heroes online.' },
-                        { icon: Users, classes: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40', halo: 'bg-indigo-500/10', accent: '#818cf8', title: 'Party & Guilds', body: 'Create a party with friends or family. Watch their progress in real time. Guilds with rankings, shared challenges and built-in chat.' },
-                        { icon: Hammer, classes: 'bg-amber-500/20 text-amber-400 border-amber-500/40', halo: 'bg-amber-500/10', accent: '#fbbf24', title: 'Collaborative Pixel Studio', body: 'Design houses, castles, mounts, trees, props… with a built-in pixel-art editor. If approved, your creation lives on the map for everyone.' },
-                        { icon: Heart, classes: 'bg-pink-500/20 text-pink-400 border-pink-500/40', halo: 'bg-pink-500/10', accent: '#f472b6', title: 'Multi-profile for families', body: 'One login, multiple heroes. Built for families: each member with their own character, tasks and progress.' },
-                    ].map((f, i) => (
-                        <Reveal key={f.title} delay={i * 80}>
-                            <div className="feature-accent-top bg-rpg-panel/70 border-2 border-white/5 p-6 hover:border-rpg-gold/40 transition-all duration-300 group hover:-translate-y-1 relative overflow-hidden rounded-2xl h-full" style={{'--accent-color': f.accent}}>
-                                <div className={`absolute top-0 right-0 w-32 h-32 ${f.halo} rounded-bl-full translate-x-12 -translate-y-12 transition-colors`}></div>
-                                <div className={`w-12 h-12 ${f.classes} rounded-xl flex items-center justify-center mb-4 border relative z-10`}>
-                                    <f.icon size={22}/>
+                        { name: "Ledgar", title: "El Registrador", icon: Scroll, color: "text-blue-400", bg: "bg-blue-400/20", border: "border-blue-400/40", lore: "I record every deed, lest they fade into the void.", tech: "Habits, Tasks & Diary" },
+                        { name: "Chronos", title: "El Guardián del Tiempo", icon: Timer, color: "text-red-400", bg: "bg-red-400/20", border: "border-red-400/40", lore: "Time is a monster. Slay it, or let it consume you.", tech: "Pomodoro Focus Combat" },
+                        { name: "Cartograph", title: "El Explorador", icon: Map, color: "text-emerald-400", bg: "bg-emerald-400/20", border: "border-emerald-400/40", lore: "The lands stretch far. Where will your party wander today?", tech: "Open world to explore" },
+                        { name: "Notifus", title: "El Heraldo", icon: Users, color: "text-indigo-400", bg: "bg-indigo-400/20", border: "border-indigo-400/40", lore: "Bonds of fellowship forge the strongest armor.", tech: "Party & Guilds" },
+                        { name: "Patchsmith", title: "El Forjador", icon: Hammer, color: "text-amber-400", bg: "bg-amber-400/20", border: "border-amber-400/40", lore: "Give me the blueprints, and we shall build this world together.", tech: "Collaborative Pixel Studio" },
+                        { name: "Matriarch", title: "La Protectora", icon: Heart, color: "text-pink-400", bg: "bg-pink-400/20", border: "border-pink-400/40", lore: "Every lineage has its heroes. Let them all rise.", tech: "Multi-profile for families" },
+                    ].map((g, i) => (
+                        <Reveal key={g.name} delay={i * 100}>
+                            <div className="relative flex flex-col items-center group cursor-default">
+                                {/* Hover Dialogue (Pixel Bubble) */}
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-64 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:-translate-y-4 transition-all duration-300 z-50">
+                                    <div className="pixel-bubble animate-float text-center shadow-2xl relative">
+                                        <div className="bubble-body whitespace-normal text-xs text-[#2a2a2a] p-3 font-heading font-bold italic">
+                                            "{g.lore}"
+                                        </div>
+                                        {/* Tail */}
+                                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[#2a2a2a] text-xl leading-none -rotate-90 drop-shadow-[2px_0_0_rgba(0,0,0,0.5)]">◀</div>
+                                    </div>
                                 </div>
-                                <h3 className="text-lg font-heading mb-2 text-white relative z-10">{f.title}</h3>
-                                <p className="text-sm text-gray-400 leading-relaxed relative z-10">{f.body}</p>
+
+                                {/* The Magic Card */}
+                                <div className="w-full max-w-[240px] aspect-[3/4] bg-rpg-panel border-[6px] border-rpg-panelLight rounded-2xl flex flex-col items-center justify-center p-6 relative z-10 transition-transform duration-300 shadow-[10px_10px_0_rgba(0,0,0,0.4)] group-hover:-translate-y-3 group-hover:border-rpg-gold group-hover:shadow-[15px_15px_0_rgba(253,223,140,0.2)]">
+                                    <div className={`absolute inset-0 rounded-xl ${g.bg} opacity-20 group-hover:animate-pulse`}></div>
+                                    
+                                    <g.icon size={48} className={`${g.color} relative z-10 mb-6 drop-shadow-lg group-hover:text-rpg-gold transition-colors`} />
+                                    
+                                    <h3 className="text-2xl font-landing font-bold text-white mb-1 text-center relative z-10 group-hover:text-rpg-gold transition-colors">{g.name}</h3>
+                                    <div className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-4 text-center relative z-10">{g.title}</div>
+
+                                    {/* Tech translation */}
+                                    <div className="mt-auto text-center w-full relative z-10">
+                                        <span className="text-sm text-gray-400 font-bold font-sans border-t-2 border-rpg-panelLight pt-3 block w-full group-hover:text-white transition-colors">
+                                            {g.tech}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </Reveal>
                     ))}
@@ -367,7 +487,8 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
             <section className="relative z-10 container mx-auto px-6 py-20">
                 <div className="max-w-6xl mx-auto">
                     <Reveal>
-                        <div className="grid lg:grid-cols-2 gap-10 items-center bg-gradient-to-br from-rpg-panel via-rpg-panel to-rpg-panelDark border-2 border-rpg-gold/30 rounded-3xl p-8 md:p-12 relative overflow-hidden shadow-[0_0_80px_rgba(251,191,36,0.1)]">
+                        <div className="grid lg:grid-cols-2 gap-10 items-center bg-rpg-panel border-4 border-rpg-panelLight rounded-xl p-8 md:p-12 relative overflow-hidden shadow-[16px_16px_0_rgba(0,0,0,0.4)]">
+                            <div className="absolute inset-0 landing-pixel-grid opacity-30 pointer-events-none"></div>
                             <div className="absolute -top-32 -right-32 w-96 h-96 bg-rpg-gold/10 rounded-full blur-3xl pointer-events-none"></div>
                             <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -379,7 +500,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                     The world of Taskoria <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-rpg-gold to-amber-600">is built by you</span>.
                                 </h2>
                                 <p className="text-gray-300 leading-relaxed mb-6">
-                                    Open the <strong className="text-white">Pixel Studio</strong> inside the game and design houses, castles, mounts, trees and decorations pixel by pixel. Upload a reference image, trace with adjustable opacity, use Taskoria's palette. When you're done, hit publish and it goes to moderation.
+                                    Open the <strong className="text-white">Pixel Studio</strong> inside the game and design houses, castles, mounts, trees and decorations pixel by pixel. This gamified productivity tool lets you craft your environment. Upload a reference image, trace with adjustable opacity, use Taskoria's palette. When you're done, hit publish and it goes to moderation.
                                 </p>
                                 <ul className="space-y-2 text-sm text-gray-300 mb-6">
                                     <li className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-400 flex-shrink-0"/> 6 categories: houses, castles, mounts, trees, decoration, props.</li>
@@ -388,37 +509,15 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                 </ul>
                                 <button
                                     onClick={() => onGoToLogin?.()}
-                                    className="inline-flex items-center gap-2 bg-rpg-gold text-rpg-panel font-heading hover:brightness-110 px-7 py-3.5 rounded-xl uppercase tracking-widest text-sm transition-all shadow-lg group font-bold"
+                                    className="inline-flex items-center gap-2 bg-rpg-gold text-rpg-panel border-b-[4px] border-yellow-600 active:border-b-0 active:translate-y-[4px] font-heading hover:bg-yellow-400 px-7 py-3 rounded-xl uppercase tracking-widest text-sm transition-all group font-bold mt-2"
                                 >
                                     <Hammer size={16}/> Enter the Pixel Studio
                                     <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/>
                                 </button>
                             </div>
 
-                            {/* Gallery: real characters, pets & world props from the game */}
-                            <div className="relative z-10 grid grid-cols-3 gap-3">
-                                <GalleryRealCard title="Wizard" cat="Hero Class">
-                                    <ModernPixelAvatar type="wizard" scale={1.0}/>
-                                </GalleryRealCard>
-                                <GalleryRealCard title="Paladin" cat="Hero Class">
-                                    <ModernPixelAvatar type="paladin" scale={1.0}/>
-                                </GalleryRealCard>
-                                <GalleryRealCard title="Rogue" cat="Hero Class">
-                                    <ModernPixelAvatar type="rogue" scale={1.0}/>
-                                </GalleryRealCard>
-                                <GalleryRealCard title="Dragon" cat="Companion">
-                                    <ModernPixelPet type="dragon" scale={1.4}/>
-                                </GalleryRealCard>
-                                <GalleryRealCard title="Lion" cat="Companion">
-                                    <ModernPixelPet type="lion" scale={1.4}/>
-                                </GalleryRealCard>
-                                <GalleryRealCard title="Wolf" cat="Companion">
-                                    <ModernPixelPet type="wolf" scale={1.4}/>
-                                </GalleryRealCard>
-                                <GalleryPropCard title="Oak Tree" cat="World Prop" name="oak_tree" scale={1.0}/>
-                                <GalleryPropCard title="Stone Well" cat="World Prop" name="well" scale={1.2}/>
-                                <GalleryPropCard title="Iron Lamp" cat="World Prop" name="lamp" scale={1.4}/>
-                            </div>
+                            {/* Interactive Town Builder */}
+                            <InteractiveBuilder />
                         </div>
                     </Reveal>
                 </div>
@@ -440,8 +539,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                         </p>
 
                         <div className="relative max-w-xl mx-auto">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-rpg-gold via-amber-500 to-yellow-600 rounded-2xl blur opacity-30"></div>
-                            <form onSubmit={handleJoinWaitlist} className="relative bg-rpg-panel/80 backdrop-blur-xl border border-white/20 p-2 rounded-2xl flex flex-col sm:flex-row gap-2 shadow-[0_0_40px_rgba(251,191,36,0.15)]">
+                            <form onSubmit={handleJoinWaitlist} className="relative bg-rpg-panel border-4 border-rpg-panelLight p-2 rounded-xl flex flex-col sm:flex-row gap-2 shadow-[8px_8px_0_rgba(0,0,0,0.4)]">
                                 <input
                                     type="email"
                                     required
@@ -454,7 +552,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                 <button
                                     type="submit"
                                     disabled={status === 'loading' || status === 'success'}
-                                    className={`relative overflow-hidden bg-rpg-gold text-rpg-panel font-heading hover:bg-yellow-400 px-6 py-3 rounded-xl uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 group shadow-lg font-bold ${status === 'success' ? 'bg-green-500 text-white' : ''}`}
+                                    className={`relative bg-rpg-gold text-rpg-panel border-b-[4px] border-yellow-600 active:border-b-0 active:translate-y-[4px] font-heading hover:bg-yellow-400 px-6 py-3 rounded-lg uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 group font-bold ${status === 'success' ? 'bg-green-500 border-green-700 text-white' : ''}`}
                                 >
                                     {status === 'loading' ? <Loader2 size={18} className="animate-spin"/> :
                                      status === 'success' ? <CheckCircle2 size={18}/> :
@@ -468,7 +566,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                 {status === 'success' && (
                                     <button
                                         onClick={() => onGoToLogin?.()}
-                                        className="mt-3 w-full bg-rpg-gold text-rpg-panel hover:brightness-110 px-6 py-3 rounded-xl uppercase tracking-widest text-sm font-heading font-bold transition-all shadow-lg flex items-center justify-center gap-2"
+                                        className="mt-3 w-full bg-rpg-gold text-rpg-panel border-b-[4px] border-yellow-600 active:border-b-0 active:translate-y-[4px] hover:bg-yellow-400 px-6 py-3 rounded-lg uppercase tracking-widest text-sm font-heading font-bold transition-all flex items-center justify-center gap-2"
                                     >
                                         <Sword size={16}/> Sign in now
                                         <ChevronRight size={16}/>
@@ -502,8 +600,8 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
 };
 
 const GalleryRealCard = ({ title, cat, children }) => (
-    <div className="bg-[#0f0a1f] border border-white/10 rounded-xl p-3 flex flex-col items-center hover:border-rpg-gold/40 transition-colors">
-        <div className="w-full aspect-square bg-black/40 rounded p-2 flex items-center justify-center overflow-hidden">
+    <div className="bg-[#1a1322] border-4 border-rpg-panelLight rounded-xl p-3 flex flex-col items-center shadow-[4px_4px_0_rgba(0,0,0,0.5)]">
+        <div className="w-full aspect-square bg-rpg-panel rounded flex items-center justify-center overflow-hidden border-2 border-rpg-panelLight">
             {children}
         </div>
         <div className="mt-2 text-xs font-bold text-white truncate w-full text-center">{title}</div>
@@ -517,8 +615,8 @@ const GalleryPropCard = ({ title, cat, name, scale = 1 }) => {
     const dw = prop.w * scale;
     const dh = prop.h * scale;
     return (
-        <div className="bg-[#0f0a1f] border border-white/10 rounded-xl p-3 flex flex-col items-center hover:border-rpg-gold/40 transition-colors">
-            <div className="w-full aspect-square bg-gradient-to-b from-[#1a1530] to-rpg-panelDark rounded p-2 flex items-end justify-center overflow-hidden">
+        <div className="bg-[#1a1322] border-4 border-rpg-panelLight rounded-xl p-3 flex flex-col items-center shadow-[4px_4px_0_rgba(0,0,0,0.5)]">
+            <div className="w-full aspect-square bg-rpg-panel rounded flex items-end justify-center overflow-hidden border-2 border-rpg-panelLight">
                 <div style={{ position: 'relative', width: dw, height: dh }}>
                     <WorldSprite name={name} x={dw / 2} y={dh} scale={scale} shadow={false} />
                 </div>
@@ -530,8 +628,8 @@ const GalleryPropCard = ({ title, cat, name, scale = 1 }) => {
 };
 
 const SmallStat = ({ icon: Icon, value, label }) => (
-    <div className="flex flex-col items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-3">
-        <Icon size={16} className="text-rpg-gold"/>
+    <div className="flex flex-col items-center gap-1 bg-rpg-panel border-4 border-rpg-panelLight rounded-xl p-3 shadow-[4px_4px_0_rgba(0,0,0,0.4)]">
+        <Icon size={20} className="text-rpg-gold"/>
         <div className="text-3xl font-pixel text-white leading-none">{value}</div>
         <div className="text-[9px] uppercase tracking-widest text-gray-500">{label}</div>
     </div>

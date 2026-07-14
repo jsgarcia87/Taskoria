@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Trash2, Image as ImageIcon, X, Upload, Save, Eraser, Pipette, PaintBucket, Undo2, Redo2 } from 'lucide-react';
+import { Trash2, Image as ImageIcon, X, Upload, Save, Eraser, Pipette, PaintBucket, Undo2, Redo2, Play, Square, Plus, Copy } from 'lucide-react';
 
 const GRID_SIZE = 64;
 const TOTAL = GRID_SIZE * GRID_SIZE;
@@ -18,18 +18,22 @@ const CATEGORIES = [
     { id: 'arboles', label: 'Trees' },
     { id: 'decoracion', label: 'Decoration' },
     { id: 'props', label: 'Props' },
+    { id: 'monstruos', label: 'Monsters' },
 ];
 
 const emptyBuffer = () => new Array(TOTAL).fill(EMPTY);
 
 const CreationStudio = ({ currentUser }) => {
-    const [pixels, setPixels] = useState(emptyBuffer);
+    const [frames, setFrames] = useState([emptyBuffer()]);
+    const [activeFrame, setActiveFrame] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(false);
+    
     const [color, setColor] = useState(PALETTE[0]);
     const [tool, setTool] = useState('pencil'); // pencil | eraser | fill | picker
     const [customColor, setCustomColor] = useState('#ff0000');
     const [name, setName] = useState('');
     const [category, setCategory] = useState(CATEGORIES[0].id);
-    const [price, setPrice] = useState(100); // Bazaar price in gold, capped 10-500 by backend
+    const [price, setPrice] = useState(100); 
     const [refImage, setRefImage] = useState(null);
     const [refOpacity, setRefOpacity] = useState(0.5);
     const [refScale, setRefScale] = useState(100);
@@ -42,28 +46,58 @@ const CreationStudio = ({ currentUser }) => {
 
     const canvasRef = useRef(null);
     const isDrawingRef = useRef(false);
-    const pixelsRef = useRef(pixels);
-    pixelsRef.current = pixels;
+    
+    const framesRef = useRef(frames);
+    framesRef.current = frames;
+    const activeFrameRef = useRef(activeFrame);
+    activeFrameRef.current = activeFrame;
+    const isPlayingRef = useRef(isPlaying);
+    isPlayingRef.current = isPlaying;
+
     const lastPaintedRef = useRef(-1);
 
-    // Render the canvas whenever pixels change
+    // Playback loop
+    useEffect(() => {
+        if (!isPlaying) return;
+        const interval = setInterval(() => {
+            setActiveFrame(prev => (prev + 1) % framesRef.current.length);
+        }, 1000 / 6); // 6 FPS
+        return () => clearInterval(interval);
+    }, [isPlaying]);
+
+    // Render the canvas
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = false;
         ctx.clearRect(0, 0, GRID_SIZE, GRID_SIZE);
-        for (let i = 0; i < TOTAL; i++) {
-            const p = pixels[i];
-            if (!p || p === EMPTY) continue;
-            ctx.fillStyle = p;
-            ctx.fillRect(i % GRID_SIZE, Math.floor(i / GRID_SIZE), 1, 1);
-        }
-    }, [pixels]);
 
-    const pushUndo = (snapshot) => {
+        const renderBuffer = (buf, opacity) => {
+            ctx.globalAlpha = opacity;
+            for (let i = 0; i < TOTAL; i++) {
+                const p = buf[i];
+                if (!p || p === EMPTY) continue;
+                ctx.fillStyle = p;
+                ctx.fillRect(i % GRID_SIZE, Math.floor(i / GRID_SIZE), 1, 1);
+            }
+        };
+
+        if (!isPlaying && activeFrame > 0 && frames[activeFrame - 1]) {
+            renderBuffer(frames[activeFrame - 1], 0.3); // Onion skin
+        }
+
+        if (frames[activeFrame]) {
+            renderBuffer(frames[activeFrame], 1.0);
+        }
+        ctx.globalAlpha = 1.0;
+    }, [frames, activeFrame, isPlaying]);
+
+    const pushUndo = (fSnap, aSnap) => {
+        // Deep copy frames
+        const snap = fSnap.map(f => [...f]);
         setUndoStack(prev => {
-            const next = [...prev, snapshot];
+            const next = [...prev, { frames: snap, activeFrame: aSnap }];
             return next.length > 50 ? next.slice(-50) : next;
         });
         setRedoStack([]);
@@ -73,8 +107,9 @@ const CreationStudio = ({ currentUser }) => {
         setUndoStack(prev => {
             if (prev.length === 0) return prev;
             const last = prev[prev.length - 1];
-            setRedoStack(r => [...r, pixelsRef.current]);
-            setPixels(last);
+            setRedoStack(r => [...r, { frames: framesRef.current.map(f=>[...f]), activeFrame: activeFrameRef.current }]);
+            setFrames(last.frames.map(f=>[...f]));
+            setActiveFrame(last.activeFrame);
             return prev.slice(0, -1);
         });
     };
@@ -83,8 +118,9 @@ const CreationStudio = ({ currentUser }) => {
         setRedoStack(prev => {
             if (prev.length === 0) return prev;
             const last = prev[prev.length - 1];
-            setUndoStack(u => [...u, pixelsRef.current]);
-            setPixels(last);
+            setUndoStack(u => [...u, { frames: framesRef.current.map(f=>[...f]), activeFrame: activeFrameRef.current }]);
+            setFrames(last.frames.map(f=>[...f]));
+            setActiveFrame(last.activeFrame);
             return prev.slice(0, -1);
         });
     };
@@ -119,43 +155,56 @@ const CreationStudio = ({ currentUser }) => {
     };
 
     const paintAt = (idx) => {
-        if (idx < 0 || idx === lastPaintedRef.current) return;
+        if (idx < 0 || idx === lastPaintedRef.current || isPlayingRef.current) return;
         lastPaintedRef.current = idx;
-        setPixels(prev => {
+        setFrames(prev => {
+            const af = activeFrameRef.current;
+            const currentBuf = prev[af];
             const value = tool === 'eraser' ? EMPTY : color;
-            if (prev[idx] === value) return prev;
-            const next = [...prev];
-            next[idx] = value;
-            return next;
+            if (currentBuf[idx] === value) return prev;
+            
+            const nextBuf = [...currentBuf];
+            nextBuf[idx] = value;
+            const nextFrames = [...prev];
+            nextFrames[af] = nextBuf;
+            return nextFrames;
         });
     };
 
     const handlePointerDown = (e) => {
+        if (isPlaying) return;
         e.preventDefault();
         const idx = getCellIndexFromEvent(e);
         if (idx < 0) return;
 
+        const currentBuf = framesRef.current[activeFrame];
+
         if (tool === 'picker') {
-            const c = pixelsRef.current[idx];
+            const c = currentBuf[idx];
             if (c && c !== EMPTY) setColor(c);
             return;
         }
 
         if (tool === 'fill') {
-            pushUndo(pixelsRef.current);
+            pushUndo(framesRef.current, activeFrame);
             const replacement = color;
-            setPixels(floodFill(pixelsRef.current, idx, pixelsRef.current[idx], replacement));
+            setFrames(prev => {
+                const nextBuf = floodFill(currentBuf, idx, currentBuf[idx], replacement);
+                const nextFrames = [...prev];
+                nextFrames[activeFrame] = nextBuf;
+                return nextFrames;
+            });
             return;
         }
 
-        pushUndo(pixelsRef.current);
+        pushUndo(framesRef.current, activeFrame);
         isDrawingRef.current = true;
         lastPaintedRef.current = -1;
         paintAt(idx);
     };
 
     const handlePointerMove = (e) => {
-        if (!isDrawingRef.current) return;
+        if (!isDrawingRef.current || isPlaying) return;
         const idx = getCellIndexFromEvent(e);
         paintAt(idx);
     };
@@ -171,20 +220,57 @@ const CreationStudio = ({ currentUser }) => {
     }, []);
 
     const clearCanvas = () => {
-        if (!confirm('Clear canvas?')) return;
-        pushUndo(pixelsRef.current);
-        setPixels(emptyBuffer());
+        if (!confirm('Clear all frames?')) return;
+        pushUndo(framesRef.current, activeFrame);
+        setFrames([emptyBuffer()]);
+        setActiveFrame(0);
+        setIsPlaying(false);
+    };
+
+    const addFrame = () => {
+        pushUndo(framesRef.current, activeFrame);
+        setFrames(prev => [...prev, emptyBuffer()]);
+        setActiveFrame(frames.length);
+        setIsPlaying(false);
+    };
+
+    const duplicateFrame = () => {
+        pushUndo(framesRef.current, activeFrame);
+        setFrames(prev => {
+            const next = [...prev];
+            next.splice(activeFrame + 1, 0, [...prev[activeFrame]]);
+            return next;
+        });
+        setActiveFrame(activeFrame + 1);
+        setIsPlaying(false);
+    };
+
+    const deleteFrame = () => {
+        if (frames.length <= 1) return;
+        if (!confirm('Delete current frame?')) return;
+        pushUndo(framesRef.current, activeFrame);
+        setFrames(prev => prev.filter((_, i) => i !== activeFrame));
+        setActiveFrame(Math.max(0, activeFrame - 1));
+        setIsPlaying(false);
     };
 
     const saveToSession = () => {
         const finalName = (name || `sprite_${Date.now().toString().slice(-4)}`).trim();
         setName(finalName);
-        setSessionDrawings(prev => ({ ...prev, [finalName]: [...pixelsRef.current] }));
+        setSessionDrawings(prev => ({ ...prev, [finalName]: framesRef.current.map(f=>[...f]) }));
     };
 
     const loadFromSession = (key) => {
-        pushUndo(pixelsRef.current);
-        setPixels([...sessionDrawings[key]]);
+        pushUndo(framesRef.current, activeFrame);
+        // support old single frame format
+        const data = sessionDrawings[key];
+        if (data && data.length > 0 && !Array.isArray(data[0])) {
+            setFrames([[...data]]);
+        } else {
+            setFrames(data.map(f=>[...f]));
+        }
+        setActiveFrame(0);
+        setIsPlaying(false);
         setName(key);
     };
 
@@ -213,7 +299,11 @@ const CreationStudio = ({ currentUser }) => {
         const trimmed = (name || '').trim();
         if (!trimmed) { setPublishStatus({ state: 'error', msg: 'Name your creation first.' }); return; }
         if (!currentUser?.id) { setPublishStatus({ state: 'error', msg: 'You need to be logged in.' }); return; }
-        const hasContent = pixelsRef.current.some(p => p && p !== EMPTY);
+        
+        let hasContent = false;
+        for (let f of framesRef.current) {
+            if (f.some(p => p && p !== EMPTY)) { hasContent = true; break; }
+        }
         if (!hasContent) { setPublishStatus({ state: 'error', msg: 'The canvas is empty.' }); return; }
 
         setPublishStatus({ state: 'loading', msg: '' });
@@ -226,7 +316,7 @@ const CreationStudio = ({ currentUser }) => {
                     name: trimmed,
                     category,
                     grid_size: GRID_SIZE,
-                    pixels: pixelsRef.current,
+                    pixels: framesRef.current.length === 1 ? framesRef.current[0] : framesRef.current,
                     price: Math.max(10, Math.min(500, parseInt(price, 10) || 100)),
                 }),
             });
@@ -322,10 +412,10 @@ const CreationStudio = ({ currentUser }) => {
                     </button>
                 </aside>
 
-                {/* CENTER: Canvas */}
+                {/* CENTER: Canvas & Timeline */}
                 <main className="lg:col-span-6 flex flex-col items-center">
                     <div
-                        className="relative w-full max-w-[640px] aspect-square border-4 border-black bg-[#12121e] shadow-2xl overflow-hidden touch-none"
+                        className={`relative w-full max-w-[640px] aspect-square border-4 ${isPlaying ? 'border-rpg-gold' : 'border-black'} bg-[#12121e] shadow-2xl overflow-hidden touch-none transition-colors`}
                         style={{ cursor: tool === 'picker' ? 'crosshair' : 'cell' }}
                         onPointerDown={handlePointerDown}
                         onPointerMove={handlePointerMove}
@@ -339,12 +429,41 @@ const CreationStudio = ({ currentUser }) => {
                             style={{ imageRendering: 'pixelated' }}
                         />
                         {/* Grid overlay */}
-                        <div className="absolute inset-0 pointer-events-none" style={{
-                            backgroundImage: 'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
-                            backgroundSize: `${100/GRID_SIZE}% ${100/GRID_SIZE}%`,
-                        }}></div>
+                        {!isPlaying && (
+                            <div className="absolute inset-0 pointer-events-none" style={{
+                                backgroundImage: 'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
+                                backgroundSize: `${100/GRID_SIZE}% ${100/GRID_SIZE}%`,
+                            }}></div>
+                        )}
                     </div>
-                    <div className="mt-2 text-[10px] text-gray-500 tracking-widest uppercase">{GRID_SIZE}×{GRID_SIZE}</div>
+                    <div className="mt-2 text-[10px] text-gray-500 tracking-widest uppercase mb-4">{GRID_SIZE}×{GRID_SIZE} | {frames.length} {frames.length === 1 ? 'Frame' : 'Frames'}</div>
+                    
+                    {/* TIMELINE CONTROLS */}
+                    <div className="w-full max-w-[640px] glass-panel p-3 rounded-xl flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex gap-2">
+                                <button onClick={() => setIsPlaying(!isPlaying)} className={`flex items-center justify-center gap-1 text-xs px-3 py-1.5 rounded border transition-colors ${isPlaying ? 'bg-rpg-gold text-black border-rpg-gold' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+                                    {isPlaying ? <Square size={14}/> : <Play size={14}/>} {isPlaying ? 'Stop' : 'Play'}
+                                </button>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={addFrame} title="Add blank frame" className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded"><Plus size={16}/></button>
+                                <button onClick={duplicateFrame} title="Duplicate current frame" className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded"><Copy size={16}/></button>
+                                <button onClick={deleteFrame} disabled={frames.length <= 1} title="Delete current frame" className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded disabled:opacity-30 text-red-400"><Trash2 size={16}/></button>
+                            </div>
+                        </div>
+                        <div className="flex overflow-x-auto gap-2 pb-1 custom-scrollbar">
+                            {frames.map((f, i) => (
+                                <button 
+                                    key={i} 
+                                    onClick={() => { setActiveFrame(i); setIsPlaying(false); }} 
+                                    className={`w-12 h-12 flex-shrink-0 flex items-center justify-center rounded text-xs font-mono border-2 transition-all ${i === activeFrame ? 'border-rpg-gold bg-rpg-gold/10 text-rpg-gold scale-105' : 'border-white/10 bg-black/40 text-gray-400 hover:border-white/30'}`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </main>
 
                 {/* RIGHT PANEL: name, category, publish, session */}

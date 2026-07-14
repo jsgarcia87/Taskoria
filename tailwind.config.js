@@ -11,16 +11,16 @@ export default {
           900: '#121212',
           800: '#1e1e1e',
         },
-        // Cyber-Fantasy Palette (Figma Adapted)
+        // Cyber-Fantasy Palette (Pixel Modern)
         rpg: {
-          bg: '#2D1B4E',      // Deep Purple/Void
-          panel: '#1A102E',   // Darker panel base
-          panelDark: '#0f0a1a', // Near-black panel variant (modals, nav, footers)
-          panelLight: '#3D2866', // Lighter purple for highlights
+          bg: '#342C3E',      // Deep Purple/Charcoal Base
+          panel: '#2a2233',   // Darker panel base
+          panelDark: '#1c1622', // Near-black panel variant (modals, nav, footers)
+          panelLight: '#473d54', // Lighter purple for highlights
           border: 'rgba(255, 255, 255, 0.1)', // Glass border
           text: '#F0F0F0',    // High contrast white/grey
-          gold: '#FFD700',    // Primary Action/Gold
-          goldDark: '#B8860B',
+          gold: '#fddf8c',    // Primary Action/Gold (User requested)
+          goldDark: '#d4b76a',
           red: '#FF4D4D',     // Danger/HP
           green: '#2DCC70',   // Success/XP
           blue: '#4D94FF',    // Magic/Info

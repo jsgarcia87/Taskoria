@@ -50,7 +50,7 @@ try {
     // ignore
 }
 
-$ALLOWED_CATEGORIES = ['casas','castillos','monturas','arboles','decoracion','props'];
+$ALLOWED_CATEGORIES = ['casas','castillos','monturas','arboles','decoracion','props','monstruos'];
 
 function isAdmin($pdo, $userId) {
     if (!$userId) return false;
@@ -174,14 +174,26 @@ if ($method === 'POST') {
         if ($name === '' || mb_strlen($name) > 120) { http_response_code(400); echo json_encode(['error' => 'Invalid name']); exit; }
         if (!in_array($category, $ALLOWED_CATEGORIES, true)) { http_response_code(400); echo json_encode(['error' => 'Invalid category']); exit; }
         if ($gridSize < 8 || $gridSize > 128) { http_response_code(400); echo json_encode(['error' => 'Invalid grid_size']); exit; }
-        if (!is_array($pixels) || count($pixels) !== $gridSize * $gridSize) {
-            http_response_code(400); echo json_encode(['error' => 'Invalid pixels']); exit;
+        if (!is_array($pixels)) {
+            http_response_code(400); echo json_encode(['error' => 'Invalid pixels format']); exit;
+        }
+
+        // Determine if this is a single frame or a multi-frame animation
+        $isAnimated = isset($pixels[0]) && is_array($pixels[0]);
+        $frames = $isAnimated ? $pixels : [$pixels];
+
+        foreach ($frames as $frame) {
+            if (!is_array($frame) || count($frame) !== $gridSize * $gridSize) {
+                http_response_code(400); echo json_encode(['error' => 'Invalid frame size']); exit;
+            }
         }
 
         // Reject empty canvases
         $hasContent = false;
-        foreach ($pixels as $p) {
-            if ($p !== 'transparent' && $p !== null && $p !== '') { $hasContent = true; break; }
+        foreach ($frames as $frame) {
+            foreach ($frame as $p) {
+                if ($p !== 'transparent' && $p !== null && $p !== '') { $hasContent = true; break 2; }
+            }
         }
         if (!$hasContent) { http_response_code(400); echo json_encode(['error' => 'Empty canvas']); exit; }
 

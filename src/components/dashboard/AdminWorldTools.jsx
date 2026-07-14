@@ -36,11 +36,13 @@ const AdminWorldTools = ({ currentUser }) => {
     const [designs, setDesigns] = useState([]);
     const [libLoading, setLibLoading] = useState(false);
     const [copiedId, setCopiedId] = useState(null);
+    const [pendingEdit, setPendingEdit] = useState(null);
     const tool = TOOLS.find(t => t.id === activeTool) || TOOLS[0];
 
     // Listen for save + library requests from the embedded editors
     useEffect(() => {
         const onMessage = async (e) => {
+            if (e.origin && e.origin !== window.location.origin) return;
             const data = e?.data;
             if (!data) return;
 
@@ -84,10 +86,21 @@ const AdminWorldTools = ({ currentUser }) => {
                         }),
                     });
                     const json = await res.json();
+                    let designs = json.designs || [];
+
+                    // Fetch approved monsters to include in the Map Editor palette
+                    try {
+                        const mRes = await fetch(`api/creations.php?action=list_approved&category=monstruos`);
+                        const mJson = await mRes.json();
+                        if (mJson.success && mJson.items) {
+                            designs = [...designs, ...mJson.items];
+                        }
+                    } catch (err) { /* ignore */ }
+
                     if (json.success && e.source) {
                         e.source.postMessage({
                             type: 'taskoria_designs_loaded',
-                            designs: json.designs || [],
+                            designs: designs,
                         }, '*');
                     }
                 } catch (err) { /* iframe will just show no library items */ }
@@ -138,6 +151,28 @@ const AdminWorldTools = ({ currentUser }) => {
             });
             setDesigns(prev => prev.filter(x => x.id !== d.id));
         } catch (e) { /* ignore */ }
+    };
+
+    const editDesign = (d) => {
+        setPendingEdit(d);
+        setActiveTool(d.tool);
+    };
+
+    const handleIframeLoad = (e) => {
+        if (pendingEdit && pendingEdit.tool === activeTool) {
+            try {
+                e.target.contentWindow.postMessage({
+                    type: 'taskoria_design_edit',
+                    tool: pendingEdit.tool,
+                    name: pendingEdit.name,
+                    payload: pendingEdit.payload
+                }, '*');
+                toast.success(`Loaded "${pendingEdit.name}" for editing`);
+            } catch (err) {
+                toast.error('Failed to load design for editing');
+            }
+            setPendingEdit(null);
+        }
     };
 
     return (
@@ -203,6 +238,7 @@ const AdminWorldTools = ({ currentUser }) => {
                         className="w-full h-full border-0 block"
                         sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
                         allow="clipboard-read; clipboard-write"
+                        onLoad={handleIframeLoad}
                     />
                 </div>
             ) : (
@@ -238,6 +274,12 @@ const AdminWorldTools = ({ currentUser }) => {
                                         >
                                             {copiedId === d.id ? <Check size={11}/> : <Copy size={11}/>}
                                             {copiedId === d.id ? 'Copied' : 'Copy'}
+                                        </button>
+                                        <button
+                                            onClick={() => editDesign(d)}
+                                            className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 px-2.5 py-1.5 rounded"
+                                        >
+                                            Edit
                                         </button>
                                         <button
                                             onClick={() => deleteDesign(d)}

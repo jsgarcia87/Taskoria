@@ -19,7 +19,7 @@ const LegalNotice = ({ onBack }) => {
 
                     <h2 className="text-2xl font-heading text-white mt-8 mb-4">1. Site Owner</h2>
                     <p>This website is owned and operated by <strong>Jesús Sánchez García</strong>, an individual acting under the trade name <strong>Sangar Studio</strong>, based in Molina de Segura, Murcia, Spain.</p>
-                    <p>Contact email: <a href="mailto:jesus.sanchez.g.87@gmail.com" className="text-rpg-gold hover:brightness-125 transition">jesus.sanchez.g.87@gmail.com</a></p>
+                    <p>Contact email: <a href="mailto:taskoriaapp@gmail.com" className="text-rpg-gold hover:brightness-125 transition">taskoriaapp@gmail.com</a></p>
 
                     <h2 className="text-2xl font-heading text-white mt-8 mb-4">2. Purpose of the Site</h2>
                     <p>Taskoria is a gamified productivity application. It lets users track habits, tasks and goals inside an RPG-style world, level up a hero, and explore a pixel-art town with other players. The service is currently in Closed Beta and is offered free of charge during this phase.</p>
@@ -39,12 +39,16 @@ const LegalNotice = ({ onBack }) => {
 
                     <h2 className="text-2xl font-heading text-white mt-8 mb-4">7. Personal Data</h2>
                     <p>Personal data collected through the registration form and in-app feedback tool (email address, chosen hero name, submitted messages) is stored on secure servers and used solely to operate the service, deliver login credentials, and address user feedback. Data is not shared with third parties, sold or used for advertising purposes.</p>
-                    <p>Users may request access, rectification or deletion of their personal data at any time by writing to <a href="mailto:jesus.sanchez.g.87@gmail.com" className="text-rpg-gold hover:brightness-125 transition">jesus.sanchez.g.87@gmail.com</a>.</p>
+                    <p>Users may request access, rectification or deletion of their personal data at any time by writing to <a href="mailto:taskoriaapp@gmail.com" className="text-rpg-gold hover:brightness-125 transition">taskoriaapp@gmail.com</a>.</p>
 
-                    <h2 className="text-2xl font-heading text-white mt-8 mb-4">8. Applicable Law and Jurisdiction</h2>
+                    <h2 className="text-2xl font-heading text-white mt-8 mb-4">8. Cookies and Analytics</h2>
+                    <p>This website uses essential and third-party cookies (tracking scripts) via Google Analytics to understand how users interact with the site, measure traffic, and improve the gamified experience. These tools collect anonymous usage data.</p>
+                    <p>Upon entering the site, users are presented with a <strong>Cookie Banner</strong> ("Pergaminos de Rastreo") allowing them to accept or reject non-essential tracking cookies. You can revoke this consent at any time by clearing your browser's cookies or local storage for this site.</p>
+
+                    <h2 className="text-2xl font-heading text-white mt-8 mb-4">9. Applicable Law and Jurisdiction</h2>
                     <p>This Legal Notice is governed by Spanish law. Any dispute arising from access to or use of this website will be submitted to the Courts and Tribunals of Murcia, Spain, unless the applicable law imposes a different jurisdiction.</p>
 
-                    <h2 className="text-2xl font-heading text-white mt-8 mb-4">9. Modifications</h2>
+                    <h2 className="text-2xl font-heading text-white mt-8 mb-4">10. Modifications</h2>
                     <p>Sangar Studio reserves the right to modify this Legal Notice at any time in order to adapt it to legislative changes or to the evolution of the service. Users will be notified of significant changes within the platform.</p>
                 </div>
             </main>

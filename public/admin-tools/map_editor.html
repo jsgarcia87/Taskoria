@@ -916,6 +916,7 @@ const P_dk='#200c08';
 SPRITES.npc_guard    = makeNPC('#667788','#2a3848','#603820','#e8c090','#cc2222');
 SPRITES.npc_merchant = makeNPC('#4a6890','#283050','#f0d050','#f0c888','#d8a030');
 SPRITES.npc_villager = makeNPC('#5a8040','#3a3050','#c07830','#f0c888','#a0c060');
+SPRITES.ref_hero = makeNPC('#4a90e2','#2c3e50','#d35400','#f5d7b5','#85c1e9');
 SPRITES.npc_bard     = makeNPC('#9050b0','#2a1848','#e0a030','#f0c898','#d040b8');
 
 // ═══════════════════════════════════════════════════════════
@@ -1567,6 +1568,9 @@ const CATEGORIES = {
     { key:'portal', label:'Portal' },
     { key:'spawn',  label:'Spawn' },
   ],
+  'REFERENCIAS': [
+    { key:'ref_hero', label:'Ref. Héroe' }
+  ],
 };
 
 // Qué capas acepta cada tipo
@@ -1593,6 +1597,8 @@ const ASSET_LAYER = {
   npc_guard:'objects', npc_merchant:'objects', npc_villager:'objects', npc_bard:'objects',
   // Especial
   portal:'objects', spawn:'objects',
+  // Referencias
+  ref_hero: 'objects',
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -1796,7 +1802,9 @@ function render(){
         if(!spr) continue;
         const dx=x*TS, dy=y*TS;
         ctx.imageSmoothingEnabled=false;
-        ctx.drawImage(spr,dx,dy,TS,TS);
+        // Fix subpixel rendering gaps on scaled canvas by overlapping ground layer slightly
+        const stretch = layerKey === 'ground' ? 0.5 : 0;
+        ctx.drawImage(spr, dx, dy, TS + stretch, TS + stretch);
         // Label
         if(cell.label){
           ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(dx+1,dy+1,TS-2,8);
@@ -2495,6 +2503,29 @@ function clearMap(){
   initMap(); render();
 }
 
+// ─── AUTOSAVE ────────────────────────────────────────────────
+setInterval(() => {
+  localStorage.setItem('taskoria_map_draft', snapshotState());
+}, 30000);
+
+function loadDraftIfAny() {
+  const draft = localStorage.getItem('taskoria_map_draft');
+  if (draft) {
+    setTimeout(() => {
+      if (confirm("Se ha encontrado un borrador de mapa sin guardar. ¿Deseas recuperarlo?")) {
+        try {
+          restoreState(draft);
+          // Restore inputs
+          document.getElementById('mw').value = mapW;
+          document.getElementById('mh').value = mapH;
+          document.getElementById('infoSize').textContent=`${mapW}×${mapH}`;
+          updateCanvasSize(); render();
+        } catch(e) {}
+      }
+    }, 500);
+  }
+}
+
 // ─── COPY / PASTE de instances ───────────────────────────────
 // The clipboard holds a shallow copy of the last instance the user pressed
 // Ctrl+C on. Paste places a new instance offset by (+1,+1) so it's visually
@@ -2927,24 +2958,96 @@ function libSpriteFor(design){
 }
 
 function applyLibraryDesigns(designs){
-  if (!Array.isArray(designs) || designs.length === 0) return;
-  const libCategory = [];
+  CATEGORIES['BIBLIOTECA'] = [];
+  CATEGORIES['MONSTRUOS'] = [];
+
   designs.forEach(d => {
+    if (d.category === 'monstruos') {
+      const key = 'lib_monster_' + d.id;
+      try {
+        let pxs = typeof d.pixels === 'string' ? JSON.parse(d.pixels) : d.pixels;
+        // Support animations: if pxs is an array of arrays (frames), pick the first frame
+        if (Array.isArray(pxs) && Array.isArray(pxs[0])) {
+            pxs = pxs[0];
+        }
+        const gs = d.grid_size || 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = gs; canvas.height = gs;
+        const ctx = canvas.getContext('2d');
+        for (let i=0; i<pxs.length; i++){
+          if (pxs[i] && pxs[i] !== 'transparent' && pxs[i] !== 'EMPTY') {
+            ctx.fillStyle = pxs[i];
+            ctx.fillRect(i % gs, Math.floor(i / gs), 1, 1);
+          }
+        }
+        const img = new Image();
+        img.src = canvas.toDataURL();
+        SPRITES[key] = img;
+        CATEGORIES['MONSTRUOS'].push(key);
+        NAMES[key] = d.name || 'Monster';
+        // UI is handled by buildAssetPanel now
+      } catch(e) { console.error('Error parsing monster', e); }
+      return;
+    }
+
+    // Standard Library Design (Map/House)
     const key = 'lib_' + d.id;
     SPRITES[key] = libSpriteFor(d);
     ASSET_LAYER[key] = 'objects';
-    libCategory.push({ key, label: (d.name || 'design').slice(0, 12) });
+    CATEGORIES['BIBLIOTECA'].push(key);
+    NAMES[key] = (d.name || 'design').slice(0, 12);
   });
-  CATEGORIES['BIBLIOTECA'] = libCategory;
+  
+  // If a category ended up empty, delete it so it doesn't show a blank tab
+  if (CATEGORIES['BIBLIOTECA'].length === 0) delete CATEGORIES['BIBLIOTECA'];
+  if (CATEGORIES['MONSTRUOS'].length === 0) delete CATEGORIES['MONSTRUOS'];
+
   // Rebuild the category tabs + grid to show the new section
   buildAssetPanel();
 }
 
 window.addEventListener('message', e => {
+  if (e.origin && e.origin !== window.location.origin) return;
   const msg = e.data;
-  if (!msg || msg.type !== 'taskoria_designs_loaded') return;
-  applyLibraryDesigns(msg.designs || []);
+  if (!msg) return;
+  if (msg.type === 'taskoria_designs_loaded') {
+    applyLibraryDesigns(msg.designs || []);
+  } else if (msg.type === 'taskoria_design_edit' && msg.tool === 'map') {
+    if (msg.payload) {
+      mapW = msg.payload.mapW || 20;
+      mapH = msg.payload.mapH || 16;
+      layers = msg.payload.layers || {
+        overhead: Array.from({length:mapH},()=>new Array(mapW).fill(null)),
+        objects: Array.from({length:mapH},()=>new Array(mapW).fill(null)),
+        ground: Array.from({length:mapH},()=>new Array(mapW).fill(null))
+      };
+      instances = migrateAllInstances(msg.payload.instances || []);
+      nextInstanceId = instances.reduce((m,i)=>Math.max(m, i.id||0), 0) + 1;
+      document.getElementById('mw').value = mapW;
+      document.getElementById('mh').value = mapH;
+      document.getElementById('mapName').value = msg.name || '';
+      document.getElementById('mapAmbient').value = msg.payload.ambient || 85;
+      document.getElementById('mapBgColor').value = msg.payload.bgColor || '#2a1f12';
+      document.getElementById('infoSize').textContent = `${mapW}×${mapH}`;
+      updateCanvasSize(); render();
+    }
+  }
 });
+
+function loadDraftIfAny(data){
+  if (!data) return;
+  mapW=data.mapW; mapH=data.mapH; layers=data.layers;
+  instances = migrateAllInstances(Array.isArray(data.instances) ? data.instances : []);
+  nextInstanceId = data.nextInstanceId || (instances.reduce((m,i)=>Math.max(m, i.id||0), 0) + 1);
+  selectedInstanceId = null;
+  document.getElementById('mw').value=mapW;
+  document.getElementById('mh').value=mapH;
+  document.getElementById('mapName').value=data.mapName||'';
+  document.getElementById('mapAmbient').value=data.ambient||85;
+  document.getElementById('mapBgColor').value=data.bgColor||'#2a1f12';
+  document.getElementById('infoSize').textContent=`${mapW}×${mapH}`;
+  updateCanvasSize(); render();
+}
 
 function requestLibrary(){
   try {
