@@ -83,7 +83,7 @@ const PetSanctuaryView = ({ currentUser }) => {
         const currentGold = state.character?.gold || 0;
 
         if (currentGold < adoptionPrice) {
-            toast.error(`You need ${adoptionPrice} Gold to adopt this companion.`);
+            toast.error(`Coinhilda requires ${adoptionPrice}g for this adoption.`);
             return;
         }
 
@@ -119,7 +119,7 @@ const PetSanctuaryView = ({ currentUser }) => {
                 // In context we have ADOPT_PET
                 actions.dispatch({ type: 'ADOPT_PET', payload: { ...pet, cost: adoptionPrice, adoptedData: adoptedPet } });
             } else {
-                toast.error(data.error || 'Failed to adopt pet');
+                toast.error(data.error || 'The Sanctuary could not complete this adoption.');
             }
         } catch (e) {
             console.error("Failed to adopt pet", e);
@@ -206,8 +206,8 @@ const PetSanctuaryView = ({ currentUser }) => {
                 ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
                         <PixelIcon name="heart" size={48} className="text-emerald-500/30 mb-4" />
-                        <p className="text-emerald-500/50 font-bold tracking-widest uppercase text-sm">Your sanctuary is empty.</p>
-                        <p className="text-gray-500 text-xs mt-2">Adopt or hatch pets to see them roam here.</p>
+                        <p className="text-emerald-500/50 font-bold tracking-widest uppercase text-sm">The Sanctuary Awaits</p>
+                        <p className="text-gray-500 text-xs mt-2">No companions roam these grounds yet. Hatch an egg or adopt one to bring life here.</p>
                     </div>
                 )}
             </div>

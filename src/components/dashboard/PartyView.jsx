@@ -456,8 +456,8 @@ const PartyView = ({ currentUser, onOpenChat }) => {
 
                             {familyMembers.length === 0 && friends.length === 0 && (
                                 <div className="text-center py-12 glass-panel">
-                                    <p className="text-gray-500 font-heading">No other adventurers found nearby.</p>
-                                    <p className="text-sm text-gray-600 mt-2">Create more profiles for your family or search for friends above!</p>
+                                    <p className="text-gray-500 font-heading">The town square is quiet today.</p>
+                                    <p className="text-sm text-gray-600 mt-2">Search for fellow adventurers above, or create family profiles to quest together.</p>
                                 </div>
                             )}
                         </div>

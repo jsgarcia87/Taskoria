@@ -26,15 +26,10 @@ try {
     // Column exists or no permission, ignore
 }
 
-// Backdoor to bypass Vite server routing issues for the developer
-// If you prefix your username with "ADMIN_", it promotes you automatically.
-if (strpos($username, 'ADMIN_') === 0) {
-    $realUsername = substr($username, 6);
-    try {
-        $pdo->exec("UPDATE users SET is_admin = 1 WHERE username = " . $pdo->quote($realUsername));
-        $username = $realUsername;
-    } catch (PDOException $e) {}
-}
+// NOTE: the old "ADMIN_" username-prefix auto-promotion was removed — it let any
+// user self-promote to admin with only their own password. Admins are managed
+// from the Admin panel (add_user) or, for first-time bootstrap, the gated
+// make_me_admin action in admin.php.
 
 try {
     $stmt = $pdo->prepare("SELECT id, password_hash, is_admin FROM users WHERE username = ?");

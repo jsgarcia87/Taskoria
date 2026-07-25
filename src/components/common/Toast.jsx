@@ -1,5 +1,6 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 const ToastContext = createContext(null);
@@ -58,9 +59,11 @@ const ToastViewport = ({ toasts, onDismiss }) => (
         aria-live="polite"
         aria-atomic="true"
     >
-        {toasts.map((t) => (
-            <ToastItem key={t.id} toast={t} onDismiss={onDismiss} />
-        ))}
+        <AnimatePresence>
+            {toasts.map((t) => (
+                <ToastItem key={t.id} toast={t} onDismiss={onDismiss} />
+            ))}
+        </AnimatePresence>
     </div>
 );
 
@@ -71,17 +74,16 @@ const ICONS = {
 };
 
 const ToastItem = ({ toast, onDismiss }) => {
-    const [enter, setEnter] = useState(false);
-    useEffect(() => {
-        const r = requestAnimationFrame(() => setEnter(true));
-        return () => cancelAnimationFrame(r);
-    }, []);
-
     const { Icon, color, bar } = ICONS[toast.type] || ICONS.info;
 
     return (
-        <div
-            className={`pointer-events-auto bg-rpg-panel/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl flex items-stretch overflow-hidden transition-all duration-300 ${enter ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
+        <motion.div
+            layout
+            initial={{ opacity: 0, x: 24, scale: 0.96 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 24, scale: 0.96, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] } }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="pointer-events-auto bg-rpg-panel/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl flex items-stretch overflow-hidden"
             role={toast.type === 'error' ? 'alert' : 'status'}
         >
             <div className={`w-1 ${bar}`}></div>
@@ -96,7 +98,7 @@ const ToastItem = ({ toast, onDismiss }) => {
                     <X size={14} />
                 </button>
             </div>
-        </div>
+        </motion.div>
     );
 };
 

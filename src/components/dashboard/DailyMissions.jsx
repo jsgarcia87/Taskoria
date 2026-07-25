@@ -50,10 +50,10 @@ const DailyMissions = () => {
                         >
                             {/* Progress fill behind */}
                             <div
-                                className={`absolute inset-y-0 left-0 transition-all duration-500 ${
+                                className={`absolute inset-y-0 left-0 ${
                                     m.claimed ? 'bg-emerald-500/10' : ready ? 'bg-rpg-gold/15' : 'bg-white/[0.03]'
                                 }`}
-                                style={{ width: `${pct}%` }}
+                                style={{ width: `${pct}%`, transition: 'width 600ms cubic-bezier(0.22, 1, 0.36, 1)' }}
                             />
                             <div className="relative flex items-center justify-between gap-2">
                                 <div className="flex-1 min-w-0">

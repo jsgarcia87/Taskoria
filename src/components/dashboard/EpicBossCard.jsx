@@ -43,7 +43,7 @@ const EpicBossCard = () => {
                     <NoThreats size={96} />
                 </div>
                 <h3 className="text-xl font-heading font-black text-white tracking-wide mb-2 uppercase">No Active Threats</h3>
-                <p className="text-gray-400 text-sm max-w-sm mb-6 italic">The realm is currently peaceful. Have a massive long-term project? Summon an Epic Boss to represent it.</p>
+                <p className="text-gray-400 text-sm max-w-sm mb-6">The watchtower sees no danger on the horizon. Have a long-term challenge? Summon an Epic Boss to face it.</p>
 
                 {isCreating || editingBoss ? (
                     <ProjectModal

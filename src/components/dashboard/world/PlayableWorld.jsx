@@ -4,7 +4,10 @@ import MobileJoystick from './MobileJoystick';
 import { MAP_DATA } from './MapData';
 import { expandPrefabs } from './prefabs';
 import { SPRITES, PixelSprite, pixelBufferToDataUrl } from './sprites';
-import { WorldSprite } from './worldProps';
+import { WorldSprite, WORLD_PROPS } from './worldProps';
+import { fetchCustomBlueprints } from '../../../utils/blueprints';
+import { firstFrame, frameToBuffer } from '../../../utils/pixelFormat';
+import { playFootstep, playPortalSound, surfaceForTile } from '../../../utils/sound';
 import ChatModal from '../ChatModal';
 import { X, MessageSquare } from 'lucide-react';
 
@@ -380,9 +383,22 @@ const DecorationsLayer = React.memo(function DecorationsLayer({ decorations }) {
                     }
 
                     if (dec.type === 'sprite') {
-                        // Render a hand-drawn pixel sprite from the SPRITES registry.
-                        // dec.name = registry key; dec.scale = pixels per source-pixel (default 4)
+                        // Render a pixel sprite. Looks up WORLD_PROPS (sprite-registry,
+                        // variable dimensions) first, then falls back to SPRITES
+                        // (64x64 floor tiles). dec.name = registry key.
                         // anchor: 'bottom' (default, feet at dec.y) | 'center' | 'top'
+                        const prop = WORLD_PROPS[dec.name];
+                        if (prop) {
+                            return (
+                                <WorldSprite
+                                    key={`dec_${i}`}
+                                    name={dec.name}
+                                    x={dec.x}
+                                    y={dec.y}
+                                    scale={dec.scale || 1}
+                                />
+                            );
+                        }
                         const buffer = SPRITES[dec.name];
                         if (!buffer) return null;
                         const scale = dec.scale || 4;
@@ -627,10 +643,89 @@ const NpcLayer = React.memo(function NpcLayer({ npcs, npcDOMRefs, onSelectNpc })
 const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onClose, onInteract, className }) => {
     // Engine State
     const [currentMapId, setCurrentMapId] = useState('townSquare');
+    const [dbMaps, setDbMaps] = useState({});
+    const [customMaps, setCustomMaps] = useState([]); // [{id, name}] for the travel picker
+    const [showTravel, setShowTravel] = useState(false);
+
+    // Load saved maps. Only ACTIVE ones are applied to the world; the rest are
+    // kept (listed in the picker) so builders can revert or re-enable them.
+    const fetchMaps = React.useCallback(() => {
+        fetch('api/maps.php')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.maps) {
+                    const mapDict = {};
+                    const list = [];
+                    data.maps.forEach(m => {
+                        const p = m.payload;
+                        if (!p) return;
+                        const id = p.id || m.name;
+                        const active = m.active !== 0;
+                        // Active maps are addressable/override the built-in one;
+                        // an active save with a system id (e.g. 'townSquare')
+                        // replaces the Town in the viewer.
+                        if (active) mapDict[id] = p;
+                        list.push({ id, designId: m.id, name: p.name || m.name || id, active, isSystem: !!MAP_DATA[id] });
+                    });
+                    setDbMaps(mapDict);
+                    setCustomMaps(list);
+                }
+            })
+            .catch(console.error);
+    }, []);
+
+    // Flip a saved map on/off in the world, then refresh.
+    const toggleMap = async (designId, nextActive) => {
+        try {
+            await fetch('api/admin.php?action=toggle_map', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ admin_id: currentUser?.id, id: designId, active: nextActive ? 1 : 0 }),
+            });
+            fetchMaps();
+        } catch (e) { console.error(e); }
+    };
+
+    useEffect(() => { fetchMaps(); }, [fetchMaps]);
+
+    useEffect(() => {
+        // Fetch custom blueprints (pixel arts, houses) and inject into WORLD_PROPS
+        fetchCustomBlueprints().then(cache => {
+            if (cache.objects) {
+                Object.keys(cache.objects).forEach(id => {
+                    const obj = cache.objects[id];
+                    if (obj.type === 'pixelart') {
+                        const gs = obj.gridSize || 32;
+                        const frame = firstFrame(obj.pixels);
+                        const buf = frameToBuffer(frame, gs);
+                        WORLD_PROPS[id] = { w: gs, h: gs, buffer: buf };
+                    } else if (obj.type === 'house' && obj.payload?.previewImage) {
+                        const img = new Image();
+                        img.onload = () => {
+                            const c = document.createElement('canvas');
+                            c.width = img.width;
+                            c.height = img.height;
+                            const ctx = c.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            const data = ctx.getImageData(0, 0, img.width, img.height).data;
+                            const buf = new Array(img.width * img.height).fill('transparent');
+                            for (let i = 0; i < data.length; i += 4) {
+                                if (data[i + 3] > 10) {
+                                    buf[i / 4] = `rgb(${data[i]},${data[i+1]},${data[i+2]})`;
+                                }
+                            }
+                            WORLD_PROPS[id] = { w: img.width, h: img.height, buffer: buf };
+                        };
+                        img.src = obj.payload.previewImage;
+                    }
+                });
+            }
+        });
+    }, []);
+
     // Resolve the map with any prefab placements expanded into raw decorations
     // and obstacles. Memoised so we don't re-expand on every render.
     const map = React.useMemo(() => {
-        const raw = MAP_DATA[currentMapId];
+        const raw = dbMaps[currentMapId] || MAP_DATA[currentMapId];
         if (!raw) return raw;
         if (!raw.prefabs || raw.prefabs.length === 0) return raw;
         const expanded = expandPrefabs(raw.prefabs);
@@ -639,10 +734,14 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
             decorations: [...(raw.decorations || []), ...expanded.decorations],
             obstacles: [...(raw.obstacles || []), ...expanded.obstacles],
         };
-    }, [currentMapId]);
+    }, [currentMapId, dbMaps]);
 
     // Player State
     const [pos, setPos] = useState({ x: map?.spawn?.x || 0, y: map?.spawn?.y || 0 });
+    const currentMapRef = useRef(map);
+    
+    useEffect(() => { currentMapRef.current = map; }, [map]);
+
     const [facing, setFacing] = useState('right');
     const [isMoving, setIsMoving] = useState(false);
 
@@ -652,6 +751,18 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
     const viewportRef = useRef(null);
     const viewportSizeRef = useRef({ w: 600, h: 400 });
     const posRef = useRef(pos);
+
+    // Teleport to any map (system or user-built) and drop the player on its spawn.
+    const travelTo = (id) => {
+        const target = dbMaps[id] || MAP_DATA[id];
+        if (!target) return;
+        const sp = target.spawn || { x: (target.width || 800) / 2, y: (target.height || 600) / 2 };
+        posRef.current = { x: sp.x, y: sp.y };
+        setPos({ x: sp.x, y: sp.y });
+        setCurrentMapId(id);
+        setShowTravel(false);
+    };
+
     const mapDOMRef = useRef(null);
     const playerDOMRef = useRef(null);
     const isMovingRef = useRef(false);
@@ -665,6 +776,8 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
 
     // Fade State for Map Transitions
     const [fadeState, setFadeState] = useState('none');
+    // Distance accumulator for footstep cadence
+    const stepDistRef = useRef(0);
     // Mirror fadeState in a ref so the game loop can read it without being
     // listed as an effect dependency (which would tear down & rebuild the RAF
     // loop on every transition).
@@ -725,9 +838,23 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
     const nearTargetRef = useRef(null);
     const onInteractRef = useRef(onInteract);
     useEffect(() => { onInteractRef.current = onInteract; });
+
+    // Flavor text — examine-style interactables show a short line instead of
+    // opening an app section. Auto-dismisses.
+    const [flavorText, setFlavorText] = useState(null);
+    const flavorTimerRef = useRef(null);
+    useEffect(() => () => clearTimeout(flavorTimerRef.current), []);
+
     const triggerInteract = () => {
         const target = nearTargetRef.current;
-        if (target && onInteractRef.current) onInteractRef.current(target);
+        if (!target) return;
+        if (target.flavor) {
+            clearTimeout(flavorTimerRef.current);
+            setFlavorText(target.flavor);
+            flavorTimerRef.current = setTimeout(() => setFlavorText(null), 5000);
+            return;
+        }
+        if (onInteractRef.current) onInteractRef.current(target);
     };
 
     // Keep posRef synced for the game loop
@@ -735,7 +862,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
 
     // On map change: spawn NPCs + seed their wandering data
     useEffect(() => {
-        const currentMap = MAP_DATA[currentMapId];
+        const currentMap = currentMapRef.current;
         if (!currentMap) return;
         setSelectedNpc(null);
 
@@ -839,7 +966,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
         const ro = new ResizeObserver(entries => {
             for (const e of entries) viewportSizeRef.current = { w: e.contentRect.width, h: e.contentRect.height };
             // Keep the player framed when the playable area is resized (orientation, layout shifts)
-            updateCamera(posRef.current.x, posRef.current.y, MAP_DATA[currentMapId]);
+            updateCamera(posRef.current.x, posRef.current.y, currentMapRef.current);
         });
         ro.observe(viewportRef.current);
         return () => ro.disconnect();
@@ -851,7 +978,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
         let lastParticleTime = 0;
 
         const loop = (timestamp) => {
-            const currentMap = MAP_DATA[currentMapId];
+            const currentMap = currentMapRef.current;
             if (!currentMap) { rafId = requestAnimationFrame(loop); return; }
 
             // --- Player input ---
@@ -891,6 +1018,13 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                 if (dx > 0 && facingRef.current !== 'right') { facingRef.current = 'right'; setFacing('right'); }
                 if (dx < 0 && facingRef.current !== 'left') { facingRef.current = 'left'; setFacing('left'); }
 
+                // Footsteps: one soft step every ~52px of travel, surface from the floor tile
+                stepDistRef.current += Math.hypot(dx, dy);
+                if (stepDistRef.current > 52) {
+                    stepDistRef.current = 0;
+                    playFootstep(surfaceForTile(currentMap.tileSprite));
+                }
+
                 updateCamera(posRef.current.x, posRef.current.y, currentMap);
 
                 const portal = checkPortals(posRef.current.x, posRef.current.y, currentMap);
@@ -901,6 +1035,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                         // still inside a portal — keep cooldown armed
                     } else if (fadeStateRef.current === 'none') {
                         portalCooldownRef.current = true;
+                        playPortalSound();
                         setFadeState('exit');
                         setTimeout(() => {
                             setCurrentMapId(portal.targetMap);
@@ -960,8 +1095,9 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
 
             // --- Proximity to interaction zones (shop / pet sanctuary) ---
             const near = checkInteractables(posRef.current.x, posRef.current.y, currentMap);
-            const prevTarget = nearTargetRef.current?.target || null;
-            if ((near?.target || null) !== prevTarget) {
+            const nearKey = near ? (near.target || near.id || near.label) : null;
+            const prevKey = nearTargetRef.current ? (nearTargetRef.current.target || nearTargetRef.current.id || nearTargetRef.current.label) : null;
+            if (nearKey !== prevKey) {
                 nearTargetRef.current = near;
                 setNearTarget(near);
             }
@@ -1039,6 +1175,59 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                 {/* Decorations — viewport-culled to only what's visible + margin */}
                 <DecorationsLayer decorations={visibleDecorations || map.decorations} />
 
+                {/* Custom Instances (houses, custom pixel art) */}
+                {map.instances && map.instances.map((inst, i) => {
+                    const isHouse = inst.type.startsWith('lib_') && !inst.type.startsWith('lib_pixel_');
+                    const spriteName = (isHouse && WORLD_PROPS[inst.type]) ? inst.type : isHouse ? 'shop_building' : inst.type;
+
+                    let drawX = inst.x;
+                    let drawY = inst.y;
+
+                    if (isHouse) {
+                        const prop = WORLD_PROPS[spriteName];
+                        if (prop) {
+                            const w = prop.w * (inst.scale || 1);
+                            const h = prop.h * (inst.scale || 1);
+                            drawX += w / 2;
+                            drawY += h;
+                        } else {
+                            drawX += 140;
+                            drawY += 150;
+                        }
+                    } else if (inst.type.startsWith('lib_pixel_')) {
+                        // pixel arts from map_editor are usually scaled by 2 or more.
+                        // Wait, map editor scale is handled by the `scale` prop of WorldSprite!
+                        // The anchor in WorldSprite is bottom-center, but map_editor instances are x,y (top-left).
+                        // Let's retrieve the w and h from WORLD_PROPS to offset properly.
+                        const prop = WORLD_PROPS[spriteName];
+                        if (prop) {
+                            const w = prop.w * (inst.scale || 1);
+                            const h = prop.h * (inst.scale || 1);
+                            drawX += w / 2;
+                            drawY += h;
+                        }
+                    } else {
+                        // Standard prefab instances (if any are saved directly in instances array)
+                        const prop = WORLD_PROPS[spriteName];
+                        if (prop) {
+                            const w = prop.w * (inst.scale || 1);
+                            const h = prop.h * (inst.scale || 1);
+                            drawX += w / 2;
+                            drawY += h;
+                        }
+                    }
+
+                    return (
+                        <WorldSprite 
+                            key={`inst_${i}`} 
+                            name={spriteName} 
+                            x={drawX} 
+                            y={drawY} 
+                            scale={inst.scale || 1} 
+                        />
+                    );
+                })}
+
                 {/* NPCs (family & friends) — positions updated via DOM refs in game loop */}
                 <NpcLayer npcs={npcs} npcDOMRefs={npcDOMRefs} onSelectNpc={setSelectedNpc} />
 
@@ -1072,15 +1261,72 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                 </>
             )}
 
-            {/* HUD — Area name */}
-            <div className="absolute top-4 left-4 z-40 pointer-events-none">
-                <div className="glass-panel px-4 py-2 flex items-center gap-3 backdrop-blur-xl bg-rpg-panel/80 w-max shadow-xl">
+            {/* HUD — Area name (+ travel picker for builders) */}
+            <div className="absolute top-4 left-4 z-40">
+                <div className="glass-panel px-4 py-2 flex items-center gap-3 backdrop-blur-xl bg-rpg-panel/80 w-max shadow-xl pointer-events-none">
                     <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
                     <div>
                         <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Current Area</div>
                         <div className="text-sm font-heading font-bold text-white text-shadow-sm">{map.name}</div>
                     </div>
+                    {currentUser?.is_admin && (
+                        <button
+                            onClick={() => setShowTravel(v => !v)}
+                            className="pointer-events-auto ml-1 text-[10px] font-bold uppercase tracking-wider bg-rpg-gold/20 text-rpg-gold border border-rpg-gold/40 rounded-lg px-2 py-1 hover:bg-rpg-gold/30 transition-colors"
+                            title="Viajar a otro mapa"
+                        >
+                            Viajar
+                        </button>
+                    )}
                 </div>
+                {currentUser?.is_admin && showTravel && (
+                    <div className="mt-2 w-64 max-h-80 overflow-y-auto glass-panel bg-rpg-panel/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-2 pointer-events-auto animate-in fade-in slide-in-from-top-1">
+                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider px-2 py-1">Mapas del sistema</div>
+                        {Object.values(MAP_DATA).map(m => {
+                            const override = customMaps.find(cm => cm.id === m.id); // a saved edit of this system map
+                            return (
+                                <div key={m.id} className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => travelTo(m.id)}
+                                        className={`flex-1 text-left px-2 py-1.5 rounded-lg text-sm transition-colors ${m.id === currentMapId ? 'bg-rpg-gold/20 text-rpg-gold' : 'text-gray-200 hover:bg-white/10'}`}
+                                    >
+                                        {m.name}{override ? (override.active ? ' · editado' : ' · original') : ''}
+                                    </button>
+                                    {override && (
+                                        <button
+                                            onClick={() => toggleMap(override.designId, !override.active)}
+                                            title={override.active ? 'Volver al mapa original' : 'Usar tu versión editada'}
+                                            className={`text-[9px] px-1.5 py-1 rounded font-bold uppercase transition-colors ${override.active ? 'bg-emerald-500/25 text-emerald-300' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                                        >
+                                            {override.active ? 'Editado' : 'Original'}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider px-2 py-1 mt-1 border-t border-white/10 pt-2">Mis mundos</div>
+                        {customMaps.filter(cm => !cm.isSystem).length === 0 ? (
+                            <div className="px-2 py-1.5 text-xs text-gray-500 italic">Aún no has creado mapas. Créalos en el editor y guárdalos en la biblioteca.</div>
+                        ) : customMaps.filter(cm => !cm.isSystem).map(m => (
+                            <div key={m.id} className="flex items-center gap-1">
+                                <button
+                                    onClick={() => m.active && travelTo(m.id)}
+                                    disabled={!m.active}
+                                    className={`flex-1 text-left px-2 py-1.5 rounded-lg text-sm transition-colors ${!m.active ? 'text-gray-600 cursor-not-allowed' : m.id === currentMapId ? 'bg-rpg-gold/20 text-rpg-gold' : 'text-gray-200 hover:bg-white/10'}`}
+                                >
+                                    {m.name}
+                                </button>
+                                <button
+                                    onClick={() => toggleMap(m.designId, !m.active)}
+                                    title={m.active ? 'Desactivar (conservar sin aplicar)' : 'Activar'}
+                                    className={`text-[9px] px-1.5 py-1 rounded font-bold uppercase transition-colors ${m.active ? 'bg-emerald-500/25 text-emerald-300' : 'bg-white/5 text-gray-400 hover:text-white'}`}
+                                >
+                                    {m.active ? 'ON' : 'OFF'}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* HUD — Keyboard hint & Controls (desktop) */}
@@ -1169,6 +1415,16 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                     currentUser={currentUser}
                     friend={chatNpc}
                 />
+            )}
+
+            {/* Flavor text bubble (examine-style interactables) */}
+            {flavorText && (
+                <div
+                    onClick={() => { clearTimeout(flavorTimerRef.current); setFlavorText(null); }}
+                    className="absolute bottom-44 left-1/2 -translate-x-1/2 z-[60] pointer-events-auto max-w-md px-5 py-3 bg-black/85 border border-rpg-gold/40 rounded-xl text-sm text-amber-100/90 italic text-center shadow-xl animate-in fade-in slide-in-from-bottom-2 cursor-pointer"
+                >
+                    {flavorText}
+                </div>
             )}
 
             {/* Interaction prompt (proximity to shop / pet sanctuary) */}

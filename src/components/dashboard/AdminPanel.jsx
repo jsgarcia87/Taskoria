@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, UserPlus, Shield, ShieldOff, Search, Loader, Users as UsersIcon, Settings as SettingsIcon, Hammer, Palette, Lightbulb, Check } from 'lucide-react';
+import { Trash2, UserPlus, Shield, ShieldOff, Search, Loader, Users as UsersIcon, Settings as SettingsIcon, Hammer, Palette, Lightbulb, Check, Library } from 'lucide-react';
 import PixelIcon from '../common/PixelIcon';
 import CreationsModeration from './CreationsModeration';
 import StudioAccessRequests from './StudioAccessRequests';
 import AdminWorldTools from './AdminWorldTools';
+import AssetManager from './AssetManager';
 import { useToast } from '../common/Toast';
+import Modal from '../common/Modal';
 
 const AdminPanel = ({ currentUser }) => {
     const toast = useToast();
@@ -71,11 +73,9 @@ const AdminPanel = ({ currentUser }) => {
             if (data.success) {
                 setUsers(data.users || []);
             } else {
+                // Server-side role check is the source of truth; no client-side
+                // self-promotion (that path was a privilege-escalation hole).
                 console.error(data.error);
-                if (data.error === "Unauthorized" || data.error === "Forbidden: Admins only") {
-                    // Try to auto-upgrade for demo purposes if table was just created
-                    await autoUpgradeAdmin();
-                }
             }
         } catch (e) {
             console.error("Failed to fetch users", e);
@@ -83,22 +83,6 @@ const AdminPanel = ({ currentUser }) => {
             setLoading(false);
         }
     };
-
-    const autoUpgradeAdmin = async () => {
-        try {
-            const res = await fetch(`api/admin.php?action=make_me_admin`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ admin_id: currentUser.id })
-            });
-            const data = await res.json();
-            if (data.success) {
-                toast.success("You have been granted Super-User rights. Refresh the page to update your session.", { duration: 7000 });
-            } else {
-                toast.error("You do not have Administrator privileges.");
-            }
-        } catch (e) { }
-    }
 
     useEffect(() => {
         fetchUsers();
@@ -261,7 +245,8 @@ const AdminPanel = ({ currentUser }) => {
                     { id: 'server', label: 'Server',        icon: SettingsIcon, hint: 'Registration + waitlist' },
                     { id: 'feedback', label: 'Feedback',    icon: Lightbulb,  hint: 'Suggestion box from citizens' },
                     { id: 'studio', label: 'Pixel Studio',  icon: Palette,    hint: 'Access + creations moderation' },
-                    { id: 'world',  label: 'World Tools',   icon: Hammer,     hint: 'House Builder + Map Editor + Library' },
+                    { id: 'world',  label: 'World Tools',   icon: Hammer,     hint: 'House Builder + Map Editor' },
+                    { id: 'library',label: 'Global Library',icon: Library,    hint: 'Manage all game assets globally' },
                 ].map(t => {
                     const Icon = t.icon;
                     const isActive = activeSection === t.id;
@@ -536,14 +521,29 @@ const AdminPanel = ({ currentUser }) => {
                 </div>
             )}
 
+            {/* === SECTION: GLOBAL LIBRARY === */}
+            {activeSection === 'library' && (
+                <div className="glass-card p-4 overflow-hidden border border-white/10 rounded-2xl flex flex-col min-h-[500px] animate-in fade-in duration-300">
+                    <div className="mb-4">
+                        <h3 className="text-xl font-bold text-rpg-gold flex items-center gap-2">
+                            <Library size={20} /> General Asset Library
+                        </h3>
+                        <p className="text-xs text-gray-400">View and manage all approved user creations and admin designs.</p>
+                    </div>
+                    <AssetManager currentUser={currentUser} />
+                </div>
+            )}
+
             {/* Create Modal (always available regardless of section) */}
-                {showCreateModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => !isCreating && setShowCreateModal(false)}></div>
-                        <div className="relative bg-rpg-panel border border-rpg-gold/30 rounded-2xl w-full max-w-md p-6 shadow-2xl shadow-black/50 animate-in zoom-in-95 duration-200">
-                            <h3 className="text-xl font-heading font-bold text-rpg-gold flex items-center gap-2 mb-6 border-b border-white/10 pb-4">
-                                <UserPlus size={20} /> Summon New Hero
-                            </h3>
+            <Modal
+                isOpen={showCreateModal}
+                dismissable={!isCreating}
+                onClose={() => setShowCreateModal(false)}
+            >
+                <div className="bg-rpg-panel border border-rpg-gold/30 rounded-2xl w-full p-6 shadow-2xl shadow-black/50">
+                    <h3 className="text-xl font-heading font-bold text-rpg-gold flex items-center gap-2 mb-6 border-b border-white/10 pb-4">
+                        <UserPlus size={20} /> Summon New Hero
+                    </h3>
 
                             <form onSubmit={handleCreateUser} className="space-y-4">
                                 <div>
@@ -608,10 +608,9 @@ const AdminPanel = ({ currentUser }) => {
                                         {isCreating ? 'Summoning...' : 'Create Citizen'}
                                     </button>
                                 </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
+                    </form>
+                </div>
+            </Modal>
         </div>
     );
 };

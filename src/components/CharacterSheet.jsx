@@ -117,7 +117,7 @@ const CharacterSheet = ({ setActiveView }) => {
                 setIsSellModalOpen(false);
                 setItemToSell(null);
             } else {
-                toast.error(data.error || "Failed to list item");
+                toast.error(data.error || "Coinhilda could not list this item at the Bazaar.");
             }
         } catch (e) {
             console.error("Market listing error", e);
@@ -155,7 +155,7 @@ const CharacterSheet = ({ setActiveView }) => {
             if (data.success) {
                 actions.toggleSanctuaryPet(pet.id);
             } else {
-                toast.error(data.error || `Failed to ${actionText} pet`);
+                toast.error(data.error || `The Sanctuary could not ${actionText} your companion.`);
             }
         } catch (e) {
             console.error(`Sanctuary ${actionText} error`, e);
@@ -196,7 +196,7 @@ const CharacterSheet = ({ setActiveView }) => {
                 if (data.success) {
                     actions.releasePet(pet.id);
                 } else {
-                    toast.error(data.error || "Failed to list pet for adoption");
+                    toast.error(data.error || "The Sanctuary could not process this adoption.");
                 }
             } catch (e) {
                 console.error("Adoption error", e);
@@ -728,7 +728,7 @@ const CharacterSheet = ({ setActiveView }) => {
                                             {canEvolvePet(pet) && (
                                                 <button
                                                     onClick={() => actions.evolvePet(pet.id)}
-                                                    className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-rpg-gold to-amber-400 text-rpg-bg hover:brightness-110 font-heading font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(251,191,36,0.4)] animate-pulse"
+                                                    className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-rpg-gold to-amber-400 text-rpg-bg hover:brightness-110 font-heading font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(251,191,36,0.4)]"
                                                 >
                                                     <PixelIcon name="zap" size={14} color="#1a102e" />
                                                     Evolve into {EVOLUTIONS[pet.type].label}
@@ -801,7 +801,7 @@ const CharacterSheet = ({ setActiveView }) => {
                                         <div className="w-16 h-16 mb-3 relative">
                                             {isUnlocked ? (
                                                 <>
-                                                    <div className="absolute inset-0 bg-rpg-gold blur-md opacity-30 animate-pulse"></div>
+                                                    <div className="absolute inset-0 bg-rpg-gold blur-md opacity-20"></div>
                                                     <div className="w-full h-full bg-gradient-to-br from-yellow-300 via-rpg-gold to-yellow-600 rounded-full flex items-center justify-center border-4 border-yellow-200 shadow-glow-gold relative z-10">
                                                         <PixelIcon name="star" size={24} color="#000" />
                                                     </div>

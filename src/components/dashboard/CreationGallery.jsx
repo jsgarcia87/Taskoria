@@ -118,10 +118,10 @@ const CreationGallery = ({ currentUser }) => {
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center py-20 text-gray-400"><Loader2 className="animate-spin mr-2" size={18}/> Loading...</div>
+                <div className="flex items-center justify-center py-20 text-gray-400"><Loader2 className="animate-spin mr-2" size={18}/> The Archive is gathering creations...</div>
             ) : items.length === 0 ? (
                 <div className="text-center py-20 text-gray-500 text-sm">
-                    {tab === 'public' ? 'No approved creations in this category yet.' : 'You haven\'t published anything yet.'}
+                    {tab === 'public' ? 'No works have been forged in this category yet.' : 'Your workshop awaits its first creation.'}
                 </div>
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

@@ -65,6 +65,15 @@
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 1rem;
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms ease-out;
+  }
+
+  @media (hover: hover) {
+    .glass-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2), 0 4px 8px -2px rgba(0, 0, 0, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
   }
 
   .glass-btn {
@@ -200,6 +209,16 @@
   }
 
   /* Animations */
+  .check-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: checkDraw 200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @keyframes checkDraw {
+    to { stroke-dashoffset: 0; }
+  }
+
   @keyframes breathe {
     0%,
     100% {

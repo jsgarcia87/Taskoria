@@ -117,14 +117,18 @@ export const PixelSprite = React.memo(function PixelSprite({ buffer, size = SPRI
  * Returns a 4096-entry buffer compatible with the Pixel Studio format.
  */
 function generateCobblestoneTile() {
+    // Stardew-style street cobbles: SMALL rounded stones, mortar barely darker
+    // than the stone, low contrast overall so it reads as floor, not brick wall.
     const S = 64;
-    const buf = new Array(S * S).fill('#2a1a10'); // mortar (dark)
+    const MORTAR = '#6d5f4e';
+    const buf = new Array(S * S).fill(MORTAR);
 
+    // Tones sit close together — the floor must stay quiet under the props
     const stoneTones = [
-        { base: '#7a553b', hi: '#9a7858', sh: '#4d3322' },
-        { base: '#6b4a33', hi: '#8a6b50', sh: '#43291a' },
-        { base: '#86603f', hi: '#a8835a', sh: '#56381f' },
-        { base: '#705032', hi: '#947254', sh: '#46291a' }
+        { base: '#7d6e5a', hi: '#8a7a64', sh: '#6f6150' },
+        { base: '#847462', hi: '#90806c', sh: '#746556' },
+        { base: '#78695a', hi: '#847460', sh: '#6a5c4e' },
+        { base: '#81715c', hi: '#8e7d68', sh: '#726352' },
     ];
 
     const set = (x, y, c) => {
@@ -132,14 +136,16 @@ function generateCobblestoneTile() {
         buf[y * S + x] = c;
     };
 
+    // Rounded stone: skips the 4 corners for a pebble silhouette
     const drawStone = (sx, sy, w, h, t) => {
-        for (let dy = 1; dy < h - 1; dy++) {
-            for (let dx = 1; dx < w - 1; dx++) {
+        for (let dy = 0; dy < h; dy++) {
+            for (let dx = 0; dx < w; dx++) {
+                const corner = (dx === 0 || dx === w - 1) && (dy === 0 || dy === h - 1);
+                if (corner) continue;
                 let c = t.base;
-                if (dy === 1 || dx === 1) c = t.hi;
-                else if (dy >= h - 2 || dx >= w - 2) c = t.sh;
-                // subtle speckle
-                const seed = ((sx + dx) * 13 + (sy + dy) * 7) % 11;
+                if (dy === 0) c = t.hi;               // top-lit edge only
+                else if (dy === h - 1) c = t.sh;      // soft bottom shade
+                const seed = ((sx + dx) * 13 + (sy + dy) * 7) % 17;
                 if (seed === 0) c = t.sh;
                 else if (seed === 1) c = t.hi;
                 set(sx + dx, sy + dy, c);
@@ -147,15 +153,18 @@ function generateCobblestoneTile() {
         }
     };
 
-    const ROW_H = 16;
-    const COL_W = 16;
-    for (let row = 0; row < 4; row++) {
-        const offset = (row % 2) * 8;
-        for (let col = -1; col < 5; col++) {
+    // Small stones on a staggered 8px grid, with per-stone jitter in size
+    const ROW_H = 8, COL_W = 8;
+    for (let row = 0; row < 8; row++) {
+        const offset = (row % 2) * 4;
+        for (let col = -1; col < 9; col++) {
             const x = col * COL_W + offset;
             const y = row * ROW_H;
+            const n = ((row * 31 + col * 17) >>> 0) % 23;
             const t = stoneTones[(row * 3 + col + 7) % stoneTones.length];
-            drawStone(x, y, COL_W, ROW_H, t);
+            const wJit = 7 - (n % 2);
+            const hJit = 7 - ((n >> 2) % 2);
+            drawStone(x + 1, y + 1, wJit, hJit, t);
         }
     }
 
@@ -170,10 +179,10 @@ function generateStoneFloorTile() {
     const S = 64;
     const buf = new Array(S * S).fill('#2a2a3a');
     const stoneTones = [
-        { base: '#4a4860', hi: '#6a6880', sh: '#2a2840' },
-        { base: '#3e3c52', hi: '#5e5c72', sh: '#1e1c32' },
-        { base: '#524f6a', hi: '#726f8a', sh: '#322f4a' },
-        { base: '#464460', hi: '#666480', sh: '#262440' },
+        { base: '#454a74', hi: '#666c9c', sh: '#282c50' },
+        { base: '#3c4166', hi: '#5c628c', sh: '#20223e' },
+        { base: '#4a507c', hi: '#6c72a4', sh: '#2e325c' },
+        { base: '#42476e', hi: '#626892', sh: '#262a4c' },
     ];
     const set = (x, y, c) => {
         if (x < 0 || x >= S || y < 0 || y >= S) return;
@@ -317,6 +326,32 @@ function generateWoodFloorTile() {
     return buf;
 }
 
+function generateWaterTile() {
+    const S = 64, buf = new Array(S * S).fill('#2a5a8a');
+    const tones = ['#2a5a8a', '#3468a0', '#3f78b4', '#5a90c8'];
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const n = (x * 7 + y * 13 + Math.floor(y / 4) * 3) % 11;
+        let c = tones[0];
+        if (n < 2) c = tones[3]; else if (n < 4) c = tones[2]; else if (n < 7) c = tones[1];
+        buf[y * S + x] = c;
+    }
+    for (let ry = 6; ry < S; ry += 12) for (let x = 2; x < S - 2; x++) if ((x + ry) % 7 < 3) buf[ry * S + x] = '#7aa8d8';
+    return buf;
+}
+
+function generateDirtTile() {
+    const S = 64, buf = new Array(S * S).fill('#b89868');
+    const tones = ['#b89868', '#c8a878', '#a88858', '#d0b488'];
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const n = (x * 13 + y * 7 + x * y * 3) % 13;
+        let c = tones[0];
+        if (n < 2) c = tones[3]; else if (n < 5) c = tones[1]; else if (n > 10) c = tones[2];
+        buf[y * S + x] = c;
+    }
+    [[10, 12], [30, 40], [50, 20], [20, 52], [44, 34]].forEach(([px, py]) => { buf[py * S + px] = '#8a7048'; buf[py * S + px + 1] = '#8a7048'; });
+    return buf;
+}
+
 // -----------------------------------------------------------------------------
 //  Registry
 //  Paste your JSON exports below.  e.g.
@@ -329,4 +364,6 @@ export const SPRITES = {
     grass_tile: generateGrassTile(),
     dungeon_floor_tile: generateDungeonFloorTile(),
     wood_floor_tile: generateWoodFloorTile(),
+    water_tile: generateWaterTile(),
+    dirt_tile: generateDirtTile(),
 };

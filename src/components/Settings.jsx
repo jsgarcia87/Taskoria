@@ -26,13 +26,13 @@ const Settings = ({ onClose, currentUser }) => {
             });
             const data = await res.json();
             if (data.success) {
-                toast.success(data.message || 'Suggestion sent!');
+                toast.success(data.message || 'Ledgar has sealed your words in the Great Book.');
                 setSuggestion('');
             } else {
-                toast.error(data.error || 'Could not send your suggestion.');
+                toast.error(data.error || 'Ledgar could not record your message.');
             }
         } catch (e) {
-            toast.error('Could not reach the server. Try again later.');
+            toast.error('The Archive is beyond reach. Try again shortly.');
         } finally {
             setSendingSuggestion(false);
         }

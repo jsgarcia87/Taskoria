@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useGame } from '../../context/GameContext';
 import { PeacefulRealm } from '../common/PixelEmpty';
 import TaskForm from './TaskForm';
+import Modal from '../common/Modal';
 
 // One display font stack (Outfit) for the wordmark, Inter for everything else,
 // VT323 pixel monospace kept only for numerals — matches the app's existing
@@ -34,7 +35,13 @@ const TornEdgeBottom = () => (
     </svg>
 );
 
-const QuestRow = ({ task, onComplete, onEdit, onDelete }) => (
+const QuestRow = ({ task, onComplete, onEdit, onDelete }) => {
+    const [checked, setChecked] = React.useState(false);
+    const handleComplete = React.useCallback((e) => {
+        setChecked(true);
+        onComplete(task.id, e.clientX, e.clientY);
+    }, [task.id, onComplete]);
+    return (
     <motion.div
         layout
         initial={{ opacity: 0, y: 4 }}
@@ -44,14 +51,20 @@ const QuestRow = ({ task, onComplete, onEdit, onDelete }) => (
         className="group grid grid-cols-[18px_1fr_auto] gap-3 items-baseline py-2.5 border-b border-dotted border-[#78350f]/30 last:border-b-0"
     >
         <motion.button
-            onClick={(e) => onComplete(task.id, e.clientX, e.clientY)}
-            whileHover={{ scale: 1.08 }}
+            onClick={handleComplete}
+            whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 340, damping: 26 }}
-            className="w-3.5 h-3.5 border-2 border-[#78350f] rounded-sm mt-1 hover:bg-[#78350f]/15 transition-colors"
+            className={`w-3.5 h-3.5 border-2 rounded-sm mt-1 transition-colors duration-150 ${checked ? 'border-[#78350f] bg-[#78350f]/20' : 'border-[#78350f] hover:bg-[#78350f]/15'}`}
             title="Mark complete"
             aria-label={`Complete quest: ${task.title}`}
-        />
+        >
+            {checked && (
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className="block -mt-0.5 -ml-0.5">
+                    <path d="M2.5 6.5L5 9L9.5 3.5" stroke="#78350f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" pathLength="1" className="check-draw" />
+                </svg>
+            )}
+        </motion.button>
         <button
             onClick={() => onEdit(task)}
             className="text-left leading-snug text-[15px] md:text-[15px] hover:text-[#78350f] transition-colors font-medium"
@@ -87,7 +100,8 @@ const QuestRow = ({ task, onComplete, onEdit, onDelete }) => (
             </button>
         </div>
     </motion.div>
-);
+    );
+};
 
 /**
  * The Questbook — parchment-styled Quest Log for the dashboard sidebar.
@@ -170,7 +184,7 @@ const Questbook = () => {
                     <div className="py-5 text-center flex flex-col items-center gap-3">
                         <PeacefulRealm size={72} />
                         <div className="font-medium text-[14px]" style={{ color: INK }}>
-                            The realm is peaceful.
+                            Ledgar's pages lie blank.
                         </div>
                         <button
                             onClick={openNewQuest}
@@ -216,19 +230,16 @@ const Questbook = () => {
             <TornEdgeBottom />
 
             {/* Create / edit modal — reuses TaskForm */}
-            {(editingTask || isCreating) && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar">
-                        <TaskForm
-                            onClose={() => {
-                                setEditingTask(null);
-                                setIsCreating(false);
-                            }}
-                            initialData={editingTask}
-                        />
-                    </div>
-                </div>
-            )}
+            <Modal
+                isOpen={!!(editingTask || isCreating)}
+                dismissable={false}
+                onClose={() => { setEditingTask(null); setIsCreating(false); }}
+            >
+                <TaskForm
+                    onClose={() => { setEditingTask(null); setIsCreating(false); }}
+                    initialData={editingTask}
+                />
+            </Modal>
         </div>
     );
 };

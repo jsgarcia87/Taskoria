@@ -39,7 +39,7 @@ const FocusHero = () => {
 
     const handleEnterPortal = () => {
         if (pomodoroMode === 'hatch' && !selectedEgg) {
-            toast.error("Please select an egg to incubate first.");
+            toast.error("Chronos awaits — choose an egg before entering the portal.");
             return;
         }
 

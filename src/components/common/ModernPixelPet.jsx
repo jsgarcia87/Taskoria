@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import petBlueprints from '../../data/pet_blueprints.json';
+import { fetchCustomBlueprints, getCustomBlueprintsCache } from '../../utils/blueprints.js';
 
 const S_BASE = 1.8;
 const DEFAULT_GRID = 32;
@@ -17,8 +18,18 @@ const ModernPixelPet = ({ type = 'slime', scale = 1, customColors = null, isHatc
     const canvasRef = useRef(null);
     const animationFrameRef = useRef(null);
     const [cachedImage, setCachedImage] = useState(null);
+    const [dbBlueprints, setDbBlueprints] = useState(getCustomBlueprintsCache());
 
-    const config = petBlueprints[type] || petBlueprints['slime'];
+    useEffect(() => {
+        if (!getCustomBlueprintsCache()) {
+            fetchCustomBlueprints().then(bp => {
+                setDbBlueprints(bp);
+            });
+        }
+    }, []);
+
+    const customBp = dbBlueprints?.pets?.[type.toLowerCase()];
+    const config = customBp || petBlueprints[type] || petBlueprints['slime'];
     const gridSize = config.gridSize || DEFAULT_GRID;
 
     // Normalización: Si es un diseño de 64x64, multiplicamos la escala visual por 0.5 
@@ -79,7 +90,7 @@ const ModernPixelPet = ({ type = 'slime', scale = 1, customColors = null, isHatc
         }
         
         setCachedImage(offCanvas);
-    }, [type, JSON.stringify(customColors)]);
+    }, [type, JSON.stringify(customColors), dbBlueprints]);
 
     // 2. Animation Render Loop
     useEffect(() => {

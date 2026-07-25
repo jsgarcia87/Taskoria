@@ -57,31 +57,50 @@ const GardenView = ({ forceScenario }) => {
     const pendingHabits = state?.habits?.filter(h => h.target ? (!h.completed && h.count < h.target) : !h.completed).length || 0;
     const charName = character?.name || "";
 
-    // Generate possible messages dynamically and stably
     const possibleMessages = React.useMemo(() => {
         if (!character) return [];
-        const msgs = [
-            `Hello, ${charName}! What shall we begin with today?`,
-            "The focus dungeon awaits for you to gain experience!",
-        ];
+        const hour = new Date().getHours();
+        const isMorning = hour >= 5 && hour < 12;
+        const isAfternoon = hour >= 12 && hour < 17;
+        const isEvening = hour >= 17 && hour < 21;
+
+        const msgs = [];
 
         if (activeScenario === 'inn') {
-            msgs.push(`Resting at the inn... zZz...`);
-            msgs.push(`The fire is warm today.`);
+            msgs.push('Resting at the inn... zZz...');
+            msgs.push('The fire crackles softly.');
+            msgs.push('Even heroes need a warm bed.');
         } else if (activeScenario === 'sanctuary') {
-            msgs.push(`What a magical place!`);
-            msgs.push(`Our friends are resting here.`);
+            msgs.push('The sanctuary hums with quiet magic.');
+            msgs.push('Our companions rest among the trees.');
         } else {
-            if (pendingTasks > 0) {
-                msgs.push(`You have ${pendingTasks} quests pending for today.`);
+            if (isMorning) {
+                msgs.push(`A new dawn, ${charName}. Ready?`);
+                msgs.push('The morning air sharpens the mind.');
+            } else if (isAfternoon) {
+                msgs.push('The sun is high. Good questing weather.');
+                msgs.push(`Steady progress, ${charName}.`);
+            } else if (isEvening) {
+                msgs.push('The golden hour — finish strong.');
+                msgs.push(`Almost nightfall, ${charName}.`);
             } else {
-                msgs.push(`All quests completed! Take a breather.`);
+                msgs.push('The stars are out. Rest soon.');
+                msgs.push(`A quiet night, ${charName}.`);
+            }
+
+            if (pendingTasks > 0) {
+                msgs.push(`${pendingTasks} quests await your hand.`);
+            } else {
+                msgs.push('All quests done. The realm is at peace.');
             }
         }
 
         if (pendingHabits > 0) {
-            msgs.push(`Don't forget to complete your daily habits.`);
+            msgs.push(`${pendingHabits} rituals remain for today.`);
         }
+
+        msgs.push('The focus dungeon awaits beyond the portal.');
+
         return msgs;
     }, [charName, activeScenario, pendingTasks, pendingHabits]);
 
@@ -200,7 +219,7 @@ const GardenView = ({ forceScenario }) => {
                             return (
                                 <>
                                     {/* Status Bubbles */}
-                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1 animate-bounce pointer-events-none">
+                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1 animate-breathe pointer-events-none">
                                         {activePet.hunger < 30 && (
                                             <div className="bg-orange-500 rounded-full p-1 shadow-lg border border-white/20">
                                                 <PixelIcon name="apple" size={10} color="white" />
@@ -218,7 +237,7 @@ const GardenView = ({ forceScenario }) => {
                                         )}
                                     </div>
 
-                                    <div className="transform hover:scale-110 transition-transform duration-300 filter drop-shadow-xl animate-bounce" style={{ animationDuration: mood === 'sad' ? '5s' : '3s' }}>
+                                    <div className="transform hover:scale-105 transition-transform duration-300 filter drop-shadow-xl animate-breathe">
                                         <ModernPixelPet type={activePet.type} scale={1.25} customColors={activePet.customColors} />
                                     </div>
                                     <div className="w-10 h-2 bg-black/50 rounded-[50%] blur-md mt-[-4px]" />

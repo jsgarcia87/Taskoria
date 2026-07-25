@@ -53,7 +53,7 @@ const BossBattle = () => {
 
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-rpg-red/20 to-transparent"></div>
-            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-rpg-red/10 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-rpg-red/10 rounded-full blur-3xl"></div>
 
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-6">
@@ -67,7 +67,7 @@ const BossBattle = () => {
                         </div>
                         <h2 className="text-3xl font-heading font-extrabold text-white text-shadow-glow uppercase leading-none tracking-tight">{activeDungeon.name}</h2>
                     </div>
-                    <div className="glass-panel px-3 py-1.5 flex items-center gap-2 animate-bounce duration-[3000ms] border border-rpg-gold/20 shadow-lg shadow-rpg-gold/10">
+                    <div className="glass-panel px-3 py-1.5 flex items-center gap-2 border border-rpg-gold/20 shadow-lg shadow-rpg-gold/10">
                         <Trophy size={16} className="text-rpg-gold drop-shadow-glow" />
                         <span className="text-xs text-rpg-gold font-bold font-heading uppercase tracking-wider">Bounty</span>
                     </div>

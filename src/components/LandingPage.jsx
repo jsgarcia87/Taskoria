@@ -6,6 +6,7 @@ import {
 import ModernPixelAvatar from './common/ModernPixelAvatar';
 import ModernPixelPet from './common/ModernPixelPet';
 import LoreScroll from './common/LoreScroll';
+import ArchiveCouncilMessage from './common/ArchiveCouncilMessage';
 import { WorldSprite, WORLD_PROPS } from './dashboard/world/worldProps';
 
 // Reveal-on-scroll wrapper using IntersectionObserver (robust, no scroll math)
@@ -111,7 +112,7 @@ const HeroMockup = () => {
             </div>
 
             {/* Floating "+50 XP" pip */}
-            <div className="absolute -top-3 right-6 bg-rpg-gold text-black font-heading text-xs px-3 py-1 rounded-sm border-2 border-black shadow-[4px_4px_0_rgba(0,0,0,0.4)] animate-bounce font-bold">+50 XP</div>
+            <div className="absolute -top-3 right-6 bg-rpg-gold text-black font-heading text-xs px-3 py-1 rounded-sm border-2 border-black shadow-[4px_4px_0_rgba(0,0,0,0.4)] animate-breathe font-bold">+50 XP</div>
         </div>
     );
 };
@@ -185,8 +186,8 @@ const InteractiveBuilder = () => {
                         onMouseEnter={() => { if (isDrawing) handlePaint(i); }}
                         className={`w-10 h-10 sm:w-12 sm:h-12 border-2 border-rpg-panelLight/30 rounded flex items-center justify-center cursor-pointer transition-colors select-none ${cell === 'path' ? 'bg-[#5c4033] border-[#3e2b22]' : 'bg-[#2a2233] hover:bg-[#473d54]'}`}
                     >
-                        {cell === 'tree' && <TreePine size={24} className="text-green-400 animate-bounce drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" />}
-                        {cell === 'house' && <Castle size={24} className="text-rpg-gold animate-bounce drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" />}
+                        {cell === 'tree' && <TreePine size={24} className="text-green-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" />}
+                        {cell === 'house' && <Castle size={24} className="text-rpg-gold drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" />}
                     </div>
                 ))}
             </div>
@@ -313,9 +314,11 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                         The Royal Archive<br/>is seeking new citizens.
                     </h2>
 
-                    <p className="text-lg md:text-2xl text-rpg-gold font-heading max-w-2xl mx-auto mb-12 animate-[slideUpFade_1s_ease-out_0.3s_forwards] opacity-0 leading-relaxed drop-shadow-[0_0_10px_rgba(253,223,140,0.3)]">
+                    <p className="text-lg md:text-2xl text-rpg-gold font-heading max-w-2xl mx-auto mb-8 animate-[slideUpFade_1s_ease-out_0.3s_forwards] opacity-0 leading-relaxed drop-shadow-[0_0_10px_rgba(253,223,140,0.3)]">
                         Every unfinished duty weakens the Kingdom.<br className="hidden md:block"/> Every completed quest restores it.
                     </p>
+
+                    <ArchiveCouncilMessage onJoinBeta={scrollToWaitlist} />
 
                     <div className="animate-[slideUpFade_1s_ease-out_0.6s_forwards] opacity-0 flex flex-col items-center">
                         <button
@@ -460,7 +463,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
 
                                 {/* The Magic Card */}
                                 <div className="w-full max-w-[240px] aspect-[3/4] bg-rpg-panel border-[6px] border-rpg-panelLight rounded-2xl flex flex-col items-center justify-center p-6 relative z-10 transition-transform duration-300 shadow-[10px_10px_0_rgba(0,0,0,0.4)] group-hover:-translate-y-3 group-hover:border-rpg-gold group-hover:shadow-[15px_15px_0_rgba(253,223,140,0.2)]">
-                                    <div className={`absolute inset-0 rounded-xl ${g.bg} opacity-20 group-hover:animate-pulse`}></div>
+                                    <div className={`absolute inset-0 rounded-xl ${g.bg} opacity-20 group-hover:opacity-30 transition-opacity duration-300`}></div>
                                     
                                     <g.icon size={48} className={`${g.color} relative z-10 mb-6 drop-shadow-lg group-hover:text-rpg-gold transition-colors`} />
                                     

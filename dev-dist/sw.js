@@ -79,11 +79,12 @@ define(['./workbox-f87553f6'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.3s75h20nn6g"
+    "revision": "0.23nenaruq98"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
-    allowlist: [/^\/$/]
+    allowlist: [/^\/$/],
+    denylist: [/^\/admin-tools\//]
   }));
   workbox.registerRoute(/\/assets\/(world|admin|studio|landing|shop)-.*\.js$/, new workbox.CacheFirst({
     "cacheName": "feature-chunks",

@@ -231,10 +231,11 @@ body { background: var(--bg); color: var(--text);
   <div class="sep"></div>
 
   <!-- Zoom -->
-  <div class="top-group">
-    <button class="tbtn" onclick="zoom(-1)">－</button>
+  <div class="top-group" title="Zoom del lienzo (no afecta al mapa)">
+    <span style="font-size:9px;color:var(--dim)">🔍 Zoom:</span>
+    <button class="tbtn" onclick="zoom(-1)" title="Alejar">－</button>
     <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--dim)" id="zoomLabel">1×</span>
-    <button class="tbtn" onclick="zoom(1)">＋</button>
+    <button class="tbtn" onclick="zoom(1)" title="Acercar">＋</button>
   </div>
   <div class="sep"></div>
 
@@ -262,7 +263,7 @@ body { background: var(--bg); color: var(--text);
     <button class="tbtn green" onclick="exportMapData()">⬇ EXPORT JS</button>
     <button class="tbtn gold" onclick="saveToLocal()">💾 SAVE</button>
     <button class="tbtn" onclick="saveToLibrary()" style="background:#3a2a5a;color:#f0c040;border-color:#5a4a7a">📥 SAVE TO LIBRARY</button>
-    <button class="tbtn" onclick="loadFromLocal()">📂 LOAD</button>
+    <button class="tbtn" onclick="loadFromFile()" title="Importar un mapa desde un archivo .json/.js">📂 LOAD</button>
   </div>
 </div>
 
@@ -1574,6 +1575,10 @@ const CATEGORIES = {
 };
 
 // Qué capas acepta cada tipo
+// Display names for library assets (was assigned without ever being declared,
+// which threw a ReferenceError that silently killed applyLibraryDesigns).
+const NAMES = {};
+
 const ASSET_LAYER = {
   // Suelo
   cobblestone:'ground', grass:'ground', grass_dark:'ground', dirt:'ground',
@@ -1606,7 +1611,7 @@ const ASSET_LAYER = {
 // ═══════════════════════════════════════════════════════════
 let mapW=20, mapH=16, tileSize=40;
 let zoomLevel=1;
-let currentTool='draw';
+let currentDrawTool='draw';
 let currentLayer='ground';
 let selectedAsset=null;
 let selectedCell=null;
@@ -1629,6 +1634,17 @@ let layers={
 let instances = [];
 let nextInstanceId = 1;
 let selectedInstanceId = null;
+
+// Ground overlays — freeform coloured shapes painted over the floor (roads,
+// the plaza island, worn patches). Stored in tile-space px so they line up
+// with instances. Imported from `rect`/`cobble_patch` decorations and written
+// back out on save, so the game's paths and plaza survive the round-trip.
+let overlays = [];
+
+// Last library payload received from the parent, and the id of the map currently
+// being edited (so saving preserves it and overrides the right map).
+let _libraryDesigns = [];
+let _loadedMapId = null;
 let isMovingInstance = false;
 let isResizingInstance = false;
 let dragInstanceOffset = {x:0, y:0};
@@ -1703,11 +1719,101 @@ function migrateInstance(ins){
 function migrateAllInstances(arr){
   return (arr || []).map(migrateInstance);
 }
+// A sprite's natural pixel dimensions (registry buffers, house previews and
+// pixel-art canvases all carry their true w/h). Falls back to one tile.
+function instanceNatural(ins){
+  const spr = SPRITES[ins.type];
+  return {
+    sw: (spr && spr.width)  ? spr.width  : tileSize,
+    sh: (spr && spr.height) ? spr.height : tileSize,
+  };
+}
 // Instance bounding box in PX (unrotated). Rotation is applied only at
 // render + hit-test time; storage stays axis-aligned.
+//
+// WYSIWYG: `scale` means exactly what the game engine's WorldSprite means —
+// rendered px = natural sprite px × scale. So a prop occupies the same real
+// footprint here as it will in production, aspect ratio included.
 function instanceBox(ins){
-  const size = ins.scale * tileSize;
-  return { x: ins.x, y: ins.y, w: size, h: size };
+  const { sw, sh } = instanceNatural(ins);
+  return { x: ins.x, y: ins.y, w: sw * ins.scale, h: sh * ins.scale };
+}
+
+// The shared game-sprite registry loads asynchronously (module at the bottom
+// of the file). Import conversion waits on this so natural sprite dimensions
+// are available for accurate anchor math.
+let _markRegistryReady;
+const registryReady = new Promise(res => { _markRegistryReady = res; });
+// Prefab expander (shared with the game engine). Set by the parity module once
+// prefabs.js loads, so imported maps can rebuild their composite scenes.
+let expandPrefabsFn = null;
+
+// Convert a runtime MapData decoration into an editor instance (top-left px +
+// scale, where rendered px = natural × scale — WYSIWYG). Mirrors the anchor
+// conventions in PlayableWorld's DecorationsLayer so an imported map looks the
+// same in the editor as in the game. Returns null for paint-only / CSS-only
+// helpers and for decorations whose sprite isn't available.
+const _BANNER_VARIANT = c => c === '#dc2626' ? 'banner_red'
+  : c === '#7c3aed' ? 'banner_purple' : c === '#2a5a9a' ? 'banner_blue' : 'banner_gold';
+const _STALL_VARIANT = c => c === '#16a34a' ? 'market_stall_green'
+  : c === '#7c3aed' ? 'market_stall_purple' : 'market_stall_red';
+// Top-left decorations (given a width/height footprint). base = the natural
+// sprite height the engine divides by; scale = height / base.
+const _TOPLEFT_BASE = { oak_tree:64, pine_tree:72, tree:64, dead_tree:64, well:36, shop_building:60, market_stall:40 };
+// Bottom-center, size-driven decorations. scale = size / base.
+const _SIZE_RULE = { barrel:{b:24,d:38}, crate:{b:20,d:42}, lamp:{b:32,d:64}, flowers:{b:28,d:30}, bush:{b:32,d:50}, bench:{b:36,d:60} };
+// Never turn these into sprites — they're runtime paint, CSS, or dynamic.
+const _SKIP_DEC = new Set(['rect','lantern_glow','crack','puddle','cobble_patch','rug','critter','torch','pillar','vendor_npc','table','bar_counter']);
+
+function decorationToInstance(d){
+  if(!d || !d.type || _SKIP_DEC.has(d.type)) return null;
+  let key, scale, cx, by; // cx = bottom-center x, by = bottom (foot) y
+  if(d.type === 'sprite'){
+    key = d.name; scale = d.scale || 1; cx = d.x; by = d.y;
+  } else if(_TOPLEFT_BASE[d.type] !== undefined){
+    key = d.type === 'market_stall' ? _STALL_VARIANT(d.color) : d.type;
+    const baseH = _TOPLEFT_BASE[d.type];
+    const spr0 = SPRITES[key];
+    const h = d.height != null ? d.height : (spr0 ? spr0.height : baseH);
+    scale = h / baseH;
+    const wRef = d.width != null ? d.width : (spr0 ? spr0.width * scale : baseH);
+    cx = d.x + wRef / 2;
+    by = d.y + h;
+  } else if(_SIZE_RULE[d.type] !== undefined){
+    key = d.type;
+    const r = _SIZE_RULE[d.type];
+    scale = (d.size != null ? d.size : r.d) / r.b;
+    cx = d.x; by = d.y;
+  } else if(d.type === 'sign'){
+    key = 'sign'; scale = 1.2; cx = d.x; by = d.y + 4;
+  } else if(d.type === 'banner'){
+    key = _BANNER_VARIANT(d.color); scale = 2; cx = d.x; by = d.y + 64;
+  } else {
+    key = d.type; scale = d.scale || 1; cx = d.x; by = d.y;
+  }
+  const spr = SPRITES[key];
+  if(!spr) return null;
+  const nw = spr.width || tileSize, nh = spr.height || tileSize;
+  return {
+    type: key,
+    x: cx - (nw * scale) / 2,
+    y: by - nh * scale,
+    scale,
+    rotation: 0,
+    ...(d.label ? { label: d.label } : {}),
+  };
+}
+
+// Convert a ground-paint `rect` / `cobble_patch` decoration into an editor
+// overlay (kept in px, preserved verbatim on save).
+function rectToOverlay(d){
+  return {
+    x: d.x, y: d.y, w: d.width || 0, h: d.height || 0,
+    color: d.color || '#000000',
+    opacity: d.opacity != null ? d.opacity : 1,
+    ...(d.radius ? { radius: d.radius } : {}),
+    z: d.z != null ? d.z : 0,
+  };
 }
 
 function getInstanceAt(px, py){
@@ -1730,17 +1836,22 @@ function getInstanceAt(px, py){
 }
 // Handle sizes tuned for touch + mouse: chunky enough to grab confidently.
 const INS_HANDLE_PX = 16;
+// Touch fingers are imprecise — widen the grab area when the last input was
+// a finger (set in pointerdown). Divide by zoom so it's constant on screen.
+let coarsePointer = false;
+function handlePad(){ return (coarsePointer ? 16 : 4) / zoomLevel; }
 function isResizeHandle(ins, px, py){
   const b = instanceBox(ins);
-  const hx = b.x + b.w - INS_HANDLE_PX, hy = b.y + b.h - INS_HANDLE_PX;
-  return px >= hx && px <= hx + INS_HANDLE_PX && py >= hy && py <= hy + INS_HANDLE_PX;
+  const pad = handlePad();
+  const hx = b.x + b.w - INS_HANDLE_PX - pad, hy = b.y + b.h - INS_HANDLE_PX - pad;
+  return px >= hx && px <= b.x + b.w + pad && py >= hy && py <= b.y + b.h + pad;
 }
 function isRotationHandle(ins, px, py){
   // Small circular knob 22 px above the top-center of the instance.
   const b = instanceBox(ins);
   const cx = b.x + b.w/2;
   const cy = b.y - 22;
-  return Math.hypot(px - cx, py - cy) <= 12;
+  return Math.hypot(px - cx, py - cy) <= 12 + handlePad();
 }
 
 // Historial undo/redo
@@ -1749,14 +1860,15 @@ let redoStack=[];
 
 function initMap(){
   layers.ground=[];layers.objects=[];layers.overhead=[];
+  overlays=[];
   for(let y=0;y<mapH;y++){
     layers.ground.push(new Array(mapW).fill(null));
     layers.objects.push(new Array(mapW).fill(null));
     layers.overhead.push(new Array(mapW).fill(null));
   }
-  // Suelo por defecto
+  // Default floor uses the real game tile key so a new map's ground round-trips.
   for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
-    layers.ground[y][x]={type:'cobblestone',label:''};
+    layers.ground[y][x]={type:'cobblestone_tile',label:''};
   }
   document.getElementById('infoSize').textContent=`${mapW}×${mapH}`;
 }
@@ -1797,7 +1909,15 @@ function render(){
     for(let y=0;y<mapH;y++){
       for(let x=0;x<mapW;x++){
         const cell=layers[layerKey][y][x];
-        if(!cell) continue;
+        if(!cell){
+          // Empty SUELO reads as an intentional checkerboard, not a black hole.
+          if(layerKey==='ground'){
+            const dx=x*TS, dy=y*TS, h=TS/2;
+            ctx.fillStyle='#2b2b33'; ctx.fillRect(dx,dy,TS,TS);
+            ctx.fillStyle='#34343f'; ctx.fillRect(dx,dy,h,h); ctx.fillRect(dx+h,dy+h,h,h);
+          }
+          continue;
+        }
         const spr=SPRITES[cell.type];
         if(!spr) continue;
         const dx=x*TS, dy=y*TS;
@@ -1815,6 +1935,25 @@ function render(){
     }
   });
 
+  // ── Ground overlays (roads, plaza island) — over the floor, under props ──
+  if(overlays.length){
+    for(const ov of overlays){
+      const ox=ov.x*zoomLevel, oy=ov.y*zoomLevel, ow=ov.w*zoomLevel, oh=ov.h*zoomLevel;
+      ctx.save();
+      ctx.globalAlpha = (ov.opacity!=null?ov.opacity:1);
+      ctx.fillStyle = ov.color || '#000';
+      const round = ov.radius && (String(ov.radius).includes('9999') || String(ov.radius).includes('50%'));
+      if(round){
+        ctx.beginPath();
+        ctx.ellipse(ox+ow/2, oy+oh/2, ow/2, oh/2, 0, 0, Math.PI*2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(ox, oy, ow, oh);
+      }
+      ctx.restore();
+    }
+  }
+
   // ── Instances (objects layer, drawn above tiles, below grid) ──
   // Positions are stored in tile-space PX (independent of zoom). Multiply
   // by zoomLevel at render time. Rotation is applied around the instance
@@ -1823,23 +1962,24 @@ function render(){
     instances.forEach(ins => {
       const spr = SPRITES[ins.type];
       if(!spr) return;
-      const size = ins.scale * tileSize * zoomLevel;
-      const dx = ins.x * zoomLevel;
-      const dy = ins.y * zoomLevel;
+      // Draw at natural px × scale — pixel-identical to the game renderer.
+      const b = instanceBox(ins);
+      const dx = b.x * zoomLevel, dy = b.y * zoomLevel;
+      const w = b.w * zoomLevel, h = b.h * zoomLevel;
       ctx.imageSmoothingEnabled = false;
       if(ins.rotation){
         ctx.save();
-        ctx.translate(dx + size/2, dy + size/2);
+        ctx.translate(dx + w/2, dy + h/2);
         ctx.rotate(ins.rotation * Math.PI / 180);
-        ctx.drawImage(spr, -size/2, -size/2, size, size);
+        ctx.drawImage(spr, -w/2, -h/2, w, h);
         ctx.restore();
       } else {
-        ctx.drawImage(spr, dx, dy, size, size);
+        ctx.drawImage(spr, dx, dy, w, h);
       }
       // Subtle bounding box so users can tell it's an instance
       ctx.strokeStyle = 'rgba(255,255,255,0.18)';
       ctx.lineWidth = 1;
-      ctx.strokeRect(dx + 0.5, dy + 0.5, size - 1, size - 1);
+      ctx.strokeRect(dx + 0.5, dy + 0.5, w - 1, h - 1);
     });
   }
 
@@ -1854,31 +1994,32 @@ function render(){
   if(selectedInstanceId){
     const ins = instances.find(i => i.id === selectedInstanceId);
     if(ins){
-      const size = ins.scale * tileSize * zoomLevel;
-      const dx = ins.x * zoomLevel;
-      const dy = ins.y * zoomLevel;
+      const _b = instanceBox(ins);
+      const w = _b.w * zoomLevel, h = _b.h * zoomLevel;
+      const dx = _b.x * zoomLevel;
+      const dy = _b.y * zoomLevel;
       // Dashed outline signals "editable object" — more scannable than solid.
       ctx.save();
       ctx.strokeStyle = '#f0c040';
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 4]);
-      ctx.strokeRect(dx + 1, dy + 1, size - 2, size - 2);
+      ctx.strokeRect(dx + 1, dy + 1, w - 2, h - 2);
       ctx.restore();
       ctx.fillStyle = 'rgba(240,192,64,0.10)';
-      ctx.fillRect(dx, dy, size, size);
+      ctx.fillRect(dx, dy, w, h);
       // Foot Y indicator — magenta line at the sprite's bottom edge, hints
       // where the runtime will Y-sort this prop against the player.
       ctx.strokeStyle = 'rgba(255,80,220,0.85)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(dx, dy + size);
-      ctx.lineTo(dx + size, dy + size);
+      ctx.moveTo(dx, dy + h);
+      ctx.lineTo(dx + w, dy + h);
       ctx.stroke();
 
       // Resize handle (bottom-right, chunky)
       const hs = INS_HANDLE_PX * zoomLevel;
-      const hx = dx + size - hs;
-      const hy = dy + size - hs;
+      const hx = dx + w - hs;
+      const hy = dy + h - hs;
       ctx.fillStyle = '#0d0a14';
       ctx.fillRect(hx - 1, hy - 1, hs + 2, hs + 2);
       ctx.fillStyle = '#f0c040';
@@ -1894,7 +2035,7 @@ function render(){
 
       // Rotation knob — small circle above top-center. Stem connects to the
       // instance so the affordance reads "spin me".
-      const kx = dx + size/2;
+      const kx = dx + w/2;
       const ky = dy - 22 * zoomLevel;
       ctx.strokeStyle = '#f0c040';
       ctx.lineWidth = 1;
@@ -1980,13 +2121,42 @@ function renderMini(){
   ctx.strokeRect(Math.max(0,vpx),Math.max(0,vpy),Math.min(vpw,mw),Math.min(vph,mh));
 }
 
+// Lightweight toast for editor feedback (export, load, cancel…).
+let _toastTimer;
+function showToast(msg, type){
+  let el=document.getElementById('editorToast');
+  if(!el){
+    el=document.createElement('div'); el.id='editorToast';
+    el.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(8px);z-index:99999;max-width:80vw;padding:10px 16px;border-radius:10px;font-family:system-ui,-apple-system,sans-serif;font-size:13px;font-weight:600;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.45);pointer-events:none;opacity:0;transition:opacity .2s,transform .2s;';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;
+  el.style.background = type==='error' ? '#5a1e14' : type==='success' ? '#1f4a24' : '#241f3a';
+  el.style.border='1px solid '+(type==='error'?'#c85030':type==='success'?'#4a9a4a':'#5a4a7a');
+  el.style.opacity='1'; el.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(-50%) translateY(8px)'; }, 2800);
+}
+
+// Reset the SELECCIÓN panel to an empty state.
+function clearSelectionPanel(){
+  ['selPos','selType','selLayer'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='—'; });
+  const lbl=document.getElementById('selLabel'); if(lbl) lbl.value='';
+  const block=document.getElementById('selInsBlock'); if(block) block.style.display='none';
+}
+
 function updateStats(){
-  let count=0;
-  ['ground','objects','overhead'].forEach(k=>{
-    for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++) if(layers[k][y]?.[x]) count++;
-  });
-  document.getElementById('infoTiles').textContent=count;
-  document.getElementById('stObjs').textContent=count;
+  // "Tiles" = floor coverage (SUELO). "Objetos" = everything placed on top —
+  // object/overhead cells AND free instances, so placing props registers.
+  let floor=0, objs=0;
+  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+    if(layers.ground[y]?.[x]) floor++;
+    if(layers.objects[y]?.[x]) objs++;
+    if(layers.overhead[y]?.[x]) objs++;
+  }
+  objs += instances.length;
+  document.getElementById('infoTiles').textContent=floor;
+  document.getElementById('stObjs').textContent=objs;
   document.getElementById('stUndo').textContent=undoStack.length;
 }
 
@@ -2031,13 +2201,18 @@ function paintTile(x,y){
 
 // Place an instance at cursor px position. Sprite is centered on the click.
 function placeInstance(type, px, py){
-  const {w:defTiles} = defaultSizeFor(type);
-  const scale = defTiles;
-  const size = scale * tileSize;
-  // Center the newly-placed sprite on the click, then clamp to the map
-  const nx = Math.max(0, Math.min(mapW * tileSize - size, px - size / 2));
-  const ny = Math.max(0, Math.min(mapH * tileSize - size, py - size / 2));
   pushUndo();
+  // Default scale targets ~2 tiles on the sprite's larger side, so a freshly
+  // placed prop reads at a sensible size and is easy to resize afterward.
+  const spr = SPRITES[type];
+  const sw = (spr && spr.width)  ? spr.width  : tileSize;
+  const sh = (spr && spr.height) ? spr.height : tileSize;
+  let scale = (2 * tileSize) / Math.max(sw, sh);
+  scale = Math.max(0.5, Math.min(4, Math.round(scale * 100) / 100));
+  const w = sw * scale, h = sh * scale;
+  // Center the newly-placed sprite on the click, then clamp to the map
+  const nx = Math.max(0, Math.min(mapW * tileSize - w, px - w / 2));
+  const ny = Math.max(0, Math.min(mapH * tileSize - h, py - h / 2));
   const ins = { id: nextInstanceId++, type, x: nx, y: ny, scale, rotation: 0, label: '' };
   instances.push(ins);
   selectedInstanceId = ins.id;
@@ -2061,6 +2236,17 @@ function eraseTile(x,y, allLayers=false){
     }
     render();
     return;
+  }
+  // Ground overlay under the cursor? Remove the smallest (most specific) one,
+  // so erasing the plaza island doesn't nuke the whole road it sits on.
+  if(overlays.length){
+    let hitOv=null, hitArea=Infinity;
+    for(const ov of overlays){
+      if(centerPx.x>=ov.x && centerPx.x<=ov.x+ov.w && centerPx.y>=ov.y && centerPx.y<=ov.y+ov.h){
+        const a=ov.w*ov.h; if(a<hitArea){ hitArea=a; hitOv=ov; }
+      }
+    }
+    if(hitOv){ pushUndo(); overlays=overlays.filter(o=>o!==hitOv); render(); return; }
   }
   pushUndo();
   if(allLayers){
@@ -2137,7 +2323,31 @@ let isRotatingInstance = false;
 let rotationStartAngle = 0;
 let rotationStartValue = 0;
 
+// ─── Multi-touch gestures: two-finger pinch-zoom + pan ──────────────────────
+const touchPts = new Map();      // pointerId -> {x,y} (clientX/Y) for active touches
+let pinch = null;                // { dist, c:{x,y} } while two fingers are down
+const _touchCentroid = () => { let x=0,y=0,n=0; touchPts.forEach(p=>{x+=p.x;y+=p.y;n++;}); return {x:x/n,y:y/n}; };
+const _touchDist = () => { const a=[...touchPts.values()]; return a.length<2 ? 0 : Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y); };
+function _applyPan(dx,dy){
+  viewOffset.x+=dx; viewOffset.y+=dy;
+  mapCanvas.style.transform=`translate(${viewOffset.x}px,${viewOffset.y}px)`;
+  overlayCanvas.style.transform=`translate(${viewOffset.x}px,${viewOffset.y}px)`;
+  renderMini();
+}
+
 overlayCanvas.addEventListener('pointerdown',e=>{
+  coarsePointer = e.pointerType==='touch';
+  // Track touches; a second finger starts a pinch/pan gesture and cancels any
+  // single-finger paint/drag already in progress.
+  if(e.pointerType==='touch'){
+    touchPts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(touchPts.size===2){
+      isDrawing=false; isMovingInstance=false; isResizingInstance=false; isRotatingInstance=false;
+      pinch = { dist:_touchDist(), c:_touchCentroid() };
+      return;
+    }
+    if(touchPts.size>2) return;
+  }
   // Reserve mouse-right-click for the contextmenu erase shortcut
   if(e.pointerType==='mouse' && e.button!==0 && e.button!==1) return;
   const intent=pointerIntent(e);
@@ -2152,7 +2362,7 @@ overlayCanvas.addEventListener('pointerdown',e=>{
   overlayCanvas.setPointerCapture(e.pointerId);
   isDrawing=true;
   if(intent==='erase'){ eraseTile(t.x,t.y, e.altKey); }
-  else if(currentTool==='draw')  {
+  else if(currentDrawTool==='draw')  {
     // Instance vs paint split at the very entry point — objects place at
     // px precision, floors keep their tile-grid stamping behavior.
     if(isInstanceType(selectedAsset)){
@@ -2162,10 +2372,10 @@ overlayCanvas.addEventListener('pointerdown',e=>{
       paintTile(t.x, t.y);
     }
   }
-  else if(currentTool==='erase') { eraseTile(t.x,t.y, e.altKey); }
-  else if(currentTool==='fill')  { fillTile(t.x,t.y); isDrawing=false; }
-  else if(currentTool==='pick')  { pickTile(t.x,t.y); isDrawing=false; }
-  else if(currentTool==='select'){
+  else if(currentDrawTool==='erase') { eraseTile(t.x,t.y, e.altKey); }
+  else if(currentDrawTool==='fill')  { fillTile(t.x,t.y); isDrawing=false; }
+  else if(currentDrawTool==='pick')  { pickTile(t.x,t.y); isDrawing=false; }
+  else if(currentDrawTool==='select'){
     // Try rotation knob first (extends above the sprite), then resize
     // handle, then generic body hit.
     let ins = null;
@@ -2176,8 +2386,9 @@ overlayCanvas.addEventListener('pointerdown',e=>{
           pushUndo();
           isRotatingInstance = true;
           isDrawing = false;
-          const cx = sel.x + sel.scale*tileSize/2;
-          const cy = sel.y + sel.scale*tileSize/2;
+          const _sb = instanceBox(sel);
+          const cx = _sb.x + _sb.w/2;
+          const cy = _sb.y + _sb.h/2;
           rotationStartAngle = Math.atan2(p.y - cy, p.x - cx);
           rotationStartValue = sel.rotation || 0;
           return;
@@ -2212,6 +2423,21 @@ overlayCanvas.addEventListener('pointerdown',e=>{
 });
 
 overlayCanvas.addEventListener('pointermove',e=>{
+  // Two-finger gesture: pan by centroid movement, zoom by pinch ratio.
+  if(e.pointerType==='touch' && touchPts.has(e.pointerId)){
+    touchPts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pinch && touchPts.size>=2){
+      const d=_touchDist(), c=_touchCentroid();
+      if(pinch.c) _applyPan(c.x-pinch.c.x, c.y-pinch.c.y);
+      if(pinch.dist>0){
+        const r=d/pinch.dist;
+        if(r>1.3){ zoom(1); pinch.dist=d; }
+        else if(r<0.77){ zoom(-1); pinch.dist=d; }
+      }
+      pinch.c=c;
+      return;
+    }
+  }
   if(isPanning){
     viewOffset.x+=e.clientX-panStart.x;
     viewOffset.y+=e.clientY-panStart.y;
@@ -2228,8 +2454,9 @@ overlayCanvas.addEventListener('pointermove',e=>{
   if(isRotatingInstance && selectedInstanceId !== null){
     const ins = instances.find(i => i.id === selectedInstanceId);
     if(ins){
-      const cx = ins.x + ins.scale*tileSize/2;
-      const cy = ins.y + ins.scale*tileSize/2;
+      const _rb = instanceBox(ins);
+      const cx = _rb.x + _rb.w/2;
+      const cy = _rb.y + _rb.h/2;
       const cur = Math.atan2(p.y - cy, p.x - cx);
       let deg = rotationStartValue + (cur - rotationStartAngle) * 180 / Math.PI;
       // Snap to 15° increments while Shift is held
@@ -2252,9 +2479,9 @@ overlayCanvas.addEventListener('pointermove',e=>{
         nx = Math.round(nx / 8) * 8;
         ny = Math.round(ny / 8) * 8;
       }
-      const size = ins.scale * tileSize;
-      nx = Math.max(0, Math.min(mapW * tileSize - size, nx));
-      ny = Math.max(0, Math.min(mapH * tileSize - size, ny));
+      const _mb = instanceBox(ins);
+      nx = Math.max(0, Math.min(mapW * tileSize - _mb.w, nx));
+      ny = Math.max(0, Math.min(mapH * tileSize - _mb.h, ny));
       if(nx !== ins.x || ny !== ins.y){
         ins.x = nx; ins.y = ny;
         render();
@@ -2270,9 +2497,10 @@ overlayCanvas.addEventListener('pointermove',e=>{
     if(ins){
       const dx = p.x - ins.x;
       const dy = p.y - ins.y;
-      // Use the max of dx/dy so square handle drag feels natural at any
-      // angle. Divide by tileSize to convert back to tile-scale units.
-      let sc = Math.max(dx, dy) / tileSize;
+      // Scale = drag distance ÷ the sprite's natural dimension, so the box
+      // tracks the cursor while keeping the sprite's true aspect ratio.
+      const { sw, sh } = instanceNatural(ins);
+      let sc = Math.max(dx / sw, dy / sh);
       if(e.ctrlKey || e.metaKey) sc = Math.round(sc * 4) / 4; // snap to .25
       sc = Math.max(0.25, Math.min(8, sc));
       if(sc !== ins.scale){
@@ -2287,11 +2515,15 @@ overlayCanvas.addEventListener('pointermove',e=>{
   if(!isDrawing||!t) return;
   // Pen eraser button kept active across drag → erase
   if(e.pointerType==='pen' && e.buttons===32){ eraseTile(t.x,t.y); return; }
-  if(currentTool==='draw')  paintTile(t.x,t.y);
-  if(currentTool==='erase') eraseTile(t.x,t.y);
+  if(currentDrawTool==='draw')  paintTile(t.x,t.y);
+  if(currentDrawTool==='erase') eraseTile(t.x,t.y);
 });
 
 function endPointer(e){
+  if(e && e.pointerType==='touch'){
+    touchPts.delete(e.pointerId);
+    if(touchPts.size<2) pinch=null;
+  }
   isDrawing=false; isPanning=false;
   isMovingInstance=false; isResizingInstance=false;
   isRotatingInstance=false;
@@ -2402,7 +2634,7 @@ function deleteSelected(){
 // CONTROLES DE UI
 // ═══════════════════════════════════════════════════════════
 function setTool(t,btn){
-  currentTool=t;
+  currentDrawTool=t;
   document.querySelectorAll('[id^="tool-"]').forEach(b=>b.classList.remove('active'));
   btn?.classList.add('active');
   document.getElementById('stTool').textContent=t;
@@ -2467,7 +2699,7 @@ function resizeMap(){
 // Undo snapshots BOTH the tile layers and the instances list so move/resize
 // operations are undoable too.
 function snapshotState(){
-  return JSON.stringify({ layers, instances, nextInstanceId });
+  return JSON.stringify({ layers, instances, nextInstanceId, overlays });
 }
 function restoreState(s){
   const st = JSON.parse(s);
@@ -2476,6 +2708,13 @@ function restoreState(s){
   // so run every load path through the migrator.
   instances = migrateAllInstances(st.instances || []);
   nextInstanceId = st.nextInstanceId || 1;
+  overlays = Array.isArray(st.overlays) ? st.overlays : [];
+  // If the selected instance no longer exists after undo/redo, drop the stale
+  // selection so the panel doesn't show a phantom object.
+  if(selectedInstanceId !== null && !instances.some(i => i.id === selectedInstanceId)){
+    selectedInstanceId = null;
+    clearSelectionPanel();
+  }
 }
 function pushUndo(){
   undoStack.push(snapshotState());
@@ -2710,7 +2949,11 @@ function buildAssetGrid(){
     cvs.width=cvs.height=S*1.5;
     const c=cvs.getContext('2d');
     c.imageSmoothingEnabled=false;
-    c.drawImage(spr,0,0,S*1.5,S*1.5);
+    // Aspect-fit: game sprites are rarely square — center them, don't stretch
+    const sw=spr.width||S, sh=spr.height||S;
+    const fit=Math.min((S*1.5)/sw,(S*1.5)/sh);
+    const dw=sw*fit, dh=sh*fit;
+    c.drawImage(spr,(S*1.5-dw)/2,(S*1.5-dh)/2,dw,dh);
     const lbl=document.createElement('div');
     lbl.className='asset-label'; lbl.textContent=label;
     item.appendChild(cvs); item.appendChild(lbl);
@@ -2785,6 +3028,9 @@ function exportMapData(){
   }
   const tileSprite=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]||'cobblestone_warm';
 
+  // Ground overlays back out as rect decorations (roads, plaza island).
+  overlays.forEach(ov => decorations.push({ type:'rect', x:Math.round(ov.x), y:Math.round(ov.y), width:Math.round(ov.w), height:Math.round(ov.h), color:ov.color, opacity:ov.opacity, ...(ov.radius?{radius:ov.radius}:{}), z:ov.z??0 }));
+
   // Movable/resizable instances become their own array — placed buildings,
   // trees, big props that the runtime renders as positioned objects with size.
   // Movable/resizable instances become their own array. Format is the new
@@ -2828,6 +3074,7 @@ export const ${name} = {
   const a=document.createElement('a');
   a.href=url; a.download=`${name}.js`; a.click();
   URL.revokeObjectURL(url);
+  showToast(`Archivo exportado: ${name}.js`, 'success');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2841,24 +3088,32 @@ function saveToLibrary(){
   const ambient=document.getElementById('mapAmbient').value||85;
   const bgColor=document.getElementById('mapBgColor').value||'#2a1f12';
   const obstacles=[], decorations=[], npcs=[], portals=[];
-  const spawnPos={x:Math.floor(mapW/2),y:Math.floor(mapH/2)};
+  // The runtime works in PIXELS (TILE_SIZE=40). The editor grid is in tiles, so
+  // everything below is converted to px on the way out — otherwise a saved map
+  // would be a handful of pixels wide in the game.
+  const spawnTile={x:Math.floor(mapW/2),y:Math.floor(mapH/2)};
   for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
     const obj=layers.objects[y]?.[x]; if(!obj) continue;
     const {type,label}=obj;
-    if(type==='spawn'){ spawnPos.x=x; spawnPos.y=y; continue; }
-    if(type==='portal'){ portals.push({id:`portal_${x}_${y}`,x,y,w:1,h:1,target:'',targetSpawn:{x:0,y:0},label:label||'Portal'}); continue; }
-    if(type.startsWith('npc_')){ npcs.push({id:`${type}_${x}_${y}`,type,x,y,name:label||type}); continue; }
+    const px=x*tileSize, py=y*tileSize;
+    if(type==='spawn'){ spawnTile.x=x; spawnTile.y=y; continue; }
+    if(type==='portal'){ portals.push({id:`portal_${x}_${y}`,x:px,y:py,width:tileSize,height:tileSize,target:'',targetSpawn:{x:0,y:0},label:label||'Portal'}); continue; }
+    if(type.startsWith('npc_')){ npcs.push({id:`${type}_${x}_${y}`,type,x:px,y:py,name:label||type}); continue; }
     if(['house_thatch','house_wood','tavern','church','smithy','tower'].includes(type)){
-      obstacles.push({x,y,w:1,h:1,type:'shop_building',roofType:type.includes('thatch')?'thatch':type.includes('church')?'stone':'wood',label:label||type});
+      obstacles.push({x:px,y:py,width:tileSize,height:tileSize,type:'shop_building',roofType:type.includes('thatch')?'thatch':type.includes('church')?'stone':'wood',label:label||type});
     } else {
-      decorations.push({type,x,y,...(label?{label}:{})});
+      decorations.push({type,x:px,y:py,...(label?{label}:{})});
     }
   }
+  const spawnPos={ x: spawnTile.x*tileSize + tileSize/2, y: spawnTile.y*tileSize + tileSize/2 };
+  const widthPx=mapW*tileSize, heightPx=mapH*tileSize;
   const freq={};
   for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
     const t=layers.ground[y]?.[x]?.type; if(t) freq[t]=(freq[t]||0)+1;
   }
-  const tileSprite=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]||'cobblestone_warm';
+  const tileSprite=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]||'cobblestone_tile';
+  // Ground overlays back out as rect decorations (roads, plaza island).
+  overlays.forEach(ov => decorations.push({ type:'rect', x:Math.round(ov.x), y:Math.round(ov.y), width:Math.round(ov.w), height:Math.round(ov.h), color:ov.color, opacity:ov.opacity, ...(ov.radius?{radius:ov.radius}:{}), z:ov.z??0 }));
   // Movable/resizable instances become their own array. Format is the new
   // px + scale + rotation shape; the runtime engine reads directly from it.
   const instancesExport = instances.map(ins => ({
@@ -2869,13 +3124,16 @@ function saveToLibrary(){
     ...(ins.rotation ? { rotation: +ins.rotation.toFixed(2) } : {}),
     ...(ins.label ? { label: ins.label } : {}),
   }));
+  // Preserve the edited map's own id (so it overrides that exact map), else mint
+  // a stable, accent/space-free id from the name for a brand-new map.
+  const mapId = _loadedMapId || (name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')) || ('map_'+Date.now());
   const snippet = `// Map "${name}" — generated by Map Editor
-export const ${name} = {
-  id: '${name}',
+export const ${mapId} = {
+  id: '${mapId}',
   name: '${name}',
   tileSprite: '${tileSprite}',
-  width: ${mapW},
-  height: ${mapH},
+  width: ${widthPx},
+  height: ${heightPx},
   bgColor: '${bgColor}',
   ambientLight: ${(ambient/100).toFixed(2)},
   spawn: { x: ${spawnPos.x}, y: ${spawnPos.y} },
@@ -2892,13 +3150,34 @@ export const ${name} = {
       tool: 'map',
       name,
       snippet,
-      payload: { mapW, mapH, layers, instances, ambient, bgColor },
+      payload: {
+          id: mapId,
+          name: name,
+          tileSprite,
+          width: widthPx,
+          height: heightPx,
+          bgColor,
+          ambientLight: +(ambient/100).toFixed(2),
+          spawn: spawnPos,
+          obstacles, 
+          decorations, 
+          instances: instancesExport, 
+          portals, 
+          npcs,
+          // Editor internal state
+          layers,
+          editorInstances: instances,
+          overlays,
+          mapW,
+          mapH,
+          ambient
+      },
     }, '*');
   } catch (e) { console.error(e); }
 }
 
 function saveToLocal(){
-  const data={mapW,mapH,layers,instances,nextInstanceId,
+  const data={mapW,mapH,layers,instances,overlays,nextInstanceId,
               mapName:document.getElementById('mapName').value,
               ambient:document.getElementById('mapAmbient').value,
               bgColor:document.getElementById('mapBgColor').value};
@@ -2908,11 +3187,59 @@ function saveToLocal(){
   setTimeout(()=>btn.textContent=orig,2000);
 }
 
+// Import a map from a file the user picks. Shows a hint before the dialog and
+// handles cancellation explicitly (oncancel + a no-selection guard).
+function loadFromFile(){
+  showToast('Selecciona un archivo .json o .js con el mapa a cargar');
+  const inp=document.createElement('input');
+  inp.type='file';
+  inp.accept='.json,.js,application/json,text/javascript';
+  inp.style.display='none';
+  let handled=false;
+  const cleanup=()=>{ if(inp.parentNode) inp.parentNode.removeChild(inp); };
+  inp.addEventListener('change', e=>{
+    handled=true;
+    const f=e.target.files && e.target.files[0];
+    if(!f){ showToast('Carga cancelada'); cleanup(); return; }
+    readMapFile(f); cleanup();
+  });
+  // Fires when the picker is dismissed without choosing (modern browsers).
+  inp.addEventListener('cancel', ()=>{ if(!handled){ showToast('Carga cancelada'); cleanup(); } });
+  document.body.appendChild(inp);
+  inp.click();
+}
+
+function readMapFile(file){
+  const r=new FileReader();
+  r.onerror=()=>showToast('No se pudo leer el archivo.', 'error');
+  r.onload=()=>{
+    try{
+      const text=String(r.result||'');
+      let obj=null;
+      try{ obj=JSON.parse(text); }
+      catch(_){
+        // Tolerate an exported .js module: extract the object literal after "=".
+        const m=text.match(/=\s*(\{[\s\S]*\})\s*;?\s*$/);
+        if(m){ obj=Function('return ('+m[1]+')')(); }
+      }
+      if(!obj || typeof obj!=='object') throw new Error('bad');
+      // Reuse the full import pipeline (decorations→instances, prefabs, overlays).
+      const nm=obj.name || file.name.replace(/\.[^.]+$/,'');
+      window.postMessage({ type:'taskoria_design_edit', tool:'map', name:nm, payload:obj }, window.location.origin);
+      showToast('Mapa cargado: '+nm, 'success');
+    }catch(e){
+      showToast('No se pudo leer el archivo. ¿Es un mapa exportado válido?', 'error');
+    }
+  };
+  r.readAsText(file);
+}
+
 function loadFromLocal(){
   const raw=localStorage.getItem('taskoria_map');
   if(!raw){ alert('No hay mapa guardado'); return; }
   const data=JSON.parse(raw);
   mapW=data.mapW; mapH=data.mapH; layers=data.layers;
+  overlays = Array.isArray(data.overlays) ? data.overlays : [];
   // Auto-migrate legacy tile-grid instances (gridX/gridY/w/h) into the new
   // px + scale shape. Users don't lose maps saved before this refactor.
   instances = migrateAllInstances(Array.isArray(data.instances) ? data.instances : []);
@@ -2934,73 +3261,113 @@ function loadFromLocal(){
 // Each design becomes a palette key 'lib_<id>' under the BIBLIOTECA category.
 // ═══════════════════════════════════════════════════════════
 function libSpriteFor(design){
-  // Render a thumbnail using the existing house sprite that best matches the
-  // design's roof, then overlay an 'L' badge so the user knows it's from the
-  // library. Sprites already cached in SPRITES so this stays cheap.
-  const payload = design.payload || {};
+  let payload = design.payload || {};
+  if (typeof payload === 'string') {
+    try { payload = JSON.parse(payload); } catch(e) {}
+  }
+  const cvs = document.createElement('canvas');
+  cvs.width = cvs.height = S;
+  const c = cvs.getContext('2d');
+  c.imageSmoothingEnabled = false;
+  const drawBadge = () => {
+    c.fillStyle = '#f0c040';
+    c.fillRect(S - 12, 2, 10, 10);
+    c.fillStyle = '#0d0a14';
+    c.font = 'bold 8px monospace';
+    c.fillText('L', S - 9, 10);
+  };
+  // Generic base as an immediate placeholder
   const roof = payload.roofType || 'thatch';
   const baseKey = (roof === 'thatch') ? 'house_thatch'
                : (roof === 'stone' || roof === 'dark') ? 'castle'
                : 'house_wood';
   const base = SPRITES[baseKey] || SPRITES.house_wood;
-  const cvs = document.createElement('canvas');
-  cvs.width = cvs.height = S;
-  const c = cvs.getContext('2d');
-  c.imageSmoothingEnabled = false;
   if (base) c.drawImage(base, 0, 0, S, S);
-  // Library badge
-  c.fillStyle = '#f0c040';
-  c.fillRect(S - 12, 2, 10, 10);
-  c.fillStyle = '#0d0a14';
-  c.font = 'bold 8px monospace';
-  c.fillText('L', S - 9, 10);
+  drawBadge();
+  // The House Builder saves the design's real look as a data-URL preview —
+  // swap it in once loaded and refresh anything that copied the placeholder.
+  if (payload.previewImage) {
+    const img = new Image();
+    img.onload = () => {
+      c.clearRect(0, 0, S, S);
+      // Fit the preview inside S×S keeping aspect ratio
+      const sc = Math.min(S / img.width, S / img.height);
+      const dw = img.width * sc, dh = img.height * sc;
+      c.drawImage(img, (S - dw) / 2, S - dh, dw, dh);
+      drawBadge();
+      buildAssetGrid();
+      render();
+    };
+    img.src = payload.previewImage;
+  }
   return cvs;
 }
 
 function applyLibraryDesigns(designs){
-  CATEGORIES['BIBLIOTECA'] = [];
-  CATEGORIES['MONSTRUOS'] = [];
+  // Remember the payload so the parity module can re-apply it after it rebuilds
+  // the palette (order between the two is not guaranteed).
+  if (Array.isArray(designs)) _libraryDesigns = designs;
 
-  designs.forEach(d => {
-    if (d.category === 'monstruos') {
-      const key = 'lib_monster_' + d.id;
+  // Remove ONLY previously-injected library items (keys start with 'lib_'),
+  // without wiping the built-in registry categories (NATURALEZA, MOBILIARIO…).
+  Object.keys(CATEGORIES).forEach(k => {
+    CATEGORIES[k] = CATEGORIES[k].filter(a => !String(a.key).startsWith('lib_'));
+  });
+
+  _libraryDesigns.forEach(d => {
+    if (d.pixels) {
+      // world_creations
+      const cat = (d.category || 'VARIOS').toUpperCase();
+      if (!CATEGORIES[cat]) CATEGORIES[cat] = [];
+      const key = 'lib_pixel_' + d.id;
+      
       try {
         let pxs = typeof d.pixels === 'string' ? JSON.parse(d.pixels) : d.pixels;
-        // Support animations: if pxs is an array of arrays (frames), pick the first frame
-        if (Array.isArray(pxs) && Array.isArray(pxs[0])) {
-            pxs = pxs[0];
-        }
+        if (Array.isArray(pxs) && Array.isArray(pxs[0])) pxs = pxs[0];
         const gs = d.grid_size || 64;
         const canvas = document.createElement('canvas');
         canvas.width = gs; canvas.height = gs;
         const ctx = canvas.getContext('2d');
-        for (let i=0; i<pxs.length; i++){
-          if (pxs[i] && pxs[i] !== 'transparent' && pxs[i] !== 'EMPTY') {
-            ctx.fillStyle = pxs[i];
-            ctx.fillRect(i % gs, Math.floor(i / gs), 1, 1);
+        if (pxs.length && typeof pxs[0] === 'object' && pxs[0] !== null) {
+          // Sparse {x,y,c} format (current Pixel Studio export)
+          pxs.forEach(p => {
+            if (p && p.c && p.c !== 'transparent') {
+              ctx.fillStyle = p.c;
+              ctx.fillRect(p.x, p.y, 1, 1);
+            }
+          });
+        } else {
+          // Legacy flat buffer of color strings
+          for (let i=0; i<pxs.length; i++){
+            if (pxs[i] && pxs[i] !== 'transparent' && pxs[i] !== 'EMPTY') {
+              ctx.fillStyle = pxs[i];
+              ctx.fillRect(i % gs, Math.floor(i / gs), 1, 1);
+            }
           }
         }
         const img = new Image();
         img.src = canvas.toDataURL();
         SPRITES[key] = img;
-        CATEGORIES['MONSTRUOS'].push(key);
-        NAMES[key] = d.name || 'Monster';
-        // UI is handled by buildAssetPanel now
-      } catch(e) { console.error('Error parsing monster', e); }
-      return;
+        ASSET_LAYER[key] = 'objects';
+        CATEGORIES[cat].push({ key, label: (d.name || 'Creation').slice(0, 10) });
+        NAMES[key] = d.name || 'Creation';
+      } catch(e) { console.error('Error parsing pixel art', e); }
+    } else {
+      // admin_designs (House Builder/Maps)
+      const cat = 'BIBLIOTECA';
+      if (!CATEGORIES[cat]) CATEGORIES[cat] = [];
+      const key = 'lib_' + d.id;
+      SPRITES[key] = libSpriteFor(d);
+      ASSET_LAYER[key] = 'objects';
+      CATEGORIES[cat].push({ key, label: (d.name || 'design').slice(0, 10) });
+      NAMES[key] = (d.name || 'design').slice(0, 12);
     }
-
-    // Standard Library Design (Map/House)
-    const key = 'lib_' + d.id;
-    SPRITES[key] = libSpriteFor(d);
-    ASSET_LAYER[key] = 'objects';
-    CATEGORIES['BIBLIOTECA'].push(key);
-    NAMES[key] = (d.name || 'design').slice(0, 12);
   });
   
-  // If a category ended up empty, delete it so it doesn't show a blank tab
-  if (CATEGORIES['BIBLIOTECA'].length === 0) delete CATEGORIES['BIBLIOTECA'];
-  if (CATEGORIES['MONSTRUOS'].length === 0) delete CATEGORIES['MONSTRUOS'];
+  // Drop only categories that are now completely empty (leftover library tabs).
+  Object.keys(CATEGORIES).forEach(k => {
+    if (CATEGORIES[k].length === 0) delete CATEGORIES[k];
+  });
 
   // Rebuild the category tabs + grid to show the new section
   buildAssetPanel();
@@ -3012,17 +3379,99 @@ window.addEventListener('message', e => {
   if (!msg) return;
   if (msg.type === 'taskoria_designs_loaded') {
     applyLibraryDesigns(msg.designs || []);
-  } else if (msg.type === 'taskoria_design_edit' && msg.tool === 'map') {
-    if (msg.payload) {
-      mapW = msg.payload.mapW || 20;
-      mapH = msg.payload.mapH || 16;
-      layers = msg.payload.layers || {
-        overhead: Array.from({length:mapH},()=>new Array(mapW).fill(null)),
-        objects: Array.from({length:mapH},()=>new Array(mapW).fill(null)),
-        ground: Array.from({length:mapH},()=>new Array(mapW).fill(null))
-      };
-      instances = migrateAllInstances(msg.payload.instances || []);
+  } else if (msg.type === 'taskoria_design_edit' && (msg.tool === 'map' || msg.tool === 'house')) {
+    if (!msg.payload) return;
+    // Wait for the shared sprite registry before converting decorations so
+    // natural sprite dimensions are available for accurate placement.
+    registryReady.then(() => {
+      // msg.tool is the editor type ('map'), not the drawing tool.
+      // Runtime MapData payloads store width/height in PIXELS (engine
+      // TILE_SIZE = 40); editor round-trip payloads store mapW/mapH in
+      // tiles. Anything over 100 "tiles" is really pixels.
+      // Remember the map's own id so saving overrides THIS map (e.g. the system
+      // Town Square) instead of minting a new one from the name.
+      _loadedMapId = msg.payload.id || null;
+      const RUNTIME_TILE = 40;
+      let rawW = msg.payload.mapW || msg.payload.width || 20;
+      let rawH = msg.payload.mapH || msg.payload.height || 16;
+      const isPixelFormat = !msg.payload.layers && rawW > 100;
+      const toTile = v => isPixelFormat ? Math.min(Math.max(Math.round(v / RUNTIME_TILE), 0), 199) : v;
+      mapW = isPixelFormat ? Math.round(rawW / RUNTIME_TILE) : rawW;
+      mapH = isPixelFormat ? Math.round(rawH / RUNTIME_TILE) : rawH;
+
+      const legacyInstances = [];
+      // Round-trip payloads carry overlays directly; legacy MapData rebuilds
+      // them from its rect decorations below.
+      overlays = Array.isArray(msg.payload.overlays) ? msg.payload.overlays.map(o => ({ ...o })) : [];
+      if (msg.payload.layers) {
+          layers = msg.payload.layers;
+      } else {
+          // Legacy MapData.js format — rebuild an editable grid from it
+          layers = {
+            overhead: Array.from({length:mapH},()=>new Array(mapW).fill(null)),
+            objects: Array.from({length:mapH},()=>new Array(mapW).fill(null)),
+            ground: Array.from({length:mapH},()=>new Array(mapW).fill(null))
+          };
+          // Editor now paints with the real game tileSprite keys, so an
+          // imported map's floor maps 1:1. Fall back to cobblestone if unknown.
+          let ts = msg.payload.tileSprite || 'cobblestone_tile';
+          if (!SPRITES[ts]) ts = 'cobblestone_tile';
+          for (let y = 0; y < mapH; y++) {
+              for (let x = 0; x < mapW; x++) {
+                  layers.ground[y][x] = { type: ts };
+              }
+          }
+          const placeObj = (tx, ty, type, label) => {
+              if (tx >= 0 && tx < mapW && ty >= 0 && ty < mapH && SPRITES[type]) {
+                  layers.objects[ty][tx] = { type, ...(label ? { label } : {}) };
+              }
+          };
+          // Collect the map's own decorations PLUS everything its prefabs
+          // (shop_complete, forest_grove, town_houses…) expand into — the game
+          // does this at load time, so without it the editor looked half-empty.
+          let allDecs = Array.isArray(msg.payload.decorations) ? msg.payload.decorations.slice() : [];
+          if (Array.isArray(msg.payload.prefabs) && expandPrefabsFn) {
+              try {
+                  const ex = expandPrefabsFn(msg.payload.prefabs);
+                  if (ex && Array.isArray(ex.decorations)) allDecs = allDecs.concat(ex.decorations);
+              } catch (e) { console.warn('prefab expand failed', e); }
+          }
+          // Sprite decorations → free instances (WYSIWYG). Ground paints
+          // (roads, plaza island, worn patches) → overlays. Other helpers skip.
+          allDecs.forEach(d => {
+              if (d && (d.type === 'rect' || d.type === 'cobble_patch')) {
+                  overlays.push(rectToOverlay(d));
+                  return;
+              }
+              const inst = decorationToInstance(d);
+              if (inst) legacyInstances.push(inst);
+          });
+          // Obstacles are invisible collision boxes; their visual comes from the
+          // matching decoration (already imported above), so we don't place them.
+          if (msg.payload.npcs) {
+              msg.payload.npcs.forEach(n => placeObj(toTile(n.x), toTile(n.y), n.type, n.name));
+          }
+          if (msg.payload.portals) {
+              msg.payload.portals.forEach(p => {
+                  const tx = toTile(p.x), ty = toTile(p.y);
+                  if (tx >= 0 && tx < mapW && ty >= 0 && ty < mapH) {
+                      layers.objects[ty][tx] = { type: 'portal', label: p.label };
+                  }
+              });
+          }
+          if (msg.payload.spawn) {
+              const tx = toTile(msg.payload.spawn.x), ty = toTile(msg.payload.spawn.y);
+              if (tx >= 0 && tx < mapW && ty >= 0 && ty < mapH) {
+                  layers.objects[ty][tx] = { type: 'spawn', label: 'Spawn' };
+              }
+          }
+      }
+      
+      instances = migrateAllInstances(msg.payload.editorInstances || msg.payload.instances || []);
+      // Merge big props recovered from legacy MapData decorations
+      legacyInstances.forEach(li => instances.push({ id: 0, ...li }));
       nextInstanceId = instances.reduce((m,i)=>Math.max(m, i.id||0), 0) + 1;
+      instances.forEach(i => { if (!i.id) i.id = nextInstanceId++; });
       document.getElementById('mw').value = mapW;
       document.getElementById('mh').value = mapH;
       document.getElementById('mapName').value = msg.name || '';
@@ -3030,13 +3479,14 @@ window.addEventListener('message', e => {
       document.getElementById('mapBgColor').value = msg.payload.bgColor || '#2a1f12';
       document.getElementById('infoSize').textContent = `${mapW}×${mapH}`;
       updateCanvasSize(); render();
-    }
+    });
   }
 });
 
 function loadDraftIfAny(data){
   if (!data) return;
   mapW=data.mapW; mapH=data.mapH; layers=data.layers;
+  overlays = Array.isArray(data.overlays) ? data.overlays : [];
   instances = migrateAllInstances(Array.isArray(data.instances) ? data.instances : []);
   nextInstanceId = data.nextInstanceId || (instances.reduce((m,i)=>Math.max(m, i.id||0), 0) + 1);
   selectedInstanceId = null;
@@ -3093,6 +3543,97 @@ function closeAllPanels(){
   document.querySelector('.props-panel').classList.remove('open');
   document.getElementById('editorBackdrop').classList.remove('open');
 }
+</script>
+<script type="module">
+// ═══════════════════════════════════════════════════════════
+// GAME-SPRITE PARITY — load the engine's real sprite registry so the palette
+// and canvas show exactly what production renders. The build copies
+// src/data/sprite-registry.js next to this file (vite copySpriteRegistry);
+// in `vite dev` we fall back to the source path. If neither resolves, the
+// editor keeps its inline approximations.
+// ═══════════════════════════════════════════════════════════
+(async () => {
+  let mod = null;
+  for (const p of ['./sprite-registry.js', '../src/data/sprite-registry.js']) {
+    try { mod = await import(p); if (mod && mod.SPRITE_REGISTRY) break; } catch (e) { mod = null; }
+  }
+  if (!mod || !mod.SPRITE_REGISTRY) { if (_markRegistryReady) _markRegistryReady(); return; }
+  const REG = mod.SPRITE_REGISTRY;
+  const FLOORS = mod.FLOOR_TILES || {};
+
+  // Load the prefab expander so imported maps can rebuild composite scenes
+  // (shop_complete, forest_grove, town_houses…) into their real decorations.
+  for (const pp of ['./prefabs.js', '../src/components/dashboard/world/prefabs.js']) {
+    try { const pm = await import(pp); if (pm && pm.expandPrefabs) { expandPrefabsFn = pm.expandPrefabs; break; } } catch (e) {}
+  }
+
+  const bufToCanvas = (buffer, w, h) => {
+    const cvs = document.createElement('canvas');
+    cvs.width = w; cvs.height = h;
+    const c = cvs.getContext('2d');
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const col = buffer[y * w + x];
+      if (col && col !== 'transparent') { c.fillStyle = col; c.fillRect(x, y, 1, 1); }
+    }
+    return cvs;
+  };
+  const toCanvas = (spr) => bufToCanvas(spr.buffer, spr.w, spr.h);
+
+  // 1) Register every real game prop (WYSIWYG) as a placeable free instance.
+  Object.keys(REG).forEach(k => {
+    SPRITES[k] = toCanvas(REG[k]);
+    ASSET_LAYER[k] = 'objects';
+    NAMES[k] = k;
+    INSTANCE_TYPE_SET.add(k);
+  });
+  // 2) Register the 5 real game floors under the runtime tileSprite keys.
+  Object.keys(FLOORS).forEach(k => {
+    SPRITES[k] = bufToCanvas(FLOORS[k], 64, 64);
+    ASSET_LAYER[k] = 'ground';
+  });
+
+  // 3) Rebuild the palette as a complete, organized catalog of what the game
+  //    can actually render. Curated Spanish labels; anything in the registry
+  //    that isn't hand-placed still shows up under VARIOS so nothing is missing.
+  const FLOOR_LABEL = { cobblestone_tile:'Adoquín', grass_tile:'Hierba', stone_floor_tile:'Piedra', dungeon_floor_tile:'Mazmorra', wood_floor_tile:'Madera', water_tile:'Agua', dirt_tile:'Tierra' };
+  const GROUPS = {
+    'NATURALEZA': { oak_tree:'Roble', pine_tree:'Pino', ancient_tree:'Árbol Anc.', bush:'Arbusto', flowers:'Flores', mushroom:'Seta', grass_tuft:'Matojo', hay:'Fardo', planter:'Jardinera' },
+    'EDIFICIOS': { shop_building:'Edificio', well:'Pozo', market_stall_red:'Puesto R', market_stall_green:'Puesto V', market_stall_purple:'Puesto M', fence:'Valla', sign:'Cartel' },
+    'MOBILIARIO': { bench:'Banco', barrel:'Barril', crate:'Caja', table:'Mesa', stool:'Taburete', bed:'Cama', bookshelf:'Estante', dining_table:'Mesa C.', dining_chair:'Silla', bar_counter:'Barra', weapon_rack:'Armas', armor_stand:'Armadura', red_carpet:'Alfombra' },
+    'LUZ': { lamp:'Farola', wall_torch:'Antorcha', fire:'Hoguera' },
+    'DECO': { ledgar_statue:'Estatua', council_board:'Tablón', banner_gold:'Est. Oro', banner_red:'Est. Rojo', banner_purple:'Est. Púrp', banner_blue:'Est. Azul', mug:'Jarra', cat_sleeping:'Gato', barrel_tipped:'Barril V.', skull:'Calavera', floor_patch:'Parche' },
+  };
+
+  // Preserve structural categories, then rebuild the whole object in a clean tab order.
+  const NPCS = CATEGORIES['NPCs'], ESP = CATEGORIES['ESPECIAL'], REFS = CATEGORIES['REFERENCIAS'], LIB = CATEGORIES['BIBLIOTECA'];
+  Object.keys(CATEGORIES).forEach(k => delete CATEGORIES[k]);
+
+  CATEGORIES['SUELO'] = Object.keys(FLOORS).map(k => ({ key: k, label: FLOOR_LABEL[k] || k }));
+  const seen = new Set();
+  Object.entries(GROUPS).forEach(([cat, items]) => {
+    const list = Object.keys(items).filter(k => REG[k]).map(k => { seen.add(k); return { key: k, label: items[k] }; });
+    if (list.length) CATEGORIES[cat] = list;
+  });
+  const misc = Object.keys(REG).filter(k => !seen.has(k));
+  if (misc.length) CATEGORIES['VARIOS'] = misc.map(k => ({ key: k, label: k.replace(/_/g, ' ').slice(0, 12) }));
+  if (LIB)  CATEGORIES['BIBLIOTECA'] = LIB;
+  if (NPCS) CATEGORIES['NPCs'] = NPCS;
+  if (ESP)  CATEGORIES['ESPECIAL'] = ESP;
+  if (REFS) CATEGORIES['REFERENCIAS'] = REFS;
+
+  currentCat = 'SUELO';
+  selectedAsset = 'cobblestone_tile';
+  // Re-apply any library payload that arrived before this rebuild, so houses
+  // and extracted objects survive (and don't get wiped by the rebuild).
+  if (_libraryDesigns.length && typeof applyLibraryDesigns === 'function') {
+    applyLibraryDesigns(_libraryDesigns);
+  } else {
+    buildAssetPanel();
+  }
+  if (typeof updateBrushPreview === 'function') updateBrushPreview();
+  render();
+  if (_markRegistryReady) _markRegistryReady();
+})();
 </script>
 </body>
 </html>

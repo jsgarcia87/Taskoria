@@ -158,6 +158,35 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $data = json_decode(file_get_contents('php://input'), true) ?: [];
 
+    if ($action === 'seed_object') {
+        // Admin-only: extract a built-in procedural prop into the library as an
+        // editable, already-approved pixel-art asset. Idempotent by (user, name)
+        // so re-running refreshes instead of duplicating.
+        $userId = (int)($data['user_id'] ?? 0);
+        if (!$userId || !isAdmin($pdo, $userId)) { http_response_code(403); echo json_encode(['error' => 'Admins only']); exit; }
+        $name = trim((string)($data['name'] ?? ''));
+        $category = (string)($data['category'] ?? 'decoracion');
+        $gridSize = (int)($data['grid_size'] ?? 64);
+        $pixels = $data['pixels'] ?? null;
+        if ($name === '' || !is_array($pixels)) { http_response_code(400); echo json_encode(['error' => 'Invalid payload']); exit; }
+        if (!in_array($category, $ALLOWED_CATEGORIES, true)) $category = 'decoracion';
+        if ($gridSize < 8 || $gridSize > 128) $gridSize = 64;
+
+        $stmt = $pdo->prepare("SELECT id FROM world_creations WHERE user_id = ? AND name = ?");
+        $stmt->execute([$userId, $name]);
+        $existing = $stmt->fetch();
+        if ($existing) {
+            $up = $pdo->prepare("UPDATE world_creations SET category = ?, grid_size = ?, pixels = ?, status = 'approved' WHERE id = ?");
+            $up->execute([$category, $gridSize, json_encode($pixels), $existing['id']]);
+            echo json_encode(['success' => true, 'id' => (int)$existing['id'], 'updated' => true]);
+        } else {
+            $ins = $pdo->prepare("INSERT INTO world_creations (user_id, name, category, grid_size, pixels, price, status) VALUES (?, ?, ?, ?, ?, 0, 'approved')");
+            $ins->execute([$userId, $name, $category, $gridSize, json_encode($pixels)]);
+            echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
+        }
+        exit;
+    }
+
     if ($action === 'publish') {
         $userId = (int)($data['user_id'] ?? 0);
         $name = trim((string)($data['name'] ?? ''));
@@ -203,6 +232,40 @@ if ($method === 'POST') {
         ");
         $stmt->execute([$userId, $name, $category, $gridSize, json_encode($pixels), $price]);
         echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
+        exit;
+    }
+
+    if ($action === 'update') {
+        $id = (int)($data['id'] ?? 0);
+        $userId = (int)($data['user_id'] ?? 0);
+        $name = trim((string)($data['name'] ?? ''));
+        $category = (string)($data['category'] ?? '');
+        $gridSize = (int)($data['gridSize'] ?? 64);
+        $pixels = $data['pixels'] ?? null;
+        $price = isset($data['price']) ? (int)$data['price'] : 100;
+        if ($price < 10) $price = 10;
+        if ($price > 500) $price = 500;
+
+        if (!$userId || !$id) { http_response_code(400); echo json_encode(['error' => 'Missing ID or User ID']); exit; }
+        if (!isAdmin($pdo, $userId)) { http_response_code(403); echo json_encode(['error' => 'Admins only for direct updates']); exit; }
+        
+        $stmt = $pdo->prepare("
+            UPDATE world_creations
+            SET name = ?, category = ?, grid_size = ?, pixels = ?, price = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([$name, $category, $gridSize, json_encode($pixels), $price, $id]);
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'update_meta') {
+        $id = (int)($data['id'] ?? 0);
+        $name = trim((string)($data['name'] ?? ''));
+        $category = (string)($data['category'] ?? '');
+        $stmt = $pdo->prepare("UPDATE world_creations SET name = ?, category = ? WHERE id = ?");
+        $stmt->execute([$name, $category, $id]);
+        echo json_encode(['success' => true]);
         exit;
     }
 
@@ -307,6 +370,18 @@ if ($method === 'POST') {
         if (!$userId || !$id) { http_response_code(400); echo json_encode(['error' => 'Bad request']); exit; }
         $stmt = $pdo->prepare("DELETE FROM world_creations WHERE id = ? AND user_id = ?");
         $stmt->execute([$id, $userId]);
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'delete') {
+        // Admin delete: removes any creation regardless of owner.
+        $userId = (int)($data['user_id'] ?? 0);
+        $targetId = (int)($data['target_id'] ?? 0);
+        if (!$userId || !$targetId) { http_response_code(400); echo json_encode(['error' => 'Bad request']); exit; }
+        if (!isAdmin($pdo, $userId)) { http_response_code(403); echo json_encode(['error' => 'Admins only']); exit; }
+        $stmt = $pdo->prepare("DELETE FROM world_creations WHERE id = ?");
+        $stmt->execute([$targetId]);
         echo json_encode(['success' => true]);
         exit;
     }

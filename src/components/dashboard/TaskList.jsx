@@ -6,6 +6,7 @@ import { TASK_DIFFICULTY } from '../../utils/gameUtils';
 import TaskForm from './TaskForm';
 import HabitForm from './HabitForm';
 import PixelIcon from '../common/PixelIcon';
+import Modal from '../common/Modal';
 import { PeacefulRealm, CleanTavern, NoRituals } from '../common/PixelEmpty';
 
 // Presets compartidos para la animación de cada quest.
@@ -30,19 +31,30 @@ const CHECK_SPRING = { type: 'spring', stiffness: 340, damping: 26 };
  */
 const TaskRow = memo(function TaskRow({ task, assignerName, onComplete, onToggleStatus, onEdit, onDelete }) {
     const isInProgress = task.status === 'in_progress';
+    const [checked, setChecked] = useState(false);
+    const handleComplete = useCallback((e) => {
+        setChecked(true);
+        onComplete(task.id, e.clientX, e.clientY);
+    }, [task.id, onComplete]);
     return (
         <div className={`glass-card p-4 group transition-all duration-300 hover:bg-white/5 border-l-4 ${isInProgress ? 'border-l-blue-500 bg-blue-900/10' : 'border-l-transparent hover:border-l-rpg-gold'}`}>
             <div className="flex justify-between items-start gap-4">
                 <div className="flex items-start gap-3 w-full">
                     <motion.button
-                        onClick={(e) => onComplete(task.id, e.clientX, e.clientY)}
-                        whileHover={{ scale: 1.08 }}
+                        onClick={handleComplete}
+                        whileHover={{ scale: 1.04 }}
                         whileTap={{ scale: 0.92 }}
                         transition={CHECK_SPRING}
-                        className="mt-0.5 w-5 h-5 rounded-md border-2 border-gray-500 hover:border-rpg-green hover:bg-rpg-green/20 flex items-center justify-center shrink-0 transition-colors"
+                        className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors duration-150 ${checked ? 'border-rpg-green bg-rpg-green/20' : 'border-gray-500 hover:border-rpg-green hover:bg-rpg-green/20'}`}
                         title="Complete Quest"
                     >
-                        <div className="w-2.5 h-2.5 rounded-sm bg-transparent group-hover:bg-rpg-green transition-colors" />
+                        {checked ? (
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <path d="M2.5 6.5L5 9L9.5 3.5" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" pathLength="1" className="check-draw" />
+                            </svg>
+                        ) : (
+                            <div className="w-2.5 h-2.5 rounded-sm bg-transparent group-hover:bg-rpg-green transition-colors" />
+                        )}
                     </motion.button>
                     <div className="flex-1">
                         <div className="flex justify-between items-start">
@@ -54,7 +66,7 @@ const TaskRow = memo(function TaskRow({ task, assignerName, onComplete, onToggle
                                         : <PixelIcon name="sword" size={14} className="text-gray-400 group-hover:text-white" />}
                                 <span className={isInProgress ? 'text-blue-300' : ''}>{task.title}</span>
                                 {task.assignerId && <span className="ml-1 text-[9px] bg-red-900/40 text-red-400 px-2 py-0.5 rounded-full border border-red-500/30 uppercase tracking-wider font-bold shadow-[0_0_10px_rgba(239,68,68,0.3)]">Assigned by: {assignerName}</span>}
-                                {isInProgress && <span className="ml-1 text-[9px] bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 uppercase tracking-wider font-bold animate-pulse">In Progress</span>}
+                                {isInProgress && <span className="ml-1 text-[9px] bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 uppercase tracking-wider font-bold">In Progress</span>}
                             </span>
                             <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 bg-black/40 p-1 md:bg-black/40 md:p-1 rounded-lg backdrop-blur-sm border md:border-white/5 border-white/20">
                                 <button
@@ -195,35 +207,29 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
 
     return (
         <div className={`space-y-4 ${!isSidebar ? 'max-w-2xl mx-auto' : ''}`}>
-            {/* Modal para Crear/Editar Tarea */}
-            {isAddingTask && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar">
-                        <TaskForm
-                            onClose={() => {
-                                setIsAddingTask(false);
-                                setEditingTask(null);
-                            }}
-                            initialData={editingTask}
-                        />
-                    </div>
-                </div>
-            )}
+            {/* Modal para Crear/Editar Tarea — dismissable=false para no perder datos */}
+            <Modal
+                isOpen={isAddingTask}
+                dismissable={false}
+                onClose={() => { setIsAddingTask(false); setEditingTask(null); }}
+            >
+                <TaskForm
+                    onClose={() => { setIsAddingTask(false); setEditingTask(null); }}
+                    initialData={editingTask}
+                />
+            </Modal>
 
             {/* Modal para Crear/Editar Hábito */}
-            {isAddingHabit && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar">
-                        <HabitForm
-                            onClose={() => {
-                                setIsAddingHabit(false);
-                                setEditingHabit(null);
-                            }}
-                            initialData={editingHabit}
-                        />
-                    </div>
-                </div>
-            )}
+            <Modal
+                isOpen={isAddingHabit}
+                dismissable={false}
+                onClose={() => { setIsAddingHabit(false); setEditingHabit(null); }}
+            >
+                <HabitForm
+                    onClose={() => { setIsAddingHabit(false); setEditingHabit(null); }}
+                    initialData={editingHabit}
+                />
+            </Modal>
 
             {/* ======= BLOQUE DE TAREAS (QUESTS) ======= */}
             {!hideQuests && <div className="mb-8">
@@ -247,7 +253,7 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
                             <PeacefulRealm size={80} />
                         </div>
                         <div className="text-sm font-bold text-gray-300 uppercase tracking-widest">The Realm is Peaceful</div>
-                        <div className="text-xs text-gray-500 mt-1 italic">Click + NEW QUEST to find trouble.</div>
+                        <div className="text-xs text-gray-500 mt-1">Ledgar's quill rests. Write a new quest to set it moving.</div>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -272,7 +278,7 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
                             <CleanTavern size={72} />
                         </div>
                         <div className="text-xs font-bold text-gray-300 uppercase tracking-widest">A Clean Tavern</div>
-                        <div className="text-xs text-gray-500 mt-1 italic">All household chores are complete.</div>
+                        <div className="text-xs text-gray-500 mt-1">Every surface polished. The innkeeper nods with approval.</div>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -336,7 +342,7 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
                                 <NoRituals size={80} />
                             </div>
                             <div className="text-sm font-bold text-gray-300 uppercase tracking-widest">No Daily Rituals</div>
-                            <div className="text-[10px] text-gray-500 mt-1 italic">Establish a new habit to gain steady EXP & CON.</div>
+                            <div className="text-[10px] text-gray-500 mt-1">A hero without habits is a blade without an edge. Begin one.</div>
                         </div>
                     )}
 

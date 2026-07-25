@@ -19,8 +19,8 @@ const NotificationDropdown = ({ isOpen, onClose, overdueTasks = [], setActiveVie
                 {overdueTasks.length === 0 ? (
                     <div className="text-center p-6 text-gray-500 flex flex-col items-center gap-2">
                         <AlertTriangle size={32} className="opacity-20 mb-2" />
-                        <p className="text-sm">You're all caught up!</p>
-                        <p className="text-[10px] uppercase tracking-wider">No pending alerts</p>
+                        <p className="text-sm">Notifus has nothing to report.</p>
+                        <p className="text-[10px] uppercase tracking-wider">The herald's horn is silent</p>
                     </div>
                 ) : (
                     <div className="space-y-2 p-2">

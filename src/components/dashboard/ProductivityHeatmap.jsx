@@ -40,7 +40,7 @@ const ProductivityHeatmap = () => {
         'bg-green-900/40 border border-green-800/20',
         'bg-green-700/60 border border-green-600/30',
         'bg-green-500/80 border border-green-400/40 shadow-[0_0_5px_rgba(34,197,94,0.3)]',
-        'bg-green-400 border border-green-300 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse'
+        'bg-green-400 border border-green-300 shadow-[0_0_8px_rgba(34,197,94,0.5)]'
     ];
 
     return (

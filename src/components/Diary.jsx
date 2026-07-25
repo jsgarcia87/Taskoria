@@ -119,7 +119,7 @@ const Diary = () => {
             }
         } else {
             navigator.clipboard.writeText(textToShare);
-            toast.success('Note copied to clipboard.');
+            toast.success('Ledgar copied the entry to your scroll.');
         }
     };
 
@@ -281,8 +281,8 @@ const Diary = () => {
                     {notes.length === 0 && !isWriting ? (
                         <div className="text-center py-16 glass-panel border-dashed border-white/10 opacity-70 flex flex-col items-center justify-center">
                             <Book size={48} className="text-gray-600 mb-4" />
-                            <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">The Pages are Empty</div>
-                            <div className="text-[10px] text-gray-500 mt-1">Record your thoughts and journey for future reference.</div>
+                            <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">The Pages Lie Blank</div>
+                            <div className="text-[10px] text-gray-500 mt-1">Ledgar awaits your first entry. Every journey deserves a record.</div>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 items-start">

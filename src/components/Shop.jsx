@@ -151,7 +151,7 @@ const Shop = ({ currentUser }) => {
         if (buyingCreationId === item.id) return; // guard double-click
         const price = Number(item.price) || 0;
         if (character.gold < price) {
-            toast.error(`Not enough gold — need ${price}, you have ${character.gold}.`);
+            toast.error(`Coinhilda shakes her head — ${price}g required, you carry ${character.gold}g.`);
             return;
         }
         if (ownedCreationIds.has(Number(item.id))) return;
@@ -169,7 +169,7 @@ const Shop = ({ currentUser }) => {
                 if (!data.already_owned) {
                     playCoinSound();
                     dispatch({ type: 'UPDATE_CHARACTER', payload: { gold: character.gold - price } });
-                    toast.success(`Bought "${item.name}" from ${item.username} — added to your Collection.`);
+                    toast.success(`Coinhilda seals the deal — "${item.name}" is now yours.`);
                 }
                 setOwnedCreationIds(prev => {
                     const next = new Set(prev);
@@ -177,10 +177,10 @@ const Shop = ({ currentUser }) => {
                     return next;
                 });
             } else {
-                toast.error(data.error || 'Failed to buy creation.');
+                toast.error(data.error || 'The Treasury rejected this transaction.');
             }
         } catch (e) {
-            toast.error('Network error while buying.');
+            toast.error('The Treasury is unreachable. Try again shortly.');
         } finally {
             setBuyingCreationId(null);
         }
@@ -188,7 +188,7 @@ const Shop = ({ currentUser }) => {
 
     const buyMarketItem = async (listing) => {
         if (character.gold < listing.price) {
-            toast.error("Not enough gold!");
+            toast.error("Coinhilda shakes her head — your purse is too light.");
             return;
         }
 
@@ -207,7 +207,7 @@ const Shop = ({ currentUser }) => {
                     // Remove from local list
                     setMarketItems(prev => prev.filter(i => i.id !== listing.id));
                 } else {
-                    toast.error(data.error || "Failed to buy item.");
+                    toast.error(data.error || "The Treasury could not process this exchange.");
                 }
             } catch (e) {
                 console.error("Failed to execute buy transaction", e);
@@ -353,9 +353,9 @@ const Shop = ({ currentUser }) => {
                         </div>
 
                         {isLoadingMarket ? (
-                            <div className="text-center py-8 text-gray-500 font-heading animate-pulse">Checking global listings...</div>
+                            <div className="text-center py-8 text-gray-500 font-heading animate-breathe">Coinhilda is reviewing the ledgers...</div>
                         ) : marketItems.length === 0 ? (
-                            <div className="text-gray-500 text-center mt-10 font-heading italic">"Market is completely empty today."</div>
+                            <div className="text-gray-500 text-center mt-10 font-heading">Coinhilda has closed the stalls for now. Check back later.</div>
                         ) : (
                             marketItems.map(listing => {
                                 const isOwnListing = currentUser && currentUser.id == listing.seller_id;

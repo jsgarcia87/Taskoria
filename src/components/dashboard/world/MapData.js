@@ -9,19 +9,31 @@ export const MAP_DATA = {
         background: {}, // Relies on CSS class (overridden when tileSprite is set)
         tileSprite: 'cobblestone_tile', // pixel-art floor tile from sprites.js
         tileSize: 64, // px per tile on screen (1:1 with source grid)
-        spawn: { x: 800, y: 500 },
+        spawn: { x: 800, y: 560 },
         // Simple rectangular obstacles { x, y, width, height }
         obstacles: [
-            // Center well (approx at x:800, y:400, width:96, height:96)
+            // Central well (on the plaza grass island)
             { x: 752, y: 352, width: 96, height: 96, type: 'well' },
-            // Bulletin board (approx at right:100, top:64 -> x:1420, y:64, w:80, h:96)
-            { x: 1420, y: 64, width: 80, height: 96, type: 'board' },
-            // Item shop building (solid)
-            { x: 170, y: 230, width: 280, height: 150, type: 'shop' },
+            // Plaza oak trunk (shares the island with the well, NE so it z-sorts behind)
+            { x: 845, y: 348, width: 40, height: 22, type: 'tree' },
+            // Ledgar statue base (plaza south edge, off-center landmark)
+            { x: 632, y: 662, width: 56, height: 28, type: 'statue' },
+            // Tavern building (north row — its door hosts the tavern portal)
+            { x: 880, y: 70, width: 240, height: 130, type: 'tavern' },
+            // Keep gate pillars (NE) — frame the road up to the castle
+            { x: 1270, y: 110, width: 34, height: 70, type: 'pillar' },
+            { x: 1436, y: 110, width: 34, height: 70, type: 'pillar' },
+            // Council bulletin board (by the gate)
+            { x: 1500, y: 64, width: 80, height: 96, type: 'board' },
+            // Item shop building (south-west lane)
+            { x: 150, y: 590, width: 280, height: 150, type: 'shop' },
+            // Canal water (south edge) — pier gap at x 760–850
+            { x: 40, y: 890, width: 716, height: 80 },
+            { x: 854, y: 890, width: 706, height: 80 },
             // North wall
             { x: 0, y: 0, width: 1600, height: 40 },
-            // South wall
-            { x: 0, y: 960, width: 1600, height: 40 },
+            // South bank
+            { x: 0, y: 970, width: 1600, height: 30 },
             // West wall
             { x: 0, y: 0, width: 40, height: 1000 },
             // East wall
@@ -29,13 +41,28 @@ export const MAP_DATA = {
         ],
         // Proximity interaction zones (open app sections). target maps to a PartyView tab.
         interactables: [
-            { x: 230, y: 390, width: 160, height: 120, radius: 120, target: 'shop', label: 'Item Shop' },
-            { x: 1180, y: 780, width: 220, height: 130, radius: 130, target: 'sanctuary', label: 'Pet Sanctuary' }
+            { x: 210, y: 745, width: 160, height: 120, radius: 120, target: 'shop', label: 'Item Shop' },
+            { x: 1180, y: 780, width: 220, height: 130, radius: 130, target: 'sanctuary', label: 'Pet Sanctuary' },
+            // --- Environmental storytelling (examine-style, no app section) ---
+            { id: 'fx_ledgar', x: 640, y: 645, width: 40, height: 40, radius: 85, label: 'Read the plaque',
+              flavor: '"What goes unwritten, time will steal." — Ledgar, First Archivist of the Council' },
+            { id: 'fx_well', x: 770, y: 370, width: 60, height: 60, radius: 95, label: 'Look into the well',
+              flavor: 'Copper coins glint at the bottom. Coinhilda logs every wish — interest included.' },
+            { id: 'fx_board', x: 1510, y: 80, width: 60, height: 60, radius: 95, label: 'Quest board',
+              flavor: '"Heroes wanted. Rewards guaranteed. Slacking will be noted." — Notifus, Council Herald' },
+            { id: 'fx_barrel', x: 355, y: 700, width: 40, height: 30, radius: 75, label: 'Tipped barrel',
+              flavor: '"FREE APPLES", the sign said. The sign is gone. So are most of the apples.' },
+            { id: 'fx_cat', x: 305, y: 748, width: 24, height: 16, radius: 60, label: 'Sleeping cat',
+              flavor: "The shopkeeper's cat. It has never caught a mouse. It has never needed to." },
+            { id: 'fx_canal', x: 775, y: 915, width: 50, height: 40, radius: 80, label: 'Canal pier',
+              flavor: 'Boats used to moor here once. Coinhilda still keeps the mooring ledger — just in case they return.' },
+            { id: 'fx_market', x: 1150, y: 260, width: 50, height: 40, radius: 85, label: 'Market stall',
+              flavor: 'Everything costs "two coins". The haggling is ceremonial. The two coins are not.' }
         ],
         portals: [
-            // Door to Tavern
+            // Tavern door (in the north building row)
             {
-                x: 950, y: 40, width: 100, height: 60,
+                x: 950, y: 175, width: 100, height: 55,
                 targetMap: 'tavernInterior',
                 targetX: 400, targetY: 600,
                 label: 'Tavern'
@@ -59,60 +86,102 @@ export const MAP_DATA = {
         // its identity while staying under paint budget on lower-end devices.
         // These maps are provisional (user-built maps will replace them via
         // the map editor), so we err hard toward performance over decoration.
+        // Layout grammar (ref: classic RPG town): building mass frames the
+        // streets, plaza in the middle, canal closes the south. Props always
+        // hug a facade — nothing floats in the open.
         prefabs: [
-            // Both interactables are covered by prefabs that draw their
-            // building/enclosure, so they must stay.
-            { name: 'shop_complete',  x: 170,  y: 230 },
+            // North-west residential row — the town's built edge
+            { name: 'town_houses',    x: 100,  y: 70, count: 2, seed: 3 },
+            // Item shop moved to the south-west lane, facing east toward the plaza
+            { name: 'shop_complete',  x: 150,  y: 590 },
             { name: 'sanctuary_pen',  x: 1120, y: 560, width: 360, height: 320 },
-            // A single forest grove frames the mystic-forest portal on the
-            // west edge. The east grove and the two markets were removed —
-            // they were the single largest paint sinks per frame.
-            { name: 'forest_grove',   x: 200,  y: 140, seed: 11 },
-            // One residential block for urban density. The second house block
-            // was symmetric filler; cutting it saves 6 decs per frame.
-            { name: 'town_houses',    x: 460,  y: 820, count: 1, seed: 3 },
+            // West-edge planting frames the forest portal
+            { name: 'garden_patch',   x: 120,  y: 450, seed: 21 },
+            // Market by the keep road (NE) — reason to walk that street
+            { name: 'market_corner',  x: 1130, y: 240, accent: '#9a2a2a' },
+            // Green pockets against the plaza corners
+            { name: 'garden_patch',   x: 640,  y: 300, seed: 5 },
+            { name: 'garden_patch',   x: 1020, y: 660, seed: 9 },
         ],
         decorations: [
-            // --- ROADS — visible warm-sand paths carved across the cobblestone ---
-            //   Central plaza around the well (round dirt circle)
-            { type: 'rect', x: 600, y: 280, width: 400, height: 380, color: '#c8a878', opacity: 0.55, radius: '9999px', z: 0 },
-            { type: 'rect', x: 620, y: 300, width: 360, height: 340, color: '#b89868', opacity: 0.45, radius: '9999px', z: 0 },
-            //   Horizontal road across the town (east-west, from forest portal to sanctuary)
+            // --- STREETS — warm-sand paths between the building masses ---
+            //   East-west main street: forest portal → plaza → sanctuary
             { type: 'rect', x: 0, y: 470, width: 1600, height: 90, color: '#c8a878', opacity: 0.55, z: 0 },
             { type: 'rect', x: 0, y: 490, width: 1600, height: 50, color: '#b89868', opacity: 0.5, z: 0 },
-            //   Vertical road across the town (north-south, from tavern/keep portals to bottom)
-            { type: 'rect', x: 760, y: 0, width: 90, height: 1000, color: '#c8a878', opacity: 0.55, z: 0 },
-            { type: 'rect', x: 780, y: 0, width: 50, height: 1000, color: '#b89868', opacity: 0.5, z: 0 },
-            //   Side spurs to the two functional interactables only. Spurs to
-            //   the two market corners removed — the wide horizontal road
-            //   already leads there and the extra rects added paint cost
-            //   without new navigational information.
-            { type: 'rect', x: 320, y: 380, width: 60, height: 180, color: '#c8a878', opacity: 0.5, z: 0 },
+            //   North-south street: tavern → plaza → canal pier
+            { type: 'rect', x: 760, y: 100, width: 90, height: 800, color: '#c8a878', opacity: 0.55, z: 0 },
+            { type: 'rect', x: 780, y: 100, width: 50, height: 800, color: '#b89868', opacity: 0.5, z: 0 },
+            //   Spur: tavern door joins the north-south street
+            { type: 'rect', x: 850, y: 210, width: 150, height: 60, color: '#c8a878', opacity: 0.5, z: 0 },
+            //   Spur: keep-gate road down to the main street
+            { type: 'rect', x: 1290, y: 100, width: 60, height: 400, color: '#c8a878', opacity: 0.45, z: 0 },
+            //   Spur: shop lane (south-west)
+            { type: 'rect', x: 430, y: 690, width: 330, height: 60, color: '#c8a878', opacity: 0.5, z: 0 },
+            //   Spur: sanctuary entrance
             { type: 'rect', x: 1100, y: 540, width: 60, height: 80, color: '#c8a878', opacity: 0.5, z: 0 },
 
-            // --- Central well (anchored plaza centerpiece, flanked by benches) ---
-            // The intersection cobble_patch, its crack, and the flowers by
-            // the well were pure texture — invisible under the well sprite at
-            // most zoom levels, but they still cost paint time on every scroll.
+            // --- West-edge trees framing the forest portal ---
+            { type: 'sprite', name: 'oak_tree', x: 130, y: 240, scale: 1.8, z: 240 },
+            { type: 'sprite', name: 'pine_tree', x: 110, y: 400, scale: 1.7, z: 400 },
+
+            // --- PLAZA — grass island holding the old well and its oak ---
+            { type: 'rect', x: 672, y: 296, width: 256, height: 216, color: '#8a9a6a', opacity: 0.6, radius: '9999px', z: 0 },
+            { type: 'rect', x: 684, y: 306, width: 232, height: 196, color: '#5a8a3a', opacity: 0.55, radius: '9999px', z: 0 },
             { type: 'well', x: 752, y: 352, width: 96, height: 96 },
-            { type: 'bench', x: 624, y: 520, size: 60 },
-            { type: 'bench', x: 920, y: 520, size: 60 },
+            { type: 'sprite', name: 'oak_tree', x: 865, y: 370, scale: 2.0, z: 370 },
+            { type: 'sprite', name: 'grass_tuft', x: 700, y: 460, scale: 1.4, z: 460 },
+            { type: 'flowers', x: 700, y: 330, size: 30 },
+            { type: 'bench', x: 624, y: 540, size: 60 },
+            { type: 'bench', x: 950, y: 540, size: 60 },
 
             // --- Lamps at the plaza corners ---
-            // Lamp sprites are cheap. Their paired lantern_glow halos were
-            // radial-gradient divs re-composited every frame the map scrolled,
-            // which was the largest single source of navigation lag. Removed;
-            // the plaza reads as "lit" from the lamp sprite alone.
             { type: 'lamp', x: 600,  y: 300, size: 64 },
             { type: 'lamp', x: 1000, y: 300, size: 64 },
             { type: 'lamp', x: 600,  y: 760, size: 64 },
             { type: 'lamp', x: 1000, y: 760, size: 64 },
 
-            // --- Banner on the north wall (one, centered) ---
-            // Three banners had swaying animations that kept the compositor
-            // busy while the player walked. One centered banner still tells
-            // the medieval-town story.
-            { type: 'banner', x: 800, y: 40, color: '#fbbf24', icon: '✦' },
+            // --- Ledgar statue: Council landmark on the plaza south edge ---
+            { type: 'sprite', name: 'ledgar_statue', x: 660, y: 690, scale: 1.6, z: 690 },
+
+            // --- Tavern (north row) — the building the portal lives in ---
+            { type: 'shop_building', x: 880, y: 70, width: 240, height: 150 },
+            { type: 'banner', x: 1000, y: 90, color: '#fbbf24', icon: '✦' },
+            { type: 'sign', x: 1140, y: 180, label: 'INN' },
+            { type: 'barrel', x: 896, y: 214, size: 34 },
+            { type: 'crate', x: 932, y: 220, size: 30 },
+
+            // --- Keep gate (NE): stone pillars + gold banners frame the road ---
+            { type: 'pillar', x: 1270, y: 110, width: 34, height: 90 },
+            { type: 'pillar', x: 1436, y: 110, width: 34, height: 90 },
+            { type: 'sprite', name: 'banner_gold', x: 1287, y: 208, scale: 1.5, z: 208 },
+            { type: 'sprite', name: 'banner_gold', x: 1453, y: 208, scale: 1.5, z: 208 },
+
+            // --- Council quest board (by the gate) ---
+            { type: 'sprite', name: 'council_board', x: 1540, y: 165, scale: 2, z: 165 },
+
+            // --- Shop-lane microstory: tipped cider barrel + the shop cat ---
+            { type: 'sprite', name: 'barrel_tipped', x: 370, y: 735, scale: 1.6, z: 735 },
+            { type: 'sprite', name: 'crate', x: 408, y: 718, scale: 1.4, z: 718 },
+            { type: 'sprite', name: 'cat_sleeping', x: 315, y: 758, scale: 1.6, z: 758 },
+
+            // --- CANAL (south edge) — stone-rimmed water with a wooden pier ---
+            { type: 'rect', x: 40, y: 890, width: 1520, height: 80, color: '#4682b4', opacity: 0.6, z: 0 },
+            { type: 'rect', x: 40, y: 886, width: 1520, height: 6, color: '#9aa8b2', opacity: 0.8, z: 1 },
+            { type: 'rect', x: 40, y: 966, width: 1520, height: 6, color: '#9aa8b2', opacity: 0.8, z: 1 },
+            //   Pier planks (the walkable gap in the water)
+            { type: 'rect', x: 756, y: 886, width: 98, height: 88, color: '#78350f', z: 1 },
+            { type: 'rect', x: 756, y: 908, width: 98, height: 4, color: '#5c3a21', opacity: 0.8, z: 2 },
+            { type: 'rect', x: 756, y: 932, width: 98, height: 4, color: '#5c3a21', opacity: 0.8, z: 2 },
+            { type: 'rect', x: 756, y: 956, width: 98, height: 4, color: '#5c3a21', opacity: 0.8, z: 2 },
+            { type: 'bench', x: 800, y: 916, size: 54 },
+            //   Reeds on the north bank + a couple of lily pads
+            { type: 'sprite', name: 'grass_tuft', x: 140,  y: 888, scale: 1.5, z: 888 },
+            { type: 'sprite', name: 'grass_tuft', x: 420,  y: 886, scale: 1.4, z: 886 },
+            { type: 'sprite', name: 'grass_tuft', x: 1010, y: 888, scale: 1.5, z: 888 },
+            { type: 'sprite', name: 'grass_tuft', x: 1240, y: 886, scale: 1.4, z: 886 },
+            { type: 'sprite', name: 'grass_tuft', x: 1480, y: 888, scale: 1.5, z: 888 },
+            { type: 'rect', x: 600,  y: 930, width: 26, height: 14, color: '#16a34a', opacity: 0.7, radius: '50%', z: 1 },
+            { type: 'rect', x: 1150, y: 925, width: 26, height: 14, color: '#16a34a', opacity: 0.7, radius: '50%', z: 1 },
         ]
     },
     taskoriaKeep: {
@@ -142,7 +211,22 @@ export const MAP_DATA = {
         prefabs: [
             { name: 'royal_dais', x: 500, y: 130 },
         ],
+        // Environmental storytelling — the Council's seat of (mostly clerical) power
+        interactables: [
+            { id: 'fx_throne', x: 480, y: 230, width: 40, height: 40, radius: 110, label: 'The Council seat',
+              flavor: 'The Council seat. Ledgar counts, Coinhilda funds, Notifus announces. The chair itself does nothing — magnificently.' },
+            { id: 'fx_archives', x: 140, y: 370, width: 40, height: 40, radius: 90, label: 'Council archives',
+              flavor: 'Council records, alphabetized twice. Ledgar does not trust the first alphabet.' },
+            { id: 'fx_armor', x: 270, y: 490, width: 40, height: 40, radius: 85, label: 'Ceremonial armor',
+              flavor: 'Ceremonial armor. Never worn in battle. Polished daily. Priorities.' }
+        ],
         decorations: [
+            // Council banners flanking the dais — gold for the Council seal
+            { type: 'sprite', name: 'banner_gold', x: 400, y: 250, scale: 1.6, z: 250 },
+            { type: 'sprite', name: 'banner_gold', x: 600, y: 250, scale: 1.6, z: 250 },
+            { type: 'sprite', name: 'banner_purple', x: 300, y: 280, scale: 1.5, z: 280 },
+            { type: 'sprite', name: 'banner_purple', x: 700, y: 280, scale: 1.5, z: 280 },
+
             // Bookshelves along the side walls — library corners flanking the throne hall
             { type: 'sprite', name: 'bookshelf', x: 150, y: 380, scale: 1.6, z: 380 },
             { type: 'sprite', name: 'bookshelf', x: 850, y: 380, scale: 1.6, z: 380 },
@@ -195,14 +279,21 @@ export const MAP_DATA = {
         // Council interaction zones. Ledgar sits in the right nook past the
         // bar and opens the beta-feedback modal when the hero speaks with him.
         interactables: [
-            { x: 640, y: 210, width: 80, height: 100, radius: 80, target: 'ledgar', label: 'Send word to Ledgar' }
+            { x: 640, y: 210, width: 80, height: 100, radius: 80, target: 'ledgar', label: 'Send word to Ledgar' },
+            // Environmental storytelling
+            { id: 'fx_hearth', x: 110, y: 90, width: 40, height: 40, radius: 85, label: 'The hearth',
+              flavor: 'Nobody remembers lighting this fire. It refuses to go out. The innkeeper stopped asking.' },
+            { id: 'fx_bar_mugs', x: 440, y: 140, width: 40, height: 30, radius: 80, label: 'Warm mugs',
+              flavor: 'Three mugs, still warm. The Night Shift Guild was here a minute ago. They always are.' },
+            { id: 'fx_dropped_mug', x: 330, y: 505, width: 30, height: 20, radius: 65, label: 'Dropped mug',
+              flavor: 'A dropped mug. The ale never reached its destination. A moment of silence.' }
         ],
         portals: [
             // Door to outside
             {
                 x: 350, y: 700, width: 100, height: 60,
                 targetMap: 'townSquare',
-                targetX: 950, targetY: 150,
+                targetX: 990, targetY: 275,
                 label: 'Exit'
             }
         ],
@@ -233,7 +324,15 @@ export const MAP_DATA = {
             // Archivist Ledgar of the Parchment — Council NPC for bug reports.
             // Placed in the right nook so he's visible on entry but not blocking
             // the bar or the tables.
-            { x: 680, y: 310, type: 'ledgar_npc', size: 60 }
+            { x: 680, y: 310, type: 'ledgar_npc', size: 60 },
+
+            // ─── Microstory: someone left the left table in a hurry ────────
+            // A stool shoved away from the table and a mug on the floor by
+            // the rug. Whatever the news was, it couldn't wait.
+            { x: 240, y: 515, type: 'stool', size: 30 },
+            { x: 335, y: 512, type: 'mug', size: 28 },
+            // The inn's own cat, asleep in the warmest spot by the fire
+            { type: 'sprite', name: 'cat_sleeping', x: 185, y: 165, scale: 1.5, z: 165 }
         ]
     },
     mysticForest: {
@@ -253,7 +352,20 @@ export const MAP_DATA = {
             { x: 1900, y: 0, width: 100, height: 1000 },
             // River (blocks passage except on bridge)
             { x: 800, y: 100, width: 200, height: 300 },
-            { x: 800, y: 600, width: 200, height: 300 }
+            { x: 800, y: 600, width: 200, height: 300 },
+            // Elderwood trunk (east clearing landmark)
+            { x: 1320, y: 445, width: 60, height: 25, type: 'tree' }
+        ],
+        // Environmental storytelling — examine points with Council-flavored voice
+        interactables: [
+            { id: 'fx_elderwood', x: 1330, y: 430, width: 40, height: 40, radius: 100, label: 'The Elderwood',
+              flavor: 'The Elderwood. Its rings remember every quest ever completed. There is room for more.' },
+            { id: 'fx_fairy_ring', x: 1600, y: 700, width: 40, height: 40, radius: 90, label: 'Mushroom ring',
+              flavor: 'A ring of mushrooms. The fair folk trade in finished tasks. Leave nothing half-done here.' },
+            { id: 'fx_shrine', x: 220, y: 280, width: 40, height: 40, radius: 95, label: 'Ancient shrine',
+              flavor: 'A shrine older than the Council. The name on it has been scratched out. Twice.' },
+            { id: 'fx_river', x: 880, y: 470, width: 40, height: 40, radius: 85, label: 'Old bridge',
+              flavor: 'The river hums an old work song. It has never once missed its deadline to the sea.' }
         ],
         portals: [
             // Back to town
@@ -347,6 +459,10 @@ export const MAP_DATA = {
             { type: 'lantern_glow', x: 1520, y: 860, radius: 100, color: 'rgba(180,255,140,0.14)', z: 1 },
             { type: 'lantern_glow', x: 350,  y: 500, radius: 90,  color: 'rgba(180,255,140,0.14)', z: 1 },
             { type: 'lantern_glow', x: 1650, y: 400, radius: 100, color: 'rgba(180,255,140,0.14)', z: 1 },
+
+            // ─── The Elderwood (east clearing landmark) ────────────────────
+            // Massive rune-carved oak. The forest's reason to be remembered.
+            { type: 'sprite', name: 'ancient_tree', x: 1350, y: 470, scale: 2, z: 470 },
 
             // ─── Fairy mushroom circle (east narrative point) ──────────────
             // 8 mushrooms in a ring around a soft green glow — the "wondrous"
@@ -445,6 +561,15 @@ export const MAP_DATA = {
                 targetX: 250, targetY: 450,
                 label: 'Exit to Forest'
             }
+        ],
+        // Environmental storytelling — the mausoleum of everything left undone
+        interactables: [
+            { id: 'fx_altar', x: 580, y: 460, width: 40, height: 40, radius: 100, label: 'The Broken Vows',
+              flavor: '"Here lie the Broken Vows — every task abandoned, every streak lost." The tome is still warm.' },
+            { id: 'fx_shelves', x: 580, y: 270, width: 40, height: 40, radius: 95, label: 'Collapsed archive',
+              flavor: 'The shelves collapsed under the weight of unfinished lists. Some scrolls still twitch.' },
+            { id: 'fx_pool', x: 175, y: 1255, width: 40, height: 40, radius: 85, label: 'Necrotic pool',
+              flavor: 'The ooze hums softly. It sounds almost exactly like a reminder notification.' }
         ],
         decorations: [
             // Torches (flickering)

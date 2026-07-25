@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Trash2, Image as ImageIcon, X, Upload, Save, Eraser, Pipette, PaintBucket, Undo2, Redo2, Play, Square, Plus, Copy } from 'lucide-react';
+import { frameToBuffer } from '../../utils/pixelFormat';
 
 const GRID_SIZE = 64;
 const TOTAL = GRID_SIZE * GRID_SIZE;
@@ -23,17 +24,32 @@ const CATEGORIES = [
 
 const emptyBuffer = () => new Array(TOTAL).fill(EMPTY);
 
-const CreationStudio = ({ currentUser }) => {
-    const [frames, setFrames] = useState([emptyBuffer()]);
+const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => {
+    const [frames, setFrames] = useState(() => {
+        if (initialAsset && initialAsset.pixels) {
+            // handle single frame or multiple frames, in sparse {x,y,c} or flat buffer format
+            let px = initialAsset.pixels;
+            if (typeof px === 'string') {
+                try { px = JSON.parse(px); } catch(e) {}
+            }
+
+            if (Array.isArray(px) && Array.isArray(px[0])) {
+                return px.map(f => frameToBuffer(f, GRID_SIZE));
+            } else if (Array.isArray(px)) {
+                return [frameToBuffer(px, GRID_SIZE)];
+            }
+        }
+        return [emptyBuffer()];
+    });
     const [activeFrame, setActiveFrame] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     
     const [color, setColor] = useState(PALETTE[0]);
     const [tool, setTool] = useState('pencil'); // pencil | eraser | fill | picker
     const [customColor, setCustomColor] = useState('#ff0000');
-    const [name, setName] = useState('');
-    const [category, setCategory] = useState(CATEGORIES[0].id);
-    const [price, setPrice] = useState(100); 
+    const [name, setName] = useState(initialAsset ? initialAsset.name : '');
+    const [category, setCategory] = useState(initialAsset ? initialAsset.category : CATEGORIES[0].id);
+    const [price, setPrice] = useState(initialAsset ? initialAsset.price || 100 : 100); 
     const [refImage, setRefImage] = useState(null);
     const [refOpacity, setRefOpacity] = useState(0.5);
     const [refScale, setRefScale] = useState(100);
@@ -307,6 +323,31 @@ const CreationStudio = ({ currentUser }) => {
         if (!hasContent) { setPublishStatus({ state: 'error', msg: 'The canvas is empty.' }); return; }
 
         setPublishStatus({ state: 'loading', msg: '' });
+        
+        // Convert buffers to sparse array of {x,y,c} for saving
+        const formatBuffer = (buf) => {
+            const out = [];
+            for (let i = 0; i < TOTAL; i++) {
+                if (buf[i] && buf[i] !== EMPTY) {
+                    out.push({ x: i % GRID_SIZE, y: Math.floor(i / GRID_SIZE), c: buf[i] });
+                }
+            }
+            return out;
+        };
+        const exportPixels = framesRef.current.length === 1 ? formatBuffer(framesRef.current[0]) : framesRef.current.map(formatBuffer);
+        const finalPrice = Math.max(10, Math.min(500, parseInt(price, 10) || 100));
+
+        if (onSave) {
+            onSave({
+                name: trimmed,
+                category,
+                price: finalPrice,
+                pixels: exportPixels,
+                gridSize: GRID_SIZE
+            });
+            return;
+        }
+
         try {
             const res = await fetch('api/creations.php?action=publish', {
                 method: 'POST',
@@ -316,8 +357,8 @@ const CreationStudio = ({ currentUser }) => {
                     name: trimmed,
                     category,
                     grid_size: GRID_SIZE,
-                    pixels: framesRef.current.length === 1 ? framesRef.current[0] : framesRef.current,
-                    price: Math.max(10, Math.min(500, parseInt(price, 10) || 100)),
+                    pixels: exportPixels,
+                    price: finalPrice,
                 }),
             });
             const data = await res.json();
@@ -503,12 +544,12 @@ const CreationStudio = ({ currentUser }) => {
                         </div>
                         <p className="text-[10px] text-gray-500 mt-1">Between 10 and 500. Quartermistress Coinhilda may adjust at approval — the Treasury guards a fair rate.</p>
 
-                        <button
+                        <button 
                             onClick={publish}
                             disabled={publishStatus.state === 'loading'}
-                            className="mt-3 w-full bg-rpg-gold hover:brightness-110 disabled:opacity-50 text-black font-bold uppercase tracking-widest text-sm py-3 rounded transition-all"
+                            className="w-full bg-rpg-gold text-black font-bold uppercase tracking-widest text-sm py-4 rounded-xl flex justify-center items-center gap-2 hover:bg-yellow-400 disabled:opacity-50 transition-colors mt-3"
                         >
-                            {publishStatus.state === 'loading' ? 'Publishing...' : 'Publish'}
+                            {publishStatus.state === 'loading' ? <span className="animate-pulse">Saving...</span> : (onSave ? 'Save Changes' : 'Publish Creation')}
                         </button>
                         {publishStatus.msg && (
                             <p className={`text-xs mt-2 ${publishStatus.state === 'success' ? 'text-green-400' : 'text-red-400'}`}>{publishStatus.msg}</p>

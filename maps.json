@@ -1,0 +1,2236 @@
+{
+  "townSquare": {
+    "id": "townSquare",
+    "name": "Town Square",
+    "width": 1600,
+    "height": 1000,
+    "className": "medieval-town-bg",
+    "baseColor": "#2b1f1a",
+    "background": {},
+    "tileSprite": "cobblestone_tile",
+    "tileSize": 64,
+    "spawn": {
+      "x": 800,
+      "y": 500
+    },
+    "obstacles": [
+      {
+        "x": 752,
+        "y": 352,
+        "width": 96,
+        "height": 96,
+        "type": "well"
+      },
+      {
+        "x": 1420,
+        "y": 64,
+        "width": 80,
+        "height": 96,
+        "type": "board"
+      },
+      {
+        "x": 170,
+        "y": 230,
+        "width": 280,
+        "height": 150,
+        "type": "shop"
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 1600,
+        "height": 40
+      },
+      {
+        "x": 0,
+        "y": 960,
+        "width": 1600,
+        "height": 40
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 40,
+        "height": 1000
+      },
+      {
+        "x": 1560,
+        "y": 0,
+        "width": 40,
+        "height": 1000
+      }
+    ],
+    "interactables": [
+      {
+        "x": 230,
+        "y": 390,
+        "width": 160,
+        "height": 120,
+        "radius": 120,
+        "target": "shop",
+        "label": "Item Shop"
+      },
+      {
+        "x": 1180,
+        "y": 780,
+        "width": 220,
+        "height": 130,
+        "radius": 130,
+        "target": "sanctuary",
+        "label": "Pet Sanctuary"
+      }
+    ],
+    "portals": [
+      {
+        "x": 950,
+        "y": 40,
+        "width": 100,
+        "height": 60,
+        "targetMap": "tavernInterior",
+        "targetX": 400,
+        "targetY": 600,
+        "label": "Tavern"
+      },
+      {
+        "x": 40,
+        "y": 250,
+        "width": 60,
+        "height": 100,
+        "targetMap": "mysticForest",
+        "targetX": 1800,
+        "targetY": 400,
+        "label": "Mystic Forest"
+      },
+      {
+        "x": 1300,
+        "y": 40,
+        "width": 100,
+        "height": 60,
+        "targetMap": "taskoriaKeep",
+        "targetX": 500,
+        "targetY": 850,
+        "label": "Taskoria Keep"
+      }
+    ],
+    "prefabs": [
+      {
+        "name": "shop_complete",
+        "x": 170,
+        "y": 230
+      },
+      {
+        "name": "sanctuary_pen",
+        "x": 1120,
+        "y": 560,
+        "width": 360,
+        "height": 320
+      },
+      {
+        "name": "forest_grove",
+        "x": 200,
+        "y": 140,
+        "seed": 11
+      },
+      {
+        "name": "town_houses",
+        "x": 460,
+        "y": 820,
+        "count": 1,
+        "seed": 3
+      }
+    ],
+    "decorations": [
+      {
+        "type": "rect",
+        "x": 600,
+        "y": 280,
+        "width": 400,
+        "height": 380,
+        "color": "#c8a878",
+        "opacity": 0.55,
+        "radius": "9999px",
+        "z": 0
+      },
+      {
+        "type": "rect",
+        "x": 620,
+        "y": 300,
+        "width": 360,
+        "height": 340,
+        "color": "#b89868",
+        "opacity": 0.45,
+        "radius": "9999px",
+        "z": 0
+      },
+      {
+        "type": "rect",
+        "x": 0,
+        "y": 470,
+        "width": 1600,
+        "height": 90,
+        "color": "#c8a878",
+        "opacity": 0.55,
+        "z": 0
+      },
+      {
+        "type": "rect",
+        "x": 0,
+        "y": 490,
+        "width": 1600,
+        "height": 50,
+        "color": "#b89868",
+        "opacity": 0.5,
+        "z": 0
+      },
+      {
+        "type": "rect",
+        "x": 760,
+        "y": 0,
+        "width": 90,
+        "height": 1000,
+        "color": "#c8a878",
+        "opacity": 0.55,
+        "z": 0
+      },
+      {
+        "type": "rect",
+        "x": 780,
+        "y": 0,
+        "width": 50,
+        "height": 1000,
+        "color": "#b89868",
+        "opacity": 0.5,
+        "z": 0
+      },
+      {
+        "type": "rect",
+        "x": 320,
+        "y": 380,
+        "width": 60,
+        "height": 180,
+        "color": "#c8a878",
+        "opacity": 0.5,
+        "z": 0
+      },
+      {
+        "type": "rect",
+        "x": 1100,
+        "y": 540,
+        "width": 60,
+        "height": 80,
+        "color": "#c8a878",
+        "opacity": 0.5,
+        "z": 0
+      },
+      {
+        "type": "well",
+        "x": 752,
+        "y": 352,
+        "width": 96,
+        "height": 96
+      },
+      {
+        "type": "bench",
+        "x": 624,
+        "y": 520,
+        "size": 60
+      },
+      {
+        "type": "bench",
+        "x": 920,
+        "y": 520,
+        "size": 60
+      },
+      {
+        "type": "lamp",
+        "x": 600,
+        "y": 300,
+        "size": 64
+      },
+      {
+        "type": "lamp",
+        "x": 1000,
+        "y": 300,
+        "size": 64
+      },
+      {
+        "type": "lamp",
+        "x": 600,
+        "y": 760,
+        "size": 64
+      },
+      {
+        "type": "lamp",
+        "x": 1000,
+        "y": 760,
+        "size": 64
+      },
+      {
+        "type": "banner",
+        "x": 800,
+        "y": 40,
+        "color": "#fbbf24",
+        "icon": "✦"
+      }
+    ]
+  },
+  "taskoriaKeep": {
+    "id": "taskoriaKeep",
+    "name": "Taskoria Keep",
+    "width": 1000,
+    "height": 1000,
+    "baseColor": "#2a2a3a",
+    "tileSprite": "stone_floor_tile",
+    "tileSize": 64,
+    "spawn": {
+      "x": 500,
+      "y": 850
+    },
+    "obstacles": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 1000,
+        "height": 100
+      },
+      {
+        "x": 0,
+        "y": 900,
+        "width": 1000,
+        "height": 100
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 1000
+      },
+      {
+        "x": 900,
+        "y": 0,
+        "width": 100,
+        "height": 1000
+      }
+    ],
+    "portals": [
+      {
+        "x": 450,
+        "y": 900,
+        "width": 100,
+        "height": 60,
+        "targetMap": "townSquare",
+        "targetX": 1350,
+        "targetY": 150,
+        "label": "Exit to Town"
+      }
+    ],
+    "prefabs": [
+      {
+        "name": "royal_dais",
+        "x": 500,
+        "y": 130
+      }
+    ],
+    "decorations": [
+      {
+        "type": "sprite",
+        "name": "bookshelf",
+        "x": 150,
+        "y": 380,
+        "scale": 1.6,
+        "z": 380
+      },
+      {
+        "type": "sprite",
+        "name": "bookshelf",
+        "x": 850,
+        "y": 380,
+        "scale": 1.6,
+        "z": 380
+      },
+      {
+        "type": "sprite",
+        "name": "bookshelf",
+        "x": 150,
+        "y": 580,
+        "scale": 1.6,
+        "z": 580
+      },
+      {
+        "type": "sprite",
+        "name": "bookshelf",
+        "x": 850,
+        "y": 580,
+        "scale": 1.6,
+        "z": 580
+      },
+      {
+        "type": "sprite",
+        "name": "wall_torch",
+        "x": 130,
+        "y": 480,
+        "scale": 1.6,
+        "z": 480
+      },
+      {
+        "type": "sprite",
+        "name": "wall_torch",
+        "x": 870,
+        "y": 480,
+        "scale": 1.6,
+        "z": 480
+      },
+      {
+        "type": "sprite",
+        "name": "wall_torch",
+        "x": 130,
+        "y": 720,
+        "scale": 1.6,
+        "z": 720
+      },
+      {
+        "type": "sprite",
+        "name": "wall_torch",
+        "x": 870,
+        "y": 720,
+        "scale": 1.6,
+        "z": 720
+      },
+      {
+        "type": "lantern_glow",
+        "x": 130,
+        "y": 480,
+        "radius": 110,
+        "color": "rgba(255,170,60,0.32)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 870,
+        "y": 480,
+        "radius": 110,
+        "color": "rgba(255,170,60,0.32)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 130,
+        "y": 720,
+        "radius": 110,
+        "color": "rgba(255,170,60,0.32)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 870,
+        "y": 720,
+        "radius": 110,
+        "color": "rgba(255,170,60,0.32)",
+        "z": 1
+      },
+      {
+        "type": "sprite",
+        "name": "armor_stand",
+        "x": 280,
+        "y": 500,
+        "scale": 1.7,
+        "z": 500
+      },
+      {
+        "type": "sprite",
+        "name": "armor_stand",
+        "x": 720,
+        "y": 500,
+        "scale": 1.7,
+        "z": 500
+      },
+      {
+        "type": "sprite",
+        "name": "armor_stand",
+        "x": 280,
+        "y": 760,
+        "scale": 1.7,
+        "z": 760
+      },
+      {
+        "type": "sprite",
+        "name": "armor_stand",
+        "x": 720,
+        "y": 760,
+        "scale": 1.7,
+        "z": 760
+      },
+      {
+        "type": "cobble_patch",
+        "x": 500,
+        "y": 500,
+        "width": 280,
+        "height": 180,
+        "color": "#1a1a2a",
+        "opacity": 0.35,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 400,
+        "y": 520,
+        "length": 70,
+        "angle": 12,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 600,
+        "y": 580,
+        "length": 60,
+        "angle": -22,
+        "z": 0
+      }
+    ]
+  },
+  "tavernInterior": {
+    "id": "tavernInterior",
+    "name": "The Rusty Sword Inn",
+    "width": 800,
+    "height": 800,
+    "baseColor": "#3d261b",
+    "tileSprite": "wood_floor_tile",
+    "tileSize": 64,
+    "spawn": {
+      "x": 400,
+      "y": 600
+    },
+    "obstacles": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 100
+      },
+      {
+        "x": 0,
+        "y": 700,
+        "width": 800,
+        "height": 100
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 800
+      },
+      {
+        "x": 700,
+        "y": 0,
+        "width": 100,
+        "height": 800
+      },
+      {
+        "x": 200,
+        "y": 200,
+        "width": 400,
+        "height": 80
+      },
+      {
+        "x": 200,
+        "y": 400,
+        "width": 120,
+        "height": 80
+      },
+      {
+        "x": 500,
+        "y": 400,
+        "width": 120,
+        "height": 80
+      }
+    ],
+    "interactables": [
+      {
+        "x": 640,
+        "y": 210,
+        "width": 80,
+        "height": 100,
+        "radius": 80,
+        "target": "ledgar",
+        "label": "Send word to Ledgar"
+      }
+    ],
+    "portals": [
+      {
+        "x": 350,
+        "y": 700,
+        "width": 100,
+        "height": 60,
+        "targetMap": "townSquare",
+        "targetX": 950,
+        "targetY": 150,
+        "label": "Exit"
+      }
+    ],
+    "decorations": [
+      {
+        "x": 200,
+        "y": 200,
+        "type": "bar_counter",
+        "width": 400,
+        "height": 80
+      },
+      {
+        "x": 400,
+        "y": 150,
+        "type": "mug",
+        "size": 40
+      },
+      {
+        "x": 450,
+        "y": 150,
+        "type": "mug",
+        "size": 40
+      },
+      {
+        "x": 500,
+        "y": 150,
+        "type": "mug",
+        "size": 40
+      },
+      {
+        "x": 350,
+        "y": 130,
+        "type": "bartender_npc",
+        "size": 60
+      },
+      {
+        "x": 200,
+        "y": 400,
+        "type": "table",
+        "width": 120,
+        "height": 80
+      },
+      {
+        "x": 500,
+        "y": 400,
+        "type": "table",
+        "width": 120,
+        "height": 80
+      },
+      {
+        "x": 180,
+        "y": 420,
+        "type": "stool",
+        "size": 30
+      },
+      {
+        "x": 300,
+        "y": 420,
+        "type": "stool",
+        "size": 30
+      },
+      {
+        "x": 480,
+        "y": 420,
+        "type": "stool",
+        "size": 30
+      },
+      {
+        "x": 600,
+        "y": 420,
+        "type": "stool",
+        "size": 30
+      },
+      {
+        "x": 120,
+        "y": 100,
+        "type": "fire",
+        "size": 60
+      },
+      {
+        "x": 300,
+        "y": 550,
+        "type": "rect",
+        "width": 200,
+        "height": 140,
+        "color": "#7f1d1d",
+        "opacity": 0.8,
+        "radius": "10px",
+        "z": 0
+      },
+      {
+        "x": 680,
+        "y": 310,
+        "type": "ledgar_npc",
+        "size": 60
+      }
+    ]
+  },
+  "mysticForest": {
+    "id": "mysticForest",
+    "name": "Mystic Forest",
+    "width": 2000,
+    "height": 1000,
+    "baseColor": "#166534",
+    "tileSprite": "grass_tile",
+    "tileSize": 64,
+    "spawn": {
+      "x": 1800,
+      "y": 400
+    },
+    "obstacles": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 2000,
+        "height": 100
+      },
+      {
+        "x": 0,
+        "y": 900,
+        "width": 2000,
+        "height": 100
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 1000
+      },
+      {
+        "x": 1900,
+        "y": 0,
+        "width": 100,
+        "height": 1000
+      },
+      {
+        "x": 800,
+        "y": 100,
+        "width": 200,
+        "height": 300
+      },
+      {
+        "x": 800,
+        "y": 600,
+        "width": 200,
+        "height": 300
+      }
+    ],
+    "portals": [
+      {
+        "x": 1800,
+        "y": 350,
+        "width": 80,
+        "height": 300,
+        "targetMap": "townSquare",
+        "targetX": 200,
+        "targetY": 850,
+        "label": "To Town"
+      },
+      {
+        "x": 100,
+        "y": 400,
+        "width": 80,
+        "height": 120,
+        "targetMap": "shadowCrypts",
+        "targetX": 1000,
+        "targetY": 1300,
+        "label": "Shadow Crypts"
+      }
+    ],
+    "prefabs": [
+      {
+        "name": "forest_grove",
+        "x": 220,
+        "y": 180,
+        "seed": 11
+      },
+      {
+        "name": "forest_grove",
+        "x": 220,
+        "y": 780,
+        "seed": 23
+      },
+      {
+        "name": "forest_grove",
+        "x": 520,
+        "y": 200,
+        "seed": 37
+      },
+      {
+        "name": "forest_grove",
+        "x": 520,
+        "y": 760,
+        "seed": 41
+      },
+      {
+        "name": "forest_clearing",
+        "x": 380,
+        "y": 480,
+        "seed": 7
+      },
+      {
+        "name": "forest_grove",
+        "x": 1180,
+        "y": 200,
+        "seed": 53
+      },
+      {
+        "name": "forest_grove",
+        "x": 1180,
+        "y": 780,
+        "seed": 59
+      },
+      {
+        "name": "forest_grove",
+        "x": 1500,
+        "y": 180,
+        "seed": 67
+      },
+      {
+        "name": "forest_grove",
+        "x": 1500,
+        "y": 800,
+        "seed": 73
+      },
+      {
+        "name": "forest_clearing",
+        "x": 1350,
+        "y": 480,
+        "seed": 83
+      },
+      {
+        "name": "garden_patch",
+        "x": 360,
+        "y": 320,
+        "seed": 5
+      },
+      {
+        "name": "garden_patch",
+        "x": 360,
+        "y": 640,
+        "seed": 9
+      },
+      {
+        "name": "garden_patch",
+        "x": 1350,
+        "y": 320,
+        "seed": 14
+      },
+      {
+        "name": "garden_patch",
+        "x": 1350,
+        "y": 640,
+        "seed": 18
+      }
+    ],
+    "decorations": [
+      {
+        "x": 800,
+        "y": 0,
+        "type": "rect",
+        "width": 200,
+        "height": 1000,
+        "color": "#3b82f6",
+        "opacity": 0.6,
+        "z": 0
+      },
+      {
+        "x": 780,
+        "y": 400,
+        "type": "rect",
+        "width": 240,
+        "height": 200,
+        "color": "#78350f",
+        "z": 0
+      },
+      {
+        "x": 780,
+        "y": 420,
+        "type": "rect",
+        "width": 240,
+        "height": 4,
+        "color": "#5c3a21",
+        "opacity": 0.8,
+        "z": 1
+      },
+      {
+        "x": 780,
+        "y": 460,
+        "type": "rect",
+        "width": 240,
+        "height": 4,
+        "color": "#5c3a21",
+        "opacity": 0.8,
+        "z": 1
+      },
+      {
+        "x": 780,
+        "y": 500,
+        "type": "rect",
+        "width": 240,
+        "height": 4,
+        "color": "#5c3a21",
+        "opacity": 0.8,
+        "z": 1
+      },
+      {
+        "x": 780,
+        "y": 540,
+        "type": "rect",
+        "width": 240,
+        "height": 4,
+        "color": "#5c3a21",
+        "opacity": 0.8,
+        "z": 1
+      },
+      {
+        "x": 780,
+        "y": 580,
+        "type": "rect",
+        "width": 240,
+        "height": 4,
+        "color": "#5c3a21",
+        "opacity": 0.8,
+        "z": 1
+      },
+      {
+        "type": "cobble_patch",
+        "x": 150,
+        "y": 460,
+        "width": 120,
+        "height": 80,
+        "color": "#8a7a5c",
+        "opacity": 0.35,
+        "z": 0
+      },
+      {
+        "type": "cobble_patch",
+        "x": 1830,
+        "y": 480,
+        "width": 120,
+        "height": 80,
+        "color": "#8a7a5c",
+        "opacity": 0.35,
+        "z": 0
+      },
+      {
+        "type": "cobble_patch",
+        "x": 1650,
+        "y": 490,
+        "width": 120,
+        "height": 70,
+        "color": "#8a7a5c",
+        "opacity": 0.3,
+        "z": 0
+      },
+      {
+        "type": "cobble_patch",
+        "x": 1450,
+        "y": 500,
+        "width": 120,
+        "height": 70,
+        "color": "#8a7a5c",
+        "opacity": 0.3,
+        "z": 0
+      },
+      {
+        "type": "cobble_patch",
+        "x": 1240,
+        "y": 490,
+        "width": 120,
+        "height": 70,
+        "color": "#8a7a5c",
+        "opacity": 0.3,
+        "z": 0
+      },
+      {
+        "type": "cobble_patch",
+        "x": 1080,
+        "y": 500,
+        "width": 90,
+        "height": 70,
+        "color": "#8a7a5c",
+        "opacity": 0.3,
+        "z": 0
+      },
+      {
+        "type": "cobble_patch",
+        "x": 700,
+        "y": 500,
+        "width": 90,
+        "height": 70,
+        "color": "#8a7a5c",
+        "opacity": 0.3,
+        "z": 0
+      },
+      {
+        "type": "cobble_patch",
+        "x": 540,
+        "y": 495,
+        "width": 120,
+        "height": 70,
+        "color": "#8a7a5c",
+        "opacity": 0.3,
+        "z": 0
+      },
+      {
+        "type": "cobble_patch",
+        "x": 340,
+        "y": 490,
+        "width": 120,
+        "height": 70,
+        "color": "#8a7a5c",
+        "opacity": 0.3,
+        "z": 0
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 770,
+        "y": 140,
+        "scale": 1.6,
+        "z": 140
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 770,
+        "y": 260,
+        "scale": 1.5,
+        "z": 260
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 770,
+        "y": 670,
+        "scale": 1.6,
+        "z": 670
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 770,
+        "y": 790,
+        "scale": 1.5,
+        "z": 790
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 770,
+        "y": 890,
+        "scale": 1.4,
+        "z": 890
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 1030,
+        "y": 150,
+        "scale": 1.5,
+        "z": 150
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 1030,
+        "y": 270,
+        "scale": 1.6,
+        "z": 270
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 1030,
+        "y": 680,
+        "scale": 1.5,
+        "z": 680
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 1030,
+        "y": 800,
+        "scale": 1.4,
+        "z": 800
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 1030,
+        "y": 895,
+        "scale": 1.5,
+        "z": 895
+      },
+      {
+        "type": "rect",
+        "x": 856,
+        "y": 200,
+        "width": 28,
+        "height": 14,
+        "color": "#16a34a",
+        "opacity": 0.75,
+        "radius": "50%",
+        "z": 1
+      },
+      {
+        "type": "rect",
+        "x": 934,
+        "y": 320,
+        "width": 26,
+        "height": 14,
+        "color": "#16a34a",
+        "opacity": 0.75,
+        "radius": "50%",
+        "z": 1
+      },
+      {
+        "type": "rect",
+        "x": 880,
+        "y": 700,
+        "width": 28,
+        "height": 14,
+        "color": "#16a34a",
+        "opacity": 0.75,
+        "radius": "50%",
+        "z": 1
+      },
+      {
+        "type": "rect",
+        "x": 928,
+        "y": 830,
+        "width": 26,
+        "height": 14,
+        "color": "#16a34a",
+        "opacity": 0.75,
+        "radius": "50%",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 380,
+        "y": 200,
+        "radius": 110,
+        "color": "rgba(180,255,140,0.14)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 580,
+        "y": 660,
+        "radius": 100,
+        "color": "rgba(180,255,140,0.14)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 1230,
+        "y": 200,
+        "radius": 110,
+        "color": "rgba(180,255,140,0.14)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 1520,
+        "y": 860,
+        "radius": 100,
+        "color": "rgba(180,255,140,0.14)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 350,
+        "y": 500,
+        "radius": 90,
+        "color": "rgba(180,255,140,0.14)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 1650,
+        "y": 400,
+        "radius": 100,
+        "color": "rgba(180,255,140,0.14)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 1620,
+        "y": 720,
+        "radius": 55,
+        "color": "rgba(120,255,120,0.28)",
+        "z": 1
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 1620,
+        "y": 660,
+        "scale": 1.4,
+        "z": 660
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 1665,
+        "y": 675,
+        "scale": 1.4,
+        "z": 675
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 1680,
+        "y": 720,
+        "scale": 1.4,
+        "z": 720
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 1665,
+        "y": 765,
+        "scale": 1.4,
+        "z": 765
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 1620,
+        "y": 780,
+        "scale": 1.4,
+        "z": 780
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 1575,
+        "y": 765,
+        "scale": 1.4,
+        "z": 765
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 1560,
+        "y": 720,
+        "scale": 1.4,
+        "z": 720
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 1575,
+        "y": 675,
+        "scale": 1.4,
+        "z": 675
+      },
+      {
+        "type": "flowers",
+        "x": 1620,
+        "y": 620,
+        "size": 32
+      },
+      {
+        "type": "flowers",
+        "x": 1620,
+        "y": 820,
+        "size": 32
+      },
+      {
+        "type": "lantern_glow",
+        "x": 240,
+        "y": 300,
+        "radius": 90,
+        "color": "rgba(120,80,180,0.22)",
+        "z": 1
+      },
+      {
+        "type": "statue",
+        "x": 240,
+        "y": 300,
+        "size": 60
+      },
+      {
+        "type": "pillar",
+        "x": 165,
+        "y": 355,
+        "width": 40,
+        "height": 90
+      },
+      {
+        "type": "pillar",
+        "x": 315,
+        "y": 355,
+        "width": 40,
+        "height": 90
+      },
+      {
+        "type": "crack",
+        "x": 240,
+        "y": 380,
+        "length": 90,
+        "angle": 0,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 195,
+        "y": 420,
+        "length": 60,
+        "angle": -18,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 285,
+        "y": 420,
+        "length": 60,
+        "angle": 18,
+        "z": 0
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 175,
+        "y": 460,
+        "scale": 1.6,
+        "z": 460
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 310,
+        "y": 470,
+        "scale": 1.4,
+        "z": 470
+      },
+      {
+        "type": "critter",
+        "variant": "slime",
+        "color": "#22c55e",
+        "x": 320,
+        "y": 250
+      },
+      {
+        "type": "critter",
+        "variant": "slime",
+        "color": "#22c55e",
+        "x": 460,
+        "y": 720
+      },
+      {
+        "type": "critter",
+        "variant": "slime",
+        "color": "#166534",
+        "x": 600,
+        "y": 300
+      },
+      {
+        "type": "critter",
+        "variant": "slime",
+        "color": "#3b82f6",
+        "x": 760,
+        "y": 440
+      },
+      {
+        "type": "critter",
+        "variant": "cat",
+        "color": "#e2e8f0",
+        "x": 1300,
+        "y": 300
+      },
+      {
+        "type": "critter",
+        "variant": "cat",
+        "color": "#f5deb3",
+        "x": 1440,
+        "y": 720
+      },
+      {
+        "type": "critter",
+        "variant": "cat",
+        "color": "#e2e8f0",
+        "x": 1720,
+        "y": 500
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 280,
+        "y": 400,
+        "scale": 1.2,
+        "z": 400
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 620,
+        "y": 380,
+        "scale": 1.3,
+        "z": 380
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 1130,
+        "y": 380,
+        "scale": 1.2,
+        "z": 380
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 1420,
+        "y": 360,
+        "scale": 1.3,
+        "z": 360
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 700,
+        "y": 720,
+        "scale": 1.2,
+        "z": 720
+      },
+      {
+        "type": "sprite",
+        "name": "mushroom",
+        "x": 1100,
+        "y": 700,
+        "scale": 1.4,
+        "z": 700
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 420,
+        "y": 380,
+        "scale": 1.4,
+        "z": 380
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 660,
+        "y": 640,
+        "scale": 1.5,
+        "z": 640
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 1160,
+        "y": 640,
+        "scale": 1.4,
+        "z": 640
+      },
+      {
+        "type": "sprite",
+        "name": "grass_tuft",
+        "x": 1400,
+        "y": 340,
+        "scale": 1.5,
+        "z": 340
+      },
+      {
+        "type": "flowers",
+        "x": 470,
+        "y": 330,
+        "size": 30
+      },
+      {
+        "type": "flowers",
+        "x": 650,
+        "y": 620,
+        "size": 32
+      },
+      {
+        "type": "flowers",
+        "x": 1150,
+        "y": 340,
+        "size": 30
+      },
+      {
+        "type": "flowers",
+        "x": 1430,
+        "y": 620,
+        "size": 32
+      },
+      {
+        "type": "bush",
+        "x": 260,
+        "y": 660,
+        "size": 46
+      },
+      {
+        "type": "bush",
+        "x": 640,
+        "y": 260,
+        "size": 44
+      },
+      {
+        "type": "bush",
+        "x": 1240,
+        "y": 640,
+        "size": 46
+      },
+      {
+        "type": "bush",
+        "x": 1500,
+        "y": 260,
+        "size": 44
+      }
+    ]
+  },
+  "shadowCrypts": {
+    "id": "shadowCrypts",
+    "name": "The Shadow Crypts",
+    "width": 1200,
+    "height": 1500,
+    "baseColor": "#0a0a14",
+    "tileSprite": "dungeon_floor_tile",
+    "tileSize": 64,
+    "spawn": {
+      "x": 600,
+      "y": 1400
+    },
+    "obstacles": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 1200,
+        "height": 100
+      },
+      {
+        "x": 0,
+        "y": 1400,
+        "width": 1200,
+        "height": 100
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 1500
+      },
+      {
+        "x": 1100,
+        "y": 0,
+        "width": 100,
+        "height": 1500
+      },
+      {
+        "x": 300,
+        "y": 300,
+        "width": 80,
+        "height": 80
+      },
+      {
+        "x": 800,
+        "y": 300,
+        "width": 80,
+        "height": 80
+      },
+      {
+        "x": 300,
+        "y": 700,
+        "width": 80,
+        "height": 80
+      },
+      {
+        "x": 800,
+        "y": 700,
+        "width": 80,
+        "height": 80
+      },
+      {
+        "x": 300,
+        "y": 1100,
+        "width": 80,
+        "height": 80
+      },
+      {
+        "x": 800,
+        "y": 1100,
+        "width": 80,
+        "height": 80
+      }
+    ],
+    "portals": [
+      {
+        "x": 550,
+        "y": 1400,
+        "width": 100,
+        "height": 60,
+        "targetMap": "mysticForest",
+        "targetX": 250,
+        "targetY": 450,
+        "label": "Exit to Forest"
+      }
+    ],
+    "decorations": [
+      {
+        "x": 150,
+        "y": 200,
+        "type": "torch",
+        "size": 40
+      },
+      {
+        "x": 1050,
+        "y": 200,
+        "type": "torch",
+        "size": 40
+      },
+      {
+        "x": 150,
+        "y": 600,
+        "type": "torch",
+        "size": 40
+      },
+      {
+        "x": 1050,
+        "y": 600,
+        "type": "torch",
+        "size": 40
+      },
+      {
+        "x": 150,
+        "y": 1000,
+        "type": "torch",
+        "size": 40
+      },
+      {
+        "x": 1050,
+        "y": 1000,
+        "type": "torch",
+        "size": 40
+      },
+      {
+        "x": 300,
+        "y": 300,
+        "type": "pillar",
+        "width": 80,
+        "height": 120
+      },
+      {
+        "x": 800,
+        "y": 300,
+        "type": "pillar",
+        "width": 80,
+        "height": 120
+      },
+      {
+        "x": 300,
+        "y": 700,
+        "type": "pillar",
+        "width": 80,
+        "height": 120
+      },
+      {
+        "x": 800,
+        "y": 700,
+        "type": "pillar",
+        "width": 80,
+        "height": 120
+      },
+      {
+        "x": 300,
+        "y": 1100,
+        "type": "pillar",
+        "width": 80,
+        "height": 120
+      },
+      {
+        "x": 800,
+        "y": 1100,
+        "type": "pillar",
+        "width": 80,
+        "height": 120
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 200,
+        "y": 400,
+        "scale": 2,
+        "z": 400
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 900,
+        "y": 900,
+        "scale": 2,
+        "z": 900
+      },
+      {
+        "type": "rect",
+        "x": 540,
+        "y": 520,
+        "width": 120,
+        "height": 880,
+        "color": "#450a0a",
+        "opacity": 0.55,
+        "z": 0
+      },
+      {
+        "type": "rect",
+        "x": 450,
+        "y": 260,
+        "width": 300,
+        "height": 100,
+        "color": "#450a0a",
+        "opacity": 0.45,
+        "z": 0
+      },
+      {
+        "type": "cobble_patch",
+        "x": 600,
+        "y": 400,
+        "width": 100,
+        "height": 80,
+        "color": "#0f0f18",
+        "opacity": 0.45,
+        "z": 0
+      },
+      {
+        "type": "cobble_patch",
+        "x": 600,
+        "y": 800,
+        "width": 100,
+        "height": 80,
+        "color": "#0f0f18",
+        "opacity": 0.45,
+        "z": 0
+      },
+      {
+        "type": "cobble_patch",
+        "x": 600,
+        "y": 1200,
+        "width": 100,
+        "height": 80,
+        "color": "#0f0f18",
+        "opacity": 0.45,
+        "z": 0
+      },
+      {
+        "type": "rect",
+        "x": 540,
+        "y": 440,
+        "width": 120,
+        "height": 80,
+        "color": "#1a1a24",
+        "z": 0
+      },
+      {
+        "type": "rect",
+        "x": 540,
+        "y": 440,
+        "width": 120,
+        "height": 4,
+        "color": "#3a3a4a",
+        "z": 1
+      },
+      {
+        "type": "rect",
+        "x": 540,
+        "y": 516,
+        "width": 120,
+        "height": 4,
+        "color": "#050508",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 600,
+        "y": 480,
+        "radius": 110,
+        "color": "rgba(220,60,60,0.35)",
+        "z": 1
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 600,
+        "y": 470,
+        "scale": 1.6,
+        "z": 470
+      },
+      {
+        "type": "crack",
+        "x": 460,
+        "y": 470,
+        "length": 80,
+        "angle": 30,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 740,
+        "y": 470,
+        "length": 80,
+        "angle": -30,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 600,
+        "y": 380,
+        "length": 100,
+        "angle": 0,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 600,
+        "y": 560,
+        "length": 100,
+        "angle": 0,
+        "z": 0
+      },
+      {
+        "type": "sprite",
+        "name": "bookshelf",
+        "x": 450,
+        "y": 300,
+        "scale": 1.4,
+        "z": 300
+      },
+      {
+        "type": "sprite",
+        "name": "bookshelf",
+        "x": 600,
+        "y": 260,
+        "scale": 1.4,
+        "z": 260
+      },
+      {
+        "type": "sprite",
+        "name": "bookshelf",
+        "x": 750,
+        "y": 300,
+        "scale": 1.4,
+        "z": 300
+      },
+      {
+        "type": "rect",
+        "x": 420,
+        "y": 340,
+        "width": 22,
+        "height": 8,
+        "color": "#c9a86a",
+        "opacity": 0.7,
+        "radius": "3px",
+        "z": 1
+      },
+      {
+        "type": "rect",
+        "x": 500,
+        "y": 380,
+        "width": 20,
+        "height": 6,
+        "color": "#c9a86a",
+        "opacity": 0.7,
+        "radius": "3px",
+        "z": 1
+      },
+      {
+        "type": "rect",
+        "x": 680,
+        "y": 360,
+        "width": 24,
+        "height": 7,
+        "color": "#c9a86a",
+        "opacity": 0.7,
+        "radius": "3px",
+        "z": 1
+      },
+      {
+        "type": "rect",
+        "x": 760,
+        "y": 340,
+        "width": 22,
+        "height": 8,
+        "color": "#c9a86a",
+        "opacity": 0.7,
+        "radius": "3px",
+        "z": 1
+      },
+      {
+        "type": "rect",
+        "x": 540,
+        "y": 400,
+        "width": 18,
+        "height": 6,
+        "color": "#c9a86a",
+        "opacity": 0.7,
+        "radius": "3px",
+        "z": 1
+      },
+      {
+        "type": "sprite",
+        "name": "wall_torch",
+        "x": 300,
+        "y": 260,
+        "scale": 1.4,
+        "z": 260
+      },
+      {
+        "type": "sprite",
+        "name": "wall_torch",
+        "x": 800,
+        "y": 260,
+        "scale": 1.4,
+        "z": 260
+      },
+      {
+        "type": "sprite",
+        "name": "wall_torch",
+        "x": 300,
+        "y": 660,
+        "scale": 1.4,
+        "z": 660
+      },
+      {
+        "type": "sprite",
+        "name": "wall_torch",
+        "x": 800,
+        "y": 660,
+        "scale": 1.4,
+        "z": 660
+      },
+      {
+        "type": "sprite",
+        "name": "wall_torch",
+        "x": 300,
+        "y": 1060,
+        "scale": 1.4,
+        "z": 1060
+      },
+      {
+        "type": "sprite",
+        "name": "wall_torch",
+        "x": 800,
+        "y": 1060,
+        "scale": 1.4,
+        "z": 1060
+      },
+      {
+        "type": "lantern_glow",
+        "x": 300,
+        "y": 260,
+        "radius": 130,
+        "color": "rgba(255,140,60,0.28)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 800,
+        "y": 260,
+        "radius": 130,
+        "color": "rgba(255,140,60,0.28)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 300,
+        "y": 660,
+        "radius": 130,
+        "color": "rgba(255,140,60,0.28)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 800,
+        "y": 660,
+        "radius": 130,
+        "color": "rgba(255,140,60,0.28)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 300,
+        "y": 1060,
+        "radius": 130,
+        "color": "rgba(255,140,60,0.28)",
+        "z": 1
+      },
+      {
+        "type": "lantern_glow",
+        "x": 800,
+        "y": 1060,
+        "radius": 130,
+        "color": "rgba(255,140,60,0.28)",
+        "z": 1
+      },
+      {
+        "type": "rect",
+        "x": 150,
+        "y": 1250,
+        "width": 90,
+        "height": 50,
+        "color": "#22c55e",
+        "opacity": 0.18,
+        "radius": "50%",
+        "z": 0
+      },
+      {
+        "type": "lantern_glow",
+        "x": 195,
+        "y": 1275,
+        "radius": 70,
+        "color": "rgba(80,255,120,0.16)",
+        "z": 1
+      },
+      {
+        "type": "rect",
+        "x": 960,
+        "y": 1250,
+        "width": 90,
+        "height": 50,
+        "color": "#22c55e",
+        "opacity": 0.18,
+        "radius": "50%",
+        "z": 0
+      },
+      {
+        "type": "lantern_glow",
+        "x": 1005,
+        "y": 1275,
+        "radius": 70,
+        "color": "rgba(80,255,120,0.16)",
+        "z": 1
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 180,
+        "y": 1200,
+        "scale": 1.3,
+        "z": 1200
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 220,
+        "y": 1240,
+        "scale": 1.4,
+        "z": 1240
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 980,
+        "y": 1200,
+        "scale": 1.3,
+        "z": 1200
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 1020,
+        "y": 1240,
+        "scale": 1.4,
+        "z": 1240
+      },
+      {
+        "type": "critter",
+        "variant": "slime",
+        "color": "#4c1d95",
+        "x": 400,
+        "y": 900
+      },
+      {
+        "type": "critter",
+        "variant": "slime",
+        "color": "#4c1d95",
+        "x": 800,
+        "y": 900
+      },
+      {
+        "type": "critter",
+        "variant": "slime",
+        "color": "#1e1b4b",
+        "x": 500,
+        "y": 1200
+      },
+      {
+        "type": "crack",
+        "x": 400,
+        "y": 500,
+        "length": 60,
+        "angle": 15,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 800,
+        "y": 500,
+        "length": 60,
+        "angle": -15,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 350,
+        "y": 900,
+        "length": 70,
+        "angle": 45,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 850,
+        "y": 900,
+        "length": 70,
+        "angle": -45,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 500,
+        "y": 1000,
+        "length": 80,
+        "angle": 0,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 700,
+        "y": 1000,
+        "length": 80,
+        "angle": 0,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 200,
+        "y": 500,
+        "length": 60,
+        "angle": 30,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 1000,
+        "y": 500,
+        "length": 60,
+        "angle": -30,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 500,
+        "y": 1350,
+        "length": 100,
+        "angle": 5,
+        "z": 0
+      },
+      {
+        "type": "crack",
+        "x": 700,
+        "y": 1350,
+        "length": 100,
+        "angle": -5,
+        "z": 0
+      },
+      {
+        "type": "puddle",
+        "x": 400,
+        "y": 200,
+        "size": 60,
+        "z": 0
+      },
+      {
+        "type": "puddle",
+        "x": 900,
+        "y": 300,
+        "size": 55,
+        "z": 0
+      },
+      {
+        "type": "puddle",
+        "x": 500,
+        "y": 700,
+        "size": 65,
+        "z": 0
+      },
+      {
+        "type": "puddle",
+        "x": 700,
+        "y": 1300,
+        "size": 60,
+        "z": 0
+      },
+      {
+        "type": "barrel",
+        "x": 180,
+        "y": 500,
+        "size": 40
+      },
+      {
+        "type": "crate",
+        "x": 220,
+        "y": 550,
+        "size": 40
+      },
+      {
+        "type": "barrel",
+        "x": 980,
+        "y": 500,
+        "size": 40
+      },
+      {
+        "type": "crate",
+        "x": 1020,
+        "y": 550,
+        "size": 40
+      },
+      {
+        "type": "barrel",
+        "x": 180,
+        "y": 900,
+        "size": 40
+      },
+      {
+        "type": "crate",
+        "x": 1020,
+        "y": 900,
+        "size": 40
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 240,
+        "y": 700,
+        "scale": 1.5,
+        "z": 700
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 960,
+        "y": 700,
+        "scale": 1.5,
+        "z": 700
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 260,
+        "y": 300,
+        "scale": 1.4,
+        "z": 300
+      },
+      {
+        "type": "sprite",
+        "name": "skull",
+        "x": 940,
+        "y": 300,
+        "scale": 1.4,
+        "z": 300
+      }
+    ]
+  }
+}

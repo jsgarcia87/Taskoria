@@ -88,9 +88,9 @@ const AdminWorldTools = ({ currentUser }) => {
                     const json = await res.json();
                     let designs = json.designs || [];
 
-                    // Fetch approved monsters to include in the Map Editor palette
+                    // Fetch all approved creations to include in the Map Editor palette
                     try {
-                        const mRes = await fetch(`api/creations.php?action=list_approved&category=monstruos`);
+                        const mRes = await fetch(`api/creations.php?action=list_approved`);
                         const mJson = await mRes.json();
                         if (mJson.success && mJson.items) {
                             designs = [...designs, ...mJson.items];

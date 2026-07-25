@@ -192,13 +192,11 @@ const GameContent = ({ currentUser, onLogout }) => {
             )}
           </AnimatePresence>
 
-          {state.showDailyRewardModal && (
-            <DailyRewardModal
-              isOpen={state.showDailyRewardModal}
-              data={state.dailyRewardData}
-              onClose={() => actions.closeDailyReward()}
-            />
-          )}
+          <DailyRewardModal
+            isOpen={!!state.showDailyRewardModal}
+            data={state.dailyRewardData}
+            onClose={() => actions.closeDailyReward()}
+          />
 
           {/* First-time tutorial — runs once per character */}
           {state.character && state.character.hasSeenTutorial === false && !state.showDailyRewardModal && !state.showLevelUpModal && (
@@ -290,8 +288,32 @@ const GameContent = ({ currentUser, onLogout }) => {
             {activeView === 'tasks' && (
               <motion.div key="tasks" {...VIEW_MOTION} className="col-span-12 space-y-4">
                 <h2 className="text-2xl font-heading font-bold text-rpg-gold mb-2 text-center text-shadow-glow md:hidden">QUEST LOG</h2>
-                <DailyMissions />
+
+                {/* Today's glance — compact quest summary strip */}
+                {activeTasks.length > 0 && (
+                  <div className="glass-card px-4 py-3 flex items-center gap-3 border-white/10">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-rpg-gold font-bold text-lg leading-none" style={{ fontFamily: "'VT323', monospace" }}>
+                        {activeTasks.filter(t => t.category !== 'chore').length}
+                      </span>
+                      <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Quests</span>
+                      <div className="w-px h-4 bg-white/10 mx-1" />
+                      <span className="text-orange-400 font-bold text-lg leading-none" style={{ fontFamily: "'VT323', monospace" }}>
+                        {activeTasks.filter(t => t.category === 'chore').length}
+                      </span>
+                      <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Chores</span>
+                    </div>
+                    {overdueOrDueTodayTasks.length > 0 && (
+                      <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 rounded-lg px-2.5 py-1 shrink-0">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                        <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">{overdueOrDueTodayTasks.length} due</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <TaskList isSidebar={false} setActiveView={setActiveView} />
+                <DailyMissions />
               </motion.div>
             )}
 
@@ -409,9 +431,20 @@ function App() {
   // When user logs in with email/pass
   const handleLogin = async (user) => {
     setCurrentUser(user);
-    // Persist session
-    localStorage.setItem('taskoria_session', JSON.stringify({ id: user.id, username: user.username, email: user.email }));
+    // Persist only the identity; the role is re-verified from the backend below
+    // so it's never served stale from cache.
+    localStorage.setItem('taskoria_session', JSON.stringify({ id: user.id, username: user.username }));
     setIsLoading(true);
+    // Verify the authoritative account record (admin role) on EVERY session load
+    // — fresh form logins already carry is_admin, but a persisted-session restore
+    // only has {id, username}, so without this the Admin tab flickers/disappears.
+    try {
+      const meRes = await fetch(`api/me.php?user_id=${user.id}`);
+      const me = await meRes.json();
+      if (me && me.success && me.user) {
+        setCurrentUser(prev => ({ ...(prev || user), ...me.user }));
+      }
+    } catch (e) { /* keep the optimistic user object */ }
     try {
       // 1. Check local cache first in case we are offline
       const localDataStr = localStorage.getItem('taskoria_family_data_' + user.id);

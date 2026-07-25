@@ -99,7 +99,7 @@ const CreationsModeration = ({ currentUser }) => {
                 {loading ? (
                     <div className="flex items-center justify-center py-10 text-rpg-gold"><Loader className="animate-spin" size={24}/></div>
                 ) : items.length === 0 ? (
-                    <div className="text-center text-gray-500 italic py-10">Nothing pending. The queue is empty!</div>
+                    <div className="text-center text-gray-500 py-10">The moderation hall stands quiet. No works await judgment.</div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {items.map(item => (

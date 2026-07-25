@@ -99,38 +99,70 @@ export const noise = (x, y, salt = 0) => ((x * 73856093) ^ (y * 19349663) ^ (sal
 // -----------------------------------------------------------------------------
 
 function oakTree() {
+    // Stardew-style oak: trunk runs INTO the canopy (no gap), canopy is an
+    // irregular clumped mass with a scalloped dark underside, light from
+    // the upper-left.
     const w = 48, h = 64;
     const buf = makeBuf(w, h);
     const set = setter(buf, w, h);
-    rect(buf, w, h, 21, 44, 7, 20, PAL.woodBase);
-    rect(buf, w, h, 22, 44, 5, 20, PAL.woodMid);
-    rect(buf, w, h, 23, 44, 1, 20, PAL.woodHi);
-    rect(buf, w, h, 27, 44, 1, 20, PAL.woodDark);
-    rect(buf, w, h, 21, 44, 7, 2, PAL.woodDark);
-    rect(buf, w, h, 22, 46, 5, 1, PAL.woodBase);
-    set(20, 62, PAL.woodBase); set(20, 63, PAL.woodBase);
-    set(28, 62, PAL.woodBase); set(28, 63, PAL.woodBase);
-    set(19, 63, PAL.woodDark); set(29, 63, PAL.woodDark);
-    set(23, 48, PAL.woodDark); set(25, 52, PAL.woodDark); set(24, 56, PAL.woodDark);
-    set(26, 50, PAL.woodHi); set(24, 54, PAL.woodHi);
-    disc(buf, w, h, 24, 22, 18, PAL.leafShade);
-    disc(buf, w, h, 24, 22, 17, PAL.leafDark);
-    disc(buf, w, h, 22, 24, 14, PAL.leafBase);
-    disc(buf, w, h, 28, 18, 10, PAL.leafBase);
-    disc(buf, w, h, 18, 18, 9, PAL.leafMid);
-    disc(buf, w, h, 30, 26, 7, PAL.leafMid);
-    disc(buf, w, h, 24, 12, 6, PAL.leafMid);
-    disc(buf, w, h, 18, 14, 5, PAL.leafHi);
-    disc(buf, w, h, 26, 10, 3, PAL.leafHi);
-    disc(buf, w, h, 14, 22, 3, PAL.leafHi);
-    set(20, 10, PAL.leafSpot); set(15, 16, PAL.leafSpot);
-    set(28, 8, PAL.leafSpot); set(12, 20, PAL.leafSpot);
-    for (let i = 0; i < 30; i++) {
+    // --- Trunk: wide with root flare, reaching up to y=30 (under canopy) ---
+    for (let y = 30; y < 64; y++) {
+        const flare = y > 58 ? (y - 58) : 0;
+        const half = 4 + Math.floor(flare * 0.8);
+        rect(buf, w, h, 24 - half, y, half * 2, 1, PAL.woodMid);
+        set(24 - half, y, PAL.woodDark);
+        set(23 + half, y, PAL.woodDark);
+        set(23 - half + 2, y, PAL.woodHi);
+    }
+    // Bark grain
+    set(23, 40, PAL.woodDark); set(25, 46, PAL.woodDark); set(22, 52, PAL.woodDark);
+    set(24, 44, PAL.woodDark); set(26, 56, PAL.woodDark);
+    set(25, 38, PAL.woodHi); set(23, 50, PAL.woodHi);
+    // A visible side branch entering the canopy
+    rect(buf, w, h, 28, 30, 6, 2, PAL.woodBase);
+    set(34, 29, PAL.woodBase); set(35, 28, PAL.woodDark);
+    // --- Canopy: clumped mass, y 2..40, swallowing the trunk top ---
+    // Dark silhouette base (irregular, made of overlapping discs)
+    disc(buf, w, h, 24, 20, 17, PAL.leafShade);
+    disc(buf, w, h, 13, 24, 9, PAL.leafShade);
+    disc(buf, w, h, 36, 24, 9, PAL.leafShade);
+    disc(buf, w, h, 18, 32, 8, PAL.leafShade);
+    disc(buf, w, h, 31, 32, 8, PAL.leafShade);
+    // Scalloped underside: eat notches out of the bottom edge
+    for (let x = 8; x < 41; x += 5) {
+        const dip = 38 + ((noise(x, 3, 2) % 3));
+        for (let y = dip; y < 42; y++) {
+            if (Math.abs(x - 24) > 3) { // keep leaves over the trunk joint
+                if (buf[y * w + x] === PAL.leafShade) buf[y * w + x] = 'transparent';
+                if (buf[y * w + x + 1] === PAL.leafShade) buf[y * w + (x + 1)] = 'transparent';
+            }
+        }
+    }
+    // Body volume
+    disc(buf, w, h, 23, 19, 14, PAL.leafDark);
+    disc(buf, w, h, 15, 25, 7, PAL.leafDark);
+    disc(buf, w, h, 33, 26, 7, PAL.leafDark);
+    disc(buf, w, h, 21, 17, 11, PAL.leafBase);
+    disc(buf, w, h, 31, 21, 7, PAL.leafBase);
+    disc(buf, w, h, 14, 22, 5, PAL.leafBase);
+    // Light side (upper-left)
+    disc(buf, w, h, 17, 13, 7, PAL.leafMid);
+    disc(buf, w, h, 27, 10, 5, PAL.leafMid);
+    disc(buf, w, h, 12, 18, 4, PAL.leafMid);
+    disc(buf, w, h, 16, 10, 3, PAL.leafHi);
+    disc(buf, w, h, 24, 7, 2, PAL.leafHi);
+    // Leaf sparkle
+    set(13, 12, PAL.leafSpot); set(20, 6, PAL.leafSpot);
+    set(30, 9, PAL.leafSpot); set(10, 20, PAL.leafSpot); set(36, 18, PAL.leafSpot);
+    // Clump texture: dithered dark specks in the midtones
+    for (let i = 0; i < 40; i++) {
         const n = noise(i, 7);
         const x = 8 + (n % 32);
         const y = 6 + ((n >> 5) % 30);
         if (buf[y * w + x] === PAL.leafBase) buf[y * w + x] = PAL.leafDark;
     }
+    // Shadow arc where canopy meets trunk (grounds the join)
+    rect(buf, w, h, 18, 33, 13, 2, PAL.leafShade);
     return { w, h, buffer: buf };
 }
 
@@ -527,47 +559,74 @@ function marketStall(accent) {
 }
 
 function shopBuilding() {
+    // Tilted top-down (Stardew) anatomy: the ROOF PLANE seen from above takes
+    // the top ~55%, then an eave shadow line, then a SHORT half-timber facade.
     const w = 80, h = 60;
     const buf = makeBuf(w, h);
     const set = setter(buf, w, h);
-    rect(buf, w, h, 0, 52, 80, 8, PAL.stoneDark);
+    // --- Roof plane (y 2..30): shingle rows, lighter at the ridge ---
+    rect(buf, w, h, 0, 2, 80, 28, PAL.redBase);
+    for (let y = 4; y < 30; y += 4) {
+        rect(buf, w, h, 0, y, 80, 1, PAL.redDark);
+        // Staggered shingle ticks
+        for (let x = ((y / 4) % 2) * 4; x < 80; x += 8) set(x, y + 2, PAL.redDark);
+    }
+    // Ridge cap + highlight band under it
+    rect(buf, w, h, 0, 2, 80, 2, PAL.redDark);
+    rect(buf, w, h, 0, 4, 80, 2, PAL.redHi);
+    // Side shading: right edge in shadow, left lit
+    rect(buf, w, h, 78, 2, 2, 28, PAL.redDark);
+    rect(buf, w, h, 0, 2, 1, 28, PAL.redHi);
+    // Weathering specks
+    for (let i = 0; i < 14; i++) {
+        const n = noise(i, 11);
+        set(2 + (n % 76), 6 + ((n >> 6) % 22), PAL.redDark);
+    }
+    // --- Chimney sitting ON the roof plane (top-right) ---
+    rect(buf, w, h, 60, 0, 8, 8, PAL.stoneBase);
+    rect(buf, w, h, 59, 0, 10, 2, PAL.stoneDark);
+    rect(buf, w, h, 60, 2, 2, 6, PAL.stoneHi);
+    rect(buf, w, h, 66, 2, 2, 6, PAL.stoneShade);
+    rect(buf, w, h, 61, 8, 6, 2, PAL.stoneShade);
+    // --- Eave: overhang shadow onto the facade ---
+    rect(buf, w, h, 0, 30, 80, 2, PAL.outline);
+    rect(buf, w, h, 1, 32, 78, 2, 'rgba(0,0,0,0.35)');
+    // --- Facade (y 32..52): plaster + dark timber frame ---
+    rect(buf, w, h, 2, 32, 76, 20, PAL.woodLite);
+    // Vertical beams
+    for (let x = 2; x <= 74; x += 12) rect(buf, w, h, x, 32, 2, 20, PAL.woodDark);
+    rect(buf, w, h, 76, 32, 2, 20, PAL.woodDark);
+    // Horizontal beam mid-facade
+    rect(buf, w, h, 2, 41, 76, 1, PAL.woodDark);
+    // Plaster shading under the eave
+    rect(buf, w, h, 4, 34, 72, 1, PAL.woodMid);
+    // --- Door (center, arched) ---
+    rect(buf, w, h, 35, 38, 12, 14, PAL.woodDark);
+    rect(buf, w, h, 36, 37, 10, 1, PAL.woodDark);
+    rect(buf, w, h, 36, 39, 10, 13, PAL.woodBase);
+    rect(buf, w, h, 37, 39, 1, 13, PAL.woodHi);
+    rect(buf, w, h, 40, 40, 1, 12, PAL.woodDark);
+    rect(buf, w, h, 43, 40, 1, 12, PAL.woodDark);
+    set(44, 45, PAL.brassHi); set(44, 46, PAL.brassBase);
+    // --- Windows: warm candlelit glass, timber sills ---
+    rect(buf, w, h, 12, 36, 12, 9, PAL.woodDark);
+    rect(buf, w, h, 13, 37, 10, 7, '#e8c060');
+    rect(buf, w, h, 13, 40, 10, 1, PAL.woodDark);
+    rect(buf, w, h, 17, 37, 1, 7, PAL.woodDark);
+    rect(buf, w, h, 13, 37, 3, 2, '#f8e0a0');
+    rect(buf, w, h, 11, 45, 14, 2, PAL.woodBase);
+    rect(buf, w, h, 56, 36, 12, 9, PAL.woodDark);
+    rect(buf, w, h, 57, 37, 10, 7, '#e8c060');
+    rect(buf, w, h, 57, 40, 10, 1, PAL.woodDark);
+    rect(buf, w, h, 61, 37, 1, 7, PAL.woodDark);
+    rect(buf, w, h, 57, 37, 3, 2, '#f8e0a0');
+    rect(buf, w, h, 55, 45, 14, 2, PAL.woodBase);
+    // --- Stone foundation (y 52..58) ---
+    rect(buf, w, h, 0, 52, 80, 6, PAL.stoneDark);
     rect(buf, w, h, 0, 52, 80, 1, PAL.stoneBase);
-    rect(buf, w, h, 2, 22, 76, 32, PAL.woodLite);
-    for (let x = 4; x < 78; x += 6) rect(buf, w, h, x, 22, 1, 30, PAL.woodMid);
-    rect(buf, w, h, 2, 22, 76, 2, PAL.woodBase);
-    rect(buf, w, h, 2, 23, 76, 1, PAL.woodDark);
-    rect(buf, w, h, 2, 36, 76, 2, PAL.woodBase);
-    rect(buf, w, h, 2, 36, 76, 1, PAL.woodHi);
-    for (let r = 0; r < 18; r++) {
-        const rw = 80 - r * 2;
-        rect(buf, w, h, r, 22 - r, rw, 1, (r % 2 === 0) ? PAL.redDark : PAL.redBase);
-    }
-    for (let r = 0; r < 18; r += 3) {
-        rect(buf, w, h, r, 22 - r, 80 - r * 2, 1, PAL.redHi);
-    }
-    rect(buf, w, h, 60, 0, 6, 12, PAL.stoneBase);
-    rect(buf, w, h, 60, 0, 6, 1, PAL.stoneShade);
-    rect(buf, w, h, 59, 0, 8, 2, PAL.stoneDark);
-    rect(buf, w, h, 36, 38, 10, 14, PAL.woodDark);
-    rect(buf, w, h, 36, 38, 10, 1, PAL.woodBase);
-    rect(buf, w, h, 36, 38, 1, 14, PAL.woodHi);
-    rect(buf, w, h, 38, 41, 1, 8, PAL.woodMid);
-    rect(buf, w, h, 42, 41, 1, 8, PAL.woodMid);
-    set(44, 45, PAL.brassHi);
-    rect(buf, w, h, 12, 30, 14, 10, PAL.ironDark);
-    rect(buf, w, h, 13, 31, 12, 8, PAL.blueHi);
-    rect(buf, w, h, 19, 31, 1, 8, PAL.ironBase);
-    rect(buf, w, h, 13, 35, 12, 1, PAL.ironBase);
-    rect(buf, w, h, 54, 30, 14, 10, PAL.ironDark);
-    rect(buf, w, h, 55, 31, 12, 8, PAL.blueHi);
-    rect(buf, w, h, 61, 31, 1, 8, PAL.ironBase);
-    rect(buf, w, h, 55, 35, 12, 1, PAL.ironBase);
-    rect(buf, w, h, 12, 29, 14, 1, PAL.woodBase);
-    rect(buf, w, h, 12, 40, 14, 1, PAL.woodBase);
-    rect(buf, w, h, 54, 29, 14, 1, PAL.woodBase);
-    rect(buf, w, h, 54, 40, 14, 1, PAL.woodBase);
-    rect(buf, w, h, 32, 37, 18, 2, PAL.redBase);
-    rect(buf, w, h, 33, 36, 16, 1, PAL.redHi);
+    for (let x = 3; x < 78; x += 7) set(x, 54 + (x % 3), PAL.stoneBase);
+    // Door step
+    rect(buf, w, h, 34, 52, 14, 3, PAL.stoneMid);
     return { w, h, buffer: buf };
 }
 
@@ -987,6 +1046,229 @@ function stoneFloorPatch() {
     return { w, h, buffer: buf };
 }
 
+function ledgarStatue() {
+    // Ledgar, First Archivist of the Council — hooded stone figure holding an
+    // open ledger at chest height, atop a two-step pedestal. Town landmark.
+    const w = 36, h = 58;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Pedestal: two steps
+    rect(buf, w, h, 2, 50, 32, 7, PAL.stoneBase);
+    rect(buf, w, h, 2, 50, 32, 1, PAL.stoneHi);
+    rect(buf, w, h, 2, 56, 32, 1, PAL.stoneShade);
+    rect(buf, w, h, 7, 45, 22, 5, PAL.stoneMid);
+    rect(buf, w, h, 7, 45, 22, 1, PAL.stoneHi);
+    // Engraved brass plaque on the lower step
+    rect(buf, w, h, 14, 52, 8, 3, PAL.brassDark);
+    rect(buf, w, h, 15, 53, 6, 1, PAL.brassBase);
+    // Robe: A-shaped taper, wide hem to narrow shoulders
+    for (let y = 0; y < 24; y++) {
+        const half = 4 + Math.round(y * 0.32);
+        rect(buf, w, h, 18 - half, 21 + y, half * 2, 1, PAL.stoneMid);
+    }
+    // Shading: left lit, right shadowed
+    for (let y = 2; y < 24; y++) {
+        const half = 4 + Math.round(y * 0.32);
+        set(18 - half, 21 + y, PAL.stoneHi);
+        set(17 + half, 21 + y, PAL.stoneDark);
+        set(16 + half, 21 + y, PAL.stoneDark);
+    }
+    // Central robe fold
+    rect(buf, w, h, 18, 34, 1, 11, PAL.stoneDark);
+    // Hem shadow on the pedestal
+    rect(buf, w, h, 9, 44, 18, 1, PAL.stoneShade);
+    // Hood: rounded, clearly wider than the neck
+    disc(buf, w, h, 18, 15, 6, PAL.stoneMid);
+    rect(buf, w, h, 12, 15, 12, 5, PAL.stoneMid);
+    disc(buf, w, h, 16, 12, 3, PAL.stoneHi);
+    // Deep face shadow inside the hood
+    rect(buf, w, h, 15, 14, 7, 5, PAL.stoneShade);
+    rect(buf, w, h, 16, 15, 5, 3, '#26262c');
+    // Hood drapes onto shoulders
+    rect(buf, w, h, 11, 20, 14, 2, PAL.stoneDark);
+    // Arms angled in from the sides, meeting under the book
+    rect(buf, w, h, 10, 26, 3, 6, PAL.stoneMid);
+    rect(buf, w, h, 23, 26, 3, 6, PAL.stoneMid);
+    set(10, 26, PAL.stoneHi); set(25, 26, PAL.stoneDark);
+    // Open ledger: parchment pages spread wider than the body
+    rect(buf, w, h, 7, 29, 22, 7, PAL.brassDark);
+    rect(buf, w, h, 8, 30, 9, 5, PAL.white);
+    rect(buf, w, h, 19, 30, 9, 5, PAL.white);
+    rect(buf, w, h, 17, 29, 2, 7, PAL.brassDark);
+    // Page bottom shade + text lines
+    rect(buf, w, h, 8, 34, 9, 1, '#d8ccb0');
+    rect(buf, w, h, 19, 34, 9, 1, '#d8ccb0');
+    rect(buf, w, h, 9, 31, 6, 1, PAL.stoneDark);
+    rect(buf, w, h, 20, 31, 6, 1, PAL.stoneDark);
+    rect(buf, w, h, 9, 33, 5, 1, PAL.stoneDark);
+    rect(buf, w, h, 20, 33, 5, 1, PAL.stoneDark);
+    // Weathering: moss at the base, worn hood top
+    set(4, 51, PAL.leafDark); set(5, 51, PAL.leafBase);
+    set(30, 52, PAL.leafDark); set(29, 55, PAL.leafBase);
+    set(8, 48, PAL.leafDark); set(27, 46, PAL.leafDark);
+    return { w, h, buffer: buf };
+}
+
+function barrelTipped() {
+    // A barrel on its side, lid off, apples spilled — market mishap microstory.
+    const w = 34, h = 20;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Body lying horizontally
+    rect(buf, w, h, 2, 4, 20, 13, PAL.woodMid);
+    rect(buf, w, h, 2, 4, 20, 2, PAL.woodHi);
+    rect(buf, w, h, 2, 15, 20, 2, PAL.woodDark);
+    // Iron hoops (vertical now)
+    rect(buf, w, h, 5, 4, 2, 13, PAL.ironDark);
+    rect(buf, w, h, 16, 4, 2, 13, PAL.ironDark);
+    rect(buf, w, h, 5, 4, 1, 13, PAL.ironHi);
+    rect(buf, w, h, 16, 4, 1, 13, PAL.ironHi);
+    // Open mouth (dark interior ellipse facing right)
+    ellipse(buf, w, h, 22, 10, 3, 7, PAL.woodDark);
+    ellipse(buf, w, h, 22, 10, 2, 5, PAL.outline);
+    // Plank seams
+    rect(buf, w, h, 8, 8, 8, 1, PAL.woodDark);
+    rect(buf, w, h, 8, 12, 8, 1, PAL.woodDark);
+    // Spilled apples rolling out
+    disc(buf, w, h, 26, 12, 2, PAL.redBase); set(25, 11, PAL.redHi);
+    disc(buf, w, h, 30, 15, 2, PAL.redBase); set(29, 14, PAL.redHi);
+    disc(buf, w, h, 27, 17, 1, PAL.redDark);
+    set(26, 9, PAL.leafDark); set(30, 12, PAL.leafDark);
+    // Ground shadow
+    ellipse(buf, w, h, 12, 18, 11, 1, PAL.shadow);
+    return { w, h, buffer: buf };
+}
+
+function catSleeping() {
+    // Curled-up sleeping cat — shopkeeper's ginger mouser.
+    const w = 20, h = 12;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    const furDark = '#8a4a18', furBase = '#c07030', furHi = '#e09a50';
+    // Curled body
+    ellipse(buf, w, h, 10, 7, 8, 4, furBase);
+    ellipse(buf, w, h, 10, 6, 7, 3, furHi);
+    rect(buf, w, h, 3, 9, 14, 2, furDark);
+    // Tail wrapped around the front
+    rect(buf, w, h, 3, 8, 10, 2, furDark);
+    set(2, 8, furDark); set(2, 7, furBase);
+    // Head resting on paws (right side)
+    ellipse(buf, w, h, 14, 6, 4, 3, furBase);
+    // Ears
+    set(12, 2, furDark); set(13, 3, furBase);
+    set(16, 2, furDark); set(16, 3, furBase);
+    // Closed eyes + nose
+    set(13, 5, PAL.outline); set(16, 5, PAL.outline);
+    set(15, 7, '#e87aa8');
+    // Stripes
+    set(7, 4, furDark); set(9, 4, furDark); set(11, 4, furDark);
+    return { w, h, buffer: buf };
+}
+
+function councilBoard() {
+    // Council notice board — roofed post board plastered with quest papers.
+    const w = 44, h = 48;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Posts
+    rect(buf, w, h, 4, 14, 4, 32, PAL.woodBase);
+    rect(buf, w, h, 36, 14, 4, 32, PAL.woodBase);
+    rect(buf, w, h, 4, 14, 1, 32, PAL.woodHi);
+    rect(buf, w, h, 39, 14, 1, 32, PAL.woodDark);
+    // Little shingle roof
+    rect(buf, w, h, 0, 6, 44, 3, PAL.woodDark);
+    rect(buf, w, h, 2, 4, 40, 3, PAL.woodMid);
+    rect(buf, w, h, 2, 4, 40, 1, PAL.woodHi);
+    // Board panel
+    rect(buf, w, h, 6, 10, 32, 26, PAL.woodMid);
+    rect(buf, w, h, 6, 10, 32, 1, PAL.woodLite);
+    rect(buf, w, h, 6, 35, 32, 1, PAL.woodDark);
+    rect(buf, w, h, 6, 10, 1, 26, PAL.woodHi);
+    rect(buf, w, h, 37, 10, 1, 26, PAL.woodDark);
+    // Pinned papers, slightly askew
+    rect(buf, w, h, 9, 13, 8, 10, PAL.white);
+    rect(buf, w, h, 10, 15, 6, 1, PAL.stoneDark);
+    rect(buf, w, h, 10, 17, 5, 1, PAL.stoneDark);
+    rect(buf, w, h, 10, 19, 6, 1, PAL.stoneDark);
+    set(12, 13, PAL.redBase);
+    rect(buf, w, h, 20, 12, 9, 12, '#e8dcb8');
+    rect(buf, w, h, 21, 14, 7, 1, PAL.stoneDark);
+    rect(buf, w, h, 21, 16, 6, 1, PAL.stoneDark);
+    rect(buf, w, h, 21, 18, 7, 1, PAL.stoneDark);
+    rect(buf, w, h, 21, 20, 4, 1, PAL.stoneDark);
+    set(24, 12, PAL.redBase);
+    rect(buf, w, h, 31, 14, 5, 8, PAL.white);
+    rect(buf, w, h, 32, 16, 3, 1, PAL.stoneDark);
+    set(33, 14, PAL.redBase);
+    // One paper half torn, corner hanging
+    rect(buf, w, h, 12, 26, 7, 7, '#e8dcb8');
+    rect(buf, w, h, 13, 28, 5, 1, PAL.stoneDark);
+    set(12, 33, '#e8dcb8'); set(11, 34, '#d8c8a0');
+    // Council seal (brass) on the frame
+    disc(buf, w, h, 28, 30, 3, PAL.brassBase);
+    set(28, 30, PAL.brassDark); set(27, 29, PAL.brassHi);
+    return { w, h, buffer: buf };
+}
+
+function ancientTree() {
+    // The Elderwood — massive gnarled oak, Mystic Forest landmark. Wide
+    // canopy in three greens, thick knotted trunk with a face-like hollow,
+    // spreading roots, and faint carved runes that glow brass.
+    const w = 56, h = 72;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    // Root flare
+    rect(buf, w, h, 16, 66, 24, 4, PAL.woodDark);
+    rect(buf, w, h, 12, 68, 8, 3, PAL.woodDark);
+    rect(buf, w, h, 36, 68, 8, 3, PAL.woodDark);
+    rect(buf, w, h, 14, 67, 4, 2, PAL.woodBase);
+    rect(buf, w, h, 38, 67, 4, 2, PAL.woodBase);
+    // Trunk: thick, tapering upward, gnarled edges
+    for (let y = 0; y < 30; y++) {
+        const half = 8 - Math.round(y * 0.12) + ((noise(3, y, 9) % 3) - 1);
+        rect(buf, w, h, 28 - half, 38 + y, half * 2, 1, PAL.woodBase);
+        set(28 - half, 38 + y, PAL.woodDark);
+        set(27 + half, 38 + y, PAL.woodDark);
+        set(29 - half, 38 + y, PAL.woodMid);
+    }
+    // Bark grain
+    for (let y = 40; y < 66; y += 2) {
+        set(24 + (noise(1, y, 5) % 3), y, PAL.woodDark);
+        set(30 + (noise(2, y, 7) % 3), y, PAL.woodDark);
+    }
+    // Face-like hollow in the trunk
+    ellipse(buf, w, h, 28, 50, 4, 5, PAL.woodDark);
+    ellipse(buf, w, h, 28, 50, 3, 4, '#1a0e08');
+    set(26, 48, PAL.woodDark); set(30, 48, PAL.woodDark);
+    // Carved runes, faint brass glow
+    set(22, 56, PAL.brassBase); set(22, 57, PAL.brassDark);
+    set(34, 54, PAL.brassBase); set(34, 55, PAL.brassDark); set(35, 54, PAL.brassDark);
+    set(24, 62, PAL.brassDark); set(25, 62, PAL.brassBase);
+    // Canopy: three stacked blobs, dark to light
+    disc(buf, w, h, 28, 22, 22, PAL.leafShade);
+    disc(buf, w, h, 14, 26, 12, PAL.leafShade);
+    disc(buf, w, h, 42, 26, 12, PAL.leafShade);
+    disc(buf, w, h, 28, 18, 18, PAL.leafDark);
+    disc(buf, w, h, 16, 24, 9, PAL.leafDark);
+    disc(buf, w, h, 40, 24, 9, PAL.leafDark);
+    disc(buf, w, h, 24, 14, 12, PAL.leafBase);
+    disc(buf, w, h, 38, 18, 8, PAL.leafBase);
+    disc(buf, w, h, 20, 10, 7, PAL.leafMid);
+    disc(buf, w, h, 34, 12, 6, PAL.leafMid);
+    // Light spots on the crown
+    set(18, 6, PAL.leafHi); set(19, 6, PAL.leafHi); set(18, 7, PAL.leafHi);
+    set(30, 8, PAL.leafHi); set(31, 8, PAL.leafHi);
+    set(24, 4, PAL.leafSpot); set(36, 10, PAL.leafSpot); set(12, 20, PAL.leafSpot);
+    set(44, 22, PAL.leafHi); set(10, 28, PAL.leafHi);
+    // Canopy underside shadow meeting the trunk
+    rect(buf, w, h, 20, 36, 16, 2, PAL.leafShade);
+    // Hanging vine strands
+    rect(buf, w, h, 10, 32, 1, 8, PAL.leafDark); set(10, 40, PAL.leafBase);
+    rect(buf, w, h, 46, 30, 1, 10, PAL.leafDark); set(46, 40, PAL.leafBase);
+    rect(buf, w, h, 38, 34, 1, 6, PAL.leafDark); set(38, 40, PAL.leafMid);
+    return { w, h, buffer: buf };
+}
+
 // -----------------------------------------------------------------------------
 //  Registry — single export consumed by both game and editor
 // -----------------------------------------------------------------------------
@@ -1030,6 +1312,186 @@ export const SPRITE_REGISTRY = {
     armor_stand: armorStand(),
     floor_patch: stoneFloorPatch(),
     skull: pixelSkull(),
+    ledgar_statue: ledgarStatue(),
+    barrel_tipped: barrelTipped(),
+    cat_sleeping: catSleeping(),
+    council_board: councilBoard(),
+    ancient_tree: ancientTree(),
+};
+
+// -----------------------------------------------------------------------------
+//  FLOOR TILES — the 5 real game floors, mirrored from sprites.jsx so the map
+//  editor can paint WYSIWYG ground. Each is a flat 64×64 buffer of hex strings.
+//  Keys match the runtime tileSprite keys, so a saved map's floor renders in the
+//  game exactly as painted.
+// -----------------------------------------------------------------------------
+
+function floorCobblestone() {
+    const S = 64, MORTAR = '#6d5f4e', buf = new Array(S * S).fill(MORTAR);
+    const tones = [
+        { base: '#7d6e5a', hi: '#8a7a64', sh: '#6f6150' },
+        { base: '#847462', hi: '#90806c', sh: '#746556' },
+        { base: '#78695a', hi: '#847460', sh: '#6a5c4e' },
+        { base: '#81715c', hi: '#8e7d68', sh: '#726352' },
+    ];
+    const set = (x, y, c) => { if (x >= 0 && x < S && y >= 0 && y < S) buf[y * S + x] = c; };
+    const stone = (sx, sy, w, h, t) => {
+        for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
+            if ((dx === 0 || dx === w - 1) && (dy === 0 || dy === h - 1)) continue;
+            let c = t.base;
+            if (dy === 0) c = t.hi; else if (dy === h - 1) c = t.sh;
+            const seed = ((sx + dx) * 13 + (sy + dy) * 7) % 17;
+            if (seed === 0) c = t.sh; else if (seed === 1) c = t.hi;
+            set(sx + dx, sy + dy, c);
+        }
+    };
+    for (let row = 0; row < 8; row++) {
+        const offset = (row % 2) * 4;
+        for (let col = -1; col < 9; col++) {
+            const x = col * 8 + offset, y = row * 8;
+            const n = ((row * 31 + col * 17) >>> 0) % 23;
+            const t = tones[(row * 3 + col + 7) % tones.length];
+            stone(x + 1, y + 1, 7 - (n % 2), 7 - ((n >> 2) % 2), t);
+        }
+    }
+    return buf;
+}
+
+function floorStone() {
+    const S = 64, buf = new Array(S * S).fill('#2a2a3a');
+    const tones = [
+        { base: '#454a74', hi: '#666c9c', sh: '#282c50' },
+        { base: '#3c4166', hi: '#5c628c', sh: '#20223e' },
+        { base: '#4a507c', hi: '#6c72a4', sh: '#2e325c' },
+        { base: '#42476e', hi: '#626892', sh: '#262a4c' },
+    ];
+    const set = (x, y, c) => { if (x >= 0 && x < S && y >= 0 && y < S) buf[y * S + x] = c; };
+    const stone = (sx, sy, w, h, t) => {
+        for (let dy = 1; dy < h - 1; dy++) for (let dx = 1; dx < w - 1; dx++) {
+            let c = t.base;
+            if (dy === 1 || dx === 1) c = t.hi; else if (dy >= h - 2 || dx >= w - 2) c = t.sh;
+            const seed = ((sx + dx) * 17 + (sy + dy) * 11) % 13;
+            if (seed === 0) c = t.sh; else if (seed === 1) c = t.hi;
+            set(sx + dx, sy + dy, c);
+        }
+    };
+    for (let row = 0; row < 4; row++) {
+        const offset = (row % 2) * 16;
+        for (let col = -1; col < 4; col++) {
+            const t = tones[(row * 2 + col + 6) % tones.length];
+            stone(col * 32 + offset, row * 16, 32, 16, t);
+        }
+    }
+    return buf;
+}
+
+function floorGrass() {
+    const S = 64, buf = new Array(S * S).fill('#166534');
+    const tones = [
+        { base: '#166534', hi: '#15803d', sh: '#14532d' },
+        { base: '#15803d', hi: '#16a34a', sh: '#166534' },
+        { base: '#14532d', hi: '#166534', sh: '#052e16' },
+    ];
+    const set = (x, y, c) => { if (x >= 0 && x < S && y >= 0 && y < S) buf[y * S + x] = c; };
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const seed = (x * 13 + y * 7 + x * y * 3) % 17;
+        const t = tones[seed % tones.length];
+        let c = t.base;
+        if (seed < 3) c = t.hi; else if (seed > 14) c = t.sh;
+        set(x, y, c);
+    }
+    [5, 12, 19, 27, 34, 41, 49, 56, 8, 22, 38, 52].forEach(bx => {
+        const height = 3 + ((bx * 7) % 4), by = S - height - ((bx * 3) % 6);
+        for (let i = 0; i < height; i++) { set(bx, by + i, '#22c55e'); if (i === 0) set(bx - 1, by + 1, '#16a34a'); }
+    });
+    [[10, 10], [30, 45], [55, 20], [20, 55], [48, 35]].forEach(([fx, fy]) => { set(fx, fy, '#fbbf24'); set(fx + 1, fy, '#fbbf24'); });
+    return buf;
+}
+
+function floorDungeon() {
+    const S = 64, buf = new Array(S * S).fill('#0a0a14');
+    const set = (x, y, c) => { if (x >= 0 && x < S && y >= 0 && y < S) buf[y * S + x] = c; };
+    const tones = [
+        { base: '#1a1a2e', hi: '#252540', sh: '#0a0a14' },
+        { base: '#16162a', hi: '#202038', sh: '#080810' },
+    ];
+    for (let row = 0; row < 4; row++) {
+        const offset = (row % 2) * 16;
+        for (let col = -1; col < 4; col++) {
+            const x = col * 32 + offset, y = row * 16, t = tones[(row + col + 4) % tones.length];
+            for (let dy = 1; dy < 15; dy++) for (let dx = 1; dx < 31; dx++) {
+                let c = t.base;
+                if (dy === 1 || dx === 1) c = t.hi; else if (dy >= 14 || dx >= 30) c = t.sh;
+                set(x + dx, y + dy, c);
+            }
+        }
+    }
+    [[20, 8, 8], [44, 28, 6], [10, 44, 5], [50, 50, 7]].forEach(([cx, cy, len]) => {
+        for (let i = 0; i < len; i++) set(cx + i, cy + (i % 3 === 0 ? 1 : 0), '#0a0a14');
+    });
+    [[15, 32], [48, 16], [32, 48]].forEach(([mx, my]) => { set(mx, my, '#12122a'); set(mx + 1, my, '#12122a'); set(mx, my + 1, '#12122a'); });
+    return buf;
+}
+
+function floorWood() {
+    const S = 64, buf = new Array(S * S).fill('#3d261b');
+    const set = (x, y, c) => { if (x >= 0 && x < S && y >= 0 && y < S) buf[y * S + x] = c; };
+    const PLANK_H = 8;
+    const tones = [
+        { base: '#4a3225', hi: '#5c3e2e', sh: '#3d261b', grain: '#3a2218' },
+        { base: '#3d261b', hi: '#4a3225', sh: '#2e1a10', grain: '#2a1610' },
+        { base: '#4f3628', hi: '#614030', sh: '#3d261b', grain: '#3a2218' },
+        { base: '#422b1c', hi: '#52351f', sh: '#33200f', grain: '#2a1610' },
+    ];
+    for (let row = 0; row < 8; row++) {
+        const t = tones[row % tones.length];
+        for (let dy = 0; dy < PLANK_H; dy++) for (let x = 0; x < S; x++) {
+            const y = row * PLANK_H + dy;
+            let c = t.base;
+            if (dy === 0) c = t.hi;
+            if (dy === PLANK_H - 1) c = t.sh;
+            const veta = (x * 3 + row * 7) % 19;
+            if (veta === 0 || veta === 1) c = t.grain;
+            set(x, y, c);
+        }
+    }
+    return buf;
+}
+
+function floorWater() {
+    const S = 64, buf = new Array(S * S).fill('#2a5a8a');
+    const tones = ['#2a5a8a', '#3468a0', '#3f78b4', '#5a90c8'];
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const n = (x * 7 + y * 13 + Math.floor(y / 4) * 3) % 11;
+        let c = tones[0];
+        if (n < 2) c = tones[3]; else if (n < 4) c = tones[2]; else if (n < 7) c = tones[1];
+        buf[y * S + x] = c;
+    }
+    for (let ry = 6; ry < S; ry += 12) for (let x = 2; x < S - 2; x++) if ((x + ry) % 7 < 3) buf[ry * S + x] = '#7aa8d8';
+    return buf;
+}
+
+function floorDirt() {
+    const S = 64, buf = new Array(S * S).fill('#b89868');
+    const tones = ['#b89868', '#c8a878', '#a88858', '#d0b488'];
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const n = (x * 13 + y * 7 + x * y * 3) % 13;
+        let c = tones[0];
+        if (n < 2) c = tones[3]; else if (n < 5) c = tones[1]; else if (n > 10) c = tones[2];
+        buf[y * S + x] = c;
+    }
+    [[10, 12], [30, 40], [50, 20], [20, 52], [44, 34]].forEach(([px, py]) => { buf[py * S + px] = '#8a7048'; buf[py * S + px + 1] = '#8a7048'; });
+    return buf;
+}
+
+export const FLOOR_TILES = {
+    cobblestone_tile: floorCobblestone(),
+    stone_floor_tile: floorStone(),
+    grass_tile: floorGrass(),
+    dungeon_floor_tile: floorDungeon(),
+    wood_floor_tile: floorWood(),
+    water_tile: floorWater(),
+    dirt_tile: floorDirt(),
 };
 
 // Convenience: render a buffer to a canvas (used by map_editor for thumbnails)

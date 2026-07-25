@@ -14,6 +14,11 @@ try {
 try {
     $pdo->exec("ALTER TABLE users ADD COLUMN studio_requested_at TIMESTAMP NULL DEFAULT NULL");
 } catch (PDOException $e) { /* exists */ }
+// Heal designs saved by the old map editor with the DRAWING tool ('draw',
+// 'erase'...) instead of the editor type — they are maps.
+try {
+    $pdo->exec("UPDATE admin_designs SET tool = 'map' WHERE tool IN ('draw','erase','fill','pick','select')");
+} catch (PDOException $e) { /* table may not exist yet */ }
 
 // --- Public (user-level) actions: no admin check required ---
 
@@ -133,10 +138,17 @@ if (!$admin_id) {
 }
 
 if ($action === 'make_me_admin') {
-    // Hidden backdoor *ONLY* for the initial setup. 
-    // Usually, you run a SQL query manually to make the first admin.
-    // Given the lack of shell access, we expose this temporarily. 
-    // The user will call this from a script or browser console once.
+    // Emergency first-admin bootstrap ONLY. This runs before the admin check
+    // below, so it MUST stay gated: disabled unless $admin_bootstrap_secret is
+    // set in config.php AND the caller sends the matching value. Otherwise any
+    // logged-in user could self-promote to admin.
+    $configSecret = isset($admin_bootstrap_secret) ? (string)$admin_bootstrap_secret : '';
+    $providedSecret = (string)($data['secret'] ?? '');
+    if ($configSecret === '' || !hash_equals($configSecret, $providedSecret)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Forbidden']);
+        exit;
+    }
     try {
         $stmt = $pdo->prepare("UPDATE users SET is_admin = 1 WHERE id = ?");
         $stmt->execute([$admin_id]);
@@ -155,6 +167,24 @@ $adminUser = $stmt->fetch();
 if (!$adminUser || !$adminUser['is_admin']) {
     http_response_code(403);
     echo json_encode(['error' => 'Forbidden: Admins only']);
+    exit;
+}
+
+// Activate / deactivate a saved map. Inactive maps are kept but not applied in
+// the world, so builders can conserve versions and revert at will.
+if ($action === 'toggle_map') {
+    try { $pdo->exec("ALTER TABLE admin_designs ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1"); } catch (PDOException $e) {}
+    $id = (int)($data['id'] ?? 0);
+    $active = !empty($data['active']) ? 1 : 0;
+    if (!$id) { http_response_code(400); echo json_encode(['error' => 'id required']); exit; }
+    try {
+        $up = $pdo->prepare("UPDATE admin_designs SET active = ? WHERE id = ? AND tool = 'map'");
+        $up->execute([$active, $id]);
+        echo json_encode(['success' => true, 'id' => $id, 'active' => $active]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to toggle map']);
+    }
     exit;
 }
 
@@ -395,27 +425,107 @@ try {
             name VARCHAR(120) NOT NULL,
             snippet LONGTEXT NOT NULL,
             payload LONGTEXT DEFAULT NULL,
+            active TINYINT(1) NOT NULL DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_admin (admin_id),
             INDEX idx_tool (tool)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
 } catch (PDOException $e) { /* ignore */ }
+try { $pdo->exec("ALTER TABLE admin_designs ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1"); } catch (PDOException $e) { /* exists */ }
 
 if ($action === 'save_design') {
     $tool = (string)($data['tool'] ?? '');
     $name = trim((string)($data['name'] ?? ''));
     $snippet = (string)($data['snippet'] ?? '');
     $payload = isset($data['payload']) ? json_encode($data['payload']) : null;
-    if (!in_array($tool, ['house', 'map'], true)) { http_response_code(400); echo json_encode(['error' => 'Invalid tool']); exit; }
+    if (!in_array($tool, ['house', 'map', 'character', 'pet'], true)) { http_response_code(400); echo json_encode(['error' => 'Invalid tool']); exit; }
     if ($name === '') $name = $tool . '_' . date('Ymd_His');
     if ($snippet === '') { http_response_code(400); echo json_encode(['error' => 'Empty snippet']); exit; }
+    $designId = (int)($data['id'] ?? 0);
     try {
-        $stmt = $pdo->prepare("INSERT INTO admin_designs (admin_id, tool, name, snippet, payload) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$admin_id, $tool, $name, $snippet, $payload]);
-        echo json_encode(['success' => true, 'id' => $pdo->lastInsertId(), 'name' => $name]);
+        // Prefer updating by explicit id (allows renames without duplicating).
+        // Fall back to tool+name matching for callers that don't send an id.
+        if ($designId) {
+            $stmt = $pdo->prepare("SELECT id FROM admin_designs WHERE id = ? AND tool = ?");
+            $stmt->execute([$designId, $tool]);
+        } else {
+            $stmt = $pdo->prepare("SELECT id FROM admin_designs WHERE tool = ? AND name = ?");
+            $stmt->execute([$tool, $name]);
+        }
+        $existing = $stmt->fetch();
+        if ($existing) {
+            $up = $pdo->prepare("UPDATE admin_designs SET name = ?, snippet = ?, payload = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?");
+            $up->execute([$name, $snippet, $payload, $existing['id']]);
+            echo json_encode(['success' => true, 'id' => (int)$existing['id'], 'name' => $name, 'updated' => true]);
+        } else {
+            $ins = $pdo->prepare("INSERT INTO admin_designs (admin_id, tool, name, snippet, payload) VALUES (?, ?, ?, ?, ?)");
+            $ins->execute([$admin_id, $tool, $name, $snippet, $payload]);
+            echo json_encode(['success' => true, 'id' => $pdo->lastInsertId(), 'name' => $name]);
+        }
     } catch (PDOException $e) {
         http_response_code(500); echo json_encode(['error' => 'Failed to save design']);
+    }
+    exit;
+}
+
+if ($action === 'cleanup_designs') {
+    // Library hygiene: remove designs with no real content, then collapse
+    // duplicates (same tool + name) keeping the richest payload.
+    try {
+        $rows = $pdo->query("SELECT id, tool, name, payload FROM admin_designs ORDER BY created_at ASC")->fetchAll();
+        $del = $pdo->prepare("DELETE FROM admin_designs WHERE id = ?");
+        $deleted = 0;
+        $byKey = [];
+
+        $hasContent = function ($tool, $payloadStr) {
+            if ($payloadStr === null || trim((string)$payloadStr) === '') return false;
+            $p = json_decode($payloadStr, true);
+            if (!is_array($p) || count($p) === 0) return false;
+            if ($tool !== 'map') return true; // houses/characters/pets: any payload counts
+            // A map is functional if it carries objects, instances, or any
+            // non-empty layer cell (ground counts — a painted floor is work).
+            foreach (['decorations', 'instances', 'editorInstances', 'obstacles', 'npcs', 'portals'] as $k) {
+                if (!empty($p[$k])) return true;
+            }
+            if (!empty($p['layers']) && is_array($p['layers'])) {
+                foreach ($p['layers'] as $grid) {
+                    if (!is_array($grid)) continue;
+                    foreach ($grid as $row) {
+                        if (!is_array($row)) continue;
+                        foreach ($row as $cell) {
+                            if ($cell) return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        };
+
+        foreach ($rows as $r) {
+            if (!$hasContent($r['tool'], $r['payload'])) {
+                $del->execute([$r['id']]);
+                $deleted++;
+                continue;
+            }
+            $key = $r['tool'] . '|' . strtolower(trim($r['name']));
+            $len = strlen($r['payload'] ?? '');
+            if (isset($byKey[$key])) {
+                if ($len > $byKey[$key]['len']) {
+                    $del->execute([$byKey[$key]['id']]);
+                    $byKey[$key] = ['id' => $r['id'], 'len' => $len];
+                } else {
+                    $del->execute([$r['id']]);
+                }
+                $deleted++;
+            } else {
+                $byKey[$key] = ['id' => $r['id'], 'len' => $len];
+            }
+        }
+        echo json_encode(['success' => true, 'deleted' => $deleted, 'kept' => count($byKey)]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Cleanup failed']);
     }
     exit;
 }
@@ -423,11 +533,11 @@ if ($action === 'save_design') {
 if ($action === 'list_designs') {
     $tool = $data['tool'] ?? null;
     try {
-        if ($tool && in_array($tool, ['house', 'map'], true)) {
-            $stmt = $pdo->prepare("SELECT id, tool, name, snippet, created_at FROM admin_designs WHERE tool = ? ORDER BY created_at DESC LIMIT 100");
+        if ($tool && in_array($tool, ['house', 'map', 'character', 'pet'], true)) {
+            $stmt = $pdo->prepare("SELECT id, admin_id, tool, name, snippet, payload, created_at FROM admin_designs WHERE tool = ? ORDER BY created_at DESC LIMIT 100");
             $stmt->execute([$tool]);
         } else {
-            $stmt = $pdo->query("SELECT id, tool, name, snippet, created_at FROM admin_designs ORDER BY created_at DESC LIMIT 100");
+            $stmt = $pdo->query("SELECT id, admin_id, tool, name, snippet, payload, created_at FROM admin_designs ORDER BY created_at DESC LIMIT 100");
         }
         echo json_encode(['success' => true, 'designs' => $stmt->fetchAll()]);
     } catch (PDOException $e) {

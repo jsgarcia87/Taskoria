@@ -11,7 +11,7 @@ const LoreScroll = () => {
                 onClick={() => setIsOpen(true)}
                 className="group flex items-center gap-2 bg-rpg-panel border-[3px] border-rpg-panelLight hover:border-rpg-gold px-4 py-2 rounded-xl transition-all shadow-[4px_4px_0_rgba(0,0,0,0.4)] active:translate-y-1 active:shadow-none"
             >
-                <Scroll size={20} className="text-rpg-gold group-hover:animate-pulse" />
+                <Scroll size={20} className="text-rpg-gold" />
                 <span className="font-heading font-bold text-sm tracking-widest uppercase text-white group-hover:text-rpg-gold transition-colors">
                     Read the Lore
                 </span>

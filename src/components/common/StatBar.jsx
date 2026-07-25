@@ -12,7 +12,8 @@ const COLORS = {
   danger:  { grad: 'from-red-500 to-red-500',       glow: 'rgba(239,68,68,0.5)'  },
 };
 
-const SPRING = { stiffness: 120, damping: 20, mass: 0.6 };
+const SPRING_DEFAULT = { stiffness: 120, damping: 20, mass: 0.6 };
+const SPRING_XP = { stiffness: 60, damping: 14, mass: 1.2 };
 
 /**
  * Progress bar animada con spring físico.
@@ -30,7 +31,8 @@ export function StatBar({
 }) {
   const pct = Math.max(0, Math.min(100, (current / max) * 100));
   const raw = useMotionValue(pct);
-  const spring = useSpring(raw, SPRING);
+  const springConfig = kind === 'xp' ? SPRING_XP : SPRING_DEFAULT;
+  const spring = useSpring(raw, springConfig);
   const width = useTransform(spring, (v) => `${v}%`);
   const prev = useRef(pct);
   const barRef = useRef(null);

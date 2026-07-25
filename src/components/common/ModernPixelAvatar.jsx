@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import blueprintsData from '../../data/character_blueprints.json';
+import { fetchCustomBlueprints, getCustomBlueprintsCache } from '../../utils/blueprints.js';
 
 const S_BASE = 1.8;
 const GRID_SIZE = 64;
@@ -40,11 +41,21 @@ const ModernPixelAvatar = ({ type = 'warrior', scale = 1, headOnly = false, cust
     
     // We use useState to hold the pre-rendered 64x64 cache
     const [cachedImage, setCachedImage] = useState(null);
+    const [dbBlueprints, setDbBlueprints] = useState(getCustomBlueprintsCache());
+
+    useEffect(() => {
+        if (!getCustomBlueprintsCache()) {
+            fetchCustomBlueprints().then(bp => {
+                setDbBlueprints(bp);
+            });
+        }
+    }, []);
 
     // 1. Static Initial Render Pass (Offscreen Cache)
     useEffect(() => {
         const mappedType = TYPE_MAP[type] || 'fighter';
-        const config = blueprintsData[mappedType] || blueprintsData['fighter'];
+        const customBp = dbBlueprints?.characters?.[mappedType.toLowerCase()];
+        const config = customBp || blueprintsData[mappedType] || blueprintsData['fighter'];
         const { blueprint } = config;
         const paleta = { ...config.paleta };
         
@@ -91,7 +102,7 @@ const ModernPixelAvatar = ({ type = 'warrior', scale = 1, headOnly = false, cust
         }
         
         setCachedImage(offCanvas);
-    }, [type, customColorsStr]);
+    }, [type, customColorsStr, dbBlueprints]);
 
     // 2. Ultra-Fast Render Loop 
     useEffect(() => {

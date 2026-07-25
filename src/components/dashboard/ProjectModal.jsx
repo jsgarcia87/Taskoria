@@ -3,6 +3,7 @@ import { useGame } from '../../context/GameContext';
 import PixelIcon from '../common/PixelIcon';
 import Sprite from '../common/Sprite';
 import { useToast } from '../common/Toast';
+import Modal from '../common/Modal';
 
 const BOSS_TYPES = [
     { id: 'dragon', src: '/assets/sprites_items.png', x: -160, y: -64, width: 32, height: 32 },
@@ -100,10 +101,13 @@ const ProjectModal = ({ onClose, initialBoss = null }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose}></div>
-
-            <div className="relative glass-panel bg-[#130b14]/95 p-6 w-full max-w-lg rounded-3xl border-2 border-red-900/50 shadow-[0_0_50px_rgba(220,38,38,0.2)] animate-in zoom-in-95 duration-200 h-full max-h-[90vh] flex flex-col">
+        <Modal
+            isOpen={true}
+            onClose={onClose}
+            zIndex={100}
+            wrapperClassName="w-full max-w-lg h-full max-h-[90vh]"
+        >
+            <div className="glass-panel bg-[#130b14]/95 p-6 w-full h-full rounded-3xl border-2 border-red-900/50 shadow-[0_0_50px_rgba(220,38,38,0.2)] flex flex-col">
                 <div className="flex justify-between items-center mb-6 shrink-0">
                     <h2 className="text-2xl font-heading font-black text-white uppercase tracking-wider flex items-center gap-3">
                         <PixelIcon name="sword" className="text-red-500" />
@@ -230,7 +234,7 @@ const ProjectModal = ({ onClose, initialBoss = null }) => {
                     </button>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 };
 

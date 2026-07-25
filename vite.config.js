@@ -24,10 +24,15 @@ const copySpriteRegistry = () => ({
   name: 'copy-sprite-registry',
   apply: 'build',
   closeBundle() {
-    const src = resolve(__dirname, 'src/data/sprite-registry.js')
-    const dest = resolve(__dirname, 'dist/admin-tools/sprite-registry.js')
-    if (existsSync(src)) {
-      cpSync(src, dest)
+    // The standalone map editor imports these engine modules at runtime so it
+    // paints WYSIWYG floors/props and expands prefabs exactly like the game.
+    const files = [
+      ['src/data/sprite-registry.js', 'dist/admin-tools/sprite-registry.js'],
+      ['src/components/dashboard/world/prefabs.js', 'dist/admin-tools/prefabs.js'],
+    ]
+    for (const [from, to] of files) {
+      const src = resolve(__dirname, from)
+      if (existsSync(src)) cpSync(src, resolve(__dirname, to))
     }
   },
 })
@@ -81,6 +86,14 @@ export default defineConfig({
         // sprite PNGs are runtime-cached when the user actually navigates to
         // them. Brings first install from ~2.6 MB down to ~600 KB.
         globPatterns: ['**/*.{css,html,ico,svg,webmanifest}', 'assets/index-*.js', 'assets/vendor-*.js'],
+        // Never precache the standalone admin editors — they must pick up new
+        // deploys immediately, not serve a stale cached copy.
+        globIgnores: ['**/admin-tools/**'],
+        // Critical: keep the SPA navigation fallback (index.html) away from the
+        // standalone editors. Without this, navigating the iframe to
+        // /admin-tools/map_editor.html serves index.html instead — the SPA then
+        // boots inside the iframe and 404s all its assets under /admin-tools/.
+        navigateFallbackDenylist: [/^\/admin-tools\//],
         // Workbox precache has a 2 MiB per-file cap by default; sprite sheets
         // sit just under but we exclude them via globPatterns above.
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,

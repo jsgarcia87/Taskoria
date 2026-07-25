@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Menu, Bell, LogOut, Settings, HelpCircle, Shield, Cloud, CloudOff, RefreshCw, MessageSquare } from 'lucide-react'; // Retaining some small UI icons as vector for readability if needed, or we can replace all
 import PixelIcon from './common/PixelIcon';
 import { NumberTicker } from './common/NumberTicker';
@@ -23,6 +23,7 @@ const Layout_v2 = ({
 }) => {
     const { state, syncStatus, activeProfileId } = useGame();
     const { character } = state || {}; // Handle case where GameContext might not be fully initialized or character doesn't exist
+    const shouldReduce = useReducedMotion();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isInboxOpen, setIsInboxOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -51,6 +52,19 @@ const Layout_v2 = ({
         desktopNavItems.push({ id: 'admin', label: 'Admin', icon: 'shield' });
     }
 
+    // Spatial direction for view transitions — views have a conceptual
+    // left-to-right order; navigating "right" slides content left and vice versa.
+    const VIEW_ORDER = { home: 0, tasks: 0, createTask: 0, party: 1, diary: 2, profile: 3, studio: 4, creations: 5, admin: 6 };
+    const prevViewRef = useRef(activeView);
+    const directionRef = useRef(1);
+    if (prevViewRef.current !== activeView) {
+        const prevIdx = VIEW_ORDER[prevViewRef.current] ?? 0;
+        const nextIdx = VIEW_ORDER[activeView] ?? 0;
+        directionRef.current = nextIdx >= prevIdx ? 1 : -1;
+        prevViewRef.current = activeView;
+    }
+    const slideX = shouldReduce ? 0 : 12 * directionRef.current;
+
     return (
         <div className="min-h-screen text-white flex flex-col font-sans selection:bg-rpg-gold/30 bg-rpg-bg">
             {/* --- TOP HUD HEADER --- */}
@@ -66,7 +80,6 @@ const Layout_v2 = ({
                         <div className="text-xl font-heading font-bold tracking-tight text-white hidden md:block">
                             TASKORIA <span className="text-rpg-gold text-xs align-top">BETA</span>
                         </div>
-                        <img src="./logo_taskoria_mobile.svg" alt="Taskoria" className="h-6 w-auto object-contain md:hidden" />
                         <div className="hidden lg:block text-[10px] text-gray-400 font-mono tracking-widest uppercase">Gamified Productivity</div>
                     </div>
                 </div>
@@ -291,7 +304,7 @@ const Layout_v2 = ({
                                                     window.location.reload();
                                                 }}
                                                 onMouseLeave={() => setConfirmLogout(false)}
-                                                className="w-full text-center px-4 py-3 text-[10px] text-red-100 bg-red-900/40 hover:bg-red-900 hover:text-white rounded-xl transition-colors flex items-center justify-center gap-2 group font-bold font-pixel tracking-widest border border-red-500/50 mt-1 shadow-[0_0_10px_rgba(220,38,38,0.3)] animate-pulse"
+                                                className="w-full text-center px-4 py-3 text-[10px] text-red-100 bg-red-900/40 hover:bg-red-900 hover:text-white rounded-xl transition-colors flex items-center justify-center gap-2 group font-bold font-pixel tracking-widest border border-red-500/50 mt-1 shadow-[0_0_10px_rgba(220,38,38,0.3)]"
                                             >
                                                 <LogOut size={16} className="text-white" />
                                                 SURE TO QUIT?
@@ -318,14 +331,25 @@ const Layout_v2 = ({
                 {/* Mesh Gradient Ambient Background */}
                 <div className={`absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b ${getAtmosphereGlow()} blur-[100px] pointer-events-none mix-blend-screen opacity-70 user-select-none transition-all duration-1000`} />
 
-                {/* Content Container */}
+                {/* Content Container — crossfade + micro-slide entre vistas.
+                    `initial={false}` evita animar en el primer mount de la sesión. */}
                 <div className="max-w-7xl mx-auto p-4 md:p-6 pb-28 lg:pb-8 relative z-10 w-full min-h-[calc(100vh-80px)] overflow-x-hidden">
-                    {React.Children.map(children, child => {
-                        if (React.isValidElement(child)) {
-                            return React.cloneElement(child, { onOpenChat: setActiveChatFriend });
-                        }
-                        return child;
-                    })}
+                    <AnimatePresence mode="wait" initial={false}>
+                        <motion.div
+                            key={activeView}
+                            initial={shouldReduce ? { opacity: 0 } : { opacity: 0, x: slideX }}
+                            animate={shouldReduce ? { opacity: 1 } : { opacity: 1, x: 0 }}
+                            exit={shouldReduce ? { opacity: 0 } : { opacity: 0, x: -slideX }}
+                            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                        >
+                            {React.Children.map(children, child => {
+                                if (React.isValidElement(child)) {
+                                    return React.cloneElement(child, { onOpenChat: setActiveChatFriend });
+                                }
+                                return child;
+                            })}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
             </main>
 
