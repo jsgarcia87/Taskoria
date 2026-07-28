@@ -25,8 +25,22 @@ import CalendarView from './components/dashboard/CalendarView';
 import PixelIcon from './components/common/PixelIcon';
 import { TASK_DIFFICULTY, calculateXpReq } from './utils/gameUtils';
 
-// Recompute xp.max for every character so saves created under the previous
-// XP curve get aligned to the current formula. Safe to run repeatedly.
+const AVATAR_ID_FIX = { fighter: 'warrior', wizard: 'mage' };
+const migrateAvatarIds = (familyData) => {
+    if (!familyData?.profiles) return familyData;
+    let changed = false;
+    const profiles = familyData.profiles.map(profile => {
+        const char = profile?.state?.character;
+        if (!char || !AVATAR_ID_FIX[char.avatarId]) return profile;
+        changed = true;
+        return {
+            ...profile,
+            state: { ...profile.state, character: { ...char, avatarId: AVATAR_ID_FIX[char.avatarId] } }
+        };
+    });
+    return changed ? { ...familyData, profiles } : familyData;
+};
+
 const migrateXpCurve = (familyData) => {
     if (!familyData?.profiles) return familyData;
     return {
@@ -469,7 +483,7 @@ function App() {
 
       if (finalData && finalData.profiles) {
         // It's already in the new Family format
-        setFamilyData(migrateXpCurve(finalData));
+        setFamilyData(migrateAvatarIds(migrateXpCurve(finalData)));
       } else if (finalData && (finalData.character || finalData.tasks)) {
         // It's the old single-user format. Migrate them to Family format automatically.
         const migratedProfile = {
@@ -477,10 +491,10 @@ function App() {
           name: finalData.character?.name || 'Hero 1',
           state: finalData
         };
-        setFamilyData(migrateXpCurve({
+        setFamilyData(migrateAvatarIds(migrateXpCurve({
           profiles: [migratedProfile],
           lastActiveProfile: migratedProfile.id
-        }));
+        })));
       } else {
         // First time ever playing, empty family
         setFamilyData({ profiles: [] });

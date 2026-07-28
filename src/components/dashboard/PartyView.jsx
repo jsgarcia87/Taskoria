@@ -73,7 +73,6 @@ const PartyView = ({ currentUser, onOpenChat }) => {
     const handleAddFriend = (user) => {
         const newFriendsList = [...(familyData?.friends || []), user];
 
-        // Update the global family data object directly
         const updatedFamilyData = {
             ...familyData,
             friends: newFriendsList
@@ -83,19 +82,44 @@ const PartyView = ({ currentUser, onOpenChat }) => {
             setFamilyData(updatedFamilyData);
         }
 
-        // Remove from search results
         setSearchResults(searchResults.filter(u => u.id !== user.id));
         setSearchQuery('');
+        toast.success(`${user.character?.name || user.username} has joined your party.`);
     };
 
     const handleRemoveFriend = (friendId) => {
         if (!confirm("Remove from party?")) return;
+        const friend = (familyData?.friends || []).find(f => f.id === friendId);
         const newFriendsList = (familyData?.friends || []).filter(f => f.id !== friendId);
         if (typeof setFamilyData === 'function') {
             setFamilyData({
                 ...familyData,
                 friends: newFriendsList
             });
+        }
+        toast.info(`${friend?.character?.name || friend?.username || 'Hero'} has left the party.`);
+    };
+
+    const handleShareInvite = async () => {
+        const shareUrl = `${window.location.origin}${window.location.pathname}`;
+        const shareData = {
+            title: 'Taskoria — Join my party!',
+            text: `${state.character?.name || 'A hero'} invites you to Taskoria. Turn your tasks into quests!`,
+            url: shareUrl,
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (e) {
+                if (e.name !== 'AbortError') {
+                    await navigator.clipboard.writeText(shareUrl);
+                    toast.success('Link copied — share it with your allies.');
+                }
+            }
+        } else {
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success('Link copied — share it with your allies.');
         }
     };
 
@@ -319,18 +343,140 @@ const PartyView = ({ currentUser, onOpenChat }) => {
 
             {activeTab === 'friends' && (
                 <>
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl sm:text-2xl font-heading font-bold text-rpg-gold text-shadow-glow truncate pr-2">ADVENTURER'S CO-OP</h2>
+                    {/* ── Search + Invite: always visible at the top ── */}
+                    <div className="bg-rpg-panel/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-4 sm:p-5 mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Find or invite heroes</h3>
+                            <button
+                                onClick={handleShareInvite}
+                                className="text-[10px] text-rpg-gold font-bold uppercase tracking-wider hover:text-white transition-colors flex items-center gap-1.5"
+                            >
+                                <PixelIcon name="scroll" size={12} />
+                                Share invite
+                            </button>
+                        </div>
+                        <form onSubmit={handleSearch} className="flex gap-3">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search by username..."
+                                className="flex-1 bg-black/40 border border-white/10 px-3 py-2.5 rounded-xl text-sm text-white outline-none focus:border-rpg-gold focus:ring-1 focus:ring-rpg-gold/50 transition-all font-sans"
+                            />
+                            <button
+                                type="submit"
+                                disabled={isSearching || !searchQuery.trim()}
+                                className="bg-rpg-gold text-rpg-bg px-5 py-2.5 rounded-xl text-sm font-bold shadow-glow-gold hover:scale-[1.03] transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 shrink-0"
+                            >
+                                {isSearching ? (
+                                    <div className="w-4 h-4 border-2 border-rpg-bg border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <PixelIcon name="checkSquare" size={14} color="#1a1a2e" />
+                                )}
+                                {isSearching ? 'Scouting...' : 'Search'}
+                            </button>
+                        </form>
+
+                        {/* Search Results */}
+                        {searchResults.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-white/10">
+                                <h4 className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2">Found Heroes</h4>
+                                <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                                    {searchResults.map(u => (
+                                        <div key={u.id} className="flex items-center justify-between bg-black/30 p-2.5 rounded-lg border border-white/5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden">
+                                                    {u.character ? (
+                                                        <ModernPixelAvatar type={u.character.avatarId} scale={1.5} customColors={u.character.avatarColors} />
+                                                    ) : (
+                                                        <PixelIcon name="user" size={14} className="text-gray-500" />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-bold text-white leading-none mb-0.5">{u.username}</div>
+                                                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">
+                                                        {u.character ? `Lvl ${u.character.level} ${u.character.class}` : 'New adventurer'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleAddFriend(u)}
+                                                className="text-xs bg-rpg-gold/10 hover:bg-rpg-gold/20 text-rpg-gold px-3 py-1.5 rounded-lg font-bold transition-all border border-rpg-gold/30 hover:border-rpg-gold/60 flex items-center gap-1"
+                                            >
+                                                + Add
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* No results feedback */}
+                        {searchQuery.trim() && searchResults.length === 0 && !isSearching && (
+                            <div className="mt-3 pt-3 border-t border-white/10 text-center py-3">
+                                <p className="text-sm text-gray-500">No heroes found matching "{searchQuery}"</p>
+                                <button
+                                    onClick={handleShareInvite}
+                                    className="mt-2 text-xs text-rpg-gold font-bold hover:text-white transition-colors"
+                                >
+                                    Invite them with a link instead
+                                </button>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Integrated Playable World */}
+                    {/* ── Party Members + Family ── */}
+                    {loading ? (
+                        <div className="flex items-center justify-center h-32">
+                            <p className="text-gray-400 text-sm font-bold animate-pulse flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-rpg-gold border-t-transparent rounded-full animate-spin" /> Scouting for heroes...
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-8 mb-8">
+                            {/* External Friends */}
+                            {friends.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-heading font-bold text-gray-300 mb-3 border-b border-white/10 pb-2 flex items-center gap-2 uppercase tracking-wider">
+                                        <PixelIcon name="users" size={16} className="text-purple-400" /> Party Members
+                                        <span className="text-[10px] text-gray-500 ml-auto font-sans">{friends.length}</span>
+                                    </h3>
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                                        {friends.map(u => renderUserCard(u, false))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Family Characters */}
+                            {familyMembers.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-heading font-bold text-gray-300 mb-3 border-b border-white/10 pb-2 flex items-center gap-2 uppercase tracking-wider">
+                                        <PixelIcon name="home" size={16} className="text-blue-400" /> Family Estate
+                                        <span className="text-[10px] text-gray-500 ml-auto font-sans">{familyMembers.length}</span>
+                                    </h3>
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                                        {familyMembers.map(u => renderUserCard(u, true))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {familyMembers.length === 0 && friends.length === 0 && (
+                                <div className="text-center py-10 glass-panel rounded-2xl">
+                                    <PixelIcon name="users" size={32} className="text-gray-600 mx-auto mb-3" />
+                                    <p className="text-gray-400 font-bold text-sm">The town square is quiet today.</p>
+                                    <p className="text-xs text-gray-600 mt-1.5 max-w-[260px] mx-auto">Search for heroes above or share an invite link to build your party.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── Playable World: explore zone (below party list) ── */}
                     <div className="mb-10 relative">
-                        <h2 className="text-xl font-heading font-bold text-rpg-gold mb-2 uppercase tracking-widest flex items-center gap-2 drop-shadow-md">
-                            <PixelIcon name="home" size={24} className="text-orange-400" />
-                            Village Square (Co-Focusing)
-                        </h2>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">A bustling medieval hub for your party!</p>
-                        
+                        <h3 className="text-sm font-heading font-bold text-gray-300 mb-3 border-b border-white/10 pb-2 flex items-center gap-2 uppercase tracking-wider">
+                            <PixelIcon name="home" size={16} className="text-orange-400" /> Village Square
+                            <span className="text-[10px] text-gray-500 ml-auto font-sans">{familyMembers.length + friends.length + 1} online</span>
+                        </h3>
+
                         <Suspense fallback={
                             <div className="relative w-full h-[500px] sm:h-[600px] bg-black border-4 border-rpg-panel rounded-t-xl flex items-center justify-center text-rpg-gold animate-pulse">
                                 <div className="flex flex-col items-center gap-3">
@@ -346,7 +492,6 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                                 familyMembers={familyMembers}
                                 friends={friends}
                                 onInteract={(target) => {
-                                    // Council members open in-world dialogs instead of switching tabs.
                                     if (target.target === 'ledgar') {
                                         window.dispatchEvent(new CustomEvent('taskoria:open-feedback'));
                                         return;
@@ -357,111 +502,13 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                             />
                         </Suspense>
 
-                        {/* Legend / Status bar */}
                         <div className="bg-[#2b254a] p-3 border-x-4 border-b-4 border-rpg-panel rounded-b-lg flex justify-between items-center text-xs text-gray-400 font-bold uppercase tracking-widest mt-[-2px]">
                             <div className="flex items-center gap-4">
                                 <span className="flex text-[10px] items-center gap-1"><span className="text-white">WASD</span> to walk</span>
                                 <span className="flex text-[10px] items-center gap-1"><div className="w-2 h-2 rounded-full border border-dashed border-white"></div> Portals</span>
                             </div>
-                            <div>{familyMembers.length + friends.length + 1} Heroes Online</div>
                         </div>
                     </div>
-
-                    {/* Search/Invite Section */}
-                    <div className="bg-rpg-panel/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-4 sm:p-6 mb-8">
-                        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search heroes by username..."
-                                className="flex-1 bg-black/40 border border-white/10 p-3 rounded-xl text-white outline-none focus:border-rpg-gold focus:ring-1 focus:ring-rpg-gold/50 transition-all font-sans"
-                            />
-                            <button
-                                type="submit"
-                                disabled={isSearching || !searchQuery.trim()}
-                                className="bg-rpg-gold text-rpg-bg px-6 rounded-xl font-bold shadow-glow-gold hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center min-w-[120px]"
-                            >
-                                {isSearching ? 'Scouting...' : 'Search'}
-                            </button>
-                        </form>
-
-                        {/* Search Results */}
-                        {searchResults.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-white/10">
-                                <h4 className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">Found Heroes</h4>
-                                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto custom-scrollbar">
-                                    {searchResults.map(u => (
-                                        <div key={u.id} className="flex items-center justify-between bg-black/30 p-3 rounded-lg border border-white/5">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden">
-                                                    {u.character ? (
-                                                        <ModernPixelAvatar type={u.character.avatarId} scale={1.5} customColors={u.character.avatarColors} />
-                                                    ) : (
-                                                        <PixelIcon name="user" size={14} className="text-gray-500" />
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <div className="text-sm font-bold text-white leading-none mb-1">{u.username}</div>
-                                                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">
-                                                        {u.character ? `Lvl ${u.character.level} ${u.character.class}` : 'No Hero'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => handleAddFriend(u)}
-                                                className="text-xs bg-white/10 hover:bg-rpg-gold/20 hover:text-rpg-gold text-gray-300 px-3 py-1.5 rounded-lg font-bold transition-all border border-transparent hover:border-rpg-gold/50 flex items-center gap-1"
-                                            >
-                                                <span>+</span> Invite
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {loading ? (
-                        <div className="flex items-center justify-center h-64">
-                            <p className="text-white font-heading animate-pulse flex items-center gap-2">
-                                <PixelIcon name="user" size={24} className="animate-spin" /> Scouting for opponents...
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-10">
-
-                            {/* Family Characters */}
-                            {familyMembers.length > 0 && (
-                                <div>
-                                    <h3 className="text-lg font-heading font-bold text-gray-300 mb-4 border-b border-white/10 pb-2 flex items-center gap-2">
-                                        <PixelIcon name="home" size={20} className="text-blue-400" /> Family Estate
-                                    </h3>
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-                                        {familyMembers.map(u => renderUserCard(u, true))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* External Friends */}
-                            {friends.length > 0 && (
-                                <div>
-                                    <h3 className="text-lg font-heading font-bold text-gray-300 mb-4 border-b border-white/10 pb-2 flex items-center gap-2">
-                                        <PixelIcon name="users" size={20} className="text-purple-400" /> Party Members
-                                    </h3>
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-                                        {friends.map(u => renderUserCard(u, false))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {familyMembers.length === 0 && friends.length === 0 && (
-                                <div className="text-center py-12 glass-panel">
-                                    <p className="text-gray-500 font-heading">The town square is quiet today.</p>
-                                    <p className="text-sm text-gray-600 mt-2">Search for fellow adventurers above, or create family profiles to quest together.</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
 
                     {/* Battle Result Modal */}
                     {battleResult && (

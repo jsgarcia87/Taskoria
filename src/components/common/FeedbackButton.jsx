@@ -23,15 +23,14 @@ const FeedbackModal = ({ onClose, currentUser, activeProfileId }) => {
     if (message.trim().length < 3 || submitting) return;
     setSubmitting(true);
     try {
-      const res = await fetch('api/feedback.php', {
+      const feedbackMsg = `[${category.toUpperCase()}] ${message.trim()}`;
+      const res = await fetch('api/admin.php?action=submit_suggestion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: currentUser?.id ?? null,
-          profile_id: activeProfileId ?? null,
-          category,
-          message: message.trim(),
-          url: window.location.href,
+          username: currentUser?.username ?? 'Anonymous',
+          message: feedbackMsg,
         }),
       });
       const data = await res.json();

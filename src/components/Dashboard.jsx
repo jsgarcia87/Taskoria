@@ -114,25 +114,21 @@ const Dashboard = ({ setActiveView }) => {
         ? urgentTasks.slice(0, 5)
         : activeTasks.slice(0, 5);
 
-    // Pergamino que se enrolla al hacer scroll.
-    // Rango 0-220px: wrapper scaleX→0.05 (polos + cloth se recogen juntos),
-    // opacity→0, sube -20px. El garden empuja hacia arriba (-60px).
     const shouldReduce = useReducedMotion();
     const { scrollY } = useScroll();
-    const bannerScaleX = useTransform(scrollY, [0, 220], [1, 0.05]);
-    const bannerOpacity = useTransform(scrollY, [0, 200], [1, 0]);
-    const bannerWrapperY = useTransform(scrollY, [0, 220], [0, -20]);
-    const gardenPushY = useTransform(scrollY, [0, 220], [0, -60]);
-
+    const bannerScaleX = useTransform(scrollY, [0, 160], [1, 0.12]);
+    const bannerScaleY = useTransform(scrollY, [0, 160], [1, 0.55]);
+    const bannerOpacity = useTransform(scrollY, [30, 150], [1, 0]);
+    const bannerWrapperY = useTransform(scrollY, [0, 160], [0, -32]);
     const scrollStyle = shouldReduce ? {} : {
         y: bannerWrapperY,
         scaleX: bannerScaleX,
+        scaleY: bannerScaleY,
         opacity: bannerOpacity,
-        transformOrigin: 'center',
+        transformOrigin: 'center top',
         willChange: 'transform, opacity',
     };
     const clothStyle = { backgroundColor: '#fedf8c', borderColor: '#111', imageRendering: 'pixelated' };
-    const gardenStyle = shouldReduce ? {} : { y: gardenPushY, willChange: 'transform' };
 
     const stagger = (i) => shouldReduce ? {} : {
         initial: { opacity: 0, y: 16 },
@@ -143,119 +139,107 @@ const Dashboard = ({ setActiveView }) => {
     return (
         <div className="col-span-12 space-y-6 pb-20 md:pb-0">
 
-            {/* ── MOBILE: compact "Today" briefing ─────────────────────── */}
-            <div className="md:hidden space-y-3">
-                <div className="glass-card px-4 py-3 border-white/10">
-                    <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">{capitalizedDay}</span>
-                            <span className="text-[10px] text-gray-600">·</span>
-                            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Lv. {character?.level || 1}</span>
-                        </div>
-                        {overdueTasks.length > 0 && (
-                            <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 rounded-lg px-2 py-0.5">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                                <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">{overdueTasks.length} overdue</span>
-                            </div>
-                        )}
-                    </div>
-                    <p className="text-white text-sm font-medium">{greeting.eyebrow}, <span className="text-rpg-gold font-bold">{character?.name || 'Adventurer'}</span> — {greeting.line}</p>
-                </div>
-
-                {peekTasks.length > 0 && (
-                    <div className="glass-card border-white/10 overflow-hidden">
-                        <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                            <h3 className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
-                                {urgentTasks.length > 0 ? 'Needs attention' : 'Active quests'}
-                            </h3>
-                            <button
-                                onClick={() => setActiveView('tasks')}
-                                className="text-[10px] text-rpg-gold font-bold uppercase tracking-wider hover:text-white transition-colors"
-                            >
-                                See all ({activeTasks.length})
-                            </button>
-                        </div>
-                        <div className="divide-y divide-white/5">
-                            {peekTasks.map(task => (
-                                <button
-                                    key={task.id}
-                                    onClick={() => setActiveView('tasks')}
-                                    className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-white/5 transition-colors"
-                                >
-                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${task.dueDate && task.dueDate < todayLocalDate ? 'bg-red-400' : task.dueDate === todayLocalDate ? 'bg-amber-400' : 'bg-gray-500'}`} />
-                                    <span className="text-sm text-gray-200 truncate flex-1">{task.name}</span>
-                                    {task.dueDate && task.dueDate <= todayLocalDate && (
-                                        <span className={`text-[9px] font-bold uppercase tracking-wider shrink-0 ${task.dueDate < todayLocalDate ? 'text-red-400' : 'text-amber-400'}`}>
-                                            {task.dueDate < todayLocalDate ? 'Overdue' : 'Today'}
-                                        </span>
-                                    )}
-                                    {task.difficulty && (
-                                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider shrink-0">{task.difficulty}</span>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* ── DESKTOP: scroll banner greeting (hidden on mobile) ──── */}
+            {/* ── SCROLL BANNER — pergamino con info del dia integrada ── */}
             <motion.div
                 style={scrollStyle}
-                className="relative hidden md:flex items-center justify-center animate-in fade-in slide-in-from-top-2 duration-700 px-2 md:px-0"
+                className="relative flex items-center justify-center animate-in fade-in slide-in-from-top-2 duration-700 px-2 md:px-0"
             >
-                {/* Left pole holder (pixel art) */}
                 <div className="relative shrink-0 self-stretch flex flex-col w-6 md:w-[30px]">
                     <BannerHolderContent />
                 </div>
 
-                {/* Banner cloth — refined hierarchy: pixel eyebrow, big display name, serif italic meta */}
                 <div
                     className="relative flex-1 max-w-4xl flex flex-col items-center justify-center text-center py-3 md:py-4 px-4 md:px-6 my-3 md:my-[15px] border-t-[4px] border-b-[4px] md:border-t-[5px] md:border-b-[5px]"
                     style={clothStyle}
                 >
-                    <div
-                        className="relative uppercase leading-none text-[#111] mb-1 font-bold text-[11px]"
-                        style={{ letterSpacing: '0.28em', opacity: 0.7 }}
-                    >
-                        {greeting.eyebrow}
-                    </div>
                     <h2
                         className="relative font-heading font-extrabold text-[#111] my-0 leading-[0.9]"
                         style={{
-                            fontSize: 'clamp(28px, 6vw, 52px)',
+                            fontSize: 'clamp(24px, 6vw, 52px)',
                             letterSpacing: '-0.03em',
                         }}
                     >
                         {character?.name || 'Adventurer'}
                     </h2>
-                    <p className="relative text-[#111] mt-2 text-[12px] md:text-[13px] font-medium opacity-80">
-                        {capitalizedDay} · Lv. {character?.level || 1} · {greeting.line}
-                    </p>
+                    <div className="relative flex items-center justify-center gap-2 mt-1.5 flex-wrap">
+                        <span className="text-[#111] text-[11px] font-bold uppercase tracking-wider opacity-60">{capitalizedDay}</span>
+                        <span className="text-[#111] opacity-30">·</span>
+                        <span className="text-[#111] text-[11px] font-bold uppercase tracking-wider opacity-60">Lv. {character?.level || 1}</span>
+                        <span className="text-[#111] opacity-30">·</span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: activeTasks.length === 0 ? '#166534' : '#92400e' }}>
+                            {activeTasks.length === 0 ? 'All clear' : `${activeTasks.length} quest${activeTasks.length !== 1 ? 's' : ''}`}
+                        </span>
+                        {overdueTasks.length > 0 && (
+                            <>
+                                <span className="text-[#111] opacity-30">·</span>
+                                <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#991b1b' }}>
+                                    {overdueTasks.length} overdue
+                                </span>
+                            </>
+                        )}
+                    </div>
                 </div>
 
-                {/* Right pole holder (pixel art) */}
                 <div className="relative shrink-0 self-stretch flex flex-col w-6 md:w-[30px]">
                     <BannerHolderContent />
                 </div>
             </motion.div>
 
+            {/* ── MOBILE: task peek — top urgent/active quests ─────────── */}
+            {peekTasks.length > 0 && (
+                <div className="md:hidden glass-card border-white/10 overflow-hidden">
+                    <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                        <h3 className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
+                            {urgentTasks.length > 0 ? 'Needs attention' : 'Active quests'}
+                        </h3>
+                        <button
+                            onClick={() => setActiveView('tasks')}
+                            className="text-[10px] text-rpg-gold font-bold uppercase tracking-wider hover:text-white transition-colors"
+                        >
+                            See all ({activeTasks.length})
+                        </button>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                        {peekTasks.map(task => (
+                            <button
+                                key={task.id}
+                                onClick={() => setActiveView('tasks')}
+                                className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-white/5 transition-colors"
+                            >
+                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${task.dueDate && task.dueDate < todayLocalDate ? 'bg-red-400' : task.dueDate === todayLocalDate ? 'bg-amber-400' : 'bg-gray-500'}`} />
+                                <span className="text-sm text-gray-200 truncate flex-1">{task.name}</span>
+                                {task.dueDate && task.dueDate <= todayLocalDate && (
+                                    <span className={`text-[9px] font-bold uppercase tracking-wider shrink-0 ${task.dueDate < todayLocalDate ? 'text-red-400' : 'text-amber-400'}`}>
+                                        {task.dueDate < todayLocalDate ? 'Overdue' : 'Today'}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 {/* Main Content (Left/Center) — 8 cols from md+ so tablet portrait gets the sidebar */}
-                <div className="col-span-12 md:col-span-8 space-y-6">
-                    {/* Upper Row: Garden + Stats */}
-                    <motion.div {...stagger(0)} className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="col-span-12 md:col-span-8 flex flex-col gap-6">
+
+                    {/* ── Mobile: DailyMissions + Habits inline (before garden) ── */}
+                    <motion.div {...stagger(0)} className="md:hidden order-1 space-y-4">
+                        <DailyMissions />
+                    </motion.div>
+
+                    {/* Upper Row: Garden + Stats — on mobile, pushed after tasks */}
+                    <motion.div {...stagger(0)} className="grid grid-cols-1 xl:grid-cols-2 gap-6 order-2">
                         <div className="grid grid-cols-1 gap-6">
-                            <motion.div
-                                style={gardenStyle}
+                            <div
                                 className="glass-card p-6 overflow-hidden relative group border-white/10 hover:border-white/20 transition-all min-h-[300px] flex flex-col justify-center"
                             >
                                 <GardenView setActiveView={setActiveView} />
-                            </motion.div>
+                            </div>
                         </div>
 
                         <div className="space-y-6">
-                            {/* Today's Ledger — narrative sentence (was: 3 stat cards) */}
+                            {/* Today's Ledger */}
                             <div className="glass-card p-6 relative overflow-hidden group">
                                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-rpg-gold/10 rounded-full blur-3xl group-hover:bg-rpg-gold/20 transition-all duration-500"></div>
 
@@ -314,19 +298,18 @@ const Dashboard = ({ setActiveView }) => {
                     </motion.div>
 
                     {/* EPIC QUEST SECTION */}
-                    <motion.div {...stagger(1)} className="mb-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <motion.div {...stagger(1)} className="mb-6 grid grid-cols-1 xl:grid-cols-2 gap-6 order-3">
                         <EpicBossCard />
                         <ProductivityHeatmap />
                     </motion.div>
 
                     {/* BOSS BATTLE SECTION */}
-                    <motion.div {...stagger(2)} className="glass-card p-1 border-white/5 min-h-[200px]">
+                    <motion.div {...stagger(2)} className="glass-card p-1 border-white/5 min-h-[200px] order-4">
                         <BossBattle />
                     </motion.div>
                 </div>
 
-                {/* Sidebar — Questbook first (quests are the priority),
-                    then chores + habits, then Daily Missions at the bottom */}
+                {/* Sidebar (desktop only) — Questbook first, then chores + habits, then Daily Missions */}
                 <div className="hidden md:block col-span-4 space-y-4">
                     <motion.div {...stagger(0)}><Questbook /></motion.div>
                     <motion.div {...stagger(1)} className="glass-panel mt-0 p-4 rounded-2xl border border-white/10 shadow-glass bg-black/20">

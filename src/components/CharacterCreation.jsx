@@ -17,7 +17,7 @@ const CharacterCreation = ({ onComplete }) => {
         if (name.trim()) {
             const charData = CHARACTERS.find(c => c.id === selectedCharId);
             if (charData) {
-                onComplete(name, charData.class, charData.id, charData.baseStats, colors, null);
+                onComplete(name, charData.class, charData.avatarType, charData.baseStats, colors, null);
             }
         }
     };
