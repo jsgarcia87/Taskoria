@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef, lazy, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import {
     Sword, Shield, Scroll, Users, CheckCircle2, ChevronRight, Loader2, Crown, Hammer,
     Sparkles, Map, Timer, Heart, Target, Trophy, Flame, Star, Zap, BookOpen, TreePine, Castle, Eraser, Square,
-    ChevronDown, HelpCircle, Sun, Moon
+    ChevronDown, HelpCircle, ArrowLeft, Calendar, Clock, Newspaper, ChevronLeft
 } from 'lucide-react';
+import BLOG_POSTS from '../data/blogPosts';
 import ModernPixelAvatar from './common/ModernPixelAvatar';
 import ModernPixelPet from './common/ModernPixelPet';
 import LoreScroll from './common/LoreScroll';
@@ -53,82 +54,6 @@ const LoadingScreen = ({ onReady }) => {
     );
 };
 
-const getTimeOfDay = () => {
-    const h = new Date().getHours();
-    if (h >= 6 && h < 12) return 'morning';
-    if (h >= 12 && h < 18) return 'afternoon';
-    if (h >= 18 && h < 21) return 'evening';
-    return 'night';
-};
-
-const TIME_CONFIG = {
-    morning: {
-        celestial: 'sun',
-        position: 'left',
-        bg: 'radial-gradient(circle at 30% 20%, rgba(255,200,100,0.12) 0%, transparent 60%)',
-        overlay: 'rgba(255,180,80,0.06)',
-        glow: 'rgba(255,200,100,0.5)',
-        color: '#ffd666',
-        label: 'Dawn breaks over the kingdom',
-    },
-    afternoon: {
-        celestial: 'sun',
-        position: 'center',
-        bg: 'radial-gradient(circle at 50% 15%, rgba(255,220,140,0.10) 0%, transparent 55%)',
-        overlay: 'rgba(255,200,100,0.04)',
-        glow: 'rgba(255,220,140,0.4)',
-        color: '#ffe48a',
-        label: 'The sun watches over the realm',
-    },
-    evening: {
-        celestial: 'sun',
-        position: 'right',
-        bg: 'radial-gradient(circle at 70% 25%, rgba(255,120,60,0.15) 0%, transparent 55%)',
-        overlay: 'rgba(200,80,40,0.08)',
-        glow: 'rgba(255,140,60,0.6)',
-        color: '#ff9a5c',
-        label: 'Sunset paints the sky',
-    },
-    night: {
-        celestial: 'moon',
-        position: 'right',
-        bg: 'radial-gradient(circle at 70% 18%, rgba(140,170,255,0.10) 0%, transparent 50%)',
-        overlay: 'rgba(60,80,160,0.08)',
-        glow: 'rgba(180,200,255,0.4)',
-        color: '#c8d8ff',
-        label: 'The moon guards the kingdom',
-    },
-};
-
-const CELESTIAL_POS = { left: '18%', center: '50%', right: '75%' };
-
-const CelestialBody = () => {
-    const tod = useMemo(getTimeOfDay, []);
-    const cfg = TIME_CONFIG[tod];
-    const isMoon = cfg.celestial === 'moon';
-    const leftPos = CELESTIAL_POS[cfg.position];
-
-    return (
-        <>
-            <div className="fixed inset-0 z-[1] pointer-events-none" style={{ background: cfg.bg, mixBlendMode: 'screen' }} />
-            <div className="fixed z-[1] pointer-events-none" style={{ left: leftPos, top: '6%', transform: 'translateX(-50%)', mixBlendMode: 'screen' }}>
-                {isMoon ? (
-                    <div className="relative w-16 h-16 md:w-24 md:h-24">
-                        <div className="absolute inset-[-20px] md:inset-[-30px] rounded-full" style={{ background: `radial-gradient(circle, ${cfg.glow} 0%, transparent 70%)` }} />
-                        <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle at 35% 35%, ${cfg.color} 0%, #a0b4e8 50%, #8899cc 100%)` }} />
-                        <div className="absolute rounded-full" style={{ width: '70%', height: '70%', top: '8%', left: '22%', background: '#1a1b2e', filter: 'blur(1px)' }} />
-                    </div>
-                ) : (
-                    <div className="relative w-16 h-16 md:w-24 md:h-24">
-                        <div className="absolute inset-[-30px] md:inset-[-50px] rounded-full" style={{ background: `radial-gradient(circle, ${cfg.glow} 0%, ${cfg.glow}44 30%, transparent 70%)` }} />
-                        <div className="absolute inset-1 md:inset-2 rounded-full" style={{ background: `radial-gradient(circle at 40% 40%, #fff8e0 0%, ${cfg.color} 60%, ${cfg.color}88 100%)` }} />
-                    </div>
-                )}
-            </div>
-        </>
-    );
-};
-
 const FAQAccordionItem = ({ question, answer }) => {
     const [isOpen, setIsOpen] = useState(false);
     return (
@@ -173,6 +98,125 @@ const FAQ_DATA = [
         a: 'We\'re onboarding founding citizens right now. Join the waitlist above to secure your spot — early access invitations go out in waves.',
     },
 ];
+
+const formatDate = (dateStr) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+};
+
+const CATEGORY_COLORS = {
+    Announcements: 'bg-rpg-gold/20 text-rpg-gold border-rpg-gold/30',
+    Productivity: 'bg-blue-400/20 text-blue-400 border-blue-400/30',
+    Features: 'bg-emerald-400/20 text-emerald-400 border-emerald-400/30',
+};
+
+const BlogCard = ({ post, onClick }) => (
+    <button
+        onClick={() => onClick(post.slug)}
+        className="group text-left bg-rpg-panel border-4 border-rpg-panelLight rounded-xl overflow-hidden transition-all duration-300 hover:border-rpg-gold hover:-translate-y-1 hover:shadow-[8px_8px_0_rgba(253,223,140,0.15)] cursor-pointer w-full"
+    >
+        <div className={`h-32 bg-gradient-to-br ${post.coverGradient} relative overflow-hidden`}>
+            <div className="absolute inset-0 landing-pixel-grid opacity-20" />
+            <div className="absolute bottom-3 left-4">
+                <span className={`text-[9px] uppercase tracking-widest font-bold px-2 py-1 rounded border ${CATEGORY_COLORS[post.category] || 'bg-white/10 text-white border-white/20'}`}>
+                    {post.category}
+                </span>
+            </div>
+        </div>
+        <div className="p-5">
+            <h3 className="font-heading font-bold text-white text-base mb-2 group-hover:text-rpg-gold transition-colors leading-snug">
+                {post.title}
+            </h3>
+            <p className="text-sm text-gray-400 leading-relaxed line-clamp-2 mb-4">{post.excerpt}</p>
+            <div className="flex items-center gap-3 text-[10px] text-gray-500 uppercase tracking-widest font-bold">
+                <span className="flex items-center gap-1"><Calendar size={10} /> {formatDate(post.date)}</span>
+                <span className="flex items-center gap-1"><Clock size={10} /> {post.readTime}</span>
+            </div>
+        </div>
+    </button>
+);
+
+const BlogListView = ({ onSelectPost, onBack }) => (
+    <div className="min-h-screen bg-rpg-bg pt-24 pb-16">
+        <div className="container mx-auto px-6">
+            <button
+                onClick={onBack}
+                className="flex items-center gap-2 text-gray-400 hover:text-rpg-gold transition-colors mb-8 text-sm font-bold uppercase tracking-widest cursor-pointer"
+            >
+                <ChevronLeft size={16} /> Back to Home
+            </button>
+            <div className="text-center mb-14">
+                <Newspaper size={36} className="mx-auto text-rpg-gold mb-4 opacity-80" />
+                <h1 className="text-3xl md:text-4xl font-landing font-bold text-white mb-3">The Taskoria Chronicle</h1>
+                <p className="text-gray-400 max-w-xl mx-auto">News, updates, and tales from the kingdom. Follow our journey as we build the world of Taskoria together.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                {BLOG_POSTS.map(post => (
+                    <BlogCard key={post.slug} post={post} onClick={onSelectPost} />
+                ))}
+            </div>
+        </div>
+    </div>
+);
+
+const BlogPostView = ({ slug, onBack, onBackToList }) => {
+    const post = BLOG_POSTS.find(p => p.slug === slug);
+    if (!post) return null;
+
+    useEffect(() => { window.scrollTo(0, 0); }, [slug]);
+
+    return (
+        <div className="min-h-screen bg-rpg-bg pt-24 pb-16">
+            <div className="container mx-auto px-6">
+                <button
+                    onClick={onBackToList}
+                    className="flex items-center gap-2 text-gray-400 hover:text-rpg-gold transition-colors mb-8 text-sm font-bold uppercase tracking-widest cursor-pointer"
+                >
+                    <ChevronLeft size={16} /> All Posts
+                </button>
+
+                <article className="max-w-2xl mx-auto">
+                    <div className={`h-40 md:h-56 rounded-xl bg-gradient-to-br ${post.coverGradient} relative overflow-hidden mb-8 border-4 border-rpg-panelLight`}>
+                        <div className="absolute inset-0 landing-pixel-grid opacity-20" />
+                        <div className="absolute bottom-4 left-5">
+                            <span className={`text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded border ${CATEGORY_COLORS[post.category] || 'bg-white/10 text-white border-white/20'}`}>
+                                {post.category}
+                            </span>
+                        </div>
+                    </div>
+
+                    <h1 className="text-2xl md:text-4xl font-landing font-bold text-white mb-4 leading-tight">{post.title}</h1>
+
+                    <div className="flex items-center gap-4 text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-10 pb-6 border-b border-rpg-panelLight/30">
+                        <span className="flex items-center gap-1.5"><Calendar size={12} /> {formatDate(post.date)}</span>
+                        <span className="flex items-center gap-1.5"><Clock size={12} /> {post.readTime}</span>
+                    </div>
+
+                    <div className="space-y-5">
+                        {post.content.map((block, i) => {
+                            if (block.type === 'heading') {
+                                return <h2 key={i} className="text-xl md:text-2xl font-heading font-bold text-rpg-gold mt-8 mb-2">{block.text}</h2>;
+                            }
+                            return <p key={i} className="text-gray-300 leading-relaxed text-[15px]">{block.text}</p>;
+                        })}
+                    </div>
+
+                    <div className="mt-14 pt-8 border-t border-rpg-panelLight/30">
+                        <div className="bg-rpg-panel border-4 border-rpg-panelLight rounded-xl p-6 text-center">
+                            <p className="text-gray-400 mb-3 text-sm">Want to experience Taskoria for yourself?</p>
+                            <button
+                                onClick={onBack}
+                                className="inline-flex items-center gap-2 bg-rpg-gold text-rpg-panel border-b-[4px] border-yellow-600 active:border-b-0 active:translate-y-[4px] rounded-lg px-6 py-3 uppercase tracking-widest text-sm font-heading font-bold transition-all hover:bg-yellow-400 cursor-pointer"
+                            >
+                                Join the Beta <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </div>
+    );
+};
 
 // Reveal-on-scroll wrapper using IntersectionObserver (robust, no scroll math)
 const Reveal = ({ children, className = '', delay = 0 }) => {
@@ -378,6 +422,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
     const [status, setStatus] = useState('idle');
     const [message, setMessage] = useState('');
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
+    const [blogView, setBlogView] = useState(null);
     const navRef = useRef(null);
     const heroRef = useRef(null);
     const scrollContainerRef = useRef(null);
@@ -454,28 +499,35 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
         <div className="min-h-screen bg-rpg-bg text-white font-sans selection:bg-rpg-gold selection:text-black" style={{ overflowX: 'clip' }}>
             {!pageReady && <LoadingScreen onReady={() => setPageReady(true)} />}
 
-            {/* 3D Castle background */}
-            <Suspense fallback={null}>
-                <CastleScene />
-            </Suspense>
-
-            {/* Dark overlay on castle */}
-            <div className="fixed inset-0 z-[1] pointer-events-none bg-black/40" />
+            {!blogView && (
+                <>
+                {/* 3D Castle background */}
+                <Suspense fallback={null}>
+                    <CastleScene />
+                </Suspense>
+                {/* Dark overlay on castle */}
+                <div className="fixed inset-0 z-[1] pointer-events-none bg-black/40" />
+                </>
+            )}
 
             {/* Navbar */}
-            <nav ref={navRef} className="fixed top-0 w-full z-50 flex items-center justify-between px-3 py-3 md:px-12 md:py-5 border-b border-transparent bg-transparent transition-all duration-300">
+            <nav ref={navRef} className={`fixed top-0 w-full z-50 flex items-center justify-between px-3 py-3 md:px-12 md:py-5 border-b transition-all duration-300 ${blogView ? 'border-white/10 bg-[rgba(28,22,34,0.95)] backdrop-blur-xl' : 'border-transparent bg-transparent'}`}>
                 <button
                     type="button"
                     className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
-                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    onClick={() => { setBlogView(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                     aria-label="Scroll to top"
                 >
                     <img src="./logo_taskoria.svg" alt="Taskoria Logo - Gamified RPG Habit Tracker" className="h-6 md:h-8 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)] group-hover:scale-105 transition-transform" />
                 </button>
-                <div className="flex items-center gap-3 md:gap-2">
+                <div className="flex items-center gap-2 md:gap-2">
+                    <button
+                        onClick={() => { setBlogView('list'); window.scrollTo(0, 0); }}
+                        className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-rpg-gold px-2 md:px-4 py-2 transition-colors cursor-pointer"
+                    >Blog</button>
                     <button
                         onClick={scrollToWaitlist}
-                        className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-rpg-gold hover:text-white px-2 md:px-4 py-2 transition-colors"
+                        className="hidden md:block text-xs font-bold uppercase tracking-widest text-rpg-gold hover:text-white px-4 py-2 transition-colors"
                     >Join Beta</button>
                     <button
                         onClick={() => onGoToLogin?.()}
@@ -490,6 +542,35 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 </div>
             </nav>
 
+            {blogView ? (
+                <div className="relative z-10 bg-rpg-bg">
+                    <div className="h-20" />
+                    {blogView === 'list' ? (
+                        <BlogListView
+                            onSelectPost={(slug) => { setBlogView(slug); window.scrollTo(0, 0); }}
+                            onBack={() => { setBlogView(null); window.scrollTo(0, 0); }}
+                        />
+                    ) : (
+                        <BlogPostView
+                            slug={blogView}
+                            onBack={() => { setBlogView(null); window.scrollTo(0, 0); }}
+                            onBackToList={() => { setBlogView('list'); window.scrollTo(0, 0); }}
+                        />
+                    )}
+                    {/* Footer */}
+                    <footer className="border-t border-white/10 bg-rpg-panelDark/80 backdrop-blur-sm py-8 mt-12">
+                        <div className="container mx-auto px-6 text-center text-sm text-gray-500 font-heading">
+                            <p className="mb-4 text-gray-400 tracking-wider uppercase text-xs">Taskoria © {new Date().getFullYear()}</p>
+                            <div className="flex justify-center gap-6">
+                                <button onClick={() => { setBlogView('list'); window.scrollTo(0, 0); }} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Blog</button>
+                                <button onClick={onGoToTerms} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Terms of Service</button>
+                                <button onClick={onGoToLegal} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Legal Notice</button>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            ) : (
+            <>
             {/* HERO - scroll container provides distance for castle animation */}
             <div ref={scrollContainerRef}>
                 <main
@@ -801,6 +882,35 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 </Reveal>
             </section>
 
+            {/* BLOG — Latest Posts */}
+            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
+            <section className="relative z-10 container mx-auto px-6 py-20">
+                <Reveal className="text-center mb-14">
+                    <Newspaper size={36} className="mx-auto text-rpg-gold mb-4 opacity-80" />
+                    <h2 className="text-2xl md:text-3xl font-landing font-bold text-white mb-3">The Taskoria Chronicle</h2>
+                    <p className="text-gray-400 max-w-lg mx-auto text-sm">News, updates, and tales from the kingdom.</p>
+                </Reveal>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                    {BLOG_POSTS.slice(0, 3).map((post, i) => (
+                        <Reveal key={post.slug} delay={i * 120}>
+                            <BlogCard post={post} onClick={(slug) => { setBlogView(slug); window.scrollTo(0, 0); }} />
+                        </Reveal>
+                    ))}
+                </div>
+                {BLOG_POSTS.length > 3 && (
+                    <Reveal>
+                        <div className="text-center mt-10">
+                            <button
+                                onClick={() => { setBlogView('list'); window.scrollTo(0, 0); }}
+                                className="inline-flex items-center gap-2 text-rpg-gold hover:text-white text-sm font-bold uppercase tracking-widest transition-colors cursor-pointer"
+                            >
+                                View all posts <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </Reveal>
+                )}
+            </section>
+
             {/* FAQ */}
             <section className="relative z-10 container mx-auto px-6 py-20">
                 <Reveal>
@@ -823,12 +933,15 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 <div className="container mx-auto px-6 text-center text-sm text-gray-500 font-heading">
                     <p className="mb-4 text-gray-400 tracking-wider uppercase text-xs">Taskoria © {new Date().getFullYear()}</p>
                     <div className="flex justify-center gap-6">
+                        <button onClick={() => { setBlogView('list'); window.scrollTo(0, 0); }} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Blog</button>
                         <button onClick={onGoToTerms} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Terms of Service</button>
                         <button onClick={onGoToLegal} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Legal Notice</button>
                     </div>
                 </div>
             </footer>
             </div>{/* end post-hero background */}
+            </>
+            )}
         </div>
     );
 };
