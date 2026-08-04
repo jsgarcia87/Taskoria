@@ -110,9 +110,13 @@ const Dashboard = ({ setActiveView }) => {
     const overdueTasks = activeTasks.filter(t => t.dueDate && t.dueDate < todayLocalDate);
     const dueTodayTasks = activeTasks.filter(t => t.dueDate && t.dueDate === todayLocalDate);
     const urgentTasks = [...overdueTasks, ...dueTodayTasks];
-    const peekTasks = urgentTasks.length > 0
-        ? urgentTasks.slice(0, 5)
-        : activeTasks.slice(0, 5);
+    const upcomingSorted = [...activeTasks].sort((a, b) => {
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return 0;
+    });
+    const peekTasks = upcomingSorted.slice(0, 3);
 
     const shouldReduce = useReducedMotion();
     const { scrollY } = useScroll();
@@ -207,7 +211,7 @@ const Dashboard = ({ setActiveView }) => {
                                 className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-white/5 transition-colors"
                             >
                                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${task.dueDate && task.dueDate < todayLocalDate ? 'bg-red-400' : task.dueDate === todayLocalDate ? 'bg-amber-400' : 'bg-gray-500'}`} />
-                                <span className="text-sm text-gray-200 truncate flex-1">{task.name}</span>
+                                <span className="text-sm text-gray-200 truncate flex-1">{task.title}</span>
                                 {task.dueDate && task.dueDate <= todayLocalDate && (
                                     <span className={`text-[9px] font-bold uppercase tracking-wider shrink-0 ${task.dueDate < todayLocalDate ? 'text-red-400' : 'text-amber-400'}`}>
                                         {task.dueDate < todayLocalDate ? 'Overdue' : 'Today'}

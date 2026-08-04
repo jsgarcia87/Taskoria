@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Library, Edit3, Trash2, Check, X, Loader, Search, RefreshCw } from 'lucide-react';
+import { Library, Edit3, Trash2, Check, X, Loader, Search, RefreshCw, Download, FileJson } from 'lucide-react';
 import { useToast } from '../common/Toast';
 import AssetEditorModal from './AssetEditorModal';
 import { pixelsToDataUrl } from '../../utils/pixelFormat';
+
+const LEGACY_CAT_MAP = {
+    casas: 'HOUSES', castillos: 'CASTLES', monturas: 'MOUNTS',
+    arboles: 'TREES', decoracion: 'DECORATION', monstruos: 'MONSTERS',
+    MASCOTAS: 'PETS', PERSONAJES: 'CHARACTERS', EDIFICIOS: 'HOUSES',
+    MAPAS: 'MAPS', VARIOS: 'PROPS', props: 'PROPS',
+    houses: 'HOUSES', castles: 'CASTLES', mounts: 'MOUNTS',
+    trees: 'TREES', decoration: 'DECORATION', monsters: 'MONSTERS',
+    pets: 'PETS', characters: 'CHARACTERS', maps: 'MAPS',
+};
+const normalizeCategory = (cat) => {
+    if (!cat) return 'PROPS';
+    const upper = cat.toUpperCase();
+    return LEGACY_CAT_MAP[cat] || LEGACY_CAT_MAP[upper] || upper;
+};
 
 const AssetManager = ({ currentUser }) => {
     const toast = useToast();
@@ -23,7 +38,7 @@ const AssetManager = ({ currentUser }) => {
                 ...item,
                 source: 'world_creations',
                 assetId: `lib_pixel_${item.id}`,
-                displayCategory: item.category ? item.category.toUpperCase() : 'VARIOS'
+                displayCategory: normalizeCategory(item.category)
             }));
 
             // Fetch house/map designs (admin_designs)
@@ -34,15 +49,16 @@ const AssetManager = ({ currentUser }) => {
             });
             const dataD = await resD.json();
             const designs = (dataD.designs || []).map(item => {
-                let category = 'EDIFICIOS';
-                if (item.tool === 'map') category = 'MAPAS';
-                else if (item.tool === 'character') category = 'PERSONAJES';
-                else if (item.tool === 'pet') category = 'MASCOTAS';
-                
+                let category = 'HOUSES';
+                if (item.tool === 'map') category = 'MAPS';
+                else if (item.tool === 'character') category = 'CHARACTERS';
+                else if (item.tool === 'pet') category = 'PETS';
+
                 return {
                     ...item,
                     source: 'admin_designs',
                     assetId: `lib_${item.id}`,
+                    category: category.toLowerCase(),
                     displayCategory: category
                 };
             });
@@ -96,10 +112,10 @@ const AssetManager = ({ currentUser }) => {
 
     // Built-in decorative props grouped into library categories.
     const OBJECT_CATEGORIES = {
-        arboles: ['oak_tree','pine_tree','ancient_tree','bush','flowers','mushroom','grass_tuft','hay','planter'],
-        casas: ['shop_building','well','market_stall_red','market_stall_green','market_stall_purple','fence','sign'],
+        trees: ['oak_tree','pine_tree','ancient_tree','bush','flowers','mushroom','grass_tuft','hay','planter'],
+        houses: ['shop_building','well','market_stall_red','market_stall_green','market_stall_purple','fence','sign'],
         props: ['bench','barrel','crate','table','stool','bed','bookshelf','dining_table','dining_chair','bar_counter','weapon_rack','armor_stand','red_carpet'],
-        decoracion: ['lamp','wall_torch','fire','ledgar_statue','council_board','banner_gold','banner_red','banner_purple','banner_blue','mug','cat_sleeping','barrel_tipped','skull','floor_patch'],
+        decoration: ['lamp','wall_torch','fire','ledgar_statue','council_board','banner_gold','banner_red','banner_purple','banner_blue','mug','cat_sleeping','barrel_tipped','skull','floor_patch'],
     };
 
     // Embed a registry prop (any size) into a 64×64 editable canvas — bottom-
@@ -132,7 +148,7 @@ const AssetManager = ({ currentUser }) => {
             const { SPRITE_REGISTRY } = await import('../../data/sprite-registry.js');
             const catOf = (k) => {
                 for (const [cat, keys] of Object.entries(OBJECT_CATEGORIES)) if (keys.includes(k)) return cat;
-                return 'decoracion';
+                return 'decoration';
             };
             let n = 0;
             for (const key of Object.keys(SPRITE_REGISTRY)) {
@@ -209,6 +225,68 @@ const AssetManager = ({ currentUser }) => {
                 </div>
             );
         }
+    };
+
+    const isAdmin = currentUser?.is_admin;
+
+    const exportAssetPNG = (asset) => {
+        let dataUrl = '';
+        if (asset.source === 'world_creations') {
+            dataUrl = pixelsToDataUrl(asset.pixels, asset.grid_size || 64);
+        } else if (asset.tool === 'character' || asset.tool === 'pet') {
+            const p = typeof asset.payload === 'string' ? JSON.parse(asset.payload) : (asset.payload || {});
+            if (p.pixels) {
+                dataUrl = pixelsToDataUrl(p.pixels, p.gridSize || (asset.tool === 'pet' ? 32 : 64));
+            } else if (p.blueprint && p.paleta) {
+                const size = p.blueprint.length;
+                const c = document.createElement('canvas'); c.width = size; c.height = size;
+                const ctx = c.getContext('2d');
+                for (let y = 0; y < size; y++) for (let x = 0; x < p.blueprint[y].length; x++) {
+                    const ch = p.blueprint[y][x];
+                    if (ch && ch !== ' ') { ctx.fillStyle = p.paleta[ch] || '#000'; ctx.fillRect(x, y, 1, 1); }
+                }
+                dataUrl = c.toDataURL();
+            }
+        } else if (asset.tool === 'house') {
+            const p = typeof asset.payload === 'string' ? JSON.parse(asset.payload) : (asset.payload || {});
+            if (p.previewImage) dataUrl = p.previewImage;
+        }
+        if (!dataUrl) { toast.error('No image data to export'); return; }
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `${asset.name.replace(/\s+/g, '_').toLowerCase()}.png`;
+        a.click();
+    };
+
+    const exportAssetJSON = (asset) => {
+        const obj = {
+            name: asset.name,
+            category: asset.category || asset.displayCategory,
+            source: asset.source,
+            tool: asset.tool || 'pixel',
+        };
+        if (asset.source === 'world_creations') {
+            obj.grid_size = asset.grid_size || 64;
+            obj.pixels = typeof asset.pixels === 'string' ? JSON.parse(asset.pixels) : asset.pixels;
+            obj.price = asset.price;
+        } else {
+            obj.payload = typeof asset.payload === 'string' ? JSON.parse(asset.payload) : asset.payload;
+        }
+        const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${asset.name.replace(/\s+/g, '_').toLowerCase()}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    };
+
+    const exportAllFiltered = async (format) => {
+        for (const asset of filteredAssets) {
+            if (format === 'png') exportAssetPNG(asset);
+            else exportAssetJSON(asset);
+            await new Promise(r => setTimeout(r, 100));
+        }
+        toast.success(`Exported ${filteredAssets.length} assets as ${format.toUpperCase()}`);
     };
 
     return (
@@ -328,6 +406,24 @@ const AssetManager = ({ currentUser }) => {
                     <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                     Refresh
                 </button>
+                {isAdmin && (
+                    <>
+                        <button
+                            onClick={() => exportAllFiltered('png')}
+                            className="flex-1 sm:flex-none bg-cyan-500/10 text-cyan-400 hover:text-white px-4 py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all border border-cyan-500/30"
+                            title="Export all visible assets as PNG"
+                        >
+                            <Download size={18} /> Export PNG
+                        </button>
+                        <button
+                            onClick={() => exportAllFiltered('json')}
+                            className="flex-1 sm:flex-none bg-violet-500/10 text-violet-400 hover:text-white px-4 py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all border border-violet-500/30"
+                            title="Export all visible assets as JSON"
+                        >
+                            <FileJson size={18} /> Export JSON
+                        </button>
+                    </>
+                )}
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
@@ -376,7 +472,7 @@ const AssetManager = ({ currentUser }) => {
                                 <p className="text-[10px] text-gray-500 mt-1">{new Date(asset.created_at).toLocaleDateString()}</p>
                                 
                                 <div className="flex gap-2 mt-auto pt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             setEditingAsset(asset);
                                         }}
@@ -384,7 +480,25 @@ const AssetManager = ({ currentUser }) => {
                                     >
                                         <Edit3 size={14} /> Edit
                                     </button>
-                                    <button 
+                                    {isAdmin && (
+                                        <>
+                                            <button
+                                                onClick={() => exportAssetPNG(asset)}
+                                                className="p-1.5 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 rounded transition-colors"
+                                                title="Export PNG"
+                                            >
+                                                <Download size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => exportAssetJSON(asset)}
+                                                className="p-1.5 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 rounded transition-colors"
+                                                title="Export JSON"
+                                            >
+                                                <FileJson size={14} />
+                                            </button>
+                                        </>
+                                    )}
+                                    <button
                                         onClick={() => handleDelete(asset)}
                                         className="p-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded transition-colors"
                                         title="Delete Asset"

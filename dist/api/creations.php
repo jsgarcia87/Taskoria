@@ -50,7 +50,8 @@ try {
     // ignore
 }
 
-$ALLOWED_CATEGORIES = ['casas','castillos','monturas','arboles','decoracion','props','monstruos'];
+$ALLOWED_CATEGORIES = ['characters','pets','houses','castles','mounts','trees','decoration','props','monsters',
+    'casas','castillos','monturas','arboles','decoracion','monstruos'];
 
 function isAdmin($pdo, $userId) {
     if (!$userId) return false;
@@ -165,11 +166,11 @@ if ($method === 'POST') {
         $userId = (int)($data['user_id'] ?? 0);
         if (!$userId || !isAdmin($pdo, $userId)) { http_response_code(403); echo json_encode(['error' => 'Admins only']); exit; }
         $name = trim((string)($data['name'] ?? ''));
-        $category = (string)($data['category'] ?? 'decoracion');
+        $category = (string)($data['category'] ?? 'decoration');
         $gridSize = (int)($data['grid_size'] ?? 64);
         $pixels = $data['pixels'] ?? null;
         if ($name === '' || !is_array($pixels)) { http_response_code(400); echo json_encode(['error' => 'Invalid payload']); exit; }
-        if (!in_array($category, $ALLOWED_CATEGORIES, true)) $category = 'decoracion';
+        if (!in_array($category, $ALLOWED_CATEGORIES, true)) $category = 'decoration';
         if ($gridSize < 8 || $gridSize > 128) $gridSize = 64;
 
         $stmt = $pdo->prepare("SELECT id FROM world_creations WHERE user_id = ? AND name = ?");
@@ -207,12 +208,18 @@ if ($method === 'POST') {
             http_response_code(400); echo json_encode(['error' => 'Invalid pixels format']); exit;
         }
 
-        // Determine if this is a single frame or a multi-frame animation
-        $isAnimated = isset($pixels[0]) && is_array($pixels[0]);
+        // Determine if this is a single frame or a multi-frame animation.
+        // Frames can be flat buffers (4096 hex strings) or sparse [{x,y,c}, ...].
+        $isSparse = isset($pixels[0]) && is_object($pixels[0]) || (isset($pixels[0]) && is_array($pixels[0]) && isset($pixels[0]['c']));
+        $isAnimated = !$isSparse && isset($pixels[0]) && is_array($pixels[0]);
         $frames = $isAnimated ? $pixels : [$pixels];
 
         foreach ($frames as $frame) {
-            if (!is_array($frame) || count($frame) !== $gridSize * $gridSize) {
+            if (!is_array($frame)) {
+                http_response_code(400); echo json_encode(['error' => 'Invalid frame format']); exit;
+            }
+            $frameIsSparse = !empty($frame) && is_array($frame[0]) && isset($frame[0]['c']);
+            if (!$frameIsSparse && count($frame) !== $gridSize * $gridSize) {
                 http_response_code(400); echo json_encode(['error' => 'Invalid frame size']); exit;
             }
         }
@@ -220,8 +227,13 @@ if ($method === 'POST') {
         // Reject empty canvases
         $hasContent = false;
         foreach ($frames as $frame) {
-            foreach ($frame as $p) {
-                if ($p !== 'transparent' && $p !== null && $p !== '') { $hasContent = true; break 2; }
+            $frameIsSparse = !empty($frame) && is_array($frame[0]) && isset($frame[0]['c']);
+            if ($frameIsSparse) {
+                if (!empty($frame)) { $hasContent = true; break; }
+            } else {
+                foreach ($frame as $p) {
+                    if ($p !== 'transparent' && $p !== null && $p !== '') { $hasContent = true; break 2; }
+                }
             }
         }
         if (!$hasContent) { http_response_code(400); echo json_encode(['error' => 'Empty canvas']); exit; }

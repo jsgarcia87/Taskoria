@@ -13,14 +13,23 @@ const PALETTE = [
 ];
 
 const CATEGORIES = [
-    { id: 'casas', label: 'Houses' },
-    { id: 'castillos', label: 'Castles' },
-    { id: 'monturas', label: 'Mounts' },
-    { id: 'arboles', label: 'Trees' },
-    { id: 'decoracion', label: 'Decoration' },
+    { id: 'characters', label: 'Characters' },
+    { id: 'pets', label: 'Pets' },
+    { id: 'houses', label: 'Houses' },
+    { id: 'castles', label: 'Castles' },
+    { id: 'mounts', label: 'Mounts' },
+    { id: 'trees', label: 'Trees' },
+    { id: 'decoration', label: 'Decoration' },
     { id: 'props', label: 'Props' },
-    { id: 'monstruos', label: 'Monsters' },
+    { id: 'monsters', label: 'Monsters' },
 ];
+
+const LEGACY_CAT_MAP = {
+    casas: 'houses', castillos: 'castles', monturas: 'mounts',
+    arboles: 'trees', decoracion: 'decoration', monstruos: 'monsters',
+    MASCOTAS: 'pets', PERSONAJES: 'characters', EDIFICIOS: 'houses',
+    MAPAS: 'maps', PROPS: 'props',
+};
 
 const emptyBuffer = () => new Array(TOTAL).fill(EMPTY);
 
@@ -48,14 +57,20 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
     const [tool, setTool] = useState('pencil'); // pencil | eraser | fill | picker
     const [customColor, setCustomColor] = useState('#ff0000');
     const [name, setName] = useState(initialAsset ? initialAsset.name : '');
-    const [category, setCategory] = useState(initialAsset ? initialAsset.category : CATEGORIES[0].id);
+    const [category, setCategory] = useState(() => {
+        const raw = initialAsset ? initialAsset.category : CATEGORIES[0].id;
+        return LEGACY_CAT_MAP[raw] || (CATEGORIES.some(c => c.id === raw) ? raw : CATEGORIES[0].id);
+    });
     const [price, setPrice] = useState(initialAsset ? initialAsset.price || 100 : 100); 
     const [refImage, setRefImage] = useState(null);
     const [refOpacity, setRefOpacity] = useState(0.5);
     const [refScale, setRefScale] = useState(100);
     const [refX, setRefX] = useState(50);
     const [refY, setRefY] = useState(50);
-    const [sessionDrawings, setSessionDrawings] = useState({});
+    const [refOnion, setRefOnion] = useState(true);
+    const [sessionDrawings, setSessionDrawings] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('taskoria_studio_sessions') || '{}'); } catch { return {}; }
+    });
     const [publishStatus, setPublishStatus] = useState({ state: 'idle', msg: '' });
     const [undoStack, setUndoStack] = useState([]);
     const [redoStack, setRedoStack] = useState([]);
@@ -270,15 +285,22 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
         setIsPlaying(false);
     };
 
+    const persistSessions = (obj) => {
+        try { localStorage.setItem('taskoria_studio_sessions', JSON.stringify(obj)); } catch {}
+    };
+
     const saveToSession = () => {
         const finalName = (name || `sprite_${Date.now().toString().slice(-4)}`).trim();
         setName(finalName);
-        setSessionDrawings(prev => ({ ...prev, [finalName]: framesRef.current.map(f=>[...f]) }));
+        setSessionDrawings(prev => {
+            const next = { ...prev, [finalName]: framesRef.current.map(f=>[...f]) };
+            persistSessions(next);
+            return next;
+        });
     };
 
     const loadFromSession = (key) => {
         pushUndo(framesRef.current, activeFrame);
-        // support old single frame format
         const data = sessionDrawings[key];
         if (data && data.length > 0 && !Array.isArray(data[0])) {
             setFrames([[...data]]);
@@ -294,6 +316,7 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
         setSessionDrawings(prev => {
             const next = { ...prev };
             delete next[key];
+            persistSessions(next);
             return next;
         });
     };
@@ -439,6 +462,12 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                         </label>
                         {refImage && (
                             <div className="space-y-2 mt-2 text-xs text-gray-400">
+                                <button
+                                    onClick={() => setRefOnion(o => !o)}
+                                    className={`w-full text-xs border rounded px-2 py-1.5 flex items-center justify-center gap-1 transition-colors ${refOnion ? 'bg-rpg-gold/20 border-rpg-gold/40 text-rpg-gold' : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'}`}
+                                >
+                                    {refOnion ? 'Onion skin ON' : 'Onion skin OFF'}
+                                </button>
                                 <Slider label="Opacity" min={0} max={1} step={0.05} value={refOpacity} onChange={setRefOpacity}/>
                                 <Slider label="Scale" min={10} max={1000} step={5} value={refScale} onChange={setRefScale}/>
                                 <Slider label="X Axis" min={0} max={100} step={0.5} value={refX} onChange={setRefX}/>
@@ -461,7 +490,7 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                         onPointerDown={handlePointerDown}
                         onPointerMove={handlePointerMove}
                     >
-                        <div className="absolute inset-0 pointer-events-none" style={refStyle}></div>
+                        {!refOnion && <div className="absolute inset-0 pointer-events-none" style={refStyle}></div>}
                         <canvas
                             ref={canvasRef}
                             width={GRID_SIZE}
@@ -469,6 +498,7 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                             className="absolute inset-0 w-full h-full"
                             style={{ imageRendering: 'pixelated' }}
                         />
+                        {refOnion && <div className="absolute inset-0 pointer-events-none z-10" style={refStyle}></div>}
                         {/* Grid overlay */}
                         {!isPlaying && (
                             <div className="absolute inset-0 pointer-events-none" style={{

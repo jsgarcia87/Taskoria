@@ -237,7 +237,8 @@ const AdminWorldTools = ({ currentUser }) => {
                         title={tool.label}
                         className="w-full h-full border-0 block"
                         sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
-                        allow="clipboard-read; clipboard-write"
+                        allow="clipboard-read; clipboard-write; fullscreen"
+                        allowFullScreen
                         onLoad={handleIframeLoad}
                     />
                 </div>

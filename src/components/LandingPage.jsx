@@ -1,13 +1,178 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useMemo } from 'react';
 import {
     Sword, Shield, Scroll, Users, CheckCircle2, ChevronRight, Loader2, Crown, Hammer,
-    Sparkles, Map, Timer, Heart, Target, Trophy, Flame, Star, Zap, BookOpen, TreePine, Castle, Eraser, Square
+    Sparkles, Map, Timer, Heart, Target, Trophy, Flame, Star, Zap, BookOpen, TreePine, Castle, Eraser, Square,
+    ChevronDown, HelpCircle, Sun, Moon
 } from 'lucide-react';
 import ModernPixelAvatar from './common/ModernPixelAvatar';
 import ModernPixelPet from './common/ModernPixelPet';
 import LoreScroll from './common/LoreScroll';
 import ArchiveCouncilMessage from './common/ArchiveCouncilMessage';
 import { WorldSprite, WORLD_PROPS } from './dashboard/world/worldProps';
+
+const CastleScene = lazy(() => import('./landing/CastleScene'));
+
+const LoadingScreen = ({ onReady }) => {
+    const [progress, setProgress] = useState(0);
+    const [fading, setFading] = useState(false);
+
+    useEffect(() => {
+        let raf;
+        let start = null;
+        const duration = 1800;
+        const tick = (ts) => {
+            if (!start) start = ts;
+            const elapsed = ts - start;
+            const p = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - p, 3);
+            setProgress(Math.round(eased * 100));
+            if (p < 1) {
+                raf = requestAnimationFrame(tick);
+            } else {
+                setFading(true);
+                setTimeout(() => onReady(), 500);
+            }
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, [onReady]);
+
+    return (
+        <div className={`fixed inset-0 z-[200] bg-rpg-bg flex flex-col items-center justify-center transition-opacity duration-500 ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <img src="./icono_taskoria_white.png" alt="" className="w-16 h-16 mb-8 drop-shadow-[0_0_20px_rgba(253,223,140,0.5)]" />
+            <div className="w-48 h-2 bg-rpg-panelDark rounded-full overflow-hidden border border-rpg-panelLight">
+                <div
+                    className="h-full bg-rpg-gold rounded-full transition-[width] duration-100 ease-out"
+                    style={{ width: `${progress}%` }}
+                />
+            </div>
+            <p className="mt-4 text-[10px] uppercase tracking-[0.3em] text-gray-500 font-heading">
+                Entering the kingdom...
+            </p>
+        </div>
+    );
+};
+
+const getTimeOfDay = () => {
+    const h = new Date().getHours();
+    if (h >= 6 && h < 12) return 'morning';
+    if (h >= 12 && h < 18) return 'afternoon';
+    if (h >= 18 && h < 21) return 'evening';
+    return 'night';
+};
+
+const TIME_CONFIG = {
+    morning: {
+        celestial: 'sun',
+        position: 'left',
+        bg: 'radial-gradient(circle at 30% 20%, rgba(255,200,100,0.12) 0%, transparent 60%)',
+        overlay: 'rgba(255,180,80,0.06)',
+        glow: 'rgba(255,200,100,0.5)',
+        color: '#ffd666',
+        label: 'Dawn breaks over the kingdom',
+    },
+    afternoon: {
+        celestial: 'sun',
+        position: 'center',
+        bg: 'radial-gradient(circle at 50% 15%, rgba(255,220,140,0.10) 0%, transparent 55%)',
+        overlay: 'rgba(255,200,100,0.04)',
+        glow: 'rgba(255,220,140,0.4)',
+        color: '#ffe48a',
+        label: 'The sun watches over the realm',
+    },
+    evening: {
+        celestial: 'sun',
+        position: 'right',
+        bg: 'radial-gradient(circle at 70% 25%, rgba(255,120,60,0.15) 0%, transparent 55%)',
+        overlay: 'rgba(200,80,40,0.08)',
+        glow: 'rgba(255,140,60,0.6)',
+        color: '#ff9a5c',
+        label: 'Sunset paints the sky',
+    },
+    night: {
+        celestial: 'moon',
+        position: 'right',
+        bg: 'radial-gradient(circle at 70% 18%, rgba(140,170,255,0.10) 0%, transparent 50%)',
+        overlay: 'rgba(60,80,160,0.08)',
+        glow: 'rgba(180,200,255,0.4)',
+        color: '#c8d8ff',
+        label: 'The moon guards the kingdom',
+    },
+};
+
+const CELESTIAL_POS = { left: '18%', center: '50%', right: '75%' };
+
+const CelestialBody = () => {
+    const tod = useMemo(getTimeOfDay, []);
+    const cfg = TIME_CONFIG[tod];
+    const isMoon = cfg.celestial === 'moon';
+    const leftPos = CELESTIAL_POS[cfg.position];
+
+    return (
+        <>
+            <div className="fixed inset-0 z-[1] pointer-events-none" style={{ background: cfg.bg, mixBlendMode: 'screen' }} />
+            <div className="fixed z-[1] pointer-events-none" style={{ left: leftPos, top: '6%', transform: 'translateX(-50%)', mixBlendMode: 'screen' }}>
+                {isMoon ? (
+                    <div className="relative w-16 h-16 md:w-24 md:h-24">
+                        <div className="absolute inset-[-20px] md:inset-[-30px] rounded-full" style={{ background: `radial-gradient(circle, ${cfg.glow} 0%, transparent 70%)` }} />
+                        <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle at 35% 35%, ${cfg.color} 0%, #a0b4e8 50%, #8899cc 100%)` }} />
+                        <div className="absolute rounded-full" style={{ width: '70%', height: '70%', top: '8%', left: '22%', background: '#1a1b2e', filter: 'blur(1px)' }} />
+                    </div>
+                ) : (
+                    <div className="relative w-16 h-16 md:w-24 md:h-24">
+                        <div className="absolute inset-[-30px] md:inset-[-50px] rounded-full" style={{ background: `radial-gradient(circle, ${cfg.glow} 0%, ${cfg.glow}44 30%, transparent 70%)` }} />
+                        <div className="absolute inset-1 md:inset-2 rounded-full" style={{ background: `radial-gradient(circle at 40% 40%, #fff8e0 0%, ${cfg.color} 60%, ${cfg.color}88 100%)` }} />
+                    </div>
+                )}
+            </div>
+        </>
+    );
+};
+
+const FAQAccordionItem = ({ question, answer }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    return (
+        <div className="border-b border-rpg-panelLight/30 last:border-b-0">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between gap-4 py-5 px-1 text-left group cursor-pointer"
+            >
+                <span className="font-heading font-bold text-sm md:text-base text-white group-hover:text-rpg-gold transition-colors">{question}</span>
+                <ChevronDown size={18} className={`text-rpg-gold flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-60 opacity-100 pb-5' : 'max-h-0 opacity-0'}`}>
+                <p className="text-sm text-gray-400 leading-relaxed px-1">{answer}</p>
+            </div>
+        </div>
+    );
+};
+
+const FAQ_DATA = [
+    {
+        q: 'What is Taskoria?',
+        a: 'Taskoria is a task manager that turns your daily to-dos into RPG quests. Complete tasks to earn XP, level up your hero, unlock companions, and explore a pixel-art open world — all while staying productive.',
+    },
+    {
+        q: 'Is Taskoria free?',
+        a: 'Yes! During the closed beta, Taskoria is completely free. Founding citizens get early access to all 5 maps, exclusive badges, and will keep any special perks when we launch.',
+    },
+    {
+        q: 'How does the gamification work?',
+        a: 'Every task you create becomes a quest. Completing quests earns XP and gold. You level up your character, unlock new classes, adopt pets, and build your town — real productivity drives real in-game progress.',
+    },
+    {
+        q: 'Can I use it as a serious task manager?',
+        a: 'Absolutely. Taskoria is a utility-first app: task lists, deadlines, priorities, and habits are all front and center. The RPG layer is designed to motivate, never to get in the way.',
+    },
+    {
+        q: 'What platforms does it support?',
+        a: 'Taskoria works in any modern browser on desktop and mobile. It\'s a Progressive Web App (PWA), so you can install it on your phone\'s home screen for a native-like experience.',
+    },
+    {
+        q: 'When does the beta launch?',
+        a: 'We\'re onboarding founding citizens right now. Join the waitlist above to secure your spot — early access invitations go out in waves.',
+    },
+];
 
 // Reveal-on-scroll wrapper using IntersectionObserver (robust, no scroll math)
 const Reveal = ({ children, className = '', delay = 0 }) => {
@@ -176,14 +341,14 @@ const InteractiveBuilder = () => {
             {/* Grid */}
             <div 
                 className="grid grid-cols-6 gap-1 bg-rpg-panelDark p-2 border-4 border-rpg-panelLight rounded-xl shadow-inner mx-auto sm:mx-0"
-                onMouseLeave={() => setIsDrawing(false)}
-                onMouseUp={() => setIsDrawing(false)}
+                onPointerLeave={() => setIsDrawing(false)}
+                onPointerUp={() => setIsDrawing(false)}
             >
                 {grid.map((cell, i) => (
                     <div 
                         key={i}
-                        onMouseDown={() => { setIsDrawing(true); handlePaint(i); }}
-                        onMouseEnter={() => { if (isDrawing) handlePaint(i); }}
+                        onPointerDown={() => { setIsDrawing(true); handlePaint(i); }}
+                        onPointerEnter={() => { if (isDrawing) handlePaint(i); }}
                         className={`w-10 h-10 sm:w-12 sm:h-12 border-2 border-rpg-panelLight/30 rounded flex items-center justify-center cursor-pointer transition-colors select-none ${cell === 'path' ? 'bg-[#5c4033] border-[#3e2b22]' : 'bg-[#2a2233] hover:bg-[#473d54]'}`}
                     >
                         {cell === 'tree' && <TreePine size={24} className="text-green-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" />}
@@ -208,26 +373,52 @@ const InteractiveBuilder = () => {
 // Renders a real game prop inside the landing mini map, positioned by % coords.
 // The sprite anchors at its bottom (feet on the ground), like in the real world.
 const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
+    const [pageReady, setPageReady] = useState(false);
     const [email, setEmail] = useState('');
     const [status, setStatus] = useState('idle');
     const [message, setMessage] = useState('');
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const [scrollPosition, setScrollPosition] = useState(0);
+    const [privacyAccepted, setPrivacyAccepted] = useState(false);
+    const navRef = useRef(null);
+    const heroRef = useRef(null);
+    const scrollContainerRef = useRef(null);
     const waitlistRef = useRef(null);
 
     useEffect(() => {
-        const handleMouseMove = (e) => {
-            const x = (e.clientX / window.innerWidth - 0.5) * 20;
-            const y = (e.clientY / window.innerHeight - 0.5) * 20;
-            setMousePosition({ x, y });
+        const vh = window.innerHeight || 800;
+        const heroScrollHeight = vh * 2;
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.style.height = `${heroScrollHeight}px`;
+        }
+        let ticking = false;
+        const onScroll = () => {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(() => {
+                const y = window.scrollY;
+                if (navRef.current) {
+                    const s = y > 50;
+                    const nav = navRef.current;
+                    nav.style.borderColor = s ? 'rgba(255,255,255,0.1)' : 'transparent';
+                    nav.style.backgroundColor = s ? 'rgba(28,22,34,0.8)' : 'transparent';
+                    nav.style.backdropFilter = s ? 'blur(24px)' : 'none';
+                    nav.style.webkitBackdropFilter = s ? 'blur(24px)' : 'none';
+                    nav.style.boxShadow = s ? '0 10px 15px -3px rgba(0,0,0,0.1)' : 'none';
+                }
+                if (heroRef.current) {
+                    const maxScroll = Math.max(1, heroScrollHeight - vh);
+                    const ratio = Math.min(Math.max(y / maxScroll, 0), 1);
+                    const fadeStart = 0.82;
+                    const opacity = ratio < fadeStart ? 1 : Math.max(0, 1 - (ratio - fadeStart) / 0.16);
+                    heroRef.current.style.opacity = opacity;
+                    heroRef.current.style.transform = `scale(${1 - (1 - opacity) * 0.05})`;
+                    heroRef.current.style.pointerEvents = opacity < 0.1 ? 'none' : 'auto';
+                }
+                ticking = false;
+            });
         };
-        const handleScroll = () => setScrollPosition(window.scrollY);
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('scroll', handleScroll);
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('scroll', handleScroll);
-        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
     const handleJoinWaitlist = async (e) => {
@@ -259,88 +450,104 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
         waitlistRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
 
-    const parallaxBg1 = { transform: `translate(${mousePosition.x * -1}px, ${mousePosition.y * -1}px)` };
-    const parallaxBg2 = { transform: `translate(${mousePosition.x * 1.5}px, ${mousePosition.y * 1.5}px)` };
-
     return (
-        <div className="min-h-screen bg-rpg-bg text-white overflow-x-hidden font-sans selection:bg-rpg-gold selection:text-black">
-            {/* Animated background */}
-            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-rpg-panelDark to-rpg-panelDark transition-transform duration-700 ease-out" style={parallaxBg1}></div>
-                <div className="absolute inset-0 landing-pixel-grid opacity-60"></div>
-                <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-blue-900/40 blur-[120px] rounded-full transition-transform duration-700 ease-out" style={parallaxBg2}></div>
-                <div className="absolute top-[30%] -right-[10%] w-[40%] h-[60%] bg-amber-900/20 blur-[150px] rounded-full transition-transform duration-1000 ease-out" style={parallaxBg1}></div>
-                <div className="absolute top-[80%] left-[20%] w-[30%] h-[40%] bg-purple-900/30 blur-[150px] rounded-full transition-transform duration-500 ease-out" style={parallaxBg2}></div>
-            </div>
+        <div className="min-h-screen bg-rpg-bg text-white font-sans selection:bg-rpg-gold selection:text-black" style={{ overflowX: 'clip' }}>
+            {!pageReady && <LoadingScreen onReady={() => setPageReady(true)} />}
+
+            {/* 3D Castle background */}
+            <Suspense fallback={null}>
+                <CastleScene />
+            </Suspense>
+
+            {/* Dark overlay on castle */}
+            <div className="fixed inset-0 z-[1] pointer-events-none bg-black/40" />
 
             {/* Navbar */}
-            <nav className={`fixed top-0 w-full z-50 flex items-center justify-between px-6 py-4 md:px-12 md:py-5 border-b transition-all duration-300 ${scrollPosition > 50 ? 'border-white/10 bg-rpg-panelDark/80 backdrop-blur-xl shadow-lg' : 'border-transparent bg-transparent'}`}>
+            <nav ref={navRef} className="fixed top-0 w-full z-50 flex items-center justify-between px-3 py-3 md:px-12 md:py-5 border-b border-transparent bg-transparent transition-all duration-300">
                 <button
                     type="button"
-                    className="flex items-center gap-2 cursor-pointer group"
+                    className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                     aria-label="Scroll to top"
                 >
-                    <img src="./logo_taskoria.svg" alt="Taskoria Logo - Gamified RPG Habit Tracker" className="h-8 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)] group-hover:scale-105 transition-transform" />
+                    <img src="./logo_taskoria.svg" alt="Taskoria Logo - Gamified RPG Habit Tracker" className="h-6 md:h-8 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)] group-hover:scale-105 transition-transform" />
                 </button>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 md:gap-2">
                     <button
                         onClick={scrollToWaitlist}
-                        className="hidden md:inline text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-white px-4 py-2 transition-colors"
+                        className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-rpg-gold hover:text-white px-2 md:px-4 py-2 transition-colors"
                     >Join Beta</button>
                     <button
                         onClick={() => onGoToLogin?.()}
-                        className="bg-rpg-panel border-[3px] border-rpg-panelLight hover:border-rpg-gold text-white text-xs md:text-sm font-bold uppercase tracking-widest px-5 md:px-6 py-2 rounded-xl transition-colors group font-heading shadow-[4px_4px_0_rgba(0,0,0,0.5)] active:translate-y-1 active:shadow-none"
+                        className="bg-rpg-panel border-2 md:border-[3px] border-rpg-panelLight hover:border-rpg-gold text-white text-[10px] md:text-sm font-bold uppercase tracking-wider md:tracking-widest px-3 md:px-6 py-1.5 md:py-2 rounded-lg md:rounded-xl transition-colors group font-heading shadow-[3px_3px_0_rgba(0,0,0,0.5)] md:shadow-[4px_4px_0_rgba(0,0,0,0.5)] active:translate-y-1 active:shadow-none"
                     >
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-1.5 md:gap-2">
                             Sign In
-                            <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                            <ChevronRight size={12} className="md:hidden group-hover:translate-x-1 transition-transform" />
+                            <ChevronRight size={14} className="hidden md:block group-hover:translate-x-1 transition-transform" />
                         </span>
                     </button>
                 </div>
             </nav>
 
-            {/* HERO - CHAPTER I: THE GATES */}
-            <main className="relative z-10 container mx-auto px-6 pt-40 pb-32 flex flex-col items-center justify-center min-h-[85vh] text-center">
-                <div className="max-w-4xl mx-auto flex flex-col items-center">
-                    
-                    <div className="mb-10 flex items-center justify-center animate-breathe">
-                        <img src="./icono_taskoria_white.png" alt="Taskoria Crest - Gamified Productivity App" className="w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_0_30px_rgba(253,223,140,0.7)]" />
+            {/* HERO - scroll container provides distance for castle animation */}
+            <div ref={scrollContainerRef}>
+                <main
+                    ref={heroRef}
+                    className="sticky top-0 z-10 h-[100dvh] flex flex-col items-center justify-center text-center px-6 overflow-y-auto"
+                    style={{ willChange: 'opacity, transform' }}
+                >
+                    <div className="max-w-4xl mx-auto flex flex-col items-center py-24">
+
+                        <div className="mb-10 flex items-center justify-center">
+                            <img src="./icono_taskoria_white.png" alt="Taskoria Crest - Gamified Productivity App" className="w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_0_30px_rgba(253,223,140,0.7)]" />
+                        </div>
+
+                        <h1 className="sr-only">Taskoria: Gamified Productivity App and RPG Habit Tracker</h1>
+
+                        <h2 className="text-4xl md:text-5xl lg:text-7xl font-landing font-extrabold tracking-widest uppercase mb-8 animate-[slideUpFade_1s_ease-out_forwards] opacity-0 text-white drop-shadow-[0_0_15px_rgba(253,223,140,0.5)] leading-tight">
+                            Turn your tasks<br/>into an RPG adventure.
+                        </h2>
+
+                        <p className="text-lg md:text-2xl text-rpg-gold font-heading max-w-2xl mx-auto mb-8 animate-[slideUpFade_1s_ease-out_0.3s_forwards] opacity-0 leading-relaxed drop-shadow-[0_0_10px_rgba(253,223,140,0.3)]">
+                            A task manager where every completed quest<br className="hidden md:block"/> levels up your hero.
+                        </p>
+
+                        <div className="animate-[slideUpFade_1s_ease-out_0.6s_forwards] opacity-0 flex flex-col items-center">
+                            <button
+                                onClick={scrollToWaitlist}
+                                className="bg-rpg-gold text-rpg-panel border-b-[6px] border-yellow-600 active:border-b-0 active:translate-y-[6px] rounded-xl px-10 py-4 uppercase tracking-widest text-base md:text-lg font-heading font-extrabold transition-all flex items-center justify-center gap-3 group shadow-xl"
+                            >
+                                Join the Beta
+                                <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform"/>
+                            </button>
+                            <p className="mt-4 text-gray-500 text-xs tracking-wide animate-[slideUpFade_1s_ease-out_0.9s_forwards] opacity-0">
+                                Free during closed beta — limited spots
+                            </p>
+                        </div>
                     </div>
+                </main>
+            </div>
 
-                    <h1 className="sr-only">Taskoria: Gamified Productivity App and RPG Habit Tracker</h1>
-                    
-                    <h2 className="text-4xl md:text-5xl lg:text-7xl font-landing font-extrabold tracking-widest uppercase mb-8 animate-[slideUpFade_1s_ease-out_forwards] opacity-0 text-white drop-shadow-[0_0_15px_rgba(253,223,140,0.5)] leading-tight">
-                        The Royal Archive<br/>is seeking new citizens.
-                    </h2>
+            {/* Post-hero background (covers fixed castle scene) */}
+            <div className="relative z-10 bg-rpg-bg">
+                {/* Seamless top transition from castle black to rpg-bg */}
+                <div className="h-64 bg-gradient-to-b from-black to-rpg-bg -mt-64 pointer-events-none relative z-20" />
 
-                    <p className="text-lg md:text-2xl text-rpg-gold font-heading max-w-2xl mx-auto mb-8 animate-[slideUpFade_1s_ease-out_0.3s_forwards] opacity-0 leading-relaxed drop-shadow-[0_0_10px_rgba(253,223,140,0.3)]">
-                        Every unfinished duty weakens the Kingdom.<br className="hidden md:block"/> Every completed quest restores it.
-                    </p>
-
-                    <ArchiveCouncilMessage onJoinBeta={scrollToWaitlist} />
-
-                    <div className="animate-[slideUpFade_1s_ease-out_0.6s_forwards] opacity-0 flex flex-col items-center">
-                        <button
-                            onClick={scrollToWaitlist}
-                            className="bg-rpg-gold text-rpg-panel border-b-[6px] border-yellow-600 active:border-b-0 active:translate-y-[6px] rounded-xl px-10 py-4 uppercase tracking-widest text-base md:text-lg font-heading font-extrabold transition-all flex items-center justify-center gap-3 group shadow-xl"
-                        >
-                            Enter the Kingdom
-                            <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform"/>
-                        </button>
-                        
-                        <button
-                            onClick={() => onGoToLogin?.()}
-                            className="mt-6 text-gray-500 hover:text-rpg-gold text-xs md:text-sm uppercase tracking-widest font-bold transition-colors font-heading"
-                        >
-                            I am already a citizen
-                        </button>
+            {/* PRODUCT SHOWCASE — immediately after hero */}
+            <section className="relative z-10 container mx-auto px-6 py-20">
+                <Reveal>
+                    <div className="text-center mb-10">
+                        <h2 className="text-2xl md:text-3xl font-landing font-bold text-white max-w-2xl mx-auto">
+                            Your legend begins with your daily duties.
+                        </h2>
                     </div>
-                </div>
-            </main>
+                    <HeroMockup/>
+                </Reveal>
+            </section>
 
-            {/* Divider */}
-            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
+                {/* Divider */}
+                <div className="container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
 
             {/* CHAPTER II: THE ORIGIN */}
             <section className="relative z-10 container mx-auto px-6 py-24 text-center">
@@ -389,41 +596,26 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     </h2>
                 </Reveal>
 
-                <div className="relative max-w-6xl mx-auto">
-                    {/* Connecting quest path line — desktop only */}
-                    <div className="hidden md:block absolute top-[52px] left-[16.67%] right-[16.67%] h-[2px] quest-path-line z-0"></div>
-
-                    <div className="grid md:grid-cols-3 gap-6">
-                        {[
-                            { icon: Target, title: 'Create your quests', body: 'Log your tasks, daily habits and goals in our RPG task manager. Set difficulty and XP rewards. Everything you complete levels you up.' },
-                            { icon: Sword, title: 'Level up your hero', body: 'Pick a class (Mage, Warrior, Rogue…), customize your pixel-art avatar, equip gear, adopt pets, and defeat your procrastination boss.' },
-                            { icon: Map, title: 'Explore and build the world', body: 'Walk around the gamified town with your party, talk to NPCs, browse shops, and craft houses and mounts with a pixel art productivity community.' },
-                        ].map((step, i) => (
-                            <Reveal key={step.title} delay={i * 150}>
-                                <div className="relative flex flex-col items-center text-center group">
-                                    {/* Quest waypoint marker */}
-                                    <div className="relative z-10 w-[80px] h-[80px] bg-rpg-panel border-4 border-rpg-panelLight rounded-xl flex items-center justify-center text-rpg-gold mb-5 shadow-[6px_6px_0_rgba(0,0,0,0.5)] group-hover:border-rpg-gold group-hover:-translate-y-2 transition-all">
-                                        <step.icon size={32}/>
-                                    </div>
-                                    <h3 className="text-xl font-heading text-white mb-2">{step.title}</h3>
-                                    <p className="text-sm text-gray-400 leading-relaxed max-w-xs">{step.body}</p>
+                <div className="relative max-w-3xl mx-auto">
+                    {[
+                        { icon: Target, title: 'Create your quests', body: 'Log your tasks, daily habits and goals in our RPG task manager. Set difficulty and XP rewards. Everything you complete levels you up.' },
+                        { icon: Sword, title: 'Level up your hero', body: 'Pick a class (Mage, Warrior, Rogue…), customize your pixel-art avatar, equip gear, adopt pets, and defeat your procrastination boss.' },
+                        { icon: Map, title: 'Explore and build the world', body: 'Walk around the gamified town with your party, talk to NPCs, browse shops, and craft houses and mounts with a pixel art productivity community.' },
+                    ].map((step, i) => (
+                        <Reveal key={step.title} delay={i * 200}>
+                            <div className="relative flex gap-6 items-start pb-14">
+                                {i < 2 && <div className="absolute left-7 top-[60px] bottom-0 w-px bg-gradient-to-b from-rpg-gold/30 to-transparent" />}
+                                <div className="flex-shrink-0 w-14 h-14 bg-rpg-panel border-4 border-rpg-panelLight rounded-xl flex items-center justify-center text-rpg-gold shadow-[4px_4px_0_rgba(0,0,0,0.5)] relative z-10">
+                                    <step.icon size={24} />
                                 </div>
-                            </Reveal>
-                        ))}
-                    </div>
-
-                    {/* Moved HeroMockup below How it works */}
-                    <div className="mt-24">
-                        <Reveal>
-                            <div className="text-center mb-10">
-                                <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">The Laws of the Archive</div>
-                                <h3 className="text-2xl md:text-3xl font-landing font-bold text-white max-w-2xl mx-auto">
-                                    Your legend begins with your daily duties.
-                                </h3>
+                                <div className="pt-1">
+                                    <h3 className="text-xl md:text-2xl font-heading text-white mb-2">{step.title}</h3>
+                                    <p className="text-sm text-gray-400 leading-relaxed">{step.body}</p>
+                                </div>
                             </div>
-                            <HeroMockup/>
                         </Reveal>
-                    </div>
+                    ))}
+
                 </div>
             </section>
 
@@ -431,9 +623,10 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
             <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
 
             {/* CHAPTER III: THE COUNCIL */}
-            <section className="relative z-10 container mx-auto px-6 py-20">
+            <section className="relative z-10 py-20 bg-rpg-panelDark/40">
+                <div className="absolute inset-0 bg-gradient-to-b from-rpg-bg via-transparent to-rpg-bg pointer-events-none" />
+                <div className="container mx-auto px-6 relative z-10">
                 <Reveal className="text-center mb-20">
-                    <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">Meet the Council</div>
                     <h2 className="text-3xl md:text-5xl font-landing font-bold text-white max-w-3xl mx-auto leading-tight">
                         Six guardians. Six ways to <span className="text-rpg-gold">conquer your day</span>.
                     </h2>
@@ -462,8 +655,8 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                 </div>
 
                                 {/* The Magic Card */}
-                                <div className="w-full max-w-[240px] aspect-[3/4] bg-rpg-panel border-[6px] border-rpg-panelLight rounded-2xl flex flex-col items-center justify-center p-6 relative z-10 transition-transform duration-300 shadow-[10px_10px_0_rgba(0,0,0,0.4)] group-hover:-translate-y-3 group-hover:border-rpg-gold group-hover:shadow-[15px_15px_0_rgba(253,223,140,0.2)]">
-                                    <div className={`absolute inset-0 rounded-xl ${g.bg} opacity-20 group-hover:opacity-30 transition-opacity duration-300`}></div>
+                                <div className={`w-full max-w-[240px] aspect-[3/4] bg-rpg-panel border-[6px] border-rpg-panelLight border-t-[6px] ${g.border} rounded-2xl flex flex-col items-center justify-center p-6 relative z-10 transition-all duration-300 shadow-[10px_10px_0_rgba(0,0,0,0.4)] group-hover:-translate-y-3 group-hover:border-rpg-gold group-hover:shadow-[15px_15px_0_rgba(253,223,140,0.2)]`}>
+                                    <div className={`absolute inset-0 rounded-xl ${g.bg} opacity-10 group-hover:opacity-30 transition-opacity duration-300`}></div>
                                     
                                     <g.icon size={48} className={`${g.color} relative z-10 mb-6 drop-shadow-lg group-hover:text-rpg-gold transition-colors`} />
                                     
@@ -481,6 +674,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                         </Reveal>
                     ))}
                 </div>
+                </div>
             </section>
 
             {/* Divider */}
@@ -496,9 +690,6 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                             <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
                             <div className="relative z-10">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rpg-gold/10 border border-rpg-gold/30 text-rpg-gold text-[10px] font-bold uppercase tracking-widest mb-4">
-                                    <Hammer size={10}/> Built with the community
-                                </div>
                                 <h2 className="text-3xl md:text-4xl font-landing font-bold mb-4 text-white leading-tight">
                                     The world of Taskoria <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-rpg-gold to-amber-600">is built by you</span>.
                                 </h2>
@@ -512,9 +703,9 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                 </ul>
                                 <button
                                     onClick={() => onGoToLogin?.()}
-                                    className="inline-flex items-center gap-2 bg-rpg-gold text-rpg-panel border-b-[4px] border-yellow-600 active:border-b-0 active:translate-y-[4px] font-heading hover:bg-yellow-400 px-7 py-3 rounded-xl uppercase tracking-widest text-sm transition-all group font-bold mt-2"
+                                    className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border-2 border-white/20 hover:border-rpg-gold font-heading px-7 py-3 rounded-xl uppercase tracking-widest text-sm transition-all group font-bold mt-2"
                                 >
-                                    <Hammer size={16}/> Enter the Pixel Studio
+                                    <Hammer size={16}/> Try the Pixel Studio
                                     <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/>
                                 </button>
                             </div>
@@ -526,19 +717,26 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 </div>
             </section>
 
-            {/* Divider */}
-            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
+            {/* COUNCIL MESSAGE — personalized weather nudge before signup */}
+            <section className="relative z-10 container mx-auto px-6 py-12">
+                <Reveal>
+                    <ArchiveCouncilMessage onJoinBeta={scrollToWaitlist} />
+                </Reveal>
+            </section>
 
             {/* FINAL CTA + WAITLIST */}
             <section ref={waitlistRef} className="relative z-10 container mx-auto px-6 py-24">
                 <Reveal>
                     <div className="max-w-3xl mx-auto text-center">
-                        <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">Closed Beta</div>
+                        <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">Closed Beta — Limited Spots</div>
                         <h2 className="text-4xl md:text-5xl font-landing font-bold mb-4 text-white leading-tight">
                             Ready to start your <span className="text-rpg-gold">first quest</span>?
                         </h2>
-                        <p className="text-gray-400 mb-8 max-w-xl mx-auto">
-                            Drop your email below. Your hero credentials arrive by mail in seconds — no waiting, no callbacks. Then log in and start your first quest.
+                        <p className="text-gray-400 mb-4 max-w-xl mx-auto">
+                            Drop your email below. Your hero credentials arrive in seconds — log in and start playing immediately.
+                        </p>
+                        <p className="text-rpg-gold/80 text-sm font-heading font-bold mb-8">
+                            Founding citizens get early access to all 5 maps and a special badge.
                         </p>
 
                         <div className="relative max-w-xl mx-auto">
@@ -554,14 +752,29 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                 />
                                 <button
                                     type="submit"
-                                    disabled={status === 'loading' || status === 'success'}
+                                    disabled={status === 'loading' || status === 'success' || !privacyAccepted}
                                     className={`relative bg-rpg-gold text-rpg-panel border-b-[4px] border-yellow-600 active:border-b-0 active:translate-y-[4px] font-heading hover:bg-yellow-400 px-6 py-3 rounded-lg uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 group font-bold ${status === 'success' ? 'bg-green-500 border-green-700 text-white' : ''}`}
                                 >
                                     {status === 'loading' ? <Loader2 size={18} className="animate-spin"/> :
                                      status === 'success' ? <CheckCircle2 size={18}/> :
-                                     <>Sign me up <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/></>}
+                                     <>Join the Beta <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/></>}
                                 </button>
                             </form>
+                            <label className="flex items-start gap-3 mt-4 cursor-pointer group max-w-md mx-auto text-left">
+                                <input
+                                    type="checkbox"
+                                    checked={privacyAccepted}
+                                    onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                                    disabled={status === 'success'}
+                                    className="mt-0.5 w-4 h-4 rounded border-2 border-rpg-panelLight bg-rpg-panel accent-rpg-gold flex-shrink-0 cursor-pointer"
+                                />
+                                <span className="text-[11px] text-gray-500 leading-relaxed group-hover:text-gray-400 transition-colors">
+                                    I accept the{' '}
+                                    <button type="button" onClick={onGoToLegal} className="text-rpg-gold/80 hover:text-rpg-gold underline underline-offset-2">Privacy Policy</button>
+                                    {' '}and{' '}
+                                    <button type="button" onClick={onGoToTerms} className="text-rpg-gold/80 hover:text-rpg-gold underline underline-offset-2">Terms of Service</button>.
+                                </span>
+                            </label>
                             <div className={`mt-4 overflow-hidden transition-all duration-300 ${message ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
                                 <div className={`text-sm font-bold p-3 rounded-xl border backdrop-blur-sm ${status === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
                                     {message}
@@ -588,8 +801,25 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 </Reveal>
             </section>
 
+            {/* FAQ */}
+            <section className="relative z-10 container mx-auto px-6 py-20">
+                <Reveal>
+                    <div className="max-w-2xl mx-auto">
+                        <div className="text-center mb-12">
+                            <HelpCircle size={32} className="mx-auto text-rpg-gold mb-4 opacity-80" />
+                            <h2 className="text-2xl md:text-3xl font-landing font-bold text-white">Frequently Asked Questions</h2>
+                        </div>
+                        <div className="bg-rpg-panel/50 border-2 border-rpg-panelLight rounded-xl px-6 md:px-8">
+                            {FAQ_DATA.map((faq, i) => (
+                                <FAQAccordionItem key={i} question={faq.q} answer={faq.a} />
+                            ))}
+                        </div>
+                    </div>
+                </Reveal>
+            </section>
+
             {/* Footer */}
-            <footer className="relative z-10 border-t border-white/10 bg-rpg-panelDark/80 backdrop-blur-sm py-8 mt-12">
+            <footer className="border-t border-white/10 bg-rpg-panelDark/80 backdrop-blur-sm py-8 mt-12">
                 <div className="container mx-auto px-6 text-center text-sm text-gray-500 font-heading">
                     <p className="mb-4 text-gray-400 tracking-wider uppercase text-xs">Taskoria © {new Date().getFullYear()}</p>
                     <div className="flex justify-center gap-6">
@@ -598,6 +828,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     </div>
                 </div>
             </footer>
+            </div>{/* end post-hero background */}
         </div>
     );
 };

@@ -212,9 +212,10 @@ const AssetEditorModal = ({ asset, currentUser, onClose, onSaved }) => {
                     </button>
                 </div>
                 <div className="flex-1 relative">
-                    <iframe 
+                    <iframe
                         src={editorSrc}
                         className="w-full h-full border-none"
+                        allowFullScreen
                         onLoad={(e) => {
                             // Parse payload synchronously to avoid closure stale state on first render
                             let p = asset.payload || {};

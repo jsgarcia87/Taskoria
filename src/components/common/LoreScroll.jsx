@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Scroll, X } from 'lucide-react';
 
 const LoreScroll = () => {
@@ -17,11 +18,11 @@ const LoreScroll = () => {
                 </span>
             </button>
 
-            {/* The Modal */}
-            {isOpen && (
+            {/* The Modal — portaled to body to escape overflow-hidden / transform ancestors */}
+            {isOpen && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     {/* Backdrop */}
-                    <div 
+                    <div
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
                         onClick={() => setIsOpen(false)}
                     />
@@ -43,9 +44,9 @@ const LoreScroll = () => {
                             <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[#b8955a]/40"></div>
                             <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[#b8955a]/40"></div>
                             <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#b8955a]/40"></div>
-                            
+
                             {/* Close Button */}
-                            <button 
+                            <button
                                 onClick={() => setIsOpen(false)}
                                 className="absolute top-4 right-4 text-[#8c6733] hover:text-[#5c4033] transition-colors"
                             >
@@ -61,7 +62,7 @@ const LoreScroll = () => {
 
                             <div className="space-y-4 font-heading text-base md:text-lg text-[#4a3424] leading-relaxed text-justify">
                                 <p>
-                                    Long ago, the world was consumed by the <span className="font-bold text-red-800">Void of Procrastination</span>. Dreams faded, and legendary deeds remained undone. 
+                                    Long ago, the world was consumed by the <span className="font-bold text-red-800">Void of Procrastination</span>. Dreams faded, and legendary deeds remained undone.
                                 </p>
                                 <p>
                                     To combat this creeping darkness, <strong className="text-[#8c6733]">The Royal Archive</strong> was founded—a magical guild dedicated to restoring order by turning every mundane duty into a grand quest.
@@ -81,7 +82,8 @@ const LoreScroll = () => {
                             <div className="w-6 h-6 bg-[#8b5a2b] rounded-full border-2 border-[#3e2b22]"></div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

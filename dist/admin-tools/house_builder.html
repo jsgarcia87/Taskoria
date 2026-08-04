@@ -147,6 +147,7 @@ canvas.house.main-view{border-color:#c87820;box-shadow:0 0 20px #c8782033;}
   <div class="header-actions">
     <button class="hbtn" onclick="copyMapData()">📋 COPIAR MapData</button>
     <button class="hbtn" onclick="saveToLibrary()" style="background:#4a3a1a;color:#f0d060;border-color:#7a5a2a">💾 SAVE TO LIBRARY</button>
+    <button class="hbtn" id="btn-fullscreen" onclick="toggleFullscreen()">⛶ FULLSCREEN</button>
   </div>
 </header>
 
@@ -478,6 +479,33 @@ const BASE_W = 96;
 const BASE_H = 96;
 let season = 0;
 let frame = 0;
+
+// ═══════════════════════════════════════════════════════════
+// FULLSCREEN
+// ═══════════════════════════════════════════════════════════
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement);
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  }
+}
+document.addEventListener('fullscreenchange', updateFSBtn);
+document.addEventListener('webkitfullscreenchange', updateFSBtn);
+function updateFSBtn(){
+  const btn = document.getElementById('btn-fullscreen');
+  if(document.fullscreenElement){
+    btn.textContent = '⛶ EXIT FS';
+    btn.style.background = '#4a7020';
+    btn.style.color = '#fff';
+    btn.style.borderColor = '#6a9a30';
+  } else {
+    btn.textContent = '⛶ FULLSCREEN';
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }
+}
 
 // ═══════════════════════════════════════════════════════════
 // EFFECTIVE DIMENSIONS — canvas expands for protruding towers

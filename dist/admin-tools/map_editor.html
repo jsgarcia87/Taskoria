@@ -264,6 +264,7 @@ body { background: var(--bg); color: var(--text);
     <button class="tbtn gold" onclick="saveToLocal()">💾 SAVE</button>
     <button class="tbtn" onclick="saveToLibrary()" style="background:#3a2a5a;color:#f0c040;border-color:#5a4a7a">📥 SAVE TO LIBRARY</button>
     <button class="tbtn" onclick="loadFromFile()" title="Importar un mapa desde un archivo .json/.js">📂 LOAD</button>
+    <button class="tbtn" id="btn-fullscreen" onclick="toggleFullscreen()" title="Pantalla completa">⛶ FULLSCREEN</button>
   </div>
 </div>
 
@@ -2660,6 +2661,27 @@ function toggleVis(layer,e){
   layerVisible[layer]=!layerVisible[layer];
   e.target.style.opacity=layerVisible[layer]?'1':'0.3';
   render();
+}
+
+function toggleFullscreen(){
+  const btn = document.getElementById('btn-fullscreen');
+  if(!document.fullscreenElement){
+    (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement);
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  }
+}
+document.addEventListener('fullscreenchange', updateFSBtn);
+document.addEventListener('webkitfullscreenchange', updateFSBtn);
+function updateFSBtn(){
+  const btn = document.getElementById('btn-fullscreen');
+  if(document.fullscreenElement){
+    btn.textContent = '⛶ EXIT FS';
+    btn.classList.add('active');
+  } else {
+    btn.textContent = '⛶ FULLSCREEN';
+    btn.classList.remove('active');
+  }
 }
 
 function zoom(dir){
