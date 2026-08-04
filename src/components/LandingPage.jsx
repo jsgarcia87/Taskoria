@@ -575,10 +575,10 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
             <div ref={scrollContainerRef}>
                 <main
                     ref={heroRef}
-                    className="sticky top-0 z-10 h-[100dvh] flex flex-col items-center justify-center text-center px-6 overflow-y-auto"
+                    className="sticky top-0 z-10 h-[100dvh] flex flex-col items-center justify-center text-center px-6"
                     style={{ willChange: 'opacity, transform' }}
                 >
-                    <div className="max-w-4xl mx-auto flex flex-col items-center py-24">
+                    <div className="max-w-4xl mx-auto flex flex-col items-center py-16 md:py-24">
 
                         <div className="mb-10 flex items-center justify-center">
                             <img src="./icono_taskoria_white.png" alt="Taskoria Crest - Gamified Productivity App" className="w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_0_30px_rgba(253,223,140,0.7)]" />
