@@ -2,7 +2,7 @@ const BLOG_POSTS = [
     {
         slug: 'welcome-to-taskoria',
         title: 'Welcome to Taskoria: Where Productivity Meets Adventure',
-        date: '2025-07-28',
+        date: '2026-07-28',
         readTime: '4 min',
         category: 'Announcements',
         excerpt: 'We built Taskoria because we believe getting things done should feel rewarding — not like a chore. Here\'s why we turned your to-do list into an RPG.',
@@ -24,7 +24,7 @@ const BLOG_POSTS = [
     {
         slug: 'adhd-friendly-task-management',
         title: 'Why Gamification Actually Works for ADHD Brains',
-        date: '2025-08-01',
+        date: '2026-08-01',
         readTime: '5 min',
         category: 'Productivity',
         excerpt: 'Dopamine-driven motivation isn\'t a hack — it\'s how ADHD brains are wired. Here\'s how Taskoria uses game mechanics to help you focus without the guilt.',
@@ -46,7 +46,7 @@ const BLOG_POSTS = [
     {
         slug: 'pixel-studio-creative-expression',
         title: 'Inside the Pixel Studio: How Players Build the World',
-        date: '2025-08-04',
+        date: '2026-08-04',
         readTime: '3 min',
         category: 'Features',
         excerpt: 'Taskoria\'s built-in Pixel Studio lets you design houses, castles, and props for the shared world. Here\'s how the creative pipeline works.',

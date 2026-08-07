@@ -36,11 +36,8 @@ const CookieBanner = () => {
                 </div>
                 <div className="flex-1">
                     <h3 className="text-white font-bold mb-1 flex items-center gap-2">
-                        Pergaminos de Rastreo / Tracking Scrolls <Cookie size={14} className="text-rpg-gold" />
+                        Tracking Scrolls <Cookie size={14} className="text-rpg-gold" />
                     </h3>
-                    <p className="text-xs leading-relaxed mb-2">
-                        Usamos pergaminos mágicos (cookies) propios y de terceros para entender cómo exploras el reino y mejorar tu aventura.
-                    </p>
                     <p className="text-xs leading-relaxed">
                         We use magical scrolls (cookies) from us and third parties to understand how you explore the realm and improve your adventure.
                     </p>
@@ -48,29 +45,29 @@ const CookieBanner = () => {
                 <button 
                     onClick={handleReject}
                     className="text-gray-500 hover:text-white transition-colors"
-                    aria-label="Cerrar / Close"
+                    aria-label="Close"
                 >
                     <X size={16} />
                 </button>
             </div>
 
             <div className="flex gap-2 font-bold text-[11px] uppercase tracking-widest mt-2">
-                <button 
+                <button
                     onClick={handleReject}
-                    className="flex-1 px-4 py-2 bg-rpg-panel border-b-[4px] border-rpg-panelLight active:border-b-0 active:translate-y-[4px] hover:bg-white/5 transition-all rounded text-gray-300 leading-tight"
+                    className="flex-1 px-4 py-2 bg-rpg-panel border-b-[4px] border-rpg-panelLight active:border-b-0 active:translate-y-[4px] hover:bg-white/5 transition-all rounded text-gray-300"
                 >
-                    Solo Esenciales<br/>Essential Only
+                    Essential Only
                 </button>
-                <button 
+                <button
                     onClick={handleAccept}
-                    className="flex-1 px-4 py-2 bg-rpg-gold border-b-[4px] border-yellow-600 active:border-b-0 active:translate-y-[4px] hover:bg-yellow-400 transition-all rounded text-black leading-tight"
+                    className="flex-1 px-4 py-2 bg-rpg-gold border-b-[4px] border-yellow-600 active:border-b-0 active:translate-y-[4px] hover:bg-yellow-400 transition-all rounded text-black"
                 >
-                    Aceptar Todo<br/>Accept All
+                    Accept All
                 </button>
             </div>
             
             <div className="text-[10px] text-gray-500 text-center mt-2">
-                Puedes leer más en nuestro / Read more in our <a href="#" onClick={(e) => { e.preventDefault(); /* Need to navigate to legal */ }} className="underline hover:text-rpg-gold">Aviso Legal (Legal Notice)</a>.
+                Read more in our <a href="#" onClick={(e) => { e.preventDefault(); }} className="underline hover:text-rpg-gold">Legal Notice</a>.
             </div>
         </div>
     );

@@ -313,48 +313,47 @@ const CastleScene = () => {
         const cX = isMorning ? -22 : isEvening || isNight ? 22 : 10;
         const cY = 28;
 
-        if (isNight) {
+        {
+            const cSize = 1024;
             const canvas = document.createElement('canvas');
-            canvas.width = 1024; canvas.height = 1024;
+            canvas.width = cSize; canvas.height = cSize;
             const ctx = canvas.getContext('2d');
-            const cx = 512, cy = 512, r = 140;
-            const glow = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 3.2);
-            glow.addColorStop(0, 'rgba(140,170,255,0.3)');
-            glow.addColorStop(0.4, 'rgba(140,170,255,0.1)');
-            glow.addColorStop(1, 'rgba(140,170,255,0)');
-            ctx.fillStyle = glow;
-            ctx.fillRect(0, 0, 1024, 1024);
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.fillStyle = '#c8d8ff'; ctx.fill();
-            ctx.beginPath(); ctx.arc(cx + r * 0.2, cy - r * 0.1, r * 0.7, 0, Math.PI * 2);
-            ctx.fillStyle = '#1a1b2e'; ctx.fill();
+            const mid = cSize / 2;
+
+            if (isNight) {
+                const r = 100;
+                const glow = ctx.createRadialGradient(mid, mid, 0, mid, mid, mid * 0.95);
+                glow.addColorStop(0, 'rgba(140,170,255,0.35)');
+                glow.addColorStop(0.15, 'rgba(140,170,255,0.18)');
+                glow.addColorStop(0.4, 'rgba(140,170,255,0.06)');
+                glow.addColorStop(1, 'rgba(140,170,255,0)');
+                ctx.fillStyle = glow;
+                ctx.fillRect(0, 0, cSize, cSize);
+                ctx.beginPath(); ctx.arc(mid, mid, r, 0, Math.PI * 2);
+                ctx.fillStyle = '#c8d8ff'; ctx.fill();
+                ctx.beginPath(); ctx.arc(mid + r * 0.2, mid - r * 0.1, r * 0.7, 0, Math.PI * 2);
+                ctx.fillStyle = '#1a1b2e'; ctx.fill();
+            } else {
+                const sunColor = isEvening ? '#ff9a5c' : isMorning ? '#ffd666' : '#ffe48a';
+                const r = 90;
+                const glow = ctx.createRadialGradient(mid, mid, 0, mid, mid, mid * 0.95);
+                glow.addColorStop(0, sunColor + '60');
+                glow.addColorStop(0.2, sunColor + '25');
+                glow.addColorStop(0.5, sunColor + '08');
+                glow.addColorStop(1, sunColor + '00');
+                ctx.fillStyle = glow;
+                ctx.fillRect(0, 0, cSize, cSize);
+                const core = ctx.createRadialGradient(mid, mid, 0, mid, mid, r);
+                core.addColorStop(0, '#fff8e0');
+                core.addColorStop(0.6, sunColor);
+                core.addColorStop(1, sunColor + '00');
+                ctx.fillStyle = core;
+                ctx.beginPath(); ctx.arc(mid, mid, r, 0, Math.PI * 2); ctx.fill();
+            }
+
             const tex = new THREE.CanvasTexture(canvas);
             const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, fog: false, depthWrite: false });
-            const plane = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), mat);
-            plane.position.set(cX, cY, skyPlaneZ);
-            plane.renderOrder = -1;
-            scene.add(plane);
-        } else {
-            const sunColor = isEvening ? '#ff9a5c' : isMorning ? '#ffd666' : '#ffe48a';
-            const canvas = document.createElement('canvas');
-            canvas.width = 1024; canvas.height = 1024;
-            const ctx = canvas.getContext('2d');
-            const cx = 512, cy = 512, r = 120;
-            const glow = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 3.5);
-            glow.addColorStop(0, sunColor + '60');
-            glow.addColorStop(0.3, sunColor + '20');
-            glow.addColorStop(1, sunColor + '00');
-            ctx.fillStyle = glow;
-            ctx.fillRect(0, 0, 1024, 1024);
-            const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-            core.addColorStop(0, '#fff8e0');
-            core.addColorStop(0.6, sunColor);
-            core.addColorStop(1, sunColor + '00');
-            ctx.fillStyle = core;
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-            const tex = new THREE.CanvasTexture(canvas);
-            const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, fog: false, depthWrite: false });
-            const plane = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), mat);
+            const plane = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), mat);
             plane.position.set(cX, cY, skyPlaneZ);
             plane.renderOrder = -1;
             scene.add(plane);

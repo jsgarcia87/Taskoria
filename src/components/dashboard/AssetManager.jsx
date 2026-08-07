@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Library, Edit3, Trash2, Check, X, Loader, Search, RefreshCw, Download, FileJson } from 'lucide-react';
 import { useToast } from '../common/Toast';
 import AssetEditorModal from './AssetEditorModal';
-import { pixelsToDataUrl } from '../../utils/pixelFormat';
+import { pixelsToDataUrl, firstFrame, frameToBuffer } from '../../utils/pixelFormat';
 
 const LEGACY_CAT_MAP = {
     casas: 'HOUSES', castillos: 'CASTLES', monturas: 'MOUNTS',
@@ -229,23 +229,55 @@ const AssetManager = ({ currentUser }) => {
 
     const isAdmin = currentUser?.is_admin;
 
+    const EXPORT_SIZE = 512;
+
+    const upscalePixelArt = (smallCanvas, gs) => {
+        const scale = Math.max(1, Math.floor(EXPORT_SIZE / gs));
+        const big = document.createElement('canvas');
+        big.width = gs * scale; big.height = gs * scale;
+        const ctx = big.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(smallCanvas, 0, 0, gs, gs, 0, 0, big.width, big.height);
+        return big.toDataURL('image/png');
+    };
+
     const exportAssetPNG = (asset) => {
         let dataUrl = '';
         if (asset.source === 'world_creations') {
-            dataUrl = pixelsToDataUrl(asset.pixels, asset.grid_size || 64);
+            const gs = asset.grid_size || 64;
+            const frame = firstFrame(asset.pixels);
+            if (frame) {
+                const buf = frameToBuffer(frame, gs);
+                const small = document.createElement('canvas'); small.width = gs; small.height = gs;
+                const sctx = small.getContext('2d');
+                for (let i = 0; i < buf.length; i++) {
+                    if (buf[i] !== 'transparent') { sctx.fillStyle = buf[i]; sctx.fillRect(i % gs, Math.floor(i / gs), 1, 1); }
+                }
+                dataUrl = upscalePixelArt(small, gs);
+            }
         } else if (asset.tool === 'character' || asset.tool === 'pet') {
             const p = typeof asset.payload === 'string' ? JSON.parse(asset.payload) : (asset.payload || {});
+            const gs = p.gridSize || (asset.tool === 'pet' ? 32 : 64);
             if (p.pixels) {
-                dataUrl = pixelsToDataUrl(p.pixels, p.gridSize || (asset.tool === 'pet' ? 32 : 64));
+                const frame = firstFrame(p.pixels);
+                if (frame) {
+                    const buf = frameToBuffer(frame, gs);
+                    const small = document.createElement('canvas'); small.width = gs; small.height = gs;
+                    const sctx = small.getContext('2d');
+                    for (let i = 0; i < buf.length; i++) {
+                        if (buf[i] !== 'transparent') { sctx.fillStyle = buf[i]; sctx.fillRect(i % gs, Math.floor(i / gs), 1, 1); }
+                    }
+                    dataUrl = upscalePixelArt(small, gs);
+                }
             } else if (p.blueprint && p.paleta) {
                 const size = p.blueprint.length;
-                const c = document.createElement('canvas'); c.width = size; c.height = size;
-                const ctx = c.getContext('2d');
+                const small = document.createElement('canvas'); small.width = size; small.height = size;
+                const sctx = small.getContext('2d');
                 for (let y = 0; y < size; y++) for (let x = 0; x < p.blueprint[y].length; x++) {
                     const ch = p.blueprint[y][x];
-                    if (ch && ch !== ' ') { ctx.fillStyle = p.paleta[ch] || '#000'; ctx.fillRect(x, y, 1, 1); }
+                    if (ch && ch !== ' ') { sctx.fillStyle = p.paleta[ch] || '#000'; sctx.fillRect(x, y, 1, 1); }
                 }
-                dataUrl = c.toDataURL();
+                dataUrl = upscalePixelArt(small, size);
             }
         } else if (asset.tool === 'house') {
             const p = typeof asset.payload === 'string' ? JSON.parse(asset.payload) : (asset.payload || {});
@@ -278,15 +310,6 @@ const AssetManager = ({ currentUser }) => {
         a.download = `${asset.name.replace(/\s+/g, '_').toLowerCase()}.json`;
         a.click();
         URL.revokeObjectURL(a.href);
-    };
-
-    const exportAllFiltered = async (format) => {
-        for (const asset of filteredAssets) {
-            if (format === 'png') exportAssetPNG(asset);
-            else exportAssetJSON(asset);
-            await new Promise(r => setTimeout(r, 100));
-        }
-        toast.success(`Exported ${filteredAssets.length} assets as ${format.toUpperCase()}`);
     };
 
     return (
@@ -407,22 +430,32 @@ const AssetManager = ({ currentUser }) => {
                     Refresh
                 </button>
                 {isAdmin && (
-                    <>
-                        <button
-                            onClick={() => exportAllFiltered('png')}
-                            className="flex-1 sm:flex-none bg-cyan-500/10 text-cyan-400 hover:text-white px-4 py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all border border-cyan-500/30"
-                            title="Export all visible assets as PNG"
-                        >
-                            <Download size={18} /> Export PNG
-                        </button>
-                        <button
-                            onClick={() => exportAllFiltered('json')}
-                            className="flex-1 sm:flex-none bg-violet-500/10 text-violet-400 hover:text-white px-4 py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all border border-violet-500/30"
-                            title="Export all visible assets as JSON"
-                        >
-                            <FileJson size={18} /> Export JSON
-                        </button>
-                    </>
+                    <button
+                        onClick={() => {
+                            const backup = assets.map(a => {
+                                const obj = { name: a.name, category: a.category || a.displayCategory, source: a.source, tool: a.tool || 'pixel' };
+                                if (a.source === 'world_creations') {
+                                    obj.grid_size = a.grid_size || 64;
+                                    obj.pixels = typeof a.pixels === 'string' ? JSON.parse(a.pixels) : a.pixels;
+                                    obj.price = a.price;
+                                } else {
+                                    obj.payload = typeof a.payload === 'string' ? JSON.parse(a.payload) : a.payload;
+                                }
+                                return obj;
+                            });
+                            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                            const a = document.createElement('a');
+                            a.href = URL.createObjectURL(blob);
+                            a.download = `taskoria_library_backup_${new Date().toISOString().slice(0,10)}.json`;
+                            a.click();
+                            URL.revokeObjectURL(a.href);
+                            toast.success(`Backup: ${backup.length} assets exported`);
+                        }}
+                        className="flex-1 sm:flex-none bg-violet-500/10 text-violet-400 hover:text-white px-4 py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all border border-violet-500/30"
+                        title="Download full library backup as JSON"
+                    >
+                        <Download size={18} /> Backup JSON
+                    </button>
                 )}
             </div>
 
