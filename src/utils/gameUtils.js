@@ -110,24 +110,29 @@ export const PET_BOND_GAIN = { feed: 1, play: 2, clean: 1 };
 //   dmgMult      → +N% damage on COMPLETE_TASK rolls
 //   hardDmgMult  → extra +N% damage on hard (difficulty 3) tasks
 export const SPECIES_PERKS = {
-    slime:        { xpMult: 0.05 },                            // companion's cheerful aura
-    phoenix:      { xpMult: 0.03, goldMult: 0.03 },             // balanced rebirth bird
-    wolf:         { dmgMult: 0.05 },                            // pack hunter
-    wolf_arctic:  { dmgMult: 0.10 },                            // evolved alpha
-    dragon:       { goldMult: 0.10 },                           // hoards treasure
-    dragon_fire:  { goldMult: 0.05, hardDmgMult: 0.15 },        // burns hard quests
-    dragon_frost: { goldMult: 0.10, xpMult: 0.03 },             // wise + greedy
-    lion:         { goldMult: 0.05, xpMult: 0.02 },             // pride leader
-    lion_desert:  { goldMult: 0.10, xpMult: 0.03 },             // evolved survivor
+    slime:            { xpMult: 0.05 },
+    phoenix:          { xpMult: 0.03, goldMult: 0.03 },
+    wolf:             { dmgMult: 0.05 },
+    wolf_arctic:      { dmgMult: 0.10 },
+    lion:             { goldMult: 0.05, xpMult: 0.02 },
+    lion_desert:      { goldMult: 0.10, xpMult: 0.03 },
+    emberwyrm_young:  { dmgMult: 0.03 },
+    emberwyrm:        { dmgMult: 0.08, hardDmgMult: 0.05 },
+    frostcoil_young:  { xpMult: 0.03 },
+    frostcoil:        { xpMult: 0.05, goldMult: 0.05 },
+    tidewyrm_young:   { goldMult: 0.03 },
+    tidewyrm:         { goldMult: 0.08, xpMult: 0.03 },
 };
 
 // Evolution chains — pets evolve automatically by player-triggered action
 // once they hit the required level. Only chains whose target sprites exist
 // in pet_blueprints.json are listed (no orphans).
 export const EVOLUTIONS = {
-    wolf:   { level: 10, evolveTo: 'wolf_arctic',  label: 'Arctic Alpha' },
-    lion:   { level: 10, evolveTo: 'lion_desert',  label: 'Desert King'  },
-    dragon: { level: 10, evolveTo: 'dragon_fire',  label: 'Fire Wyrm'    },
+    wolf:             { level: 10, evolveTo: 'wolf_arctic',    label: 'Arctic Alpha' },
+    lion:             { level: 10, evolveTo: 'lion_desert',    label: 'Desert Sovereign' },
+    emberwyrm_young:  { level: 10, evolveTo: 'emberwyrm',     label: 'Emberwyrm' },
+    frostcoil_young:  { level: 10, evolveTo: 'frostcoil',     label: 'Frostcoil' },
+    tidewyrm_young:   { level: 10, evolveTo: 'tidewyrm',      label: 'Tidewyrm' },
 };
 
 const bondMultiplier = (bond) => {

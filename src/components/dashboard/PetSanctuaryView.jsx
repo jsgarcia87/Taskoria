@@ -1,8 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import ModernPixelPet from '../common/ModernPixelPet';
 import PixelIcon from '../common/PixelIcon';
+import { PET_EVOLUTION_CHAINS } from '../../data/petSpecies';
 import { useGame } from '../../context/GameContext';
 import { useToast } from '../common/Toast';
+
+const petLabel = (type) => {
+    for (const chain of Object.values(PET_EVOLUTION_CHAINS)) {
+        const entry = chain.find(e => e.blueprintKey === type);
+        if (entry) return entry.label;
+    }
+    return type.replace(/_/g, ' ');
+};
 
 // Pets grow visually at level milestones, mirroring the evolution curve
 // the retired legacy PixelPet wrapper used to apply.
@@ -188,7 +197,7 @@ const PetSanctuaryView = ({ currentUser }) => {
                                 >
                                     {/* Nameplate */}
                                     <div className="bg-black/60 text-emerald-300 font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full mb-1 border border-emerald-500/30 whitespace-nowrap">
-                                        Lvl {pet.level} {pet.type}
+                                        Lvl {pet.level} {petLabel(pet.type)}
                                     </div>
 
                                     {/* Pet Sprite */}
@@ -239,12 +248,10 @@ const PetSanctuaryView = ({ currentUser }) => {
                             <div key={pet.id} className="glass-card p-4 flex items-center justify-between group hover:border-emerald-500/50 transition-all">
                                 <div className="flex items-center gap-4">
                                     <div className="w-16 h-16 bg-gradient-to-br from-emerald-500/10 to-teal-500/20 rounded-xl flex items-center justify-center border border-emerald-500/20 shadow-inner overflow-hidden">
-                                        <div className="transform scale-[1.5]">
-                                            <ModernPixelPet type={pet.pet_type} scale={evolutionScale(pet.pet_level)} />
-                                        </div>
+                                        <ModernPixelPet type={pet.pet_type} size={56} />
                                     </div>
                                     <div>
-                                        <h4 className="text-white font-bold text-sm uppercase tracking-wide">{pet.pet_type}</h4>
+                                        <h4 className="text-white font-bold text-sm uppercase tracking-wide">{petLabel(pet.pet_type)}</h4>
                                         <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase mb-1 inline-block">Lvl {pet.pet_level}</span>
                                         <p className="text-[10px] text-gray-500">From: <span className="text-gray-300">{pet.owner_name}</span></p>
                                     </div>

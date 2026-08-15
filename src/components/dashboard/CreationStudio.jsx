@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Trash2, Image as ImageIcon, X, Upload, Save, Eraser, Pipette, PaintBucket, Undo2, Redo2, Play, Square, Plus, Copy } from 'lucide-react';
+import { Trash2, Image as ImageIcon, X, Upload, Save, Eraser, Pipette, PaintBucket, Undo2, Redo2, Play, Square, Plus, Copy, FileJson } from 'lucide-react';
 import { frameToBuffer } from '../../utils/pixelFormat';
 
 const GRID_SIZE = 64;
@@ -334,6 +334,108 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
 
     const clearRef = () => setRefImage(null);
 
+    const handleJsonImport = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                let json = JSON.parse(ev.target.result);
+
+                // If the file wraps multiple blueprints ({ key: { paleta, blueprint } }),
+                // let the user pick or grab the first one.
+                const keys = Object.keys(json);
+                if (keys.length > 0 && json[keys[0]]?.blueprint) {
+                    if (keys.length > 1) {
+                        const pick = prompt(`Multiple blueprints found:\n${keys.join(', ')}\n\nType the key to import:`);
+                        if (!pick || !json[pick]) return;
+                        json = json[pick];
+                    } else {
+                        json = json[keys[0]];
+                    }
+                }
+
+                const { paleta, blueprint } = json;
+                if (!paleta || !Array.isArray(blueprint)) {
+                    alert('Invalid blueprint JSON — needs "paleta" and "blueprint" fields.');
+                    return;
+                }
+
+                const gs = blueprint.length;
+                if (gs !== GRID_SIZE) {
+                    alert(`Blueprint is ${gs}×${gs} but editor is ${GRID_SIZE}×${GRID_SIZE}. Only ${GRID_SIZE}×${GRID_SIZE} can be imported.`);
+                    return;
+                }
+
+                pushUndo(framesRef.current, activeFrame);
+                const buf = emptyBuffer();
+                for (let y = 0; y < blueprint.length; y++) {
+                    const row = blueprint[y];
+                    if (!row) continue;
+                    for (let x = 0; x < row.length; x++) {
+                        const ch = row[x];
+                        if (ch === ' ') continue;
+                        const c = paleta[ch];
+                        if (c && c !== 'transparent') buf[y * GRID_SIZE + x] = c;
+                    }
+                }
+                setFrames([buf]);
+                setActiveFrame(0);
+                setIsPlaying(false);
+
+                // Add imported colors to palette display
+                const imported = Object.values(paleta).filter(c => c && c !== 'transparent' && c.startsWith('#'));
+                if (imported.length > 0) setColor(imported[0]);
+            } catch (err) {
+                alert('Failed to parse JSON: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
+
+    const handleJsonExport = () => {
+        const buf = framesRef.current[activeFrameRef.current];
+        if (!buf || buf.every(p => !p || p === EMPTY)) {
+            alert('Canvas is empty — nothing to export.');
+            return;
+        }
+
+        const colors = new Set();
+        for (const p of buf) {
+            if (p && p !== EMPTY) colors.add(p);
+        }
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const paleta = { ' ': 'transparent' };
+        const colorToChar = { transparent: ' ' };
+        let idx = 0;
+        for (const c of [...colors].sort()) {
+            const ch = letters[idx++] || `Z${idx}`;
+            paleta[ch] = c;
+            colorToChar[c] = ch;
+        }
+
+        const blueprint = [];
+        for (let y = 0; y < GRID_SIZE; y++) {
+            let row = '';
+            for (let x = 0; x < GRID_SIZE; x++) {
+                const p = buf[y * GRID_SIZE + x];
+                row += (!p || p === EMPTY) ? ' ' : (colorToChar[p] || ' ');
+            }
+            blueprint.push(row);
+        }
+
+        const key = (name || 'sprite').trim().toLowerCase().replace(/\s+/g, '_');
+        const json = JSON.stringify({ [key]: { paleta, blueprint } }, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${key}_blueprint.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const publish = async () => {
         const trimmed = (name || '').trim();
         if (!trimmed) { setPublishStatus({ state: 'error', msg: 'Name your creation first.' }); return; }
@@ -475,6 +577,20 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                                 <button onClick={clearRef} className="w-full text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded px-2 py-1.5 flex items-center justify-center gap-1"><X size={12}/> Remove guide</button>
                             </div>
                         )}
+                    </div>
+
+                    <div>
+                        <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2 flex items-center gap-1"><FileJson size={14}/> Blueprint JSON</div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <label className="flex items-center justify-center gap-1 cursor-pointer text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded px-2 py-2">
+                                <Upload size={14}/> Import
+                                <input type="file" accept=".json,application/json" onChange={handleJsonImport} className="hidden"/>
+                            </label>
+                            <button onClick={handleJsonExport} className="flex items-center justify-center gap-1 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded px-2 py-2">
+                                <Save size={14}/> Export
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-gray-500 mt-1">Import/export blueprint JSON (paleta + rows).</p>
                     </div>
 
                     <button onClick={clearCanvas} className="w-full flex items-center justify-center gap-2 text-xs bg-red-900/20 hover:bg-red-900/30 border border-red-700/40 text-red-300 rounded px-3 py-2">

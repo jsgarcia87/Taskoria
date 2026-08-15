@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import PixelIcon from '../common/PixelIcon';
 
@@ -57,6 +57,12 @@ const DailyProgressChart = () => {
         return { days, maxValue };
     }, [completedTasks, state.character?.activityHistory]);
 
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        const id = requestAnimationFrame(() => setMounted(true));
+        return () => cancelAnimationFrame(id);
+    }, []);
+
     return (
         <div className="glass-panel p-5 mb-6 relative overflow-hidden">
             {/* Decorative corner */}
@@ -98,8 +104,14 @@ const DailyProgressChart = () => {
                             {/* The actual bar */}
                             <div className="w-full max-w-[40px] relative flex items-end justify-center">
                                 <div
-                                    className={`w-full transition-all duration-1000 ease-in-out pixelated shadow-[0_0_10px_rgba(0,0,0,0.5)] ${isToday ? 'bg-rpg-gold' : 'bg-green-500 hover:bg-green-400'}`}
-                                    style={{ height: `${heightPercentage}%`, minHeight: '8px', borderTopWidth: '4px', borderTopColor: isToday ? '#fff' : '#88f5a8' }}
+                                    className={`w-full transition-all duration-1000 ease-out pixelated shadow-[0_0_10px_rgba(0,0,0,0.5)] ${isToday ? 'bg-rpg-gold' : 'bg-green-500 hover:bg-green-400'}`}
+                                    style={{
+                                        height: mounted ? `${heightPercentage}%` : '0%',
+                                        minHeight: mounted ? '8px' : '0px',
+                                        borderTopWidth: '4px',
+                                        borderTopColor: isToday ? '#fff' : '#88f5a8',
+                                        transitionDelay: `${idx * 80}ms`,
+                                    }}
                                 >
                                     {/* Subtle pixel texture overlay inside the bar */}
                                     <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(0,0,0,0.2) 2px, transparent 2px)', backgroundSize: '100% 4px' }}></div>

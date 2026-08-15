@@ -96,7 +96,10 @@ export const systemReducer = (initialState) => (state, action) => {
                     inventory: newState.character.inventory || [], 
                     gold: newState.character.gold || 0, 
                     timePoints: newState.character.timePoints || 0, 
-                    pets: safePets.map(p => ({ ...p, showPet: p.showPet !== false })),
+                    pets: safePets.map(p => {
+                        const LEGACY = { dragon: 'emberwyrm_young', dragon_fire: 'emberwyrm', dragon_frost: 'frostcoil', dragon_egg: 'slime' };
+                        return { ...p, type: LEGACY[p.type] || p.type, showPet: p.showPet !== false };
+                    }),
                     hp: newState.character.hp || { current: 100, max: 100 },
                     xp: newState.character.xp || { current: 0, max: 100 },
                     level: newState.character.level || 1,

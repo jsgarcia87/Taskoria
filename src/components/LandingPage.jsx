@@ -285,7 +285,7 @@ const HeroMockup = () => {
                                 <ModernPixelAvatar type="wizard" scale={2.2} />
                             </div>
                             <div className="relative z-10 pb-4">
-                                <ModernPixelPet type="dragon" scale={1.4} />
+                                <ModernPixelPet type="wolf" scale={1.4} />
                             </div>
                         </div>
                         <div className="w-full mt-4 space-y-1.5">

@@ -109,7 +109,7 @@ const FocusHero = () => {
                         onClick={() => setPomodoroMode('hatch')}
                         className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${pomodoroMode === 'hatch' ? 'bg-amber-500 text-white shadow-glow-amber' : 'text-gray-500 hover:text-gray-300'}`}
                     >
-                        <div className="scale-75 origin-center"><ModernPixelPet type="dragon_egg" scale={0.5} isHatching /></div> Hatch
+                        <div className="scale-75 origin-center"><ModernPixelPet type="mystic_egg" scale={0.5} isHatching /></div> Hatch
                     </button>
                 </div>
 

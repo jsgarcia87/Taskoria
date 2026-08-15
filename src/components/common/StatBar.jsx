@@ -30,7 +30,7 @@ export function StatBar({
   celebrateAtMax = true,
 }) {
   const pct = Math.max(0, Math.min(100, (current / max) * 100));
-  const raw = useMotionValue(pct);
+  const raw = useMotionValue(0);
   const springConfig = kind === 'xp' ? SPRING_XP : SPRING_DEFAULT;
   const spring = useSpring(raw, springConfig);
   const width = useTransform(spring, (v) => `${v}%`);

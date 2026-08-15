@@ -14,8 +14,16 @@ const uid = (prefix = 'log') => `${prefix}_${Date.now()}_${Math.random().toStrin
 // Pet types that match existing blueprints (pet_blueprints.json) so we never
 // spawn a type whose sprite doesn't exist. The previous incubation pool
 // included panda/cat/owl which were never rendered.
-const HATCHABLE_TYPES = ['slime', 'wolf', 'lion', 'dragon', 'phoenix'];
+const HATCHABLE_TYPES = ['slime', 'wolf', 'lion', 'emberwyrm', 'frostcoil', 'tidewyrm'];
 const randomHatchable = () => HATCHABLE_TYPES[Math.floor(Math.random() * HATCHABLE_TYPES.length)];
+
+const LEGACY_TYPE_MAP = {
+    dragon: 'emberwyrm_young',
+    dragon_fire: 'emberwyrm',
+    dragon_frost: 'frostcoil',
+    dragon_egg: 'slime',
+};
+const migratePetType = (type) => LEGACY_TYPE_MAP[type] || type;
 
 // Multi-level XP processor (mirrors processRewardsAndLevelUp on the player).
 // Honours PET_LEVEL_CAP and stops looping when reached.

@@ -232,7 +232,7 @@ const Pomodoro = ({ initialDuration = 20, initialBreak = 5, selectedTaskIds = []
                                     <div className="relative flex flex-col items-center mt-20">
                                         {/* Pulsing Egg Visual */}
                                         <div className="animate-bounce-slow drop-shadow-[0_0_30px_rgba(245,158,11,0.6)]">
-                                            <ModernPixelPet type="dragon_egg" scale={4} isHatching />
+                                            <ModernPixelPet type="mystic_egg" scale={4} isHatching />
                                         </div>
                                         <div className="mt-4 text-amber-400 font-heading font-black tracking-widest text-shadow-glow animate-pulse">
                                             INCUBATING...

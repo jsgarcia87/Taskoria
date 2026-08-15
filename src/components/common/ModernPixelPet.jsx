@@ -14,7 +14,10 @@ const shadeHex = (color, percent) => {
     } catch(e) { return color; }
 }
 
-const ModernPixelPet = ({ type = 'slime', scale = 1, customColors = null, isHatching = false }) => {
+const LEGACY_PET_TYPES = { dragon: 'emberwyrm_young', dragon_fire: 'emberwyrm', dragon_frost: 'frostcoil', dragon_egg: 'slime' };
+
+const ModernPixelPet = ({ type: rawType = 'slime', scale = 1, size = null, customColors = null, isHatching = false }) => {
+    const type = LEGACY_PET_TYPES[rawType] || rawType;
     const canvasRef = useRef(null);
     const animationFrameRef = useRef(null);
     const [cachedImage, setCachedImage] = useState(null);
@@ -29,75 +32,114 @@ const ModernPixelPet = ({ type = 'slime', scale = 1, customColors = null, isHatc
     }, []);
 
     const customBp = dbBlueprints?.pets?.[type.toLowerCase()];
-    const config = customBp || petBlueprints[type] || petBlueprints['slime'];
+    const config = petBlueprints[type] || customBp || petBlueprints['slime'];
     const gridSize = config.gridSize || DEFAULT_GRID;
 
-    // Normalización: Si es un diseño de 64x64, multiplicamos la escala visual por 0.5 
-    // para que sea proporcional a los de 32x32 en la UI.
-    const normalizedScale = gridSize === 64 ? scale * 0.5 : scale;
+    const isContained = !!size;
 
-    // 1. Static Initial Render Pass (Offscreen Cache)
+    const normalizedScale = gridSize === 64 ? scale * 0.5 : scale;
+    const S = S_BASE * normalizedScale;
+    const nativeDiv = gridSize * S;
+    const nativeCanvas = nativeDiv * 1.4;
+
+    const CONTAIN_RATIO = 0.82;
+    const renderCanvas = isContained ? Math.ceil(size) : Math.ceil(nativeCanvas);
+    const renderModel = isContained ? size * CONTAIN_RATIO : nativeDiv;
+
     useEffect(() => {
-        const { blueprint } = config;
-        const paleta = { ...config.paleta };
-        
-        if (customColors) {
-            // Lógica de recolor mejorada para diseños high-fidelity
-            if (customColors.primary) {
-                const p = customColors.primary;
-                // Mapeo inteligente por tipo o por letras comunes
-                // Para 32x32 (Legacy): A, B, C
-                // Para 64x64 (Nuevos): C/D (Dragon), B/C (Wolf), D (Lion)
-                
-                if (type.includes('dragon')) {
-                    paleta['C'] = p;
-                    paleta['D'] = shadeHex(p, -0.3);
-                    paleta['B'] = shadeHex(p, -0.1);
-                } else if (type.includes('wolf')) {
-                    paleta['B'] = p;
-                    paleta['C'] = shadeHex(p, -0.3);
-                    paleta['D'] = shadeHex(p, 0.2);
-                } else if (type.includes('lion')) {
-                    paleta['D'] = p;
-                    paleta['C'] = shadeHex(p, -0.3);
-                    paleta['B'] = shadeHex(p, -0.1);
-                } else {
-                    // Fallback para Slime y otros 32x32
-                    paleta['A'] = p;
-                    paleta['B'] = shadeHex(p, -0.2);
-                    paleta['C'] = shadeHex(p, -0.4);
+        const blueprint = config.blueprint;
+        const paleta = config.paleta ? { ...config.paleta } : null;
+        const pixels = config.pixels;
+
+        if (customColors?.primary && paleta) {
+            const p = customColors.primary;
+            if (type.includes('wolf')) {
+                paleta['B'] = p;
+                paleta['C'] = shadeHex(p, -0.3);
+                paleta['D'] = shadeHex(p, 0.2);
+            } else if (type.includes('lion')) {
+                paleta['D'] = p;
+                paleta['C'] = shadeHex(p, -0.3);
+                paleta['B'] = shadeHex(p, -0.1);
+            } else {
+                paleta['A'] = p;
+                paleta['B'] = shadeHex(p, -0.2);
+                paleta['C'] = shadeHex(p, -0.4);
+            }
+        }
+
+        const rawCanvas = document.createElement('canvas');
+        rawCanvas.width = gridSize;
+        rawCanvas.height = gridSize;
+        const rawCtx = rawCanvas.getContext('2d');
+
+        let minX = gridSize, maxX = 0, minY = gridSize, maxY = 0;
+
+        if (blueprint && paleta) {
+            for (let y = 0; y < blueprint.length && y < gridSize; y++) {
+                const row = blueprint[y];
+                if (!row) continue;
+                for (let x = 0; x < row.length && x < gridSize; x++) {
+                    const char = row[x];
+                    if (char === ' ') continue;
+                    const color = paleta[char];
+                    if (color && color !== 'transparent') {
+                        rawCtx.fillStyle = color;
+                        rawCtx.fillRect(x, y, 1, 1);
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+        } else if (pixels) {
+            let pxArr = pixels;
+            if (Array.isArray(pxArr) && Array.isArray(pxArr[0])) pxArr = pxArr[0];
+            if (Array.isArray(pxArr)) {
+                for (const p of pxArr) {
+                    if (!p || p.c === 'transparent') continue;
+                    const x = p.x, y = p.y, c = p.c;
+                    if (x == null || y == null || !c) continue;
+                    if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
+                        rawCtx.fillStyle = c;
+                        rawCtx.fillRect(x, y, 1, 1);
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
                 }
             }
         }
+
+        const contentW = maxX - minX + 1;
+        const contentH = maxY - minY + 1;
+
+        if (contentW <= 0 || contentH <= 0) {
+            setCachedImage(rawCanvas);
+            return;
+        }
+
+        const pad = 2;
+        const usable = gridSize - pad * 2;
+        const fitScale = Math.min(usable / contentW, usable / contentH);
 
         const offCanvas = document.createElement('canvas');
         offCanvas.width = gridSize;
         offCanvas.height = gridSize;
         const oCtx = offCanvas.getContext('2d');
-
-        for (let y = 0; y < blueprint.length; y++) {
-            const row = blueprint[y];
-            if (!row) continue;
-            for (let x = 0; x < row.length; x++) {
-                const char = row[x];
-                if (char === ' ') continue;
-                const color = paleta[char];
-                if (color && color !== 'transparent') {
-                    oCtx.fillStyle = color;
-                    oCtx.fillRect(x, y, 1, 1);
-                }
-            }
-        }
-        
+        oCtx.imageSmoothingEnabled = false;
+        oCtx.drawImage(rawCanvas, minX, minY, contentW, contentH,
+            (gridSize - contentW * fitScale) / 2, (gridSize - contentH * fitScale) / 2,
+            contentW * fitScale, contentH * fitScale);
         setCachedImage(offCanvas);
     }, [type, JSON.stringify(customColors), dbBlueprints]);
 
-    // 2. Animation Render Loop
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas || !cachedImage) return;
         const ctx = canvas.getContext('2d');
-        const S = S_BASE * normalizedScale;
 
         ctx.imageSmoothingEnabled = false;
 
@@ -106,22 +148,22 @@ const ModernPixelPet = ({ type = 'slime', scale = 1, customColors = null, isHatc
             if (!canvasRef.current || !cachedImage) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Subtle breathing/floating for pets
-            const bob = isHatching ? Math.sin(t * 0.2) * (2 * S) : Math.sin(t * 0.05) * (1.5 * S);
+            const bobAmp = isContained
+                ? size * 0.015
+                : (isHatching ? 2 * S : 1.5 * S);
+            const bob = isHatching
+                ? Math.sin(t * 0.2) * bobAmp
+                : Math.sin(t * 0.05) * bobAmp;
             const squash = isHatching ? Math.abs(Math.sin(t * 0.2)) * 0.1 : Math.sin(t * 0.03) * 0.06;
 
-            // Use a base unit that represents the model size at current scale
-            const modelSize = gridSize * S;
-            const drawW = modelSize * (1 + squash);
-            const drawH = modelSize * (1 - squash);
-            
-            // Centering logic: (CanvasSize - DrawSize) / 2
+            const drawW = renderModel * (1 + squash);
+            const drawH = renderModel * (1 - squash);
+
             const offsetX = (canvas.width - drawW) / 2;
-            // For Y, we anchor at the bottom but lift it slightly with 'bob'
             const offsetY = (canvas.height - drawH) / 2 + bob;
 
             ctx.drawImage(
-                cachedImage, 
+                cachedImage,
                 0, 0, gridSize, gridSize,
                 offsetX, offsetY, drawW, drawH
             );
@@ -137,38 +179,36 @@ const ModernPixelPet = ({ type = 'slime', scale = 1, customColors = null, isHatc
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [cachedImage, normalizedScale, isHatching, gridSize]);
+    }, [cachedImage, renderModel, renderCanvas, isHatching, gridSize, isContained]);
 
-    // Canvas buffer: ensure the canvas is 40% larger than the base model to accommodate squash/stretch/bob
-    // Usamos normalizedScale para el renderizado real pero mantenemos S_BASE para el espacio
-    const canvasSize = gridSize * S_BASE * normalizedScale * 1.4;
-    const divSize = gridSize * S_BASE * normalizedScale;
+    const wrapSize = size || nativeDiv;
 
     return (
-        <div 
+        <div
             className="inline-flex items-center justify-center relative pointer-events-none"
-            style={{ 
-                width: divSize, 
-                height: divSize,
-                overflow: 'visible'
+            style={{
+                width: wrapSize,
+                height: wrapSize,
+                overflow: isContained ? 'hidden' : 'visible'
             }}
         >
             <canvas
                 ref={canvasRef}
-                width={canvasSize}
-                height={canvasSize}
+                width={renderCanvas}
+                height={renderCanvas}
                 className="absolute"
-                style={{ 
+                style={{
                     imageRendering: 'pixelated',
-                    // Centrado perfecto de la base mayor del canvas sobre el contenedor
-                    marginLeft: -(canvasSize - divSize) / 2,
-                    marginTop: -(canvasSize - divSize) / 2
+                    width: isContained ? size : nativeCanvas,
+                    height: isContained ? size : nativeCanvas,
+                    ...(isContained ? {} : {
+                        marginLeft: -(nativeCanvas - wrapSize) / 2,
+                        marginTop: -(nativeCanvas - wrapSize) / 2,
+                    }),
                 }}
             />
         </div>
     );
 };
 
-// Memoized: skips re-render when props are unchanged (e.g. when the parent
-// re-renders for unrelated state like a periodic speech bubble).
 export default React.memo(ModernPixelPet);

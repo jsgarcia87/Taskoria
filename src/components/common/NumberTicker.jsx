@@ -16,7 +16,7 @@ export function NumberTicker({
   className = '',
 }) {
   const shouldReduce = useReducedMotion();
-  const mv = useMotionValue(value);
+  const mv = useMotionValue(0);
   const display = useTransform(mv, formatter);
 
   useEffect(() => {

@@ -55,11 +55,16 @@ const ModernPixelAvatar = ({ type = 'warrior', scale = 1, headOnly = false, cust
     useEffect(() => {
         const mappedType = TYPE_MAP[type] || 'fighter';
         const customBp = dbBlueprints?.characters?.[mappedType.toLowerCase()];
-        const config = customBp || blueprintsData[mappedType] || blueprintsData['fighter'];
-        const { blueprint } = config;
-        const paleta = { ...config.paleta };
-        
-        if (customColorsStr) {
+        // Built-in blueprints always win: they are the canonical, full-frame
+        // 64-grid sprites the game ships with. Custom DB designs only fill in
+        // brand-new types the JSON doesn't define — never silently replace a
+        // shipped avatar (that was the bug where custom designs broke heroes).
+        const config = blueprintsData[mappedType] || customBp || blueprintsData['fighter'];
+        const blueprint = config.blueprint;
+        const pixels = config.pixels;
+        const paleta = config.paleta ? { ...config.paleta } : {};
+
+        if (customColorsStr && config.paleta) {
             const parsedColors = JSON.parse(customColorsStr);
             const baseSkin = config.paleta['E'] || '#ffdbac'; 
             
@@ -87,20 +92,39 @@ const ModernPixelAvatar = ({ type = 'warrior', scale = 1, headOnly = false, cust
         offCanvas.height = GRID_SIZE;
         const oCtx = offCanvas.getContext('2d');
 
-        for (let y = 0; y < blueprint.length; y++) {
-            const row = blueprint[y];
-            if (!row) continue;
-            for (let x = 0; x < row.length; x++) {
-                const char = row[x];
-                if (char === ' ') continue;
-                const color = paleta[char];
-                if (color && color !== 'transparent') {
-                    oCtx.fillStyle = color;
-                    oCtx.fillRect(x, y, 1, 1);
+        if (Array.isArray(blueprint)) {
+            for (let y = 0; y < blueprint.length && y < GRID_SIZE; y++) {
+                const row = blueprint[y];
+                if (!row) continue;
+                for (let x = 0; x < row.length && x < GRID_SIZE; x++) {
+                    const char = row[x];
+                    if (char === ' ') continue;
+                    const color = paleta[char];
+                    if (color && color !== 'transparent') {
+                        oCtx.fillStyle = color;
+                        oCtx.fillRect(x, y, 1, 1);
+                    }
+                }
+            }
+        } else if (pixels) {
+            // Custom studio designs store a sparse [{x,y,c}] frame. Draw each
+            // painted pixel at its authored grid position (no re-centering —
+            // headOnly cropping depends on the sprite's absolute placement).
+            let pxArr = pixels;
+            if (Array.isArray(pxArr) && Array.isArray(pxArr[0])) pxArr = pxArr[0];
+            if (Array.isArray(pxArr)) {
+                for (const p of pxArr) {
+                    if (!p || p.c === 'transparent') continue;
+                    const { x, y, c } = p;
+                    if (x == null || y == null || !c) continue;
+                    if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+                        oCtx.fillStyle = c;
+                        oCtx.fillRect(x, y, 1, 1);
+                    }
                 }
             }
         }
-        
+
         setCachedImage(offCanvas);
     }, [type, customColorsStr, dbBlueprints]);
 

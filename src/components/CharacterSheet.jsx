@@ -16,11 +16,67 @@ import { CHARACTERS } from '../data/characters';
 import { EQUIPMENT_SLOTS, ITEM_TYPES, SET_BONUSES } from '../data/items';
 import ModernPixelAvatar from './common/ModernPixelAvatar';
 import ModernPixelPet from './common/ModernPixelPet';
+import { PET_EVOLUTION_CHAINS } from '../data/petSpecies';
 import Sprite from './common/Sprite';
 import AvatarSpeechBubble from './common/AvatarSpeechBubble';
 import DailyProgressChart from './dashboard/DailyProgressChart';
 import StatsRadarChart from './dashboard/StatsRadarChart';
 import { useToast } from './common/Toast';
+
+const RING_R = 30;
+const RING_C = 2 * Math.PI * RING_R;
+
+// A single progress ring with the headline value centered inside. The
+// descriptive label/subtitle now live *beside* the ring (see StatReadout)
+// so the pair fills the row width instead of floating in the middle.
+const StatusRing = ({ value, max, centerValue, gradientId, colors, size = 56 }) => {
+    const pct = Math.min(value / max, 1);
+
+    return (
+        <div className="relative flex-shrink-0 flex items-center justify-center" style={{ width: size, height: size }}>
+            <svg viewBox="0 0 70 70" className="absolute inset-0 w-full h-full -rotate-90">
+                <circle cx="35" cy="35" r={RING_R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
+                <circle
+                    cx="35" cy="35" r={RING_R}
+                    fill="none" stroke={`url(#${gradientId})`} strokeWidth="5"
+                    strokeLinecap="round"
+                    strokeDasharray={RING_C}
+                    strokeDashoffset={RING_C * (1 - pct)}
+                    className="transition-all duration-1000 ease-out"
+                />
+                <defs>
+                    <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor={colors[0]} />
+                        <stop offset="100%" stopColor={colors[1]} />
+                    </linearGradient>
+                </defs>
+            </svg>
+            <span className="z-10 font-display font-black text-white leading-none" style={{ fontSize: size * 0.28 }}>
+                <NumberTicker value={centerValue} />
+            </span>
+        </div>
+    );
+};
+
+// Ring + label/subtitle laid out horizontally. Two of these split the header
+// row in half, so the width is used evenly and the composition stays balanced.
+const StatReadout = ({ ringProps, label, subtitle, accent }) => (
+    <div className="flex-1 flex items-center justify-center gap-2 py-3 px-2">
+        <StatusRing {...ringProps} />
+        <div className="flex flex-col leading-tight min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: accent }}>{label}</span>
+            {subtitle && <span className="text-[11px] font-bold text-gray-400 mt-0.5 truncate">{subtitle}</span>}
+        </div>
+    </div>
+);
+
+const petDisplayLabel = (type) => {
+    for (const chain of Object.values(PET_EVOLUTION_CHAINS)) {
+        const entry = chain.find(e => e.blueprintKey === type);
+        if (entry) return entry.label;
+    }
+    return type.replace(/_/g, ' ');
+};
 
 const CharacterSheet = ({ setActiveView }) => {
     const { state, actions, activeProfileId, familyData } = useGame();
@@ -168,7 +224,7 @@ const CharacterSheet = ({ setActiveView }) => {
 
     const confirmAdoption = async (pet) => {
         if (!pet) return;
-        if (confirm(`Are you sure you want to give ${pet.type} (Lvl ${pet.level}) up for adoption? This cannot be undone.`)) {
+        if (confirm(`Are you sure you want to give ${petDisplayLabel(pet.type)} (Lvl ${pet.level}) up for adoption? This cannot be undone.`)) {
             setIsReleasing(true);
             try {
                 const currentProfile = familyData?.profiles?.find(p => p.id === activeProfileId);
@@ -247,73 +303,79 @@ const CharacterSheet = ({ setActiveView }) => {
 
             {/* Header */}
             <div className="p-6 pb-2 relative z-10">
-                <div className="flex items-start justify-between">
-                    <div className="flex gap-5 items-center">
-                        <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl border border-white/10 flex items-center justify-center shadow-lg relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            {charData && (
-                                <AvatarSpeechBubble idleTimeMs={30000}>
-                                    <ModernPixelAvatar
-                                        type={charData.id}
-                                        scale={1.8}
-                                        customColors={character?.avatarColors}
-                                        headOnly={true}
-                                    />
-                                </AvatarSpeechBubble>
-                            )}
+                <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl border border-white/10 flex items-center justify-center shadow-lg relative overflow-hidden group flex-shrink-0">
+                        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        {charData && (
+                            <AvatarSpeechBubble idleTimeMs={30000}>
+                                <ModernPixelAvatar
+                                    type={charData.id}
+                                    scale={1.6}
+                                    customColors={character?.avatarColors}
+                                    headOnly={true}
+                                />
+                            </AvatarSpeechBubble>
+                        )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-2xl font-display font-bold text-white tracking-tight truncate">{character.name}</h2>
+                            <button
+                                onClick={startEditing}
+                                className="p-1.5 text-gray-400 hover:text-white bg-white/5 rounded-full hover:bg-white/10 transition-all flex-shrink-0"
+                            >
+                                <Edit2 size={12} />
+                            </button>
                         </div>
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <h2 className="text-3xl font-display font-bold text-white tracking-tight">{character.name}</h2>
-                                <button
-                                    onClick={startEditing}
-                                    className="p-1.5 text-gray-400 hover:text-white bg-white/5 rounded-full hover:bg-white/10 transition-all"
-                                >
-                                    <Edit2 size={12} />
-                                </button>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <span className="px-2 py-0.5 rounded textxs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm border border-white/10 text-xs uppercase tracking-wide flex-shrink-0">
-                                    Lvl {character.level} {character.class}
-                                </span>
-                                <button
-                                    onClick={() => actions.toggleResting()}
-                                    className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border shadow-lg whitespace-nowrap ${character.isResting ? 'bg-indigo-600/30 border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/40' : 'bg-black/30 border-white/10 text-gray-400 hover:text-white hover:border-white/30'}`}
-                                    title={character.isResting ? "Leave the Inn" : "Rest at the Inn (Halts Penalties)"}
-                                >
-                                    {character.isResting ? '🌙 Resting' : '🏕️ Go to Inn'}
-                                </button>
-                            </div>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm border border-white/10 uppercase tracking-wide">
+                                {character.class}
+                            </span>
+                            <button
+                                onClick={() => actions.toggleResting()}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border shadow-lg whitespace-nowrap ${character.isResting ? 'bg-indigo-600/30 border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/40' : 'bg-black/30 border-white/10 text-gray-400 hover:text-white hover:border-white/30'}`}
+                                title={character.isResting ? "Leave the Inn" : "Rest at the Inn (Halts Penalties)"}
+                            >
+                                {character.isResting ? '🌙 Resting' : '🏕️ Go to Inn'}
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Status Bars */}
-                <div className="mt-6 space-y-3">
-                    <div className="relative group">
-                        <div className="flex justify-between mb-1 text-xs font-bold uppercase tracking-wider">
-                            <span className="text-red-400 flex items-center gap-1"><PixelIcon name="heart" size={12} color="#f87171" className="fill-current" /> Health</span>
-                            <span className="text-gray-400">
-                                <NumberTicker value={character.hp.current} /> / {character.hp.max}
-                            </span>
-                        </div>
-                        <StatBar current={character.hp.current} max={character.hp.max} kind="hp" />
-                    </div>
-
-                    <div className="relative group">
-                        <div className="flex justify-between mb-1 text-xs font-bold uppercase tracking-wider">
-                            <span className="text-amber-400 flex items-center gap-1"><PixelIcon name="star" size={12} color="#fbbf24" className="fill-current" /> Experience</span>
-                            <span className="text-gray-400">
-                                <NumberTicker value={character.xp.current} /> / {character.xp.max}
-                            </span>
-                        </div>
-                        <StatBar current={character.xp.current} max={character.xp.max} kind="xp" />
-                    </div>
+                {/* Status Rings — one full-width card, split evenly so the row
+                    reads as a balanced unit instead of two floating circles. */}
+                <div className="mt-5 flex items-stretch rounded-2xl bg-black/20 border border-white/5 overflow-hidden">
+                    <StatReadout
+                        accent="#fbbf24"
+                        label="Level"
+                        subtitle={`${(character.xp.max - character.xp.current).toLocaleString()} XP`}
+                        ringProps={{
+                            value: character.xp.current,
+                            max: character.xp.max,
+                            centerValue: character.level,
+                            gradientId: 'xpGrad',
+                            colors: ['#fbbf24', '#f59e0b'],
+                        }}
+                    />
+                    <div className="w-px bg-white/10 my-4" />
+                    <StatReadout
+                        accent="#f87171"
+                        label="Health"
+                        subtitle={`of ${character.hp.max} max`}
+                        ringProps={{
+                            value: character.hp.current,
+                            max: character.hp.max,
+                            centerValue: character.hp.current,
+                            gradientId: 'hpGrad',
+                            colors: ['#ef4444', '#f87171'],
+                        }}
+                    />
                 </div>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="px-6 flex gap-1 border-b border-white/5 mt-2">
+            {/* Navigation Tabs — icon stacked over label (mobile tab-bar
+                pattern) so 5 tabs breathe at narrow widths. */}
+            <div className="px-3 flex gap-1 border-b border-white/5 mt-3">
                 {[
                     { id: 'stats', label: 'Stats', icon: 'zap' },
                     { id: 'skills', label: 'Skills', icon: 'book' },
@@ -325,13 +387,14 @@ const CharacterSheet = ({ setActiveView }) => {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`
-                            flex-1 py-3 text-sm font-bold uppercase tracking-wide transition-all border-b-2 flex items-center justify-center gap-2
+                            flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-t-lg border-b-2 transition-all
                             ${activeTab === tab.id
-                                ? 'border-purple-500 text-white bg-white/5 rounded-t-lg'
+                                ? 'border-purple-500 text-white bg-white/5'
                                 : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'}
                         `}
                     >
-                        <PixelIcon name={tab.icon} size={14} /> {tab.label}
+                        <PixelIcon name={tab.icon} size={16} />
+                        <span className="text-[10px] font-bold uppercase tracking-wide">{tab.label}</span>
                     </button>
                 ))}
             </div>
@@ -356,26 +419,23 @@ const CharacterSheet = ({ setActiveView }) => {
                                 { key: 'con', label: 'CON', color: 'orange' },
                                 { key: 'cha', label: 'CHA', color: 'yellow' },
                                 { key: 'will', label: 'WILL', color: 'purple' },
-                            ].map(stat => {
-                                const baseValue = character.baseStats[stat.key] || 0;
-                                const totalValue = character.stats[stat.key] || 0;
+                            ].map((stat, idx) => {
+                                const baseValue = character.baseStats?.[stat.key] || 10;
+                                const totalValue = character.stats?.[stat.key] || 10;
                                 const bonus = totalValue - baseValue;
                                 return (
-                                    <div key={stat.key} className={`glass-card p-4 flex flex-col items-center relative overflow-hidden group border-t-2 border-t-${stat.color}-500 hover:-translate-y-1 transition-transform`}>
+                                    <div
+                                        key={stat.key}
+                                        className={`glass-card p-4 flex flex-col items-center relative overflow-hidden group border-t-2 border-t-${stat.color}-500 hover:-translate-y-1 transition-transform`}
+                                        style={{
+                                            animation: `statTileIn 0.5s ease-out ${idx * 70}ms both`,
+                                        }}
+                                    >
                                         <div className={`absolute inset-0 bg-${stat.color}-500/5 group-hover:bg-${stat.color}-500/10 transition-colors`}></div>
                                         <span className="text-xs font-bold text-gray-400 font-display uppercase tracking-widest mb-1 z-10">{stat.label}</span>
                                         <div className="flex items-baseline gap-1 z-10">
-                                            {(() => {
-                                                const baseValue = character.baseStats?.[stat.key] || 10;
-                                                const totalValue = character.stats?.[stat.key] || 10;
-                                                const bonus = totalValue - baseValue;
-                                                return (
-                                                    <>
-                                                        <span className="text-3xl font-display font-bold text-white">{totalValue}</span>
-                                                        {bonus > 0 && <span className="text-[10px] font-bold text-green-400">+{bonus}</span>}
-                                                    </>
-                                                );
-                                            })()}
+                                            <NumberTicker value={totalValue} className="text-3xl font-display font-bold text-white" />
+                                            {bonus > 0 && <span className="text-[10px] font-bold text-green-400">+{bonus}</span>}
                                         </div>
                                     </div>
                                 );
@@ -586,12 +646,10 @@ const CharacterSheet = ({ setActiveView }) => {
                                     >
                                         Give for Adoption
                                     </button>
-                                    <div className="w-32 h-32 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full border border-white/10 flex items-center justify-center shadow-lg relative mb-4">
-                                        <div className="flex items-center justify-center transform translate-y-2">
-                                            <ModernPixelPet type={pet.type} scale={1.8} />
-                                        </div>
+                                    <div className="w-32 h-32 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full border border-white/10 flex items-center justify-center shadow-lg relative mb-4 overflow-hidden">
+                                        <ModernPixelPet type={pet.type} size={120} />
                                     </div>
-                                    <h3 className="text-xl font-display font-bold text-white capitalize">{pet.type}</h3>
+                                    <h3 className="text-xl font-display font-bold text-white capitalize">{petDisplayLabel(pet.type)}</h3>
                                     <div className="flex items-center gap-3 mb-4">
                                         <span className="px-2 py-0.5 rounded text-xs font-bold bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-sm border border-white/10 uppercase tracking-wide">
                                             Lvl {pet.level}
