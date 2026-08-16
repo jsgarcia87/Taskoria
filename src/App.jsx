@@ -7,6 +7,7 @@ import CharacterSheet from './components/CharacterSheet';
 // Shop drags the entire items catalog + 757KB sprite sheet URL; defer it.
 const Shop = React.lazy(() => import('./components/Shop'));
 import Dashboard from './components/Dashboard';
+import Missions from './components/dashboard/Missions';
 import Auth from './components/Auth';
 // Heavy / rarely-used routes are lazy-loaded so the initial bundle stays small.
 // Each becomes its own chunk via vite.config manualChunks. Suspense boundary
@@ -231,6 +232,12 @@ const GameContent = ({ currentUser, onLogout }) => {
             {activeView === 'profile' && (
               <motion.div key="profile" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
                 <CharacterSheet setActiveView={setActiveView} />
+              </motion.div>
+            )}
+
+            {activeView === 'missions' && (
+              <motion.div key="missions" {...VIEW_MOTION} className="col-span-12">
+                <Missions />
               </motion.div>
             )}
 

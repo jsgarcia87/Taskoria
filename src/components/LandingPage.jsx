@@ -8,8 +8,6 @@ import BLOG_POSTS from '../data/blogPosts';
 import ModernPixelAvatar from './common/ModernPixelAvatar';
 import ModernPixelPet from './common/ModernPixelPet';
 import LoreScroll from './common/LoreScroll';
-import ArchiveCouncilMessage from './common/ArchiveCouncilMessage';
-import { WorldSprite, WORLD_PROPS } from './dashboard/world/worldProps';
 
 const CastleScene = lazy(() => import('./landing/CastleScene'));
 
@@ -71,6 +69,15 @@ const FAQAccordionItem = ({ question, answer }) => {
         </div>
     );
 };
+
+const GUARDIANS = [
+    { name: 'Ledgar',     title: 'The Chronicler',  color: '#6699ff', lore: 'I record every deed, lest they fade into the void.',            tech: 'Habits, Tasks & Diary' },
+    { name: 'Chronos',    title: 'The Timekeeper',  color: '#ff5544', lore: 'Time is a monster. Slay it, or let it consume you.',            tech: 'Pomodoro Focus Combat' },
+    { name: 'Cartograph', title: 'The Explorer',    color: '#44cc88', lore: 'The lands stretch far. Where will your party wander today?',    tech: 'Open world to explore' },
+    { name: 'Notifus',    title: 'The Herald',      color: '#8866dd', lore: 'Bonds of fellowship forge the strongest armor.',                tech: 'Party & Guilds' },
+    { name: 'Patchsmith', title: 'The Forgemaster', color: '#ffaa33', lore: 'Give me the blueprints, and we shall build this world together.', tech: 'Collaborative Pixel Studio' },
+    { name: 'Matriarch',  title: 'The Protector',   color: '#ff6699', lore: 'Every lineage has its heroes. Let them all rise.',              tech: 'Multi-profile for families' },
+];
 
 const FAQ_DATA = [
     {
@@ -245,107 +252,101 @@ const Reveal = ({ children, className = '', delay = 0 }) => {
     );
 };
 
-// Mockup of the in-game UI — pure HTML/CSS, no external assets
-const HeroMockup = () => {
+// Diegetic quest scroll — the product surface, but inside the world.
+// Tasks auto-complete every 3s, driving XP animation on the pixel avatar.
+const QUEST_TASKS = [
+    { label: 'Slay 5 unread emails', reward: 30 },
+    { label: 'Read 20 pages',         reward: 15 },
+    { label: 'Close sprint tickets',  reward: 50 },
+    { label: 'Study English',         reward: 25 },
+    { label: 'Meditate 10 min',       reward: 10 },
+];
+
+const QuestScroll = () => {
+    // Start with 3/5 done — first render already looks alive.
+    const [completedCount, setCompletedCount] = useState(3);
+    const [justChecked, setJustChecked] = useState(null);
+    const [xp, setXp] = useState(45);
+    const [xpParticles, setXpParticles] = useState([]);
+    const [level, setLevel] = useState(7);
+
+    useEffect(() => {
+        const id = setInterval(() => {
+            setCompletedCount(prev => {
+                // If we're done — reset to start after a pause
+                if (prev >= QUEST_TASKS.length) {
+                    return 3;
+                }
+                const task = QUEST_TASKS[prev];
+                setJustChecked(prev);
+                setTimeout(() => setJustChecked(null), 600);
+
+                // XP + particle
+                const pid = Date.now();
+                setXpParticles(p => [...p, { id: pid, reward: task.reward }]);
+                setTimeout(() => setXpParticles(p => p.filter(x => x.id !== pid)), 1600);
+                setXp(x => {
+                    const next = x + task.reward;
+                    if (next >= 100) {
+                        setLevel(l => l + 1);
+                        return next - 100;
+                    }
+                    return next;
+                });
+
+                return prev + 1;
+            });
+        }, 3000);
+        return () => clearInterval(id);
+    }, []);
+
     return (
-        <div className="relative w-full max-w-[520px] mx-auto">
-            {/* Floating glow halo */}
-            <div className="absolute -inset-8 bg-gradient-to-tr from-rpg-gold/20 via-purple-500/10 to-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
-
-            {/* Browser-window / UI Panel chrome */}
-            <div className="relative bg-rpg-bg border-[6px] border-rpg-panelLight rounded-xl shadow-[12px_12px_0_rgba(0,0,0,0.6)] overflow-hidden">
-                <div className="flex items-center gap-1.5 px-3 py-2 border-b-4 border-rpg-panelLight bg-rpg-panel">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/70"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/70"></div>
-                    <div className="ml-2 text-[9px] uppercase tracking-widest text-gray-500 font-mono">taskoria.app/camp</div>
+        <div className="relative flex flex-col md:flex-row items-center gap-10 md:gap-14 max-w-4xl mx-auto">
+            {/* Hero pixel avatar with XP bar */}
+            <div className="relative flex flex-col items-center flex-shrink-0">
+                <div className="relative flex items-end gap-3">
+                    <div className="relative">
+                        <ModernPixelAvatar type="wizard" scale={2.8} />
+                        {xpParticles.map(p => (
+                            <div key={p.id} className="xp-particle">+{p.reward} XP</div>
+                        ))}
+                    </div>
+                    <ModernPixelPet type="wolf" scale={1.6} />
                 </div>
-
-                <div className="grid grid-cols-12 gap-3 p-4 bg-rpg-bg">
-                    {/* Avatar showcase */}
-                    <div className="col-span-12 sm:col-span-6 bg-rpg-panel border-4 border-rpg-panelLight rounded-lg p-5 flex flex-col">
-                        <div className="flex items-center justify-between mb-3">
-                            <div>
-                                <div className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Hero</div>
-                                <div className="text-base font-heading text-white">Arcanys the Wise</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-[9px] font-bold uppercase tracking-widest text-rpg-gold">Lvl 7</div>
-                                <div className="text-[9px] text-gray-400 uppercase">Mage · Order of Embers</div>
-                            </div>
-                        </div>
-                        <div className="relative flex items-end justify-center gap-3 flex-1 min-h-[180px] rounded-md overflow-hidden"
-                             style={{
-                                 background: 'radial-gradient(ellipse at center 65%, rgba(139,92,246,0.18) 0%, rgba(10,5,20,0) 60%), linear-gradient(180deg, #1a1330 0%, #0f0a1f 100%)',
-                             }}>
-                            {/* Subtle ground line */}
-                            <div className="absolute bottom-6 left-6 right-6 h-px bg-white/10" />
-                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-32 h-3 rounded-full bg-black/50 blur-md" />
-                            <div className="relative z-10 pb-4">
-                                <ModernPixelAvatar type="wizard" scale={2.2} />
-                            </div>
-                            <div className="relative z-10 pb-4">
-                                <ModernPixelPet type="wolf" scale={1.4} />
-                            </div>
-                        </div>
-                        <div className="w-full mt-4 space-y-1.5">
-                            <StatBar label="HP" value={82} color="bg-rose-500" />
-                            <StatBar label="MP" value={64} color="bg-blue-500" />
-                            <StatBar label="XP" value={45} color="bg-rpg-gold" />
-                        </div>
+                <div className="mt-6 text-center w-56">
+                    <div className="text-[10px] uppercase tracking-[0.25em] font-heading font-bold text-gray-500 mb-1">Hero</div>
+                    <div className="font-landing text-lg text-white mb-3">Arcanys the Wise · Lvl {level}</div>
+                    <div className="relative h-2.5 bg-black/50 border border-white/10 rounded-sm overflow-hidden">
+                        <div className="absolute inset-y-0 left-0 bg-rpg-gold shadow-[0_0_8px_rgba(253,215,109,0.6)] transition-[width] duration-500 ease-out" style={{ width: `${xp}%` }} />
                     </div>
-
-                    {/* Quest list */}
-                    <div className="col-span-12 sm:col-span-6 bg-rpg-panel border-4 border-rpg-panelLight rounded-lg p-5 flex flex-col">
-                        <div className="flex items-center justify-between mb-3">
-                            <div>
-                                <div className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Today</div>
-                                <div className="text-base font-heading text-white">Quest log</div>
-                            </div>
-                            <div className="text-[10px] text-gray-400 font-mono bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">3 / 5</div>
-                        </div>
-                        <ul className="space-y-2 text-[12px] flex-1">
-                            <QuestItem checked label="Run 5km outdoors" reward="+30 XP" />
-                            <QuestItem checked label="Read 20 pages" reward="+15 XP" />
-                            <QuestItem checked label="Close sprint tickets" reward="+50 XP" />
-                            <QuestItem label="Study English" reward="+25 XP" />
-                            <QuestItem label="Meditate 10 min" reward="+10 XP" />
-                        </ul>
-                        <div className="mt-3 pt-3 border-t-2 border-rpg-panelLight flex items-center justify-between text-[10px] uppercase tracking-widest">
-                            <span className="text-gray-500">Daily streak</span>
-                            <span className="text-rpg-gold font-bold flex items-center gap-1"><Flame size={11}/> 12 days</span>
-                        </div>
-                    </div>
-
+                    <div className="mt-1.5 text-[9px] font-mono text-gray-500 tracking-wider">{xp} / 100 XP</div>
                 </div>
             </div>
 
-            {/* Floating "+50 XP" pip */}
-            <div className="absolute -top-3 right-6 bg-rpg-gold text-black font-heading text-xs px-3 py-1 rounded-sm border-2 border-black shadow-[4px_4px_0_rgba(0,0,0,0.4)] animate-breathe font-bold">+50 XP</div>
+            {/* Quest scroll */}
+            <div className="quest-scroll flex-1 min-w-0 w-full">
+                <div className="quest-scroll-title">Today's Chronicle</div>
+                <ul>
+                    {QUEST_TASKS.map((t, i) => {
+                        const isDone = i < completedCount;
+                        const isJust = i === justChecked;
+                        return (
+                            <li key={i} className={`${isDone ? 'completed' : ''} ${isJust ? 'just-checked' : ''}`}>
+                                <span className="qs-check">{isDone && '✓'}</span>
+                                <span className="qs-label">{t.label}</span>
+                                <span className="qs-reward">+{t.reward} XP</span>
+                            </li>
+                        );
+                    })}
+                </ul>
+                <div className="quest-scroll-footer">
+                    <span>Daily streak</span>
+                    <span style={{ color: '#b8802e' }}>12 days</span>
+                </div>
+            </div>
         </div>
     );
 };
-
-const StatBar = ({ label, value, color }) => (
-    <div className="flex items-center gap-1.5">
-        <span className="text-[8px] font-bold text-gray-400 uppercase w-5">{label}</span>
-        <div className="flex-1 h-2 bg-rpg-panelDark rounded-full overflow-hidden border-2 border-rpg-panelLight">
-            <div className={`h-full ${color} animate-stat-fill`} style={{ width: `${value}%` }}></div>
-        </div>
-    </div>
-);
-
-const QuestItem = ({ checked, label, reward }) => (
-    <li className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-            <div className={`w-3 h-3 rounded-sm border ${checked ? 'bg-green-500/80 border-green-400' : 'bg-transparent border-gray-500'} flex items-center justify-center`}>
-                {checked && <CheckCircle2 size={8} className="text-white"/>}
-            </div>
-            <span className={`truncate ${checked ? 'line-through text-gray-500' : 'text-gray-200'}`}>{label}</span>
-        </div>
-        <span className={`text-[9px] font-bold whitespace-nowrap ${checked ? 'text-gray-600' : 'text-rpg-gold'}`}>{reward}</span>
-    </li>
-);
 
 const InteractiveBuilder = () => {
     const [grid, setGrid] = useState(Array(6 * 6).fill(null));
@@ -414,6 +415,63 @@ const InteractiveBuilder = () => {
     );
 };
 
+// Chapter progress indicator — vertical dots on the right (desktop),
+// thin bar at the bottom (mobile). Detects active chapter via IntersectionObserver.
+const ChapterProgress = ({ chapters }) => {
+    const [activeIdx, setActiveIdx] = useState(0);
+
+    useEffect(() => {
+        const observers = [];
+        chapters.forEach((ch, i) => {
+            const el = ch.ref.current;
+            if (!el) return;
+            const obs = new IntersectionObserver(
+                ([entry]) => { if (entry.isIntersecting) setActiveIdx(i); },
+                { threshold: 0.5 }
+            );
+            obs.observe(el);
+            observers.push(obs);
+        });
+        return () => observers.forEach(o => o.disconnect());
+    }, [chapters]);
+
+    const jumpTo = (i) => {
+        chapters[i].ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    return (
+        <>
+            {/* Desktop: vertical dots on right */}
+            <nav
+                aria-label="Chapter navigation"
+                className="hidden lg:flex fixed right-6 top-1/2 -translate-y-1/2 z-40 flex-col gap-4 items-end"
+            >
+                {chapters.map((ch, i) => (
+                    <button
+                        key={ch.id}
+                        onClick={() => jumpTo(i)}
+                        className="group flex items-center gap-3 cursor-pointer"
+                        aria-label={`Go to ${ch.title}`}
+                    >
+                        <span className={`text-[10px] uppercase tracking-[0.2em] font-heading font-bold transition-all ${activeIdx === i ? 'text-rpg-gold opacity-100 translate-x-0' : 'text-gray-500 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`}>
+                            {ch.title}
+                        </span>
+                        <span className={`block rounded-full transition-all duration-300 ${activeIdx === i ? 'w-3 h-3 bg-rpg-gold shadow-[0_0_10px_rgba(253,223,140,0.6)]' : 'w-2 h-2 bg-white/30 group-hover:bg-white/60'}`} />
+                    </button>
+                ))}
+            </nav>
+
+            {/* Mobile: thin progress bar at bottom */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 h-0.5 bg-black/40 pointer-events-none">
+                <div
+                    className="h-full bg-rpg-gold transition-all duration-500 ease-out shadow-[0_0_8px_rgba(253,223,140,0.8)]"
+                    style={{ width: `${((activeIdx + 1) / chapters.length) * 100}%` }}
+                />
+            </div>
+        </>
+    );
+};
+
 // Renders a real game prop inside the landing mini map, positioned by % coords.
 // The sprite anchors at its bottom (feet on the ground), like in the real world.
 const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
@@ -423,17 +481,43 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
     const [message, setMessage] = useState('');
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [blogView, setBlogView] = useState(null);
+    const [councilIdx, setCouncilIdx] = useState(0);
     const navRef = useRef(null);
-    const heroRef = useRef(null);
-    const scrollContainerRef = useRef(null);
     const waitlistRef = useRef(null);
+    const heroRef = useRef(null);
+    const ch01Ref = useRef(null);
+    const ch02Ref = useRef(null);
+    const ch03Ref = useRef(null);
+    const ch04Ref = useRef(null);
+
+    const chapters = [
+        { id: 'hero', title: 'Hero', ref: heroRef },
+        { id: 'quest', title: 'Quest Log', ref: ch01Ref },
+        { id: 'archive', title: 'Archive', ref: ch02Ref },
+        { id: 'council', title: 'Council', ref: ch03Ref },
+        { id: 'studio', title: 'Studio', ref: ch04Ref },
+        { id: 'call', title: 'The Call', ref: waitlistRef },
+    ];
+
+    // Track scroll position within the Council chapter to determine which
+    // guardian the camera is currently facing (sync with 3D orbital).
+    useEffect(() => {
+        const onScroll = () => {
+            const el = ch03Ref.current;
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const scrollable = el.offsetHeight - window.innerHeight;
+            if (scrollable <= 0) return;
+            const progress = Math.min(1, Math.max(0, -rect.top / scrollable));
+            const idx = Math.min(5, Math.floor(progress * 6 + 0.001));
+            setCouncilIdx(idx);
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
     useEffect(() => {
-        const vh = window.innerHeight || 800;
-        const heroScrollHeight = vh * 2;
-        if (scrollContainerRef.current) {
-            scrollContainerRef.current.style.height = `${heroScrollHeight}px`;
-        }
         let ticking = false;
         const onScroll = () => {
             if (ticking) return;
@@ -448,15 +532,6 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     nav.style.backdropFilter = s ? 'blur(24px)' : 'none';
                     nav.style.webkitBackdropFilter = s ? 'blur(24px)' : 'none';
                     nav.style.boxShadow = s ? '0 10px 15px -3px rgba(0,0,0,0.1)' : 'none';
-                }
-                if (heroRef.current) {
-                    const maxScroll = Math.max(1, heroScrollHeight - vh);
-                    const ratio = Math.min(Math.max(y / maxScroll, 0), 1);
-                    const fadeStart = 0.82;
-                    const opacity = ratio < fadeStart ? 1 : Math.max(0, 1 - (ratio - fadeStart) / 0.16);
-                    heroRef.current.style.opacity = opacity;
-                    heroRef.current.style.transform = `scale(${1 - (1 - opacity) * 0.05})`;
-                    heroRef.current.style.pointerEvents = opacity < 0.1 ? 'none' : 'auto';
                 }
                 ticking = false;
             });
@@ -481,6 +556,8 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 setStatus('success');
                 setMessage(data.message || 'Check your inbox — your hero credentials just went out. See you in Taskoria!');
                 setEmail('');
+                // Broadcast to the 3D world — a torch is lit in your name
+                window.dispatchEvent(new CustomEvent('taskoria:signed'));
             } else {
                 setStatus('error');
                 setMessage(data.error || 'Couldn\'t add you to the waitlist. Try again later.');
@@ -527,7 +604,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     >Blog</button>
                     <button
                         onClick={scrollToWaitlist}
-                        className="hidden md:block text-xs font-bold uppercase tracking-widest text-rpg-gold hover:text-white px-4 py-2 transition-colors"
+                        className="hidden md:block text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-rpg-gold px-4 py-2 transition-colors cursor-pointer"
                     >Join Beta</button>
                     <button
                         onClick={() => onGoToLogin?.()}
@@ -571,319 +648,268 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 </div>
             ) : (
             <>
-            {/* HERO - scroll container provides distance for castle animation */}
-            <div ref={scrollContainerRef}>
-                <main
-                    ref={heroRef}
-                    className="sticky top-0 z-10 h-[100dvh] flex flex-col items-center justify-center text-center px-6"
-                    style={{ willChange: 'opacity, transform' }}
-                >
-                    <div className="max-w-4xl mx-auto flex flex-col items-center py-16 md:py-24">
+            {/* Chapter progress indicator (desktop dots, mobile bar) */}
+            <ChapterProgress chapters={chapters} />
 
-                        <div className="mb-10 flex items-center justify-center">
-                            <img src="./icono_taskoria_white.png" alt="Taskoria Crest - Gamified Productivity App" className="w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_0_30px_rgba(253,223,140,0.7)]" />
-                        </div>
-
-                        <h1 className="sr-only">Taskoria: Gamified Productivity App and RPG Habit Tracker</h1>
-
-                        <h2 className="text-4xl md:text-5xl lg:text-7xl font-landing font-extrabold tracking-widest uppercase mb-8 animate-[slideUpFade_1s_ease-out_forwards] opacity-0 text-white drop-shadow-[0_0_15px_rgba(253,223,140,0.5)] leading-tight">
-                            Turn your tasks<br/>into an RPG adventure.
-                        </h2>
-
-                        <p className="text-lg md:text-2xl text-rpg-gold font-heading max-w-2xl mx-auto mb-8 animate-[slideUpFade_1s_ease-out_0.3s_forwards] opacity-0 leading-relaxed drop-shadow-[0_0_10px_rgba(253,223,140,0.3)]">
-                            A task manager where every completed quest<br className="hidden md:block"/> levels up your hero.
-                        </p>
-
-                        <div className="animate-[slideUpFade_1s_ease-out_0.6s_forwards] opacity-0 flex flex-col items-center">
-                            <button
-                                onClick={scrollToWaitlist}
-                                className="bg-rpg-gold text-rpg-panel border-b-[6px] border-yellow-600 active:border-b-0 active:translate-y-[6px] rounded-xl px-10 py-4 uppercase tracking-widest text-base md:text-lg font-heading font-extrabold transition-all flex items-center justify-center gap-3 group shadow-xl"
-                            >
-                                Join the Beta
-                                <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform"/>
-                            </button>
-                            <p className="mt-4 text-gray-500 text-xs tracking-wide animate-[slideUpFade_1s_ease-out_0.9s_forwards] opacity-0">
-                                Free during closed beta — limited spots
-                            </p>
-                        </div>
+            {/* HERO — sticky fullscreen with castle 3D behind */}
+            <main ref={heroRef} className="relative z-10 h-[100dvh] flex flex-col items-center justify-center text-center px-6">
+                <div className="max-w-4xl mx-auto flex flex-col items-center py-16 md:py-24">
+                    <div className="mb-10 flex items-center justify-center">
+                        <img src="./icono_taskoria_white.png" alt="Taskoria Crest" className="w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_0_30px_rgba(253,223,140,0.7)]" />
                     </div>
-                </main>
-            </div>
-
-            {/* Post-hero background (covers fixed castle scene) */}
-            <div className="relative z-10 bg-rpg-bg">
-                {/* Seamless top transition from castle black to rpg-bg */}
-                <div className="h-64 bg-gradient-to-b from-black to-rpg-bg -mt-64 pointer-events-none relative z-20" />
-
-            {/* PRODUCT SHOWCASE — immediately after hero */}
-            <section className="relative z-10 container mx-auto px-6 py-20">
-                <Reveal>
-                    <div className="text-center mb-10">
-                        <h2 className="text-2xl md:text-3xl font-landing font-bold text-white max-w-2xl mx-auto">
-                            Your legend begins with your daily duties.
-                        </h2>
-                    </div>
-                    <HeroMockup/>
-                </Reveal>
-            </section>
-
-                {/* Divider */}
-                <div className="container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
-
-            {/* CHAPTER II: THE ORIGIN */}
-            <section className="relative z-10 container mx-auto px-6 py-24 text-center">
-                <Reveal>
-                    <div className="max-w-3xl mx-auto bg-rpg-panel border-4 border-rpg-panelLight rounded-xl p-10 md:p-16 shadow-[12px_12px_0_rgba(0,0,0,0.5)] relative overflow-hidden">
-                        {/* Decorative corners */}
-                        <div className="absolute top-0 left-0 w-8 h-8 bg-rpg-panelLight"></div>
-                        <div className="absolute top-0 right-0 w-8 h-8 bg-rpg-panelLight"></div>
-                        <div className="absolute bottom-0 left-0 w-8 h-8 bg-rpg-panelLight"></div>
-                        <div className="absolute bottom-0 right-0 w-8 h-8 bg-rpg-panelLight"></div>
-
-                        <div className="mb-10">
-                            <BookOpen size={48} className="mx-auto text-rpg-gold opacity-80 drop-shadow-[0_0_15px_rgba(253,223,140,0.5)]" />
-                        </div>
-                        
-                        <div className="space-y-10 font-heading text-lg md:text-xl text-gray-300 leading-relaxed">
-                            <p className="animate-breathe">
-                                <span className="block text-sm uppercase tracking-widest text-rpg-gold/70 mb-2 font-bold">Long ago...</span>
-                                The Royal Archive began transforming<br className="hidden md:block"/> every mundane duty into a grand Quest.
-                            </p>
-                            <p>
-                                Six guardians were appointed to protect it,<br className="hidden md:block"/> ensuring that no deed goes unrecorded and no effort is forgotten.
-                            </p>
-                            <p className="text-rpg-gold font-bold text-2xl md:text-3xl drop-shadow-[0_0_15px_rgba(253,223,140,0.4)] mt-12">
-                                <span className="block text-sm uppercase tracking-widest text-rpg-gold/70 mb-2">Now...</span>
-                                The Archive has summoned you.
-                            </p>
-
-                            <div className="mt-8 flex justify-center">
-                                <LoreScroll />
-                            </div>
-                        </div>
-                    </div>
-                </Reveal>
-            </section>
-
-            {/* Divider */}
-            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
-
-            {/* HOW IT WORKS — Quest Path */}
-            <section className="relative z-10 container mx-auto px-6 py-20">
-                <Reveal className="text-center mb-14">
-                    <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">Your quest begins</div>
-                    <h2 className="text-3xl md:text-5xl font-landing font-bold text-white max-w-3xl mx-auto leading-tight">
-                        Three steps to turn your to-do list into an <span className="text-rpg-gold">adventure</span>.
+                    <h1 className="sr-only">Taskoria: Gamified Productivity App and RPG Habit Tracker</h1>
+                    <h2 className="text-4xl md:text-5xl lg:text-7xl font-landing font-extrabold tracking-widest uppercase mb-8 animate-[slideUpFade_1s_ease-out_forwards] opacity-0 text-white drop-shadow-[0_0_15px_rgba(253,223,140,0.5)] leading-tight">
+                        Turn your tasks<br/>into an RPG adventure.
                     </h2>
-                </Reveal>
-
-                <div className="relative max-w-3xl mx-auto">
-                    {[
-                        { icon: Target, title: 'Create your quests', body: 'Log your tasks, daily habits and goals in our RPG task manager. Set difficulty and XP rewards. Everything you complete levels you up.' },
-                        { icon: Sword, title: 'Level up your hero', body: 'Pick a class (Mage, Warrior, Rogue…), customize your pixel-art avatar, equip gear, adopt pets, and defeat your procrastination boss.' },
-                        { icon: Map, title: 'Explore and build the world', body: 'Walk around the gamified town with your party, talk to NPCs, browse shops, and craft houses and mounts with a pixel art productivity community.' },
-                    ].map((step, i) => (
-                        <Reveal key={step.title} delay={i * 200}>
-                            <div className="relative flex gap-6 items-start pb-14">
-                                {i < 2 && <div className="absolute left-7 top-[60px] bottom-0 w-px bg-gradient-to-b from-rpg-gold/30 to-transparent" />}
-                                <div className="flex-shrink-0 w-14 h-14 bg-rpg-panel border-4 border-rpg-panelLight rounded-xl flex items-center justify-center text-rpg-gold shadow-[4px_4px_0_rgba(0,0,0,0.5)] relative z-10">
-                                    <step.icon size={24} />
-                                </div>
-                                <div className="pt-1">
-                                    <h3 className="text-xl md:text-2xl font-heading text-white mb-2">{step.title}</h3>
-                                    <p className="text-sm text-gray-400 leading-relaxed">{step.body}</p>
-                                </div>
-                            </div>
-                        </Reveal>
-                    ))}
-
+                    <p className="text-lg md:text-2xl text-rpg-gold font-heading max-w-2xl mx-auto mb-8 animate-[slideUpFade_1s_ease-out_0.3s_forwards] opacity-0 leading-relaxed drop-shadow-[0_0_10px_rgba(253,223,140,0.3)]">
+                        A task manager where every completed quest<br className="hidden md:block"/> levels up your hero.
+                    </p>
+                    <div className="animate-[slideUpFade_1s_ease-out_0.6s_forwards] opacity-0 flex flex-col items-center">
+                        <button onClick={scrollToWaitlist} className="bg-rpg-gold text-rpg-panel border-b-[6px] border-yellow-600 active:border-b-0 active:translate-y-[6px] rounded-xl px-10 py-4 uppercase tracking-widest text-base md:text-lg font-heading font-extrabold transition-all flex items-center justify-center gap-3 group shadow-xl">
+                            Join the Beta <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform"/>
+                        </button>
+                    </div>
                 </div>
-            </section>
-
-            {/* Divider */}
-            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
-
-            {/* CHAPTER III: THE COUNCIL */}
-            <section className="relative z-10 py-20 bg-rpg-panelDark/40">
-                <div className="absolute inset-0 bg-gradient-to-b from-rpg-bg via-transparent to-rpg-bg pointer-events-none" />
-                <div className="container mx-auto px-6 relative z-10">
-                <Reveal className="text-center mb-20">
-                    <h2 className="text-3xl md:text-5xl font-landing font-bold text-white max-w-3xl mx-auto leading-tight">
-                        Six guardians. Six ways to <span className="text-rpg-gold">conquer your day</span>.
-                    </h2>
-                </Reveal>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-8 max-w-5xl mx-auto">
-                    {[
-                        { name: "Ledgar", title: "El Registrador", icon: Scroll, color: "text-blue-400", bg: "bg-blue-400/20", border: "border-blue-400/40", lore: "I record every deed, lest they fade into the void.", tech: "Habits, Tasks & Diary" },
-                        { name: "Chronos", title: "El Guardián del Tiempo", icon: Timer, color: "text-red-400", bg: "bg-red-400/20", border: "border-red-400/40", lore: "Time is a monster. Slay it, or let it consume you.", tech: "Pomodoro Focus Combat" },
-                        { name: "Cartograph", title: "El Explorador", icon: Map, color: "text-emerald-400", bg: "bg-emerald-400/20", border: "border-emerald-400/40", lore: "The lands stretch far. Where will your party wander today?", tech: "Open world to explore" },
-                        { name: "Notifus", title: "El Heraldo", icon: Users, color: "text-indigo-400", bg: "bg-indigo-400/20", border: "border-indigo-400/40", lore: "Bonds of fellowship forge the strongest armor.", tech: "Party & Guilds" },
-                        { name: "Patchsmith", title: "El Forjador", icon: Hammer, color: "text-amber-400", bg: "bg-amber-400/20", border: "border-amber-400/40", lore: "Give me the blueprints, and we shall build this world together.", tech: "Collaborative Pixel Studio" },
-                        { name: "Matriarch", title: "La Protectora", icon: Heart, color: "text-pink-400", bg: "bg-pink-400/20", border: "border-pink-400/40", lore: "Every lineage has its heroes. Let them all rise.", tech: "Multi-profile for families" },
-                    ].map((g, i) => (
-                        <Reveal key={g.name} delay={i * 100}>
-                            <div className="relative flex flex-col items-center group cursor-default">
-                                {/* Hover Dialogue (Pixel Bubble) */}
-                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-64 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:-translate-y-4 transition-all duration-300 z-50">
-                                    <div className="pixel-bubble animate-float text-center shadow-2xl relative">
-                                        <div className="bubble-body whitespace-normal text-xs text-[#2a2a2a] p-3 font-heading font-bold italic">
-                                            "{g.lore}"
-                                        </div>
-                                        {/* Tail */}
-                                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[#2a2a2a] text-xl leading-none -rotate-90 drop-shadow-[2px_0_0_rgba(0,0,0,0.5)]">◀</div>
-                                    </div>
-                                </div>
-
-                                {/* The Magic Card */}
-                                <div className={`w-full max-w-[240px] aspect-[3/4] bg-rpg-panel border-[6px] border-rpg-panelLight border-t-[6px] ${g.border} rounded-2xl flex flex-col items-center justify-center p-6 relative z-10 transition-all duration-300 shadow-[10px_10px_0_rgba(0,0,0,0.4)] group-hover:-translate-y-3 group-hover:border-rpg-gold group-hover:shadow-[15px_15px_0_rgba(253,223,140,0.2)]`}>
-                                    <div className={`absolute inset-0 rounded-xl ${g.bg} opacity-10 group-hover:opacity-30 transition-opacity duration-300`}></div>
-                                    
-                                    <g.icon size={48} className={`${g.color} relative z-10 mb-6 drop-shadow-lg group-hover:text-rpg-gold transition-colors`} />
-                                    
-                                    <h3 className="text-2xl font-landing font-bold text-white mb-1 text-center relative z-10 group-hover:text-rpg-gold transition-colors">{g.name}</h3>
-                                    <div className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-4 text-center relative z-10">{g.title}</div>
-
-                                    {/* Tech translation */}
-                                    <div className="mt-auto text-center w-full relative z-10">
-                                        <span className="text-sm text-gray-400 font-bold font-sans border-t-2 border-rpg-panelLight pt-3 block w-full group-hover:text-white transition-colors">
-                                            {g.tech}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </Reveal>
-                    ))}
+                {/* Scroll hint — anchored to viewport bottom */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 animate-[slideUpFade_1s_ease-out_1.2s_forwards] opacity-0 pointer-events-none">
+                    <span className="text-[9px] uppercase tracking-[0.3em] text-gray-500 font-heading">Scroll to enter</span>
+                    <ChevronDown size={14} className="text-gray-500 animate-bounce" />
                 </div>
-                </div>
-            </section>
+            </main>
 
-            {/* Divider */}
-            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
+            {/* ═══════════════════════════════════════════════════════
+                NARRATIVE CHAPTERS — each is a full-viewport scene
+                synced with the 3D camera waypoints in CastleScene.
+                The 3D background is always visible (fixed z-0);
+                chapters overlay it with semi-transparent gradients.
+            ═══════════════════════════════════════════════════════ */}
 
-            {/* PIXEL STUDIO — Collaborative */}
-            <section className="relative z-10 container mx-auto px-6 py-20">
-                <div className="max-w-6xl mx-auto">
+            {/* CH 01 — THE QUEST LOG */}
+            <section ref={ch01Ref} className="narrative-chapter relative z-10 min-h-screen flex items-center justify-center px-6 py-24">
+                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70 pointer-events-none" />
+                <div className="relative z-10 max-w-5xl mx-auto w-full">
                     <Reveal>
-                        <div className="grid lg:grid-cols-2 gap-10 items-center bg-rpg-panel border-4 border-rpg-panelLight rounded-xl p-8 md:p-12 relative overflow-hidden shadow-[16px_16px_0_rgba(0,0,0,0.4)]">
-                            <div className="absolute inset-0 landing-pixel-grid opacity-30 pointer-events-none"></div>
-                            <div className="absolute -top-32 -right-32 w-96 h-96 bg-rpg-gold/10 rounded-full blur-3xl pointer-events-none"></div>
-                            <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
+                        <div className="chapter-label text-rpg-gold">01 — The Quest Log</div>
+                        <h2 className="chapter-headline">Every duty, a legend.</h2>
+                        <p className="chapter-tagline max-w-xl">Log your tasks — the Archive turns each one into a quest worth completing.</p>
+                        <p className="chapter-body max-w-xl">
+                            Daily habits, goals, projects. Every checkbox is XP earned. Every streak, a story.
+                        </p>
+                    </Reveal>
+                    <Reveal delay={300}>
+                        <div className="mt-12">
+                            <QuestScroll />
+                        </div>
+                    </Reveal>
+                </div>
+            </section>
 
-                            <div className="relative z-10">
-                                <h2 className="text-3xl md:text-4xl font-landing font-bold mb-4 text-white leading-tight">
-                                    The world of Taskoria <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-rpg-gold to-amber-600">is built by you</span>.
-                                </h2>
-                                <p className="text-gray-300 leading-relaxed mb-6">
-                                    Open the <strong className="text-white">Pixel Studio</strong> inside the game and design houses, castles, mounts, trees and decorations pixel by pixel. This gamified productivity tool lets you craft your environment. Upload a reference image, trace with adjustable opacity, use Taskoria's palette. When you're done, hit publish and it goes to moderation.
+            {/* CH 02 — THE ARCHIVE */}
+            <section ref={ch02Ref} className="narrative-chapter relative z-10 min-h-screen flex items-center justify-center px-6 py-24">
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-[#1a1028]/80 to-black/60 pointer-events-none" />
+                <div className="relative z-10 max-w-4xl mx-auto text-center">
+                    <Reveal>
+                        <div className="chapter-label text-rpg-gold">02 — The Archive</div>
+                        <h2 className="chapter-headline">The Archive summons.</h2>
+                        <p className="chapter-tagline mx-auto max-w-xl">Six guardians were appointed to protect every deed you record.</p>
+                    </Reveal>
+                    <Reveal delay={200}>
+                        <p className="chapter-body mx-auto mt-4 max-w-xl">
+                            Long ago, the Royal Archive began transforming every mundane duty into a grand Quest. No deed goes unrecorded. No effort is forgotten.
+                        </p>
+                    </Reveal>
+                    <Reveal delay={350}>
+                        <div className="grid md:grid-cols-3 gap-4 mt-12 text-left">
+                            {[
+                                { chapter: 'I', quote: 'Every checkbox is a chapter. Every day, a saga.' },
+                                { chapter: 'II', quote: 'What is not written, is forgotten. What is forgotten, is lost.' },
+                                { chapter: 'III', quote: 'The Council watches. Your deeds shape the kingdom.' },
+                            ].map((s) => (
+                                <div key={s.chapter} className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-5 hover:border-rpg-gold/40 transition-colors">
+                                    <div className="text-rpg-gold font-landing text-xl mb-2 opacity-70">Chapter {s.chapter}</div>
+                                    <p className="text-gray-300 text-sm leading-relaxed italic font-heading">"{s.quote}"</p>
+                                </div>
+                            ))}
+                        </div>
+                    </Reveal>
+                    <Reveal delay={500}>
+                        <div className="mt-10 flex justify-center">
+                            <LoreScroll />
+                        </div>
+                    </Reveal>
+                </div>
+            </section>
+
+            {/* CH 03 — THE COUNCIL — 3D orbital chamber */}
+            {/* The chapter is 3x as tall as the others; camera makes a full
+                360° orbit around the council altar while the HUD updates. */}
+            <section ref={ch03Ref} className="narrative-chapter relative z-10" style={{ minHeight: '300vh' }}>
+                <div className="sticky top-0 h-screen flex flex-col items-center justify-between py-16 md:py-24 px-6">
+                    {/* Chapter header */}
+                    <div className="text-center">
+                        <div className="chapter-label text-rpg-gold justify-center">03 — The Council</div>
+                        <h2 className="chapter-headline">Six guardians.</h2>
+                        <p className="chapter-tagline max-w-xl mx-auto">Six ways to conquer your day.</p>
+                    </div>
+
+                    {/* Current guardian HUD — updates with scroll */}
+                    <div className="text-center max-w-md transition-all duration-500 ease-out" key={councilIdx}>
+                        <div className="text-[10px] font-mono text-gray-500 tracking-[0.3em] mb-4">
+                            {String(councilIdx + 1).padStart(2, '0')} / 06
+                        </div>
+                        <h3 className="font-landing font-bold text-3xl md:text-4xl mb-1" style={{ color: GUARDIANS[councilIdx].color, textShadow: `0 0 20px ${GUARDIANS[councilIdx].color}55` }}>
+                            {GUARDIANS[councilIdx].name}
+                        </h3>
+                        <div className="text-[10px] uppercase tracking-[0.3em] text-gray-400 font-bold mb-5">
+                            {GUARDIANS[councilIdx].title}
+                        </div>
+                        <p className="text-base italic text-gray-200 leading-relaxed font-heading mb-5 max-w-sm mx-auto">
+                            "{GUARDIANS[councilIdx].lore}"
+                        </p>
+                        <div className="inline-block text-[11px] font-heading font-bold uppercase tracking-widest text-gray-400 border-t border-white/10 pt-3">
+                            {GUARDIANS[councilIdx].tech}
+                        </div>
+                    </div>
+
+                    {/* Scroll hint — subtle */}
+                    <div className="text-[9px] uppercase tracking-[0.3em] text-gray-600 font-heading flex items-center gap-2">
+                        <span className="w-6 h-px bg-gray-600" />
+                        Scroll to walk the circle
+                        <span className="w-6 h-px bg-gray-600" />
+                    </div>
+                </div>
+            </section>
+
+            {/* CH 04 — THE STUDIO */}
+            <section ref={ch04Ref} className="narrative-chapter relative z-10 min-h-screen flex items-center justify-center px-6 py-24">
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-[#12101e]/70 to-black/60 pointer-events-none" />
+                <div className="relative z-10 max-w-6xl mx-auto w-full">
+                    <Reveal>
+                        <div className="chapter-label text-rpg-gold">04 — The Studio</div>
+                        <h2 className="chapter-headline">Built by you.</h2>
+                        <p className="chapter-tagline max-w-xl">The world of Taskoria — one pixel at a time.</p>
+                    </Reveal>
+                    <Reveal delay={200}>
+                        <div className="grid lg:grid-cols-2 gap-10 items-center mt-12">
+                            <div>
+                                <p className="chapter-body max-w-lg">
+                                    Open the Pixel Studio and design houses, castles, mounts, trees and decorations pixel by pixel. Upload a reference, trace with adjustable opacity, use the kingdom's palette. Hit publish — approved creations live on the map forever.
                                 </p>
-                                <ul className="space-y-2 text-sm text-gray-300 mb-6">
-                                    <li className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-400 flex-shrink-0"/> 6 categories: houses, castles, mounts, trees, decoration, props.</li>
-                                    <li className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-400 flex-shrink-0"/> Editor with palette, free color, undo/redo, bucket, eyedropper.</li>
-                                    <li className="flex items-center gap-2"><CheckCircle2 size={14} className="text-green-400 flex-shrink-0"/> Approved creations live on the map forever.</li>
-                                </ul>
-                                <button
-                                    onClick={() => onGoToLogin?.()}
-                                    className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border-2 border-white/20 hover:border-rpg-gold font-heading px-7 py-3 rounded-xl uppercase tracking-widest text-sm transition-all group font-bold mt-2"
-                                >
-                                    <Hammer size={16}/> Try the Pixel Studio
-                                    <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/>
+                                <div className="flex gap-8 mt-8">
+                                    <div className="text-center">
+                                        <div className="text-3xl font-pixel text-white">6</div>
+                                        <div className="text-[9px] uppercase tracking-[0.2em] text-gray-500 mt-1">Categories</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-3xl font-pixel text-rpg-gold">∞</div>
+                                        <div className="text-[9px] uppercase tracking-[0.2em] text-gray-500 mt-1">Creations</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-3xl font-pixel text-white">Live</div>
+                                        <div className="text-[9px] uppercase tracking-[0.2em] text-gray-500 mt-1">On the map</div>
+                                    </div>
+                                </div>
+                                <button onClick={() => onGoToLogin?.()} className="mt-8 inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white border border-white/20 hover:border-rpg-gold font-heading px-7 py-3 rounded-xl uppercase tracking-widest text-sm transition-all group font-bold">
+                                    <Hammer size={16}/> Try the Pixel Studio <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/>
                                 </button>
                             </div>
-
-                            {/* Interactive Town Builder */}
                             <InteractiveBuilder />
                         </div>
                     </Reveal>
                 </div>
             </section>
 
-            {/* COUNCIL MESSAGE — personalized weather nudge before signup */}
-            <section className="relative z-10 container mx-auto px-6 py-12">
-                <Reveal>
-                    <ArchiveCouncilMessage onJoinBeta={scrollToWaitlist} />
-                </Reveal>
-            </section>
-
-            {/* FINAL CTA + WAITLIST */}
-            <section ref={waitlistRef} className="relative z-10 container mx-auto px-6 py-24">
-                <Reveal>
-                    <div className="max-w-3xl mx-auto text-center">
-                        <div className="inline-block text-[11px] uppercase tracking-widest font-bold text-rpg-gold mb-3">Closed Beta — Limited Spots</div>
-                        <h2 className="text-4xl md:text-5xl font-landing font-bold mb-4 text-white leading-tight">
-                            Ready to start your <span className="text-rpg-gold">first quest</span>?
-                        </h2>
-                        <p className="text-gray-400 mb-4 max-w-xl mx-auto">
-                            Drop your email below. Your hero credentials arrive in seconds — log in and start playing immediately.
+            {/* CH 05 — THE CALL — final CTA */}
+            <section ref={waitlistRef} className="narrative-chapter relative z-10 min-h-screen flex items-center justify-center px-6 py-24">
+                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70 pointer-events-none" />
+                <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center 40%, rgba(253,223,140,0.08) 0%, transparent 60%)' }} />
+                <div className="relative z-10 max-w-3xl mx-auto text-center w-full">
+                    <Reveal>
+                        <div className="chapter-label text-rpg-gold">05 — The Call</div>
+                        <h2 className="chapter-headline">Your quest awaits.</h2>
+                        <p className="chapter-tagline mx-auto max-w-xl">Log in and start playing in seconds.</p>
+                        <div className="inline-flex items-center gap-2 mt-4 px-3 py-1 rounded-full bg-rpg-gold/10 border border-rpg-gold/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rpg-gold animate-pulse" />
+                            <span className="text-[10px] uppercase tracking-[0.2em] font-heading font-bold text-rpg-gold">Closed beta · Limited spots</span>
+                        </div>
+                        <p className="chapter-body mx-auto mt-4 max-w-xl">
+                            Founding citizens get early access to all 5 maps and a special badge. Your hero credentials arrive by email.
                         </p>
-                        <p className="text-rpg-gold/80 text-sm font-heading font-bold mb-8">
-                            Founding citizens get early access to all 5 maps and a special badge.
-                        </p>
+                    </Reveal>
 
-                        <div className="relative max-w-xl mx-auto">
-                            <form onSubmit={handleJoinWaitlist} className="relative bg-rpg-panel border-4 border-rpg-panelLight p-2 rounded-xl flex flex-col sm:flex-row gap-2 shadow-[8px_8px_0_rgba(0,0,0,0.4)]">
+                    <Reveal delay={200}>
+                        <form onSubmit={handleJoinWaitlist} className="sign-parchment mt-10">
+                            <div className="sign-parchment-title">The Founder's Register</div>
+                            <div className="sign-parchment-flourish">◆ ◆ ◆</div>
+                            <p className="sign-parchment-body">
+                                Sign your name in the register. Your hero credentials arrive by raven — log in and cross the threshold.
+                            </p>
+
+                            <div className="sign-input-wrap">
+                                <span className="sign-input-label">Your name in ink</span>
                                 <input
                                     type="email"
                                     required
-                                    placeholder="Your email to join the beta"
+                                    placeholder="you@kingdom.realm"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     disabled={status === 'loading' || status === 'success'}
-                                    className="flex-1 bg-transparent border-none outline-none text-white placeholder-gray-500 px-4 py-3 focus:ring-0 text-center sm:text-left"
+                                    className="sign-input"
                                 />
-                                <button
-                                    type="submit"
-                                    disabled={status === 'loading' || status === 'success' || !privacyAccepted}
-                                    className={`relative bg-rpg-gold text-rpg-panel border-b-[4px] border-yellow-600 active:border-b-0 active:translate-y-[4px] font-heading hover:bg-yellow-400 px-6 py-3 rounded-lg uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 group font-bold ${status === 'success' ? 'bg-green-500 border-green-700 text-white' : ''}`}
-                                >
-                                    {status === 'loading' ? <Loader2 size={18} className="animate-spin"/> :
-                                     status === 'success' ? <CheckCircle2 size={18}/> :
-                                     <>Join the Beta <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/></>}
-                                </button>
-                            </form>
-                            <label className="flex items-start gap-3 mt-4 cursor-pointer group max-w-md mx-auto text-left">
+                            </div>
+
+                            <label className="sign-terms">
                                 <input
                                     type="checkbox"
                                     checked={privacyAccepted}
                                     onChange={(e) => setPrivacyAccepted(e.target.checked)}
                                     disabled={status === 'success'}
-                                    className="mt-0.5 w-4 h-4 rounded border-2 border-rpg-panelLight bg-rpg-panel accent-rpg-gold flex-shrink-0 cursor-pointer"
                                 />
-                                <span className="text-[11px] text-gray-500 leading-relaxed group-hover:text-gray-400 transition-colors">
-                                    I accept the{' '}
-                                    <button type="button" onClick={onGoToLegal} className="text-rpg-gold/80 hover:text-rpg-gold underline underline-offset-2">Privacy Policy</button>
+                                <span>
+                                    I abide by the{' '}
+                                    <a href="#" onClick={(e) => { e.preventDefault(); onGoToLegal?.(); }}>Privacy Policy</a>
                                     {' '}and{' '}
-                                    <button type="button" onClick={onGoToTerms} className="text-rpg-gold/80 hover:text-rpg-gold underline underline-offset-2">Terms of Service</button>.
+                                    <a href="#" onClick={(e) => { e.preventDefault(); onGoToTerms?.(); }}>Terms of Service</a>.
                                 </span>
                             </label>
-                            <div className={`mt-4 overflow-hidden transition-all duration-300 ${message ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
-                                <div className={`text-sm font-bold p-3 rounded-xl border backdrop-blur-sm ${status === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
+
+                            <button
+                                type="submit"
+                                disabled={status === 'loading' || status === 'success' || !privacyAccepted}
+                                className={`sign-button ${status === 'success' ? 'success' : ''}`}
+                            >
+                                {status === 'loading' ? (
+                                    <><Loader2 size={18} className="animate-spin" /> Signing…</>
+                                ) : status === 'success' ? (
+                                    <><CheckCircle2 size={18} /> Signed & Sealed</>
+                                ) : (
+                                    <>Sign the register</>
+                                )}
+                            </button>
+
+                            {message && (
+                                <div className={`sign-response ${status === 'success' ? 'success' : 'error'}`}>
                                     {message}
                                 </div>
-                                {status === 'success' && (
-                                    <button
-                                        onClick={() => onGoToLogin?.()}
-                                        className="mt-3 w-full bg-rpg-gold text-rpg-panel border-b-[4px] border-yellow-600 active:border-b-0 active:translate-y-[4px] hover:bg-yellow-400 px-6 py-3 rounded-lg uppercase tracking-widest text-sm font-heading font-bold transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <Sword size={16}/> Sign in now
-                                        <ChevronRight size={16}/>
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                            )}
 
-                        <div className="mt-8 grid grid-cols-4 gap-3 max-w-2xl mx-auto text-center">
-                            <SmallStat icon={Trophy} value="14" label="Playable classes"/>
-                            <SmallStat icon={Heart} value="10" label="Companion pets"/>
-                            <SmallStat icon={Map} value="5" label="Open-world maps"/>
-                            <SmallStat icon={Hammer} value="∞" label="Community creations"/>
-                        </div>
-                    </div>
-                </Reveal>
+                            {status === 'success' && (
+                                <button
+                                    type="button"
+                                    onClick={() => onGoToLogin?.()}
+                                    className="sign-button success mt-3"
+                                    style={{ background: 'linear-gradient(180deg, #b8802e 0%, #8a5f20 100%)' }}
+                                >
+                                    <Sword size={16} /> Cross the threshold
+                                </button>
+                            )}
+                        </form>
+                    </Reveal>
+                </div>
             </section>
 
-            {/* BLOG — Latest Posts */}
-            <div className="relative z-10 container mx-auto px-6"><div className="landing-divider max-w-4xl mx-auto"></div></div>
+            {/* ═══ Post-narrative: Blog, FAQ, Footer (utility, not story) ═══ */}
+            <div className="relative z-10 bg-rpg-bg">
             <section className="relative z-10 container mx-auto px-6 py-20">
                 <Reveal className="text-center mb-14">
                     <Newspaper size={36} className="mx-auto text-rpg-gold mb-4 opacity-80" />
@@ -945,41 +971,5 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
         </div>
     );
 };
-
-const GalleryRealCard = ({ title, cat, children }) => (
-    <div className="bg-[#1a1322] border-4 border-rpg-panelLight rounded-xl p-3 flex flex-col items-center shadow-[4px_4px_0_rgba(0,0,0,0.5)]">
-        <div className="w-full aspect-square bg-rpg-panel rounded flex items-center justify-center overflow-hidden border-2 border-rpg-panelLight">
-            {children}
-        </div>
-        <div className="mt-2 text-xs font-bold text-white truncate w-full text-center">{title}</div>
-        <div className="text-[9px] uppercase tracking-widest text-rpg-gold">{cat}</div>
-    </div>
-);
-
-const GalleryPropCard = ({ title, cat, name, scale = 1 }) => {
-    const prop = WORLD_PROPS[name];
-    if (!prop) return null;
-    const dw = prop.w * scale;
-    const dh = prop.h * scale;
-    return (
-        <div className="bg-[#1a1322] border-4 border-rpg-panelLight rounded-xl p-3 flex flex-col items-center shadow-[4px_4px_0_rgba(0,0,0,0.5)]">
-            <div className="w-full aspect-square bg-rpg-panel rounded flex items-end justify-center overflow-hidden border-2 border-rpg-panelLight">
-                <div style={{ position: 'relative', width: dw, height: dh }}>
-                    <WorldSprite name={name} x={dw / 2} y={dh} scale={scale} shadow={false} />
-                </div>
-            </div>
-            <div className="mt-2 text-xs font-bold text-white truncate w-full text-center">{title}</div>
-            <div className="text-[9px] uppercase tracking-widest text-rpg-gold">{cat}</div>
-        </div>
-    );
-};
-
-const SmallStat = ({ icon: Icon, value, label }) => (
-    <div className="flex flex-col items-center gap-1 bg-rpg-panel border-4 border-rpg-panelLight rounded-xl p-3 shadow-[4px_4px_0_rgba(0,0,0,0.4)]">
-        <Icon size={20} className="text-rpg-gold"/>
-        <div className="text-3xl font-pixel text-white leading-none">{value}</div>
-        <div className="text-[9px] uppercase tracking-widest text-gray-500">{label}</div>
-    </div>
-);
 
 export default LandingPage;

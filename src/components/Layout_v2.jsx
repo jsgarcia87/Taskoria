@@ -41,6 +41,7 @@ const Layout_v2 = ({
 
     const desktopNavItems = [
         { id: 'home', label: 'Camp', icon: 'home' },
+        { id: 'missions', label: 'Missions', icon: 'scroll' },
         { id: 'party', label: 'Town', icon: 'users' },
         { id: 'diary', label: 'Diary', icon: 'book' },
         { id: 'profile', label: 'Hero', icon: 'user' },
@@ -54,7 +55,7 @@ const Layout_v2 = ({
 
     // Spatial direction for view transitions — views have a conceptual
     // left-to-right order; navigating "right" slides content left and vice versa.
-    const VIEW_ORDER = { home: 0, tasks: 0, createTask: 0, party: 1, diary: 2, profile: 3, studio: 4, creations: 5, admin: 6 };
+    const VIEW_ORDER = { home: 0, tasks: 0, createTask: 0, missions: 0.5, party: 1, diary: 2, profile: 3, studio: 4, creations: 5, admin: 6 };
     const prevViewRef = useRef(activeView);
     const directionRef = useRef(1);
     if (prevViewRef.current !== activeView) {

@@ -508,6 +508,424 @@
   background: linear-gradient(90deg, transparent, rgba(251,191,36,0.2) 30%, rgba(139,92,246,0.2) 70%, transparent);
 }
 
+/* ═══ Narrative landing — chapter-based storytelling ═══ */
+
+.chapter-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  margin-bottom: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.chapter-label::before {
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.chapter-headline {
+  font-family: 'VT323', monospace;
+  font-size: clamp(1.75rem, 4.5vw, 3rem);
+  font-weight: 800;
+  line-height: 1.05;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.chapter-tagline {
+  font-family: 'Handjet', sans-serif;
+  font-size: clamp(1.15rem, 2.6vw, 1.65rem);
+  font-weight: 500;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.78);
+  margin-bottom: 1.25rem;
+  letter-spacing: 0.01em;
+}
+
+.chapter-body {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ═══ Quest Scroll (Cap 01 diegetic mockup) ═══ */
+
+.quest-scroll {
+  position: relative;
+  background:
+    radial-gradient(ellipse at top left, rgba(160, 120, 80, 0.35), transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(140, 100, 60, 0.3), transparent 60%),
+    linear-gradient(180deg, #ecd9b0 0%, #d4bd8e 100%);
+  color: #3a2818;
+  padding: 2.5rem 2.25rem 2rem;
+  border-radius: 3px;
+  max-width: 400px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.55),
+    inset 0 0 60px rgba(90, 55, 20, 0.35),
+    inset 0 0 0 1px rgba(90, 55, 20, 0.2);
+  font-family: 'Handjet', sans-serif;
+}
+
+/* Rolled edges (top / bottom) */
+.quest-scroll::before,
+.quest-scroll::after {
+  content: '';
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  height: 14px;
+  background:
+    radial-gradient(ellipse at center top, #b89660 0%, #8a6836 60%, #5c4020 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+}
+.quest-scroll::before { top: -8px; }
+.quest-scroll::after  { bottom: -8px; }
+
+.quest-scroll-title {
+  font-family: 'VT323', monospace;
+  font-size: 1.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: #4a2818;
+  border-bottom: 1px solid rgba(74, 40, 24, 0.3);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.4);
+}
+
+.quest-scroll ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.quest-scroll li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed rgba(74, 40, 24, 0.18);
+  transition: opacity 0.5s;
+}
+.quest-scroll li:last-child { border-bottom: none; }
+
+.quest-scroll .qs-check {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(74, 40, 24, 0.55);
+  border-radius: 3px;
+  align-items: center;
+  justify-content: center;
+  color: #4a2818;
+  font-family: 'VT323', monospace;
+  font-weight: bold;
+  font-size: 16px;
+  line-height: 1;
+  transition: background 0.4s, border-color 0.4s;
+  position: relative;
+}
+.quest-scroll li.completed .qs-check {
+  background: rgba(74, 40, 24, 0.2);
+  border-color: rgba(74, 40, 24, 0.75);
+}
+.quest-scroll li.just-checked .qs-check {
+  animation: inkStamp 0.5s ease-out;
+}
+@keyframes inkStamp {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.4); background: rgba(74, 40, 24, 0.45); }
+  100% { transform: scale(1); }
+}
+
+.quest-scroll .qs-label {
+  flex: 1;
+  position: relative;
+}
+.quest-scroll li.completed .qs-label {
+  color: rgba(74, 40, 24, 0.55);
+}
+/* Ink strike-through — drawn line that appears */
+.quest-scroll li.completed .qs-label::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 2px;
+  width: 100%;
+  background: rgba(74, 40, 24, 0.7);
+  transform-origin: left center;
+  animation: inkStrike 0.6s ease-out forwards;
+}
+@keyframes inkStrike {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.quest-scroll .qs-reward {
+  margin-left: auto;
+  font-family: 'VT323', monospace;
+  color: #b8802e;
+  font-weight: bold;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.quest-scroll li.completed .qs-reward {
+  color: rgba(74, 40, 24, 0.35);
+}
+
+.quest-scroll-footer {
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(74, 40, 24, 0.3);
+  display: flex;
+  justify-content: space-between;
+  font-family: 'VT323', monospace;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(74, 40, 24, 0.7);
+}
+
+/* ═══ XP floating particle ═══ */
+@keyframes xpFly {
+  0%   { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
+  15%  { opacity: 1; transform: translate(-50%, -12px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -80px) scale(1.15); }
+}
+.xp-particle {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  animation: xpFly 1.6s ease-out forwards;
+  font-family: 'VT323', monospace;
+  font-size: 1.35rem;
+  font-weight: bold;
+  color: #fdd76d;
+  text-shadow: 0 0 12px rgba(253, 215, 109, 0.9), 0 2px 0 rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ═══ Sign Parchment (Cap 05 waitlist ritual) ═══ */
+.sign-parchment {
+  position: relative;
+  background:
+    radial-gradient(ellipse at top left, rgba(160, 120, 80, 0.35), transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(140, 100, 60, 0.3), transparent 60%),
+    linear-gradient(180deg, #ecd9b0 0%, #d4bd8e 100%);
+  color: #3a2818;
+  padding: 2.5rem 2.25rem;
+  border-radius: 3px;
+  max-width: 520px;
+  margin: 0 auto;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.55),
+    inset 0 0 60px rgba(90, 55, 20, 0.35),
+    inset 0 0 0 1px rgba(90, 55, 20, 0.2);
+}
+.sign-parchment::before,
+.sign-parchment::after {
+  content: '';
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  height: 14px;
+  background: radial-gradient(ellipse at center top, #b89660 0%, #8a6836 60%, #5c4020 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+}
+.sign-parchment::before { top: -8px; }
+.sign-parchment::after  { bottom: -8px; }
+
+.sign-parchment-title {
+  font-family: 'VT323', monospace;
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  text-align: center;
+  color: #4a2818;
+  margin-bottom: 0.25rem;
+  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.4);
+}
+.sign-parchment-flourish {
+  text-align: center;
+  color: rgba(74, 40, 24, 0.5);
+  font-family: 'VT323', monospace;
+  font-size: 1rem;
+  letter-spacing: 0.4em;
+  margin-bottom: 1.5rem;
+}
+.sign-parchment-body {
+  font-family: 'Handjet', sans-serif;
+  color: rgba(58, 40, 24, 0.85);
+  text-align: center;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+  padding: 0 0.5rem;
+}
+
+.sign-input-wrap {
+  position: relative;
+  border-bottom: 2px solid rgba(74, 40, 24, 0.6);
+  padding: 0.5rem 0;
+  margin-bottom: 1rem;
+}
+.sign-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #2a1810;
+  font-family: 'Handjet', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 500;
+  padding: 0 0.5rem;
+  text-align: center;
+}
+.sign-input::placeholder {
+  color: rgba(74, 40, 24, 0.4);
+  font-style: italic;
+}
+.sign-input-label {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #e0c992;
+  padding: 0 0.75rem;
+  font-family: 'VT323', monospace;
+  font-size: 0.8rem;
+  color: rgba(74, 40, 24, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+.sign-terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-family: 'Handjet', sans-serif;
+  font-size: 0.9rem;
+  color: rgba(58, 40, 24, 0.7);
+  line-height: 1.4;
+  margin-bottom: 1.25rem;
+  cursor: pointer;
+}
+.sign-terms input {
+  margin-top: 3px;
+  width: 14px;
+  height: 14px;
+  accent-color: #7a4a20;
+  cursor: pointer;
+}
+.sign-terms a {
+  color: #7a4a20;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.sign-terms a:hover { color: #4a2818; }
+
+.sign-button {
+  width: 100%;
+  background: linear-gradient(180deg, #3a2818 0%, #2a1810 100%);
+  color: #ecd9b0;
+  border: none;
+  padding: 1rem 1.5rem;
+  font-family: 'VT323', monospace;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  cursor: pointer;
+  transition: background 0.3s, box-shadow 0.3s, transform 0.1s;
+  box-shadow: 0 4px 0 rgba(50, 30, 15, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.sign-button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #4a3220 0%, #3a2418 100%);
+  color: #fff;
+}
+.sign-button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(50, 30, 15, 0.6), 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+.sign-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sign-button.success {
+  background: linear-gradient(180deg, #b8802e 0%, #8a5f20 100%);
+  color: #fff;
+  animation: sealPress 0.6s ease-out;
+}
+@keyframes sealPress {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.03); box-shadow: 0 0 40px rgba(184, 128, 46, 0.7); }
+  100% { transform: scale(1); }
+}
+
+.sign-response {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  font-family: 'Handjet', sans-serif;
+  font-size: 1rem;
+  text-align: center;
+  border-radius: 2px;
+}
+.sign-response.success {
+  color: #4a3218;
+  border: 1px dashed rgba(74, 40, 24, 0.4);
+  background: rgba(184, 128, 46, 0.1);
+}
+.sign-response.error {
+  color: #7a2818;
+  border: 1px dashed rgba(122, 40, 24, 0.4);
+  background: rgba(122, 40, 24, 0.08);
+}
+
+/* Council horizontal scroll carousel */
+.council-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-padding: 0 1.5rem;
+}
+
+.council-scroll::-webkit-scrollbar { display: none; }
+.council-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+.council-card {
+  backdrop-filter: blur(12px);
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+.council-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(253, 223, 140, 0.4) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
