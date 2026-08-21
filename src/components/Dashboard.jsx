@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useLayoutEffect } from 'react';
 import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react';
 import { useGame } from '../context/GameContext';
 import GardenView from './dashboard/GardenView';
@@ -120,16 +120,35 @@ const Dashboard = ({ setActiveView }) => {
 
     const shouldReduce = useReducedMotion();
     const { scrollY } = useScroll();
-    const bannerScaleX = useTransform(scrollY, [0, 160], [1, 0.12]);
-    const bannerScaleY = useTransform(scrollY, [0, 160], [1, 0.55]);
-    const bannerOpacity = useTransform(scrollY, [30, 150], [1, 0]);
-    const bannerWrapperY = useTransform(scrollY, [0, 160], [0, -32]);
+
+    // Measure the paper's rest width so the holders can travel exactly to the
+    // center as the paper winds shut — a real "scroll closing", not a squish.
+    const clothRef = useRef(null);
+    const [clothWidth, setClothWidth] = useState(0);
+    useLayoutEffect(() => {
+        const measure = () => setClothWidth(clothRef.current?.offsetWidth || 0);
+        measure();
+        window.addEventListener('resize', measure);
+        return () => window.removeEventListener('resize', measure);
+    }, []);
+
+    // Single normalized scroll progress (0 → 1 over ~140px) drives every
+    // channel of the "scroll rolls shut" animation so the timing stays coherent.
+    const rollProgress = useTransform(scrollY, [0, 140], [0, 1], { clamp: true });
+    // Slight lift + late fade — the whole thing quietly retreats.
+    const bannerWrapperY = useTransform(rollProgress, [0, 1], [0, -12]);
+    const bannerOpacity  = useTransform(rollProgress, [0.9, 1], [1, 0]);
+    // Text disappears BEFORE the paper winds away, so no letters get clipped.
+    const contentOpacity = useTransform(rollProgress, [0, 0.35], [1, 0]);
+    // The paper itself winds onto the rolls: scaleX 1 → ~0 from the center.
+    const clothScaleX = useTransform(rollProgress, [0, 1], [1, 0.015]);
+    // Holders travel inward by half the paper width each, meeting at center.
+    const leftHolderX  = useTransform(rollProgress, v => `${(v * clothWidth) / 2}px`);
+    const rightHolderX = useTransform(rollProgress, v => `${-(v * clothWidth) / 2}px`);
+
     const scrollStyle = shouldReduce ? {} : {
         y: bannerWrapperY,
-        scaleX: bannerScaleX,
-        scaleY: bannerScaleY,
         opacity: bannerOpacity,
-        transformOrigin: 'center top',
         willChange: 'transform, opacity',
     };
     const clothStyle = { backgroundColor: '#fedf8c', borderColor: '#111', imageRendering: 'pixelated' };
@@ -143,50 +162,65 @@ const Dashboard = ({ setActiveView }) => {
     return (
         <div className="col-span-12 space-y-6 pb-20 md:pb-0">
 
-            {/* ── SCROLL BANNER — pergamino con info del dia integrada ── */}
+            {/* ── SCROLL BANNER — pergamino con info del dia integrada ──
+                On scroll the whole thing "rolls shut": two paper overlays
+                sweep in from each side toward the center, holders converge
+                slightly, text has already faded. Feels like closing a scroll. */}
             <motion.div
                 style={scrollStyle}
                 className="relative flex items-center justify-center animate-in fade-in slide-in-from-top-2 duration-700 px-2 md:px-0"
             >
-                <div className="relative shrink-0 self-stretch flex flex-col w-6 md:w-[30px]">
-                    <BannerHolderContent />
-                </div>
-
-                <div
-                    className="relative flex-1 max-w-4xl flex flex-col items-center justify-center text-center py-3 md:py-4 px-4 md:px-6 my-3 md:my-[15px] border-t-[4px] border-b-[4px] md:border-t-[5px] md:border-b-[5px]"
-                    style={clothStyle}
+                <motion.div
+                    style={shouldReduce ? undefined : { x: leftHolderX }}
+                    className="relative shrink-0 self-stretch flex flex-col w-6 md:w-[30px] z-20"
                 >
-                    <h2
-                        className="relative font-heading font-extrabold text-[#111] my-0 leading-[0.9]"
-                        style={{
-                            fontSize: 'clamp(24px, 6vw, 52px)',
-                            letterSpacing: '-0.03em',
-                        }}
-                    >
-                        {character?.name || 'Adventurer'}
-                    </h2>
-                    <div className="relative flex items-center justify-center gap-2 mt-1.5 flex-wrap">
-                        <span className="text-[#111] text-[11px] font-bold uppercase tracking-wider opacity-60">{capitalizedDay}</span>
-                        <span className="text-[#111] opacity-30">·</span>
-                        <span className="text-[#111] text-[11px] font-bold uppercase tracking-wider opacity-60">Lv. {character?.level || 1}</span>
-                        <span className="text-[#111] opacity-30">·</span>
-                        <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: activeTasks.length === 0 ? '#166534' : '#92400e' }}>
-                            {activeTasks.length === 0 ? 'All clear' : `${activeTasks.length} quest${activeTasks.length !== 1 ? 's' : ''}`}
-                        </span>
-                        {overdueTasks.length > 0 && (
-                            <>
-                                <span className="text-[#111] opacity-30">·</span>
-                                <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#991b1b' }}>
-                                    {overdueTasks.length} overdue
-                                </span>
-                            </>
-                        )}
-                    </div>
-                </div>
-
-                <div className="relative shrink-0 self-stretch flex flex-col w-6 md:w-[30px]">
                     <BannerHolderContent />
-                </div>
+                </motion.div>
+
+                <motion.div
+                    ref={clothRef}
+                    style={shouldReduce ? clothStyle : { ...clothStyle, scaleX: clothScaleX, transformOrigin: 'center center' }}
+                    className="relative flex-1 max-w-4xl flex flex-col items-center justify-center text-center py-3 md:py-4 px-4 md:px-6 my-3 md:my-[15px] border-t-[4px] border-b-[4px] md:border-t-[5px] md:border-b-[5px] overflow-hidden"
+                >
+                    <motion.div
+                        style={shouldReduce ? undefined : { opacity: contentOpacity }}
+                        className="relative flex flex-col items-center justify-center"
+                    >
+                        <h2
+                            className="relative font-heading font-extrabold text-[#111] my-0 leading-[0.9] whitespace-nowrap"
+                            style={{
+                                fontSize: 'clamp(24px, 6vw, 52px)',
+                                letterSpacing: '-0.03em',
+                            }}
+                        >
+                            {character?.name || 'Adventurer'}
+                        </h2>
+                        <div className="relative flex items-center justify-center gap-2 mt-1.5 flex-nowrap whitespace-nowrap">
+                            <span className="text-[#111] text-[11px] font-bold uppercase tracking-wider opacity-60">{capitalizedDay}</span>
+                            <span className="text-[#111] opacity-30">·</span>
+                            <span className="text-[#111] text-[11px] font-bold uppercase tracking-wider opacity-60">Lv. {character?.level || 1}</span>
+                            <span className="text-[#111] opacity-30">·</span>
+                            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: activeTasks.length === 0 ? '#166534' : '#92400e' }}>
+                                {activeTasks.length === 0 ? 'All clear' : `${activeTasks.length} quest${activeTasks.length !== 1 ? 's' : ''}`}
+                            </span>
+                            {overdueTasks.length > 0 && (
+                                <>
+                                    <span className="text-[#111] opacity-30">·</span>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#991b1b' }}>
+                                        {overdueTasks.length} overdue
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                    </motion.div>
+                </motion.div>
+
+                <motion.div
+                    style={shouldReduce ? undefined : { x: rightHolderX }}
+                    className="relative shrink-0 self-stretch flex flex-col w-6 md:w-[30px] z-20"
+                >
+                    <BannerHolderContent />
+                </motion.div>
             </motion.div>
 
             {/* ── MOBILE: task peek — top urgent/active quests ─────────── */}

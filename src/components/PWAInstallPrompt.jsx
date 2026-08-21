@@ -1,69 +1,44 @@
 import React, { useEffect, useState } from 'react';
 import { Download, X, Sparkles } from 'lucide-react';
 import { useGame } from '../context/GameContext';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 
 /**
- * PWAInstallPrompt — smart prompt to add Taskoria to the home screen.
+ * PWAInstallPrompt — smart auto-surfacing banner to add Taskoria to the home
+ * screen. Only appears when the user is past Level 1 (avoids prompt fatigue)
+ * and hasn't dismissed it recently.
  *
- * Listens for the standard `beforeinstallprompt` event and stashes it. The
- * banner only renders when ALL of these are true:
- *   • The browser supports installation (event was captured)
- *   • The user is past Level 1 (showing engagement — avoids prompt fatigue)
- *   • They haven't already installed (display-mode standalone check)
- *   • They haven't dismissed the prompt this session
- *
- * Persists the dismissal flag in localStorage under `taskoria_pwa_dismissed_at`
- * so a user who said "no" doesn't get spammed every visit.
+ * The always-visible install button lives in Settings; this component is only
+ * the opportunistic nudge.
  */
 const DISMISS_KEY = 'taskoria_pwa_dismissed_at';
-const RE_PROMPT_DAYS = 14; // re-show after N days if they dismissed
+const RE_PROMPT_DAYS = 14;
 
 const PWAInstallPrompt = () => {
     const { state } = useGame();
-    const [deferred, setDeferred] = useState(null);
+    const { canInstall, install } = usePWAInstall();
     const [visible, setVisible] = useState(false);
     const character = state?.character;
 
     useEffect(() => {
-        // Already installed → never prompt
-        if (window.matchMedia?.('(display-mode: standalone)').matches) return;
-        // Dismissed recently → wait the cooldown
+        if (!canInstall) return;
+        if (!character || (character.level || 1) < 2) return;
+        // Respect dismissal cooldown
         const lastDismiss = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
         const cooledDown = Date.now() - lastDismiss > RE_PROMPT_DAYS * 86_400_000;
         if (lastDismiss && !cooledDown) return;
-
-        const onBeforeInstall = (e) => {
-            e.preventDefault();      // suppress the browser's mini-infobar
-            setDeferred(e);
-        };
-        window.addEventListener('beforeinstallprompt', onBeforeInstall);
-        // If the user installs via the browser UI, hide our banner
-        window.addEventListener('appinstalled', () => setVisible(false));
-        return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall);
-    }, []);
-
-    useEffect(() => {
-        // Only surface the banner once the user is engaged (lvl > 1)
-        if (!deferred) return;
-        if (!character || (character.level || 1) < 2) return;
-        // Wait a beat so it doesn't pop the moment they level up — let the
-        // level-up modal land first.
+        // Let the level-up modal land first
         const t = setTimeout(() => setVisible(true), 2500);
         return () => clearTimeout(t);
-    }, [deferred, character?.level]);
+    }, [canInstall, character?.level]);
 
-    if (!visible || !deferred) return null;
+    if (!visible || !canInstall) return null;
 
     const handleInstall = async () => {
-        try {
-            deferred.prompt();
-            const { outcome } = await deferred.userChoice;
-            // outcome: 'accepted' | 'dismissed'
-            if (outcome === 'dismissed') {
-                localStorage.setItem(DISMISS_KEY, String(Date.now()));
-            }
-        } catch (e) { /* user agent doesn't allow programmatic prompt */ }
-        setDeferred(null);
+        const outcome = await install();
+        if (outcome === 'dismissed') {
+            localStorage.setItem(DISMISS_KEY, String(Date.now()));
+        }
         setVisible(false);
     };
 

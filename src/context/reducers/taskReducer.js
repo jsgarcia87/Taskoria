@@ -9,7 +9,9 @@ import {
     bumpDailyMissions,
     getPetMoodBonus,
     getPetPerks,
-    TASK_DIFFICULTY
+    TASK_DIFFICULTY,
+    PET_LEVEL_CAP,
+    PET_BOND_MAX
 } from '../../utils/gameUtils';
 import { generateLoot } from '../../utils/lootUtils';
 
@@ -133,6 +135,22 @@ export const taskReducer = (state, action) => {
             if (x !== null && y !== null) {
                 newFloatingTexts.push({ id: uid('ft'), text: `+${actualXpGain} XP`, x, y, color: '#fbbf24' });
                 newFloatingTexts.push({ id: uid('ft'), text: `+${goldGain} G`, x, y: y + 20, color: '#fcd34d' });
+            }
+
+            // --- Pet reward: active companion gains XP from habits too (smaller drip) ---
+            if (updatedChar.pets?.length) {
+                const activePetIdx = updatedChar.pets.findIndex(p => p.showPet !== false && !p.inSanctuary);
+                if (activePetIdx !== -1) {
+                    const pet = updatedChar.pets[activePetIdx];
+                    const petXp = difficulty * 3;
+                    let pLevel = pet.level, pCur = pet.xp.current + petXp, pMax = pet.xp.max;
+                    while (pCur >= pMax && pLevel < PET_LEVEL_CAP) { pCur -= pMax; pLevel++; pMax = Math.floor(pMax * 1.5); }
+                    if (pLevel >= PET_LEVEL_CAP) pCur = Math.min(pCur, pMax);
+                    if (pLevel > pet.level) logEntry.message += ` Your companion reached level ${pLevel}!`;
+                    const newPets = [...updatedChar.pets];
+                    newPets[activePetIdx] = { ...pet, xp: { current: pCur, max: pMax }, level: pLevel, happiness: Math.min(100, (pet.happiness || 0) + 2) };
+                    updatedChar = { ...updatedChar, pets: newPets };
+                }
             }
 
             return {
@@ -284,6 +302,33 @@ export const taskReducer = (state, action) => {
                 newFloatingTexts.push({ id: uid('ft'), text: `+${actualXpGain} XP`, x, y, color: '#fbbf24' });
                 newFloatingTexts.push({ id: uid('ft'), text: `+${goldGain} G`, x, y: y + 20, color: '#fcd34d' });
                 if (state.activeDungeon?.hp > 0) newFloatingTexts.push({ id: uid('ft'), text: `-${damage} HP`, x: x + 40, y: y - 20, color: '#ef4444' });
+            }
+
+            // --- Pet reward: active companion gains XP and happiness from quests ---
+            if (updatedChar.pets?.length) {
+                const activePetIdx = updatedChar.pets.findIndex(p => p.showPet !== false && !p.inSanctuary);
+                if (activePetIdx !== -1) {
+                    const pet = updatedChar.pets[activePetIdx];
+                    const petXpGain = task.difficulty * 5;
+                    const petHappyGain = Math.min(5, task.difficulty * 2);
+                    let pLevel = pet.level, pCur = pet.xp.current + petXpGain, pMax = pet.xp.max;
+                    while (pCur >= pMax && pLevel < PET_LEVEL_CAP) { pCur -= pMax; pLevel++; pMax = Math.floor(pMax * 1.5); }
+                    if (pLevel >= PET_LEVEL_CAP) pCur = Math.min(pCur, pMax);
+                    const petLeveledUp = pLevel > pet.level;
+                    const updatedPet = {
+                        ...pet,
+                        xp: { current: pCur, max: pMax },
+                        level: pLevel,
+                        happiness: Math.min(100, (pet.happiness || 0) + petHappyGain),
+                        bond: Math.min(PET_BOND_MAX, (pet.bond || 0) + 1),
+                    };
+                    const newPets = [...updatedChar.pets];
+                    newPets[activePetIdx] = updatedPet;
+                    updatedChar = { ...updatedChar, pets: newPets };
+                    if (petLeveledUp) {
+                        logMessage += ` Your companion reached level ${newXp._level}!`;
+                    }
+                }
             }
 
             return {

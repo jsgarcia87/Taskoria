@@ -104,7 +104,13 @@ const CharacterSheet = ({ setActiveView }) => {
         return acc;
     }, []) || [];
 
-    const charData = CHARACTERS.find(c => c.id === character.avatarId);
+    // Resolve the avatar with a fallback chain so legacy characters that never
+    // set `avatarId` still show a face (class → sensible default → fighter).
+    const charData =
+        CHARACTERS.find(c => c.id === character.avatarId) ||
+        CHARACTERS.find(c => c.class === character.class) ||
+        CHARACTERS.find(c => c.id === (character.avatarType || '').toLowerCase()) ||
+        CHARACTERS[0];
 
     // Calculate percentages for bars with safety checks
     const hpPercent = character.hp ? (character.hp.current / character.hp.max) * 100 : 0;
@@ -306,16 +312,14 @@ const CharacterSheet = ({ setActiveView }) => {
                 <div className="flex items-center gap-4">
                     <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl border border-white/10 flex items-center justify-center shadow-lg relative overflow-hidden group flex-shrink-0">
                         <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        {charData && (
-                            <AvatarSpeechBubble idleTimeMs={30000}>
-                                <ModernPixelAvatar
-                                    type={charData.id}
-                                    scale={1.6}
-                                    customColors={character?.avatarColors}
-                                    headOnly={true}
-                                />
-                            </AvatarSpeechBubble>
-                        )}
+                        <AvatarSpeechBubble idleTimeMs={30000}>
+                            <ModernPixelAvatar
+                                type={charData.avatarType || charData.id}
+                                scale={1.6}
+                                customColors={character?.avatarColors}
+                                headOnly={true}
+                            />
+                        </AvatarSpeechBubble>
                     </div>
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">

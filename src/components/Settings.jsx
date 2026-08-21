@@ -2,17 +2,113 @@ import React, { useState } from 'react';
 import PixelIcon from './common/PixelIcon';
 import { useGame } from '../context/GameContext';
 import { useToast } from './common/Toast';
-import { Settings as SettingsIcon, X, Monitor, Clock, Mail, Send, Lightbulb } from 'lucide-react';
+import { Settings as SettingsIcon, X, Monitor, Clock, Mail, Send, Lightbulb, Key, AlertTriangle, Loader2, Trash2, Download, Smartphone, CheckCircle2 } from 'lucide-react';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 
 const SUPPORT_EMAIL = 'taskoriaapp@gmail.com';
 
-const Settings = ({ onClose, currentUser }) => {
+const Settings = ({ onClose, currentUser, onLogout }) => {
     const { state, dispatch } = useGame();
     const { screensaverSettings } = state;
     const toast = useToast();
+    const { canInstall, isInstalled, install } = usePWAInstall();
+
+    // Platform detection for the manual-install fallback (iOS Safari never
+    // fires beforeinstallprompt; some Android/desktop cases miss it too).
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const installHint = isIOS
+        ? 'Tap the Share icon, then choose "Add to Home Screen".'
+        : 'Open your browser menu (⋮) and choose "Install app" or "Add to Home screen".';
+
+    const handleInstallPWA = async () => {
+        const outcome = await install();
+        if (outcome === 'accepted') {
+            toast.success('Taskoria added to your device.');
+        }
+    };
 
     const [suggestion, setSuggestion] = useState('');
     const [sendingSuggestion, setSendingSuggestion] = useState(false);
+
+    // Password change
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [changingPassword, setChangingPassword] = useState(false);
+
+    // Delete account modal
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [deleting, setDeleting] = useState(false);
+
+    const submitPasswordChange = async () => {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            toast.error('Fill every field to change your password.');
+            return;
+        }
+        if (newPassword.length < 6) {
+            toast.error('New password must be at least 6 characters.');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            toast.error('New password and confirmation do not match.');
+            return;
+        }
+        setChangingPassword(true);
+        try {
+            const res = await fetch('api/change_password.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: currentUser?.id,
+                    current_password: currentPassword,
+                    new_password: newPassword,
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success('Password updated. Log in again next time with the new one.');
+                setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+            } else {
+                toast.error(data.error || 'Could not update the password.');
+            }
+        } catch (e) {
+            toast.error('The Archive is beyond reach. Try again shortly.');
+        } finally {
+            setChangingPassword(false);
+        }
+    };
+
+    const submitDeleteAccount = async () => {
+        if (!deletePassword || deleteConfirmText !== 'DELETE') return;
+        setDeleting(true);
+        try {
+            const res = await fetch('api/delete_account.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: currentUser?.id,
+                    password: deletePassword,
+                    confirm: 'DELETE',
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success('Your account has been erased from the Archive.');
+                setShowDeleteModal(false);
+                // Give the toast a beat, then log out.
+                setTimeout(() => { onLogout?.(); }, 800);
+            } else {
+                toast.error(data.error || 'Could not delete the account.');
+                setDeleting(false);
+            }
+        } catch (e) {
+            toast.error('The Archive is beyond reach. Try again shortly.');
+            setDeleting(false);
+        }
+    };
 
     const submitSuggestion = async () => {
         const message = suggestion.trim();
@@ -73,6 +169,40 @@ const Settings = ({ onClose, currentUser }) => {
             </div>
 
             <div className="space-y-6">
+                {/* Install as app — always visible unless already installed.
+                    Native prompt when available, manual instructions otherwise. */}
+                <div className={`glass-panel p-6 rounded-2xl border ${isInstalled ? 'border-green-500/30 bg-green-500/5' : 'border-rpg-gold/30 bg-rpg-gold/5'}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <div className={`p-2 rounded-xl border shrink-0 ${isInstalled ? 'bg-green-500/10 border-green-500/30' : 'bg-rpg-gold/10 border-rpg-gold/30'}`}>
+                                {isInstalled
+                                    ? <CheckCircle2 size={20} className="text-green-400" />
+                                    : <Smartphone size={20} className="text-rpg-gold" />}
+                            </div>
+                            <div className="min-w-0">
+                                <h3 className="font-bold text-white mb-0.5">
+                                    {isInstalled ? 'Taskoria is installed' : 'Install Taskoria on your device'}
+                                </h3>
+                                <p className="text-xs text-gray-400 leading-relaxed">
+                                    {isInstalled
+                                        ? 'You\'re running the installed app — one-tap access from your home screen.'
+                                        : canInstall
+                                            ? 'One-tap access from your home screen. Works offline. No app store needed.'
+                                            : installHint}
+                                </p>
+                            </div>
+                        </div>
+                        {!isInstalled && canInstall && (
+                            <button
+                                onClick={handleInstallPWA}
+                                className="shrink-0 flex items-center justify-center gap-2 bg-rpg-gold hover:bg-yellow-400 text-rpg-bg px-5 py-2.5 rounded-xl font-bold uppercase tracking-widest text-xs transition-all shadow-glow-gold"
+                            >
+                                <Download size={14} /> Install App
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 {/* Screensaver Section */}
                 <div className="glass-panel p-6 rounded-2xl border border-white/5 bg-white/5 transition-all hover:bg-white/10 group">
                     <div className="flex items-center justify-between mb-6">
@@ -172,7 +302,133 @@ const Settings = ({ onClose, currentUser }) => {
                         {SUPPORT_EMAIL}
                     </a>
                 </div>
+
+                {/* Change Password */}
+                <div className="glass-panel p-6 rounded-2xl border border-white/5 bg-white/5">
+                    <div className="flex items-center gap-4 mb-5">
+                        <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                            <Key size={20} className="text-blue-400" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-white mb-0.5">Change Password</h3>
+                            <p className="text-xs text-gray-400">Update your credentials for the Archive.</p>
+                        </div>
+                    </div>
+                    <div className="space-y-3">
+                        <input
+                            type="password"
+                            placeholder="Current password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            disabled={changingPassword}
+                            autoComplete="current-password"
+                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 transition-all"
+                        />
+                        <input
+                            type="password"
+                            placeholder="New password (min. 6 chars)"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            disabled={changingPassword}
+                            autoComplete="new-password"
+                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 transition-all"
+                        />
+                        <input
+                            type="password"
+                            placeholder="Confirm new password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            disabled={changingPassword}
+                            autoComplete="new-password"
+                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 transition-all"
+                        />
+                        <div className="flex justify-end pt-1">
+                            <button
+                                onClick={submitPasswordChange}
+                                disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
+                                className="flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed text-blue-300 border border-blue-500/50 px-5 py-2.5 rounded-xl font-bold uppercase tracking-widest text-xs transition-all"
+                            >
+                                {changingPassword ? <><Loader2 size={14} className="animate-spin" /> Updating…</> : <><Key size={14} /> Update Password</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Danger Zone */}
+                <div className="glass-panel p-6 rounded-2xl border border-red-500/20 bg-red-500/5">
+                    <div className="flex items-center gap-4 mb-5">
+                        <div className="p-2 bg-red-500/10 rounded-xl border border-red-500/30">
+                            <AlertTriangle size={20} className="text-red-400" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-white mb-0.5">Danger Zone</h3>
+                            <p className="text-xs text-gray-400">Erase your account and all its data. This cannot be undone.</p>
+                        </div>
+                    </div>
+                    <div className="flex justify-end">
+                        <button
+                            onClick={() => setShowDeleteModal(true)}
+                            className="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/50 px-5 py-2.5 rounded-xl font-bold uppercase tracking-widest text-xs transition-all"
+                        >
+                            <Trash2 size={14} /> Delete Account
+                        </button>
+                    </div>
+                </div>
             </div>
+
+            {/* Delete confirmation modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-rpg-panelDark border border-red-500/30 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-red-500/20 rounded-xl border border-red-500/40">
+                                <AlertTriangle size={22} className="text-red-400" />
+                            </div>
+                            <h3 className="text-lg font-heading font-bold text-white">Delete your account?</h3>
+                        </div>
+                        <p className="text-sm text-gray-400 leading-relaxed mb-5">
+                            This permanently erases your hero, quests, pets, missions, family profiles and every trace of your kingdom.
+                            <br />
+                            <span className="text-red-400 font-bold">There is no undo.</span>
+                        </p>
+                        <div className="space-y-3">
+                            <input
+                                type="password"
+                                placeholder="Your password"
+                                value={deletePassword}
+                                onChange={(e) => setDeletePassword(e.target.value)}
+                                disabled={deleting}
+                                autoComplete="current-password"
+                                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-400 transition-all"
+                            />
+                            <input
+                                type="text"
+                                placeholder='Type "DELETE" to confirm'
+                                value={deleteConfirmText}
+                                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                disabled={deleting}
+                                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-400 transition-all uppercase tracking-widest font-mono"
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2 mt-6">
+                            <button
+                                onClick={() => { setShowDeleteModal(false); setDeletePassword(''); setDeleteConfirmText(''); }}
+                                disabled={deleting}
+                                className="px-4 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={submitDeleteAccount}
+                                disabled={deleting || !deletePassword || deleteConfirmText !== 'DELETE'}
+                                className="flex items-center gap-2 bg-red-500/30 hover:bg-red-500/40 disabled:opacity-40 disabled:cursor-not-allowed text-red-200 border border-red-500/60 px-5 py-2.5 rounded-xl font-bold uppercase tracking-widest text-xs transition-all"
+                            >
+                                {deleting ? <><Loader2 size={14} className="animate-spin" /> Deleting…</> : <><Trash2 size={14} /> Delete Forever</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="mt-12 pt-6 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-600 font-mono">
                 <span>TASKORIA VERSION 1.0.4-BETA</span>

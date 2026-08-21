@@ -301,7 +301,7 @@ const GameContent = ({ currentUser, onLogout }) => {
 
             {activeView === 'settings' && (
               <motion.div key="settings" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
-                <Settings onClose={() => setActiveView('home')} currentUser={currentUser} />
+                <Settings onClose={() => setActiveView('home')} currentUser={currentUser} onLogout={onLogout} />
               </motion.div>
             )}
 

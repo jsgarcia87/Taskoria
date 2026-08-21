@@ -670,8 +670,9 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                         </button>
                     </div>
                 </div>
-                {/* Scroll hint — anchored to viewport bottom */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 animate-[slideUpFade_1s_ease-out_1.2s_forwards] opacity-0 pointer-events-none">
+                {/* Scroll hint — anchored to viewport bottom, full-width so the
+                    keyframe transform can't fight the horizontal centering. */}
+                <div className="absolute bottom-4 inset-x-0 flex flex-col items-center gap-1.5 animate-[slideUpFade_1s_ease-out_1.2s_forwards] opacity-0 pointer-events-none">
                     <span className="text-[9px] uppercase tracking-[0.3em] text-gray-500 font-heading">Scroll to enter</span>
                     <ChevronDown size={14} className="text-gray-500 animate-bounce" />
                 </div>
@@ -820,25 +821,22 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
             </section>
 
             {/* CH 05 — THE CALL — final CTA */}
-            <section ref={waitlistRef} className="narrative-chapter relative z-10 min-h-screen flex items-center justify-center px-6 py-24">
+            <section ref={waitlistRef} className="narrative-chapter relative z-10 min-h-screen flex flex-col items-center justify-center px-6 py-24 gap-8">
                 <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70 pointer-events-none" />
                 <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center 40%, rgba(253,223,140,0.08) 0%, transparent 60%)' }} />
                 <div className="relative z-10 max-w-3xl mx-auto text-center w-full">
                     <Reveal>
-                        <div className="chapter-label text-rpg-gold">05 — The Call</div>
+                        <div className="chapter-label text-rpg-gold justify-center">05 — The Call</div>
                         <h2 className="chapter-headline">Your quest awaits.</h2>
-                        <p className="chapter-tagline mx-auto max-w-xl">Log in and start playing in seconds.</p>
+                        <p className="chapter-tagline mx-auto max-w-xl">Log in and start playing in seconds — free during closed beta.</p>
                         <div className="inline-flex items-center gap-2 mt-4 px-3 py-1 rounded-full bg-rpg-gold/10 border border-rpg-gold/30">
                             <span className="w-1.5 h-1.5 rounded-full bg-rpg-gold animate-pulse" />
                             <span className="text-[10px] uppercase tracking-[0.2em] font-heading font-bold text-rpg-gold">Closed beta · Limited spots</span>
                         </div>
-                        <p className="chapter-body mx-auto mt-4 max-w-xl">
-                            Founding citizens get early access to all 5 maps and a special badge. Your hero credentials arrive by email.
-                        </p>
                     </Reveal>
 
                     <Reveal delay={200}>
-                        <form onSubmit={handleJoinWaitlist} className="sign-parchment mt-10">
+                        <form onSubmit={handleJoinWaitlist} className="sign-parchment mt-12">
                             <div className="sign-parchment-title">The Founder's Register</div>
                             <div className="sign-parchment-flourish">◆ ◆ ◆</div>
                             <p className="sign-parchment-body">

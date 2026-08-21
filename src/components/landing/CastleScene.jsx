@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 // Camera waypoints driven by page scroll — each maps to a narrative chapter.
 // { pos: [x,y,z], lookAt: [x,y,z], range: [scrollStart, scrollEnd] }
@@ -490,60 +491,122 @@ function buildCouncil(scene) {
     group.add(platform);
 
     // 6 guardian statues in a smaller circle
+    // `model` maps to /public/models/guardians/*.glb — null keeps primitive fallback
     const guardianData = [
-        { name: 'Ledgar',     color: 0x6699ff, hex: '#6699ff' },
-        { name: 'Chronos',    color: 0xff5544, hex: '#ff5544' },
-        { name: 'Cartograph', color: 0x44cc88, hex: '#44cc88' },
-        { name: 'Notifus',    color: 0x8866dd, hex: '#8866dd' },
-        { name: 'Patchsmith', color: 0xffaa33, hex: '#ffaa33' },
-        { name: 'Matriarch',  color: 0xff6699, hex: '#ff6699' },
+        { name: 'Ledgar',     color: 0x6699ff, hex: '#6699ff', model: 'ledgar' },
+        { name: 'Chronos',    color: 0xff5544, hex: '#ff5544', model: 'chronos' },
+        { name: 'Cartograph', color: 0x44cc88, hex: '#44cc88', model: 'cartograph' },
+        { name: 'Notifus',    color: 0x8866dd, hex: '#8866dd', model: 'notifus' },
+        { name: 'Patchsmith', color: 0xffaa33, hex: '#ffaa33', model: 'patchsmith' },
+        { name: 'Matriarch',  color: 0xff6699, hex: '#ff6699', model: 'matriarch' },
     ];
     const statueCount = 6;
     const guardians = [];
+    const gltfLoader = new GLTFLoader();
+
     for (let i = 0; i < statueCount; i++) {
         const angle = (i / statueCount) * Math.PI * 2 - Math.PI / 2;
         const r = 3.5;
         const x = Math.cos(angle) * r;
         const z = Math.sin(angle) * r;
-        const { name, color, hex } = guardianData[i];
+        const { name, color, hex, model: modelName } = guardianData[i];
 
-        const pedestal = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 1.2), pedestalMat);
-        pedestal.position.set(x, 1.2, z); pedestal.castShadow = true;
-        group.add(pedestal);
+        // Statue container — populated async when the GLB loads.
+        // The container is oriented outward so its child model faces the camera.
+        // Sits on the floor (Y=0) — the GLBs bring their own base.
+        const statueGroup = new THREE.Group();
+        statueGroup.position.set(x, 0, z);
+        statueGroup.rotation.y = -angle - Math.PI / 2;
+        group.add(statueGroup);
 
-        const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.3, emissive: color, emissiveIntensity: 0 });
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2, 0.6), bodyMat);
-        body.position.set(x, 3.1, z); body.castShadow = true;
-        // Orient the statue so it faces outward (away from the altar)
-        body.rotation.y = -angle - Math.PI / 2;
-        group.add(body);
+        // Track emissive materials from the loaded model for the "awakening" effect
+        const statueMaterials = [];
 
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), bodyMat);
-        head.position.set(x, 4.4, z);
-        group.add(head);
+        // Build primitive fallback (used when no model or when GLB fails)
+        const buildPrimitive = () => {
+            const fallbackMat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.3, emissive: color, emissiveIntensity: 0.15 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.5, 1), fallbackMat);
+            body.position.y = 1.75; body.castShadow = true;
+            statueGroup.add(body);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), fallbackMat);
+            head.position.y = 4;
+            statueGroup.add(head);
+            statueMaterials.push(fallbackMat);
+        };
 
-        const glow = new THREE.PointLight(color, 3, 5);
-        glow.position.set(x, 2.2, z);
+        if (!modelName) {
+            buildPrimitive();
+        } else {
+            // Async load
+            gltfLoader.load(
+            `./models/guardians/${modelName}.glb`,
+            (gltf) => {
+                const modelObj = gltf.scene;
+
+                // Fit the model to a target height (~5 units — feels imposing next to the altar)
+                const box = new THREE.Box3().setFromObject(modelObj);
+                const size = box.getSize(new THREE.Vector3());
+                const targetHeight = 5;
+                const scale = size.y > 0 ? targetHeight / size.y : 1;
+                modelObj.scale.setScalar(scale);
+
+                // Anchor the model's feet to the floor (Y=0 of statueGroup)
+                const rescaled = new THREE.Box3().setFromObject(modelObj);
+                modelObj.position.y = -rescaled.min.y;
+
+                // Shadows + collect materials for the awakening pulse.
+                // Base emissive tint gives every guardian a subtle glow in their color
+                // even at rest — the awakening then boosts it further.
+                modelObj.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                        if (child.material) {
+                            const mats = Array.isArray(child.material) ? child.material : [child.material];
+                            mats.forEach(m => {
+                                // Clone so we can freely tweak emissive without touching cached refs
+                                const cloned = m.clone();
+                                cloned.emissive = new THREE.Color(color);
+                                cloned.emissiveIntensity = 0.15;
+                                child.material = cloned;
+                                statueMaterials.push(cloned);
+                            });
+                        }
+                    }
+                });
+
+                statueGroup.add(modelObj);
+            },
+            undefined,
+            (err) => {
+                console.warn(`[CastleScene] Failed to load ${modelName}.glb`, err);
+                buildPrimitive();
+            }
+        );
+        }
+
+        const glow = new THREE.PointLight(color, 4, 6);
+        glow.position.set(x, 1.5, z);
         group.add(glow);
 
-        // Stone signpost — placed in front of the pedestal, facing outward
-        const signOffset = 1.35;
+        // Stone signpost — placed in front of the statue, facing outward
+        const signOffset = 1.8;
         const sx = Math.cos(angle) * (r + signOffset);
         const sz = Math.sin(angle) * (r + signOffset);
 
-        const signPost = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.4, 0.15), signStoneMat);
-        signPost.position.set(sx, 0.7, sz); signPost.castShadow = true;
+        const signPost = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.2, 0.15), signStoneMat);
+        signPost.position.set(sx, 0.6, sz); signPost.castShadow = true;
         group.add(signPost);
 
         const signPlate = new THREE.Mesh(
             new THREE.PlaneGeometry(1.6, 0.8),
             new THREE.MeshBasicMaterial({ map: makeSignTexture(name, hex), transparent: false })
         );
-        signPlate.position.set(sx, 1.6, sz);
+        signPlate.position.set(sx, 1.4, sz);
         signPlate.rotation.y = -angle - Math.PI / 2;
         group.add(signPlate);
 
-        guardians.push({ angle, bodyMat, glow, baseGlowIntensity: 3, awakeGlowIntensity: 18 });
+        guardians.push({ angle, statueMaterials, glow, baseGlowIntensity: 3, awakeGlowIntensity: 18 });
     }
 
     // Central altar with golden glow
@@ -855,6 +918,8 @@ const CastleScene = () => {
             }
 
             // Council guardian awakening — the one the camera faces glows brighter
+            const BASE_EMISSIVE = 0.15;
+            const AWAKE_EMISSIVE = 0.7;
             if (scrollPercent >= COUNCIL_RANGE[0] && scrollPercent <= COUNCIL_RANGE[1]) {
                 const t = (scrollPercent - COUNCIL_RANGE[0]) / (COUNCIL_RANGE[1] - COUNCIL_RANGE[0]);
                 const camAngle = -Math.PI / 2 + t * Math.PI * 2;
@@ -866,15 +931,16 @@ const CastleScene = () => {
                     const prox = Math.max(0, 1 - delta / (Math.PI / 3));
                     const eased = prox * prox * (3 - 2 * prox);
                     g.glow.intensity = g.baseGlowIntensity + (g.awakeGlowIntensity - g.baseGlowIntensity) * eased;
-                    g.bodyMat.emissiveIntensity = 0.4 * eased;
+                    const emissive = BASE_EMISSIVE + (AWAKE_EMISSIVE - BASE_EMISSIVE) * eased;
+                    g.statueMaterials.forEach(m => { m.emissiveIntensity = emissive; });
                 });
                 // Altar core pulses subtly during the council orbit
                 council.altarCore.scale.setScalar(1 + Math.sin(elapsed * 2) * 0.08);
             } else {
-                // Rest state — statues dim
+                // Rest state — statues keep base tint (not fully dark)
                 council.guardians.forEach(g => {
                     g.glow.intensity = g.baseGlowIntensity;
-                    g.bodyMat.emissiveIntensity = 0;
+                    g.statueMaterials.forEach(m => { m.emissiveIntensity = BASE_EMISSIVE; });
                 });
             }
 
