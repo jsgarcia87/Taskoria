@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, UserPlus, Shield, ShieldOff, Search, Loader, Users as UsersIcon, Settings as SettingsIcon, Hammer, Palette, Lightbulb, Check, Library } from 'lucide-react';
+import { Trash2, UserPlus, Shield, ShieldOff, Search, Loader, Users as UsersIcon, Settings as SettingsIcon, Hammer, Palette, Lightbulb, Check, Library, FileText } from 'lucide-react';
 import PixelIcon from '../common/PixelIcon';
 import CreationsModeration from './CreationsModeration';
 import StudioAccessRequests from './StudioAccessRequests';
 import AdminWorldTools from './AdminWorldTools';
 import AssetManager from './AssetManager';
+import CmsManager from '../admin/CmsManager';
 import { useToast } from '../common/Toast';
 import Modal from '../common/Modal';
 
@@ -247,6 +248,7 @@ const AdminPanel = ({ currentUser }) => {
                     { id: 'studio', label: 'Pixel Studio',  icon: Palette,    hint: 'Access + creations moderation' },
                     { id: 'world',  label: 'World Tools',   icon: Hammer,     hint: 'House Builder + Map Editor' },
                     { id: 'library',label: 'Global Library',icon: Library,    hint: 'Manage all game assets globally' },
+                    { id: 'cms',    label: 'CMS',           icon: FileText,   hint: 'Blog, news, modals' },
                 ].map(t => {
                     const Icon = t.icon;
                     const isActive = activeSection === t.id;
@@ -531,6 +533,13 @@ const AdminPanel = ({ currentUser }) => {
                         <p className="text-xs text-gray-400">View and manage all approved user creations and admin designs.</p>
                     </div>
                     <AssetManager currentUser={currentUser} />
+                </div>
+            )}
+
+            {/* === SECTION: CMS === */}
+            {activeSection === 'cms' && (
+                <div className="animate-in fade-in duration-300">
+                    <CmsManager currentUser={currentUser} />
                 </div>
             )}
 

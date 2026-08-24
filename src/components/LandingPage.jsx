@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import {
     Sword, Shield, Scroll, Users, CheckCircle2, ChevronRight, Loader2, Crown, Hammer,
     Sparkles, Map, Timer, Heart, Target, Trophy, Flame, Star, Zap, BookOpen, TreePine, Castle, Eraser, Square,
-    ChevronDown, HelpCircle, ArrowLeft, Calendar, Clock, Newspaper, ChevronLeft
+    ChevronDown, ArrowLeft, Calendar, Clock, ChevronLeft
 } from 'lucide-react';
 import BLOG_POSTS from '../data/blogPosts';
 import ModernPixelAvatar from './common/ModernPixelAvatar';
@@ -70,6 +70,24 @@ const FAQAccordionItem = ({ question, answer }) => {
     );
 };
 
+const FAQParchmentItem = ({ question, answer }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    return (
+        <div className="border-b border-[rgba(90,55,20,0.15)] last:border-b-0">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between gap-4 py-4 px-1 text-left group cursor-pointer"
+            >
+                <span className="font-heading font-bold text-sm md:text-base text-[#3a2818] group-hover:text-[#b8802e] transition-colors">{question}</span>
+                <ChevronDown size={16} className={`text-[#b8802e] flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-60 opacity-100 pb-4' : 'max-h-0 opacity-0'}`}>
+                <p className="text-sm text-[#5a4a38] leading-relaxed px-1">{answer}</p>
+            </div>
+        </div>
+    );
+};
+
 const GUARDIANS = [
     { name: 'Ledgar',     title: 'The Chronicler',  color: '#6699ff', lore: 'I record every deed, lest they fade into the void.',            tech: 'Habits, Tasks & Diary' },
     { name: 'Chronos',    title: 'The Timekeeper',  color: '#ff5544', lore: 'Time is a monster. Slay it, or let it consume you.',            tech: 'Pomodoro Focus Combat' },
@@ -120,25 +138,28 @@ const CATEGORY_COLORS = {
 const BlogCard = ({ post, onClick }) => (
     <button
         onClick={() => onClick(post.slug)}
-        className="group text-left bg-rpg-panel border-4 border-rpg-panelLight rounded-xl overflow-hidden transition-all duration-300 hover:border-rpg-gold hover:-translate-y-1 hover:shadow-[8px_8px_0_rgba(253,223,140,0.15)] cursor-pointer w-full"
+        className="group text-left w-full cursor-pointer"
     >
-        <div className={`h-32 bg-gradient-to-br ${post.coverGradient} relative overflow-hidden`}>
-            <div className="absolute inset-0 landing-pixel-grid opacity-20" />
-            <div className="absolute bottom-3 left-4">
-                <span className={`text-[9px] uppercase tracking-widest font-bold px-2 py-1 rounded border ${CATEGORY_COLORS[post.category] || 'bg-white/10 text-white border-white/20'}`}>
+        <div className="relative bg-rpg-panel/50 border border-rpg-panelLight/30 rounded-sm p-6 transition-all duration-300 hover:border-rpg-gold/30 hover:bg-rpg-panel/70">
+            <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-rpg-gold/20 to-transparent" />
+            <div className="flex items-center gap-2 mb-4">
+                <span className={`text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-sm border ${CATEGORY_COLORS[post.category] || 'bg-white/10 text-white border-white/20'}`}>
                     {post.category}
                 </span>
+                <span className="text-gray-600 text-[8px]">◆</span>
+                <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">{formatDate(post.date)}</span>
             </div>
-        </div>
-        <div className="p-5">
-            <h3 className="font-heading font-bold text-white text-base mb-2 group-hover:text-rpg-gold transition-colors leading-snug">
+            <h3 className="font-heading font-bold text-white text-lg mb-3 group-hover:text-rpg-gold transition-colors leading-snug">
                 {post.title}
             </h3>
-            <p className="text-sm text-gray-400 leading-relaxed line-clamp-2 mb-4">{post.excerpt}</p>
-            <div className="flex items-center gap-3 text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-                <span className="flex items-center gap-1"><Calendar size={10} /> {formatDate(post.date)}</span>
-                <span className="flex items-center gap-1"><Clock size={10} /> {post.readTime}</span>
-            </div>
+            <p className="text-sm text-gray-400 leading-relaxed line-clamp-3 mb-5">
+                <span className="chronicle-initial">{post.excerpt.charAt(0)}</span>
+                {post.excerpt.slice(1)}
+            </p>
+            <span className="inline-flex items-center gap-1.5 text-[10px] text-rpg-gold/40 uppercase tracking-widest font-bold group-hover:text-rpg-gold transition-colors">
+                Continue reading <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+            </span>
+            <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-rpg-panelLight/15 to-transparent" />
         </div>
     </button>
 );
@@ -153,9 +174,10 @@ const BlogListView = ({ onSelectPost, onBack }) => (
                 <ChevronLeft size={16} /> Back to Home
             </button>
             <div className="text-center mb-14">
-                <Newspaper size={36} className="mx-auto text-rpg-gold mb-4 opacity-80" />
-                <h1 className="text-3xl md:text-4xl font-landing font-bold text-white mb-3">The Taskoria Chronicle</h1>
-                <p className="text-gray-400 max-w-xl mx-auto">News, updates, and tales from the kingdom. Follow our journey as we build the world of Taskoria together.</p>
+                <div className="chronicle-divider mb-6">❧</div>
+                <h1 className="text-3xl md:text-4xl font-landing font-bold text-white mb-3">The Chronicle</h1>
+                <p className="text-gray-500 max-w-md mx-auto text-sm">Dispatches from the Archive Council. Every entry, a chapter in Taskoria's unfolding story.</p>
+                <div className="chronicle-divider mt-6">◆ ◆ ◆</div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
                 {BLOG_POSTS.map(post => (
@@ -179,45 +201,52 @@ const BlogPostView = ({ slug, onBack, onBackToList }) => {
                     onClick={onBackToList}
                     className="flex items-center gap-2 text-gray-400 hover:text-rpg-gold transition-colors mb-8 text-sm font-bold uppercase tracking-widest cursor-pointer"
                 >
-                    <ChevronLeft size={16} /> All Posts
+                    <ChevronLeft size={16} /> All Chronicles
                 </button>
 
                 <article className="max-w-2xl mx-auto">
-                    <div className={`h-40 md:h-56 rounded-xl bg-gradient-to-br ${post.coverGradient} relative overflow-hidden mb-8 border-4 border-rpg-panelLight`}>
-                        <div className="absolute inset-0 landing-pixel-grid opacity-20" />
-                        <div className="absolute bottom-4 left-5">
-                            <span className={`text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded border ${CATEGORY_COLORS[post.category] || 'bg-white/10 text-white border-white/20'}`}>
-                                {post.category}
-                            </span>
-                        </div>
+                    <div className="text-center mb-10">
+                        <div className="chronicle-divider mb-6">❧</div>
+                        <span className={`text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-sm border ${CATEGORY_COLORS[post.category] || 'bg-white/10 text-white border-white/20'}`}>
+                            {post.category}
+                        </span>
                     </div>
 
-                    <h1 className="text-2xl md:text-4xl font-landing font-bold text-white mb-4 leading-tight">{post.title}</h1>
+                    <h1 className="text-2xl md:text-4xl font-landing font-bold text-white mb-4 leading-tight text-center">{post.title}</h1>
 
-                    <div className="flex items-center gap-4 text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-10 pb-6 border-b border-rpg-panelLight/30">
+                    <div className="flex items-center justify-center gap-4 text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-6">
                         <span className="flex items-center gap-1.5"><Calendar size={12} /> {formatDate(post.date)}</span>
+                        <span className="text-gray-600 text-[8px]">◆</span>
                         <span className="flex items-center gap-1.5"><Clock size={12} /> {post.readTime}</span>
                     </div>
+
+                    <div className="chronicle-divider mb-10">◆ ◆ ◆</div>
 
                     <div className="space-y-5">
                         {post.content.map((block, i) => {
                             if (block.type === 'heading') {
-                                return <h2 key={i} className="text-xl md:text-2xl font-heading font-bold text-rpg-gold mt-8 mb-2">{block.text}</h2>;
+                                return <h2 key={i} className="chronicle-heading text-xl md:text-2xl font-heading font-bold text-rpg-gold mt-10 mb-3">{block.text}</h2>;
                             }
-                            return <p key={i} className="text-gray-300 leading-relaxed text-[15px]">{block.text}</p>;
+                            const isFirstAfterHeading = i === 0 || (i > 0 && post.content[i - 1].type === 'heading');
+                            return (
+                                <p key={i} className="text-gray-300 leading-relaxed text-[15px]">
+                                    {isFirstAfterHeading && <span className="chronicle-initial">{block.text.charAt(0)}</span>}
+                                    {isFirstAfterHeading ? block.text.slice(1) : block.text}
+                                </p>
+                            );
                         })}
                     </div>
 
-                    <div className="mt-14 pt-8 border-t border-rpg-panelLight/30">
-                        <div className="bg-rpg-panel border-4 border-rpg-panelLight rounded-xl p-6 text-center">
-                            <p className="text-gray-400 mb-3 text-sm">Want to experience Taskoria for yourself?</p>
-                            <button
-                                onClick={onBack}
-                                className="inline-flex items-center gap-2 bg-rpg-gold text-rpg-panel border-b-[4px] border-yellow-600 active:border-b-0 active:translate-y-[4px] rounded-lg px-6 py-3 uppercase tracking-widest text-sm font-heading font-bold transition-all hover:bg-yellow-400 cursor-pointer"
-                            >
-                                Join the Beta <ChevronRight size={16} />
-                            </button>
-                        </div>
+                    <div className="chronicle-divider mt-14 mb-8">❧</div>
+
+                    <div className="bg-rpg-panel/50 border border-rpg-panelLight/30 rounded-sm p-6 text-center">
+                        <p className="text-gray-500 mb-3 text-sm">Your chapter in Taskoria awaits.</p>
+                        <button
+                            onClick={onBack}
+                            className="inline-flex items-center gap-2 bg-rpg-gold text-rpg-panel border-b-[3px] border-yellow-600 active:border-b-0 active:translate-y-[3px] rounded-lg px-6 py-3 uppercase tracking-widest text-sm font-heading font-bold transition-all hover:bg-yellow-400 cursor-pointer"
+                        >
+                            Join the Beta <ChevronRight size={16} />
+                        </button>
                     </div>
                 </article>
             </div>
@@ -369,14 +398,14 @@ const InteractiveBuilder = () => {
     };
 
     return (
-        <div className="relative z-10 flex flex-col sm:flex-row gap-6 bg-[#1a1322] border-4 border-rpg-panelLight p-6 rounded-xl shadow-[8px_8px_0_rgba(0,0,0,0.5)]">
+        <div className="relative z-10 flex flex-col sm:flex-row gap-6 bg-[#1a1322] border-4 border-rpg-panelLight p-6 rounded-xl shadow-2xl shadow-black/50">
             {/* Palette */}
             <div className="flex sm:flex-col gap-3 justify-center">
                 {tools.map(t => (
                     <button
                         key={t.id}
                         onClick={() => setActiveTool(t.id)}
-                        className={`w-12 h-12 rounded-xl border-4 flex items-center justify-center transition-all ${activeTool === t.id ? 'border-rpg-gold bg-rpg-panelDark scale-110 shadow-[4px_4px_0_rgba(253,223,140,0.3)]' : 'border-rpg-panelLight bg-rpg-panel hover:bg-rpg-panelLight/50'}`}
+                        className={`w-12 h-12 rounded-xl border-4 flex items-center justify-center transition-all ${activeTool === t.id ? 'border-rpg-gold bg-rpg-panelDark scale-110 shadow-lg shadow-rpg-gold/15' : 'border-rpg-panelLight bg-rpg-panel hover:bg-rpg-panelLight/50'}`}
                     >
                         <t.icon size={24} className={t.color} />
                     </button>
@@ -608,7 +637,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     >Join Beta</button>
                     <button
                         onClick={() => onGoToLogin?.()}
-                        className="bg-rpg-panel border-2 md:border-[3px] border-rpg-panelLight hover:border-rpg-gold text-white text-[10px] md:text-sm font-bold uppercase tracking-wider md:tracking-widest px-3 md:px-6 py-1.5 md:py-2 rounded-lg md:rounded-xl transition-colors group font-heading shadow-[3px_3px_0_rgba(0,0,0,0.5)] md:shadow-[4px_4px_0_rgba(0,0,0,0.5)] active:translate-y-1 active:shadow-none"
+                        className="bg-rpg-panel border-2 md:border-[3px] border-rpg-panelLight hover:border-rpg-gold text-white text-[10px] md:text-sm font-bold uppercase tracking-wider md:tracking-widest px-3 md:px-6 py-1.5 md:py-2 rounded-lg md:rounded-xl transition-all group font-heading shadow-lg shadow-black/30 active:translate-y-0.5 active:shadow-md"
                     >
                         <span className="flex items-center gap-1.5 md:gap-2">
                             Sign In
@@ -674,7 +703,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     keyframe transform can't fight the horizontal centering. */}
                 <div className="absolute bottom-4 inset-x-0 flex flex-col items-center gap-1.5 animate-[slideUpFade_1s_ease-out_1.2s_forwards] opacity-0 pointer-events-none">
                     <span className="text-[9px] uppercase tracking-[0.3em] text-gray-500 font-heading">Scroll to enter</span>
-                    <ChevronDown size={14} className="text-gray-500 animate-bounce" />
+                    <ChevronDown size={14} className="text-gray-500 animate-[breathe_2.5s_ease-in-out_infinite]" />
                 </div>
             </main>
 
@@ -690,7 +719,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70 pointer-events-none" />
                 <div className="relative z-10 max-w-5xl mx-auto w-full">
                     <Reveal>
-                        <div className="chapter-label text-rpg-gold">01 — The Quest Log</div>
+                        <div className="chapter-label text-rpg-gold">The Quest Log</div>
                         <h2 className="chapter-headline">Every duty, a legend.</h2>
                         <p className="chapter-tagline max-w-xl">Log your tasks — the Archive turns each one into a quest worth completing.</p>
                         <p className="chapter-body max-w-xl">
@@ -710,7 +739,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-[#1a1028]/80 to-black/60 pointer-events-none" />
                 <div className="relative z-10 max-w-4xl mx-auto text-center">
                     <Reveal>
-                        <div className="chapter-label text-rpg-gold">02 — The Archive</div>
+                        <div className="chapter-label text-rpg-gold">The Archive</div>
                         <h2 className="chapter-headline">The Archive summons.</h2>
                         <p className="chapter-tagline mx-auto max-w-xl">Six guardians were appointed to protect every deed you record.</p>
                     </Reveal>
@@ -748,7 +777,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 <div className="sticky top-0 h-screen flex flex-col items-center justify-between py-16 md:py-24 px-6">
                     {/* Chapter header */}
                     <div className="text-center">
-                        <div className="chapter-label text-rpg-gold justify-center">03 — The Council</div>
+                        <div className="chapter-label text-rpg-gold justify-center">The Council</div>
                         <h2 className="chapter-headline">Six guardians.</h2>
                         <p className="chapter-tagline max-w-xl mx-auto">Six ways to conquer your day.</p>
                     </div>
@@ -786,7 +815,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-[#12101e]/70 to-black/60 pointer-events-none" />
                 <div className="relative z-10 max-w-6xl mx-auto w-full">
                     <Reveal>
-                        <div className="chapter-label text-rpg-gold">04 — The Studio</div>
+                        <div className="chapter-label text-rpg-gold">The Studio</div>
                         <h2 className="chapter-headline">Built by you.</h2>
                         <p className="chapter-tagline max-w-xl">The world of Taskoria — one pixel at a time.</p>
                     </Reveal>
@@ -826,7 +855,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center 40%, rgba(253,223,140,0.08) 0%, transparent 60%)' }} />
                 <div className="relative z-10 max-w-3xl mx-auto text-center w-full">
                     <Reveal>
-                        <div className="chapter-label text-rpg-gold justify-center">05 — The Call</div>
+                        <div className="chapter-label text-rpg-gold justify-center">The Call</div>
                         <h2 className="chapter-headline">Your quest awaits.</h2>
                         <p className="chapter-tagline mx-auto max-w-xl">Log in and start playing in seconds — free during closed beta.</p>
                         <div className="inline-flex items-center gap-2 mt-4 px-3 py-1 rounded-full bg-rpg-gold/10 border border-rpg-gold/30">
@@ -836,7 +865,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     </Reveal>
 
                     <Reveal delay={200}>
-                        <form onSubmit={handleJoinWaitlist} className="sign-parchment mt-12">
+                        <form onSubmit={handleJoinWaitlist} className="sign-parchment">
                             <div className="sign-parchment-title">The Founder's Register</div>
                             <div className="sign-parchment-flourish">◆ ◆ ◆</div>
                             <p className="sign-parchment-body">
@@ -910,9 +939,10 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
             <div className="relative z-10 bg-rpg-bg">
             <section className="relative z-10 container mx-auto px-6 py-20">
                 <Reveal className="text-center mb-14">
-                    <Newspaper size={36} className="mx-auto text-rpg-gold mb-4 opacity-80" />
-                    <h2 className="text-2xl md:text-3xl font-landing font-bold text-white mb-3">The Taskoria Chronicle</h2>
-                    <p className="text-gray-400 max-w-lg mx-auto text-sm">News, updates, and tales from the kingdom.</p>
+                    <div className="chronicle-divider mb-6">❧</div>
+                    <h2 className="text-2xl md:text-3xl font-landing font-bold text-white mb-3">The Chronicle</h2>
+                    <p className="text-gray-500 max-w-md mx-auto text-sm">Dispatches from the Archive Council.</p>
+                    <div className="chronicle-divider mt-6">◆ ◆ ◆</div>
                 </Reveal>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
                     {BLOG_POSTS.slice(0, 3).map((post, i) => (
@@ -939,13 +969,13 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
             <section className="relative z-10 container mx-auto px-6 py-20">
                 <Reveal>
                     <div className="max-w-2xl mx-auto">
-                        <div className="text-center mb-12">
-                            <HelpCircle size={32} className="mx-auto text-rpg-gold mb-4 opacity-80" />
-                            <h2 className="text-2xl md:text-3xl font-landing font-bold text-white">Frequently Asked Questions</h2>
+                        <div className="text-center mb-10">
+                            <h2 className="text-2xl md:text-3xl font-landing font-bold text-white mb-2">Traveler's Guide</h2>
+                            <p className="text-gray-500 text-sm">Common inquiries at the gate.</p>
                         </div>
-                        <div className="bg-rpg-panel/50 border-2 border-rpg-panelLight rounded-xl px-6 md:px-8">
+                        <div className="faq-parchment">
                             {FAQ_DATA.map((faq, i) => (
-                                <FAQAccordionItem key={i} question={faq.q} answer={faq.a} />
+                                <FAQParchmentItem key={i} question={faq.q} answer={faq.a} />
                             ))}
                         </div>
                     </div>

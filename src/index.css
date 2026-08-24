@@ -729,7 +729,7 @@
   padding: 2.5rem 2.25rem;
   border-radius: 3px;
   max-width: 520px;
-  margin: 0 auto;
+  margin: 4rem auto 0;
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.55),
     inset 0 0 60px rgba(90, 55, 20, 0.35),
@@ -915,6 +915,88 @@
 .council-card:hover {
   transform: translateY(-4px);
   border-color: rgba(253, 223, 140, 0.4) !important;
+}
+
+/* ═══ Chronicle Blog ═══ */
+
+.chronicle-initial {
+  float: left;
+  font-family: 'Handjet', sans-serif;
+  font-size: 3.2rem;
+  line-height: 0.75;
+  color: #fdd98c;
+  margin-right: 0.3rem;
+  margin-top: 0.2rem;
+  text-shadow: 0 0 15px rgba(253, 223, 140, 0.25);
+}
+
+.chronicle-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: rgba(253, 223, 140, 0.2);
+  font-size: 8px;
+  letter-spacing: 0.4em;
+}
+.chronicle-divider::before,
+.chronicle-divider::after {
+  content: '';
+  width: 50px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(253, 223, 140, 0.15), transparent);
+}
+
+.chronicle-heading {
+  position: relative;
+  padding-left: 1rem;
+}
+.chronicle-heading::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.2em;
+  bottom: 0.2em;
+  width: 2px;
+  background: rgba(253, 223, 140, 0.3);
+}
+
+/* ═══ Parchment FAQ ═══ */
+
+.faq-parchment {
+  position: relative;
+  background:
+    radial-gradient(ellipse at top left, rgba(160, 120, 80, 0.3), transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(140, 100, 60, 0.25), transparent 60%),
+    linear-gradient(180deg, #ecd9b0 0%, #d4bd8e 100%);
+  color: #3a2818;
+  padding: 2rem 2.25rem;
+  border-radius: 3px;
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.4),
+    inset 0 0 40px rgba(90, 55, 20, 0.2),
+    inset 0 0 0 1px rgba(90, 55, 20, 0.15);
+}
+
+.faq-parchment::before,
+.faq-parchment::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 10px;
+  background: linear-gradient(180deg, rgba(90, 55, 20, 0.25) 0%, transparent 100%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.faq-parchment::before { top: -6px; }
+.faq-parchment::after  { bottom: -6px; transform: rotate(180deg); }
+
+/* ═══ Subtle breathing animation ═══ */
+
+@keyframes breathe {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(3px); opacity: 0.8; }
 }
 
 @media (prefers-reduced-motion: reduce) {
