@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Library, Edit3, Trash2, Check, X, Loader, Search, RefreshCw, Download, FileJson } from 'lucide-react';
 import { useToast } from '../common/Toast';
+import { useConfirm } from '../../context/ConfirmContext';
 import AssetEditorModal from './AssetEditorModal';
 import { pixelsToDataUrl, firstFrame, frameToBuffer } from '../../utils/pixelFormat';
 
@@ -21,6 +22,7 @@ const normalizeCategory = (cat) => {
 
 const AssetManager = ({ currentUser }) => {
     const toast = useToast();
+    const confirm = useConfirm();
     const [assets, setAssets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -76,7 +78,7 @@ const AssetManager = ({ currentUser }) => {
     }, []);
 
     const handleDelete = async (asset) => {
-        if (!confirm(`Are you sure you want to delete '${asset.name}'? This may break maps that rely on it.`)) return;
+        if (!await confirm({ title: 'Delete Asset?', message: `'${asset.name}' will be removed. This may break maps that rely on it.`, variant: 'danger', confirmText: 'Delete' })) return;
         
         try {
             let url, body;
@@ -142,7 +144,7 @@ const AssetManager = ({ currentUser }) => {
     };
 
     const extractObjects = async () => {
-        if (!confirm('¿Extraer los objetos decorativos a la biblioteca como pixel art editable? Los ya extraídos se actualizan (no se duplican).')) return;
+        if (!await confirm({ title: 'Extract Objects?', message: 'Decorative objects will be extracted to the library as editable pixel art. Existing ones are updated, not duplicated.', variant: 'quest', confirmText: 'Extract' })) return;
         setLoading(true);
         try {
             const { SPRITE_REGISTRY } = await import('../../data/sprite-registry.js');
@@ -399,7 +401,7 @@ const AssetManager = ({ currentUser }) => {
                 </button>
                 <button
                     onClick={async () => {
-                        if (!confirm('Remove empty designs and collapse duplicate names (keeping the version with the most content)?')) return;
+                        if (!await confirm({ title: 'Clean Up Library?', message: 'Empty designs will be removed and duplicates collapsed, keeping the version with the most content.', variant: 'warning', confirmText: 'Clean Up' })) return;
                         try {
                             const res = await fetch('api/admin.php?action=cleanup_designs', {
                                 method: 'POST',

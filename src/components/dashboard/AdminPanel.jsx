@@ -8,9 +8,11 @@ import AssetManager from './AssetManager';
 import CmsManager from '../admin/CmsManager';
 import { useToast } from '../common/Toast';
 import Modal from '../common/Modal';
+import { useConfirm } from '../../context/ConfirmContext';
 
 const AdminPanel = ({ currentUser }) => {
     const toast = useToast();
+    const confirm = useConfirm();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -97,7 +99,7 @@ const AdminPanel = ({ currentUser }) => {
             ? "Are you sure you want to CLOSE public registration? New visitors won't be able to sign up."
             : "Are you sure you want to OPEN public registration? Anyone will be able to create an account.";
 
-        if (!confirm(confirmMsg)) return;
+        if (!await confirm({ title: allowRegistration ? 'Close Registration?' : 'Open Registration?', message: confirmMsg, variant: 'warning', confirmText: allowRegistration ? 'Close' : 'Open' })) return;
 
         const newStatus = !allowRegistration;
         try {
@@ -114,7 +116,7 @@ const AdminPanel = ({ currentUser }) => {
     };
 
     const handleDeleteWaitlist = async (id, email) => {
-        if (!confirm(`Delete ${email} from waitlist? This cannot be undone.`)) return;
+        if (!await confirm({ title: 'Remove from Waitlist?', message: `${email} will be permanently removed.`, variant: 'danger', confirmText: 'Remove' })) return;
         try {
             const res = await fetch(`api/admin.php?action=delete_waitlist`, {
                 method: 'POST',
@@ -143,7 +145,7 @@ const AdminPanel = ({ currentUser }) => {
     };
 
     const handleDeleteSuggestion = async (id) => {
-        if (!confirm('Delete this suggestion? This cannot be undone.')) return;
+        if (!await confirm({ title: 'Delete Suggestion?', message: 'This suggestion will be permanently removed.', variant: 'danger', confirmText: 'Delete' })) return;
         try {
             const res = await fetch(`api/admin.php?action=delete_suggestion`, {
                 method: 'POST',
@@ -158,7 +160,7 @@ const AdminPanel = ({ currentUser }) => {
     };
 
     const handleDeleteUser = async (targetId, username) => {
-        if (!confirm(`DANGER: Are you sure you want to permanently delete user '${username}' and all their saved data? This cannot be undone.`)) return;
+        if (!await confirm({ title: 'Delete User?', message: `User '${username}' and all their saved data will be permanently destroyed.`, variant: 'danger', confirmText: 'Delete Forever' })) return;
 
         try {
             const res = await fetch(`api/admin.php?action=delete_user`, {

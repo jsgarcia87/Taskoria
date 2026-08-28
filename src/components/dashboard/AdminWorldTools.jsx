@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Home, Map, ExternalLink, Maximize2, Minimize2, Hammer, Library, Loader, Copy, Trash2, Check } from 'lucide-react';
 import { useToast } from '../common/Toast';
+import { useConfirm } from '../../context/ConfirmContext';
 
 /**
  * AdminWorldTools
@@ -31,6 +32,7 @@ const TOOLS = [
 
 const AdminWorldTools = ({ currentUser }) => {
     const toast = useToast();
+    const confirm = useConfirm();
     const [activeTool, setActiveTool] = useState('house');
     const [fullscreen, setFullscreen] = useState(false);
     const [designs, setDesigns] = useState([]);
@@ -142,7 +144,7 @@ const AdminWorldTools = ({ currentUser }) => {
     };
 
     const deleteDesign = async (d) => {
-        if (!confirm(`Delete "${d.name}"?`)) return;
+        if (!await confirm({ title: 'Delete Design?', message: `"${d.name}" will be permanently removed.`, variant: 'danger', confirmText: 'Delete' })) return;
         try {
             await fetch('api/admin.php?action=delete_design', {
                 method: 'POST',

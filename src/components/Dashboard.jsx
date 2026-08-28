@@ -96,6 +96,8 @@ const Dashboard = ({ setActiveView }) => {
     const { character, tasks } = state;
     const activeTasks = tasks.filter(t => !t.completed);
 
+    const [arenaOpen, setArenaOpen] = useState(false);
+
     const now = new Date();
     const todayLocalDate = now.toLocaleDateString('en-CA');
     const weekDay = now.toLocaleDateString('en-US', { weekday: 'long' });
@@ -151,7 +153,16 @@ const Dashboard = ({ setActiveView }) => {
         opacity: bannerOpacity,
         willChange: 'transform, opacity',
     };
-    const clothStyle = { backgroundColor: '#fedf8c', borderColor: '#111', imageRendering: 'pixelated' };
+    const clothStyle = {
+        backgroundColor: '#fedf8c',
+        borderColor: '#111',
+        imageRendering: 'pixelated',
+        boxShadow: 'inset 0 6px 12px -2px rgba(120, 90, 40, 0.25), inset 0 -6px 12px -2px rgba(120, 90, 40, 0.2), inset 8px 0 16px -8px rgba(120, 90, 40, 0.15), inset -8px 0 16px -8px rgba(120, 90, 40, 0.15)',
+        backgroundImage: `
+            linear-gradient(180deg, rgba(180, 140, 60, 0.12) 0%, transparent 18%, transparent 82%, rgba(180, 140, 60, 0.10) 100%),
+            linear-gradient(90deg, rgba(160, 120, 40, 0.08) 0%, transparent 12%, transparent 88%, rgba(160, 120, 40, 0.08) 100%)
+        `,
+    };
 
     const stagger = (i) => shouldReduce ? {} : {
         initial: { opacity: 0, y: 16 },
@@ -160,7 +171,7 @@ const Dashboard = ({ setActiveView }) => {
     };
 
     return (
-        <div className="col-span-12 space-y-6 pb-20 md:pb-0">
+        <div className="col-span-12 space-y-6 pb-20 md:pb-0 relative md:min-h-[calc(100vh-5rem)]">
 
             {/* ── SCROLL BANNER — pergamino con info del dia integrada ──
                 On scroll the whole thing "rolls shut": two paper overlays
@@ -191,15 +202,30 @@ const Dashboard = ({ setActiveView }) => {
                             style={{
                                 fontSize: 'clamp(24px, 6vw, 52px)',
                                 letterSpacing: '-0.03em',
+                                textShadow: '0 1px 0 rgba(180, 140, 60, 0.4), 0 2px 4px rgba(120, 80, 20, 0.12)',
                             }}
                         >
                             {character?.name || 'Adventurer'}
                         </h2>
-                        <div className="relative flex items-center justify-center gap-2 mt-1.5 flex-nowrap whitespace-nowrap">
-                            <span className="text-[#111] text-[11px] font-bold uppercase tracking-wider opacity-60">{capitalizedDay}</span>
-                            <span className="text-[#111] opacity-30">·</span>
-                            <span className="text-[#111] text-[11px] font-bold uppercase tracking-wider opacity-60">Lv. {character?.level || 1}</span>
-                            <span className="text-[#111] opacity-30">·</span>
+                        {/* Pixel ornament divider */}
+                        <svg viewBox="0 0 40 5" className="w-16 md:w-20 mt-1.5 mb-1 opacity-40" shapeRendering="crispEdges" style={{ imageRendering: 'pixelated' }}>
+                            <rect x="0" y="2" width="12" height="1" fill="#8B7355" />
+                            <rect x="14" y="1" width="1" height="3" fill="#8B7355" />
+                            <rect x="16" y="0" width="2" height="1" fill="#8B7355" />
+                            <rect x="15" y="1" width="4" height="1" fill="#8B7355" />
+                            <rect x="16" y="2" width="8" height="1" fill="#8B7355" />
+                            <rect x="21" y="1" width="4" height="1" fill="#8B7355" />
+                            <rect x="22" y="0" width="2" height="1" fill="#8B7355" />
+                            <rect x="25" y="1" width="1" height="3" fill="#8B7355" />
+                            <rect x="28" y="2" width="12" height="1" fill="#8B7355" />
+                            <rect x="18" y="3" width="4" height="1" fill="#8B7355" />
+                            <rect x="19" y="4" width="2" height="1" fill="#8B7355" />
+                        </svg>
+                        <div className="relative flex items-center justify-center gap-2 mt-0.5 flex-nowrap whitespace-nowrap">
+                            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#6B5B3E' }}>{capitalizedDay}</span>
+                            <span style={{ color: '#6B5B3E', opacity: 0.4 }}>·</span>
+                            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#6B5B3E' }}>Lv. {character?.level || 1}</span>
+                            <span style={{ color: '#6B5B3E', opacity: 0.4 }}>·</span>
                             <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: activeTasks.length === 0 ? '#166534' : '#92400e' }}>
                                 {activeTasks.length === 0 ? 'All clear' : `${activeTasks.length} quest${activeTasks.length !== 1 ? 's' : ''}`}
                             </span>
@@ -278,10 +304,8 @@ const Dashboard = ({ setActiveView }) => {
 
                         <div className="space-y-6">
                             {/* Today's Ledger */}
-                            <div className="glass-card p-6 relative overflow-hidden group">
-                                <div className="absolute -top-10 -right-10 w-32 h-32 bg-rpg-gold/10 rounded-full blur-3xl group-hover:bg-rpg-gold/20 transition-all duration-500"></div>
-
-                                <div className="flex justify-between items-center mb-4 relative z-10">
+                            <div className="glass-card p-6 relative overflow-hidden">
+                                <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-gray-400 font-bold uppercase text-xs tracking-wider">Today's Ledger</h3>
                                     <button className="text-xs text-rpg-gold hover:text-white transition-colors font-bold" onClick={() => setActiveView('profile')}>View Sheet</button>
                                 </div>
@@ -298,7 +322,7 @@ const Dashboard = ({ setActiveView }) => {
                                     );
                                     const focusTime = `${String(Math.floor(focusMins / 60)).padStart(2, '0')}:${String(focusMins % 60).padStart(2, '0')}`;
                                     return (
-                                        <div className="relative z-10 grid grid-cols-3 gap-2 mt-1">
+                                        <div className="grid grid-cols-3 gap-2 mt-1">
                                             <div className="flex flex-col items-center justify-center text-center rounded-xl py-3 px-1 bg-rpg-blue/10">
                                                 <span
                                                     className="font-bold text-rpg-blue text-shadow-glow block"
@@ -335,15 +359,28 @@ const Dashboard = ({ setActiveView }) => {
                         </div>
                     </motion.div>
 
-                    {/* EPIC QUEST SECTION */}
-                    <motion.div {...stagger(1)} className="mb-6 grid grid-cols-1 xl:grid-cols-2 gap-6 order-3">
-                        <EpicBossCard />
-                        <ProductivityHeatmap />
-                    </motion.div>
-
-                    {/* BOSS BATTLE SECTION */}
-                    <motion.div {...stagger(2)} className="glass-card p-1 border-white/5 min-h-[200px] order-4">
-                        <BossBattle />
+                    {/* ARENA — combat & analytics, collapsed by default */}
+                    <motion.div {...stagger(1)} className="order-3">
+                        <button
+                            onClick={() => setArenaOpen(prev => !prev)}
+                            className="w-full flex items-center justify-between px-1 py-2 group cursor-pointer"
+                        >
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold group-hover:text-gray-300 transition-colors">
+                                The Arena
+                            </span>
+                            <span className={`text-gray-600 text-[10px] transition-transform duration-300 ${arenaOpen ? 'rotate-180' : ''}`}>▼</span>
+                        </button>
+                        {arenaOpen && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                    <EpicBossCard />
+                                    <ProductivityHeatmap />
+                                </div>
+                                <div className="glass-card p-1 border-white/5 min-h-[200px]">
+                                    <BossBattle />
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
                 </div>
 

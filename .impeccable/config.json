@@ -29,6 +29,37 @@
         "rule": "codex-grid-background",
         "value": "medieval-town-bg",
         "createdAt": "2026-08-23T21:47:53.788Z"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "border-b-2",
+        "createdAt": "2026-08-24T10:15:59.924Z"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "purple-500",
+        "createdAt": "2026-08-24T10:15:59.982Z"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "purple-400",
+        "createdAt": "2026-08-24T10:16:00.033Z"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "purple-600",
+        "createdAt": "2026-08-24T10:16:00.086Z"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "purple rpg theme is intentional design identity, not ai default",
+        "createdAt": "2026-08-26T15:34:28.297Z"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "border-b-2.*rounded-t-lg",
+        "createdAt": "2026-08-27T17:26:44.965Z",
+        "reason": "Tab bar indicator underline is a standard UI pattern, not a decorative accent on a card"
       }
     ]
   }

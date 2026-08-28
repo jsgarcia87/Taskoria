@@ -5,12 +5,14 @@ import PixelIcon from '../common/PixelIcon';
 import ChatModal from './ChatModal';
 import { useGame } from '../../context/GameContext';
 import { useToast } from '../common/Toast';
+import { useConfirm } from '../../context/ConfirmContext';
 
 const GUILD_CREATION_COST = 500;
 
 const GuildView = ({ currentUser }) => {
     const { state, dispatch, actions } = useGame();
     const toast = useToast();
+    const confirm = useConfirm();
     const [guilds, setGuilds] = useState([]);
     const [myGuild, setMyGuild] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -102,7 +104,7 @@ const GuildView = ({ currentUser }) => {
     };
 
     const handleJoinGuild = async (guildId) => {
-        if (!confirm("Are you sure you want to join this Guild?")) return;
+        if (!await confirm({ title: 'Join Guild?', message: 'You will become a member of this guild.', variant: 'quest', confirmText: 'Join' })) return;
 
         try {
             const res = await fetch('api/guilds.php?action=join', {
@@ -127,7 +129,7 @@ const GuildView = ({ currentUser }) => {
     };
 
     const handleLeaveGuild = async () => {
-        if (!confirm("Are you sure you want to abandon your guild?")) return;
+        if (!await confirm({ title: 'Abandon Guild?', message: 'You will leave your guild behind. You can always join another.', variant: 'warning', confirmText: 'Leave' })) return;
         try {
             const res = await fetch('api/guilds.php?action=leave', {
                 method: 'POST',
@@ -153,14 +155,14 @@ const GuildView = ({ currentUser }) => {
                 <div className="flex gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-2 sm:pb-0">
                     <button
                         onClick={() => setActiveTab('browser')}
-                        className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all font-bold text-sm uppercase tracking-wider whitespace-nowrap ${activeTab === 'browser' ? 'bg-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'hover:bg-white/10 text-gray-400'}`}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all font-bold text-sm uppercase tracking-wider whitespace-nowrap ${activeTab === 'browser' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'hover:bg-white/10 text-gray-400'}`}
                     >
                         <Shield size={16} /> Guild Browser
                     </button>
                     {myGuild && (
                         <button
                             onClick={() => setActiveTab('my_guild')}
-                            className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all font-bold text-sm uppercase tracking-wider whitespace-nowrap ${activeTab === 'my_guild' ? 'bg-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'hover:bg-white/10 text-rpg-gold'}`}
+                            className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all font-bold text-sm uppercase tracking-wider whitespace-nowrap ${activeTab === 'my_guild' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'hover:bg-white/10 text-rpg-gold'}`}
                         >
                             <Sparkles size={16} /> {myGuild.name}
                         </button>

@@ -169,19 +169,21 @@ const BlogListView = ({ onSelectPost, onBack }) => (
         <div className="container mx-auto px-6">
             <button
                 onClick={onBack}
-                className="flex items-center gap-2 text-gray-400 hover:text-rpg-gold transition-colors mb-8 text-sm font-bold uppercase tracking-widest cursor-pointer"
+                className="chronicle-enter flex items-center gap-2 text-gray-400 hover:text-rpg-gold transition-colors mb-8 text-sm font-bold uppercase tracking-widest cursor-pointer"
             >
                 <ChevronLeft size={16} /> Back to Home
             </button>
-            <div className="text-center mb-14">
+            <div className="chronicle-enter-header text-center mb-14">
                 <div className="chronicle-divider mb-6">❧</div>
                 <h1 className="text-3xl md:text-4xl font-landing font-bold text-white mb-3">The Chronicle</h1>
                 <p className="text-gray-500 max-w-md mx-auto text-sm">Dispatches from the Archive Council. Every entry, a chapter in Taskoria's unfolding story.</p>
                 <div className="chronicle-divider mt-6">◆ ◆ ◆</div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                {BLOG_POSTS.map(post => (
-                    <BlogCard key={post.slug} post={post} onClick={onSelectPost} />
+                {BLOG_POSTS.map((post, i) => (
+                    <div key={post.slug} className="chronicle-enter" style={{ '--enter-delay': `${150 + i * 100}ms` }}>
+                        <BlogCard post={post} onClick={onSelectPost} />
+                    </div>
                 ))}
             </div>
         </div>
@@ -199,30 +201,30 @@ const BlogPostView = ({ slug, onBack, onBackToList }) => {
             <div className="container mx-auto px-6">
                 <button
                     onClick={onBackToList}
-                    className="flex items-center gap-2 text-gray-400 hover:text-rpg-gold transition-colors mb-8 text-sm font-bold uppercase tracking-widest cursor-pointer"
+                    className="chronicle-enter flex items-center gap-2 text-gray-400 hover:text-rpg-gold transition-colors mb-8 text-sm font-bold uppercase tracking-widest cursor-pointer"
                 >
                     <ChevronLeft size={16} /> All Chronicles
                 </button>
 
                 <article className="max-w-2xl mx-auto">
-                    <div className="text-center mb-10">
+                    <div className="chronicle-enter-header text-center mb-10">
                         <div className="chronicle-divider mb-6">❧</div>
                         <span className={`text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-sm border ${CATEGORY_COLORS[post.category] || 'bg-white/10 text-white border-white/20'}`}>
                             {post.category}
                         </span>
                     </div>
 
-                    <h1 className="text-2xl md:text-4xl font-landing font-bold text-white mb-4 leading-tight text-center">{post.title}</h1>
+                    <h1 className="chronicle-enter text-2xl md:text-4xl font-landing font-bold text-white mb-4 leading-tight text-center" style={{ '--enter-delay': '100ms' }}>{post.title}</h1>
 
-                    <div className="flex items-center justify-center gap-4 text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-6">
+                    <div className="chronicle-enter flex items-center justify-center gap-4 text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-6" style={{ '--enter-delay': '180ms' }}>
                         <span className="flex items-center gap-1.5"><Calendar size={12} /> {formatDate(post.date)}</span>
                         <span className="text-gray-600 text-[8px]">◆</span>
                         <span className="flex items-center gap-1.5"><Clock size={12} /> {post.readTime}</span>
                     </div>
 
-                    <div className="chronicle-divider mb-10">◆ ◆ ◆</div>
+                    <div className="chronicle-enter chronicle-divider mb-10" style={{ '--enter-delay': '250ms' }}>◆ ◆ ◆</div>
 
-                    <div className="space-y-5">
+                    <div className="chronicle-enter-content space-y-5">
                         {post.content.map((block, i) => {
                             if (block.type === 'heading') {
                                 return <h2 key={i} className="chronicle-heading text-xl md:text-2xl font-heading font-bold text-rpg-gold mt-10 mb-3">{block.text}</h2>;
@@ -237,9 +239,9 @@ const BlogPostView = ({ slug, onBack, onBackToList }) => {
                         })}
                     </div>
 
-                    <div className="chronicle-divider mt-14 mb-8">❧</div>
+                    <div className="chronicle-enter chronicle-divider mt-14 mb-8" style={{ '--enter-delay': '400ms' }}>❧</div>
 
-                    <div className="bg-rpg-panel/50 border border-rpg-panelLight/30 rounded-sm p-6 text-center">
+                    <div className="chronicle-enter bg-rpg-panel/50 border border-rpg-panelLight/30 rounded-sm p-6 text-center" style={{ '--enter-delay': '500ms' }}>
                         <p className="text-gray-500 mb-3 text-sm">Your chapter in Taskoria awaits.</p>
                         <button
                             onClick={onBack}

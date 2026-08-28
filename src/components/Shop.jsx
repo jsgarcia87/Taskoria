@@ -8,6 +8,7 @@ import PixelIcon from './common/PixelIcon';
 import { PressButton } from './common/PressButton';
 import { playCoinSound, playHealSound } from '../utils/sound';
 import { useToast } from './common/Toast';
+import { useConfirm } from '../context/ConfirmContext';
 
 // Bazaar categories mirror what CreationStudio publishes with an extra "All".
 const BAZAAR_CATEGORIES = [
@@ -57,6 +58,7 @@ const Shop = ({ currentUser }) => {
     const { state, dispatch, actions } = useGame();
     const { character, rewards } = state;
     const toast = useToast();
+    const confirm = useConfirm();
     const [activeTab, setActiveTab] = useState('items'); // items | community | bazaar | rewards
     const [marketItems, setMarketItems] = useState([]);
     const [isLoadingMarket, setIsLoadingMarket] = useState(false);
@@ -192,7 +194,7 @@ const Shop = ({ currentUser }) => {
             return;
         }
 
-        if (confirm(`Buy ${listing.item_data.name} from ${listing.seller_name} for ${listing.price} Gold?`)) {
+        if (await confirm({ title: 'Confirm Purchase?', message: `Buy ${listing.item_data.name} from ${listing.seller_name} for ${listing.price} Gold?`, variant: 'quest', confirmText: 'Buy' })) {
             try {
                 const res = await fetch('api/market.php?action=buy', {
                     method: 'POST',

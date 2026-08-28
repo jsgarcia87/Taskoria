@@ -4,6 +4,7 @@ import { MotionConfig } from 'motion/react'
 import './index.css'
 import App from './App.jsx'
 import { ToastProvider } from './components/common/Toast'
+import { ConfirmProvider } from './context/ConfirmContext'
 
 const rootEl = document.getElementById('root')
 const tree = (
@@ -13,7 +14,9 @@ const tree = (
       transition={{ type: 'spring', stiffness: 320, damping: 32 }}
     >
       <ToastProvider>
-        <App />
+        <ConfirmProvider>
+          <App />
+        </ConfirmProvider>
       </ToastProvider>
     </MotionConfig>
   </StrictMode>

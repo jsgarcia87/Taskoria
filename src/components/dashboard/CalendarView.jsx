@@ -78,8 +78,8 @@ const CalendarView = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
                 <h2 className="text-xl font-heading font-bold text-gray-300 uppercase tracking-widest flex items-center gap-2">
-                    <PixelIcon name="clock" size={24} className="text-rpg-gold" />
-                    Event Calendar
+                    <PixelIcon name="scroll" size={24} className="text-rpg-gold" />
+                    Quest Chronicle
                 </h2>
 
                 <div className="flex items-center gap-4 bg-black/40 rounded-xl p-2 border border-white/5">
@@ -113,12 +113,15 @@ const CalendarView = () => {
                     const today = isToday(dayObj.dateStr);
 
                     return (
-                        <div 
-                            key={i} 
+                        <button
+                            type="button"
+                            key={i}
                             onClick={() => handleDayClick(dayObj)}
-                            className={`h-16 md:h-24 rounded-xl border p-1 md:p-2 cursor-pointer transition-all flex flex-col items-center md:items-start group
-                            ${isSelected ? 'bg-indigo-900/40 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)] scale-105 z-10' : 
-                              today ? 'bg-rpg-gold/10 border-rpg-gold/50' : 
+                            aria-label={`${dayObj.day ? new Date(currentDate.getFullYear(), currentDate.getMonth(), dayObj.day).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'empty'}${hasTasks.length ? `, ${hasTasks.length} quest${hasTasks.length > 1 ? 's' : ''}` : ''}`}
+                            aria-pressed={isSelected}
+                            className={`h-16 md:h-24 rounded-xl border p-1 md:p-2 cursor-pointer transition-all flex flex-col items-center md:items-start group text-left focus-visible:ring-2 focus-visible:ring-rpg-gold focus-visible:ring-offset-2 focus-visible:ring-offset-rpg-bg outline-none
+                            ${isSelected ? 'bg-indigo-900/40 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)] scale-105 z-10' :
+                              today ? 'bg-rpg-gold/10 border-rpg-gold/50' :
                               'bg-black/40 border-white/5 hover:bg-white/5 hover:border-white/20'}`}
                         >
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mb-1
@@ -130,8 +133,8 @@ const CalendarView = () => {
                             {hasTasks.length > 0 && (
                                 <div className="w-full flex-1 overflow-y-auto custom-scrollbar no-scrollbar flex flex-col gap-1 items-center md:items-start">
                                     {hasTasks.slice(0, 3).map(task => (
-                                        <div key={task.id} className="w-full text-[8px] md:text-[10px] bg-red-900/50 text-red-200 px-1 py-0.5 rounded truncate font-medium border border-red-500/20" title={task.name}>
-                                            <span className="hidden md:inline">• </span>{task.name}
+                                        <div key={task.id} className="w-full text-[8px] md:text-[10px] bg-red-900/50 text-red-200 px-1 py-0.5 rounded truncate font-medium border border-red-500/20" title={task.title || task.name}>
+                                            <span className="hidden md:inline">• </span>{task.title || task.name}
                                         </div>
                                     ))}
                                     {hasTasks.length > 3 && (
@@ -139,7 +142,7 @@ const CalendarView = () => {
                                     )}
                                 </div>
                             )}
-                        </div>
+                        </button>
                     );
                 })}
             </div>
@@ -149,28 +152,28 @@ const CalendarView = () => {
                 <div className="bg-black/40 border border-white/10 rounded-2xl p-4 md:p-6 animate-in fade-in slide-in-from-bottom-4">
                     <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
                         <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                            Events for {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                            Quests on {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                         </h3>
                         <button 
                             onClick={handleAddTask}
                             className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:scale-105"
                         >
-                            <Plus size={16} /> <span className="hidden sm:inline">Add Event / Quest</span>
+                            <Plus size={16} /> <span className="hidden sm:inline">New Quest</span>
                         </button>
                     </div>
 
                     <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
                         {(tasksByDate[selectedDate] || []).length === 0 ? (
-                            <div className="text-center text-gray-500 py-6 text-sm italic">
-                                No events or quests scheduled for this day.
+                            <div className="text-center text-gray-500 py-6 text-sm">
+                                A quiet day in the realm. No quests await.
                             </div>
                         ) : (
                             (tasksByDate[selectedDate] || []).map(task => (
                                 <div key={task.id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                                        <PixelIcon name="sword" size={12} className="text-red-400 flex-shrink-0" />
                                         <div>
-                                            <div className="font-bold text-sm text-gray-200">{task.name}</div>
+                                            <div className="font-bold text-sm text-gray-200">{task.title || task.name}</div>
                                             {task.extraInfo && <div className="text-xs text-gray-500">{task.extraInfo}</div>}
                                         </div>
                                     </div>

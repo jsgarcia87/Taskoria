@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Play, Pause, Check, Trash2, Edit2, Archive, X, Filter } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import TaskForm from './TaskForm';
 import PixelIcon from '../common/PixelIcon';
 import { Modal } from '../common/Modal';
+import { useConfirm } from '../../context/ConfirmContext';
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 const startOfDay = (d) => {
@@ -51,14 +52,24 @@ const MissionCard = memo(function MissionCard({ task, onStart, onPause, onComple
     const overdue = isPast(task.dueDate);
     const isHard = task.difficulty === 3;
 
+    const handleDragStart = (e) => {
+        e.dataTransfer.setData('text/plain', task.id);
+        e.dataTransfer.effectAllowed = 'move';
+        requestAnimationFrame(() => e.target.style.opacity = '0.4');
+    };
+    const handleDragEnd = (e) => { e.target.style.opacity = ''; };
+
     return (
         <motion.div
             layout
+            draggable
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, x: 24, transition: { duration: 0.22 } }}
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-            className={`group relative bg-rpg-panel/70 hover:bg-rpg-panel border rounded-lg p-4 transition-colors ${
+            className={`group relative bg-rpg-panel/70 hover:bg-rpg-panel border rounded-lg p-4 transition-colors cursor-grab active:cursor-grabbing ${
                 isInProgress ? 'border-blue-500/40 shadow-[0_0_0_1px_rgba(59,130,246,0.15)]' : 'border-white/5 hover:border-rpg-gold/30'
             }`}
         >
@@ -132,9 +143,36 @@ const MissionCard = memo(function MissionCard({ task, onStart, onPause, onComple
 });
 
 // ─── Column ──────────────────────────────────────────────────────────────────
-const Column = memo(function Column({ col, tasks, onStart, onPause, onComplete, onEdit, onDelete }) {
+const Column = memo(function Column({ col, tasks, onStart, onPause, onComplete, onEdit, onDelete, onDrop }) {
+    const [dragOver, setDragOver] = useState(false);
+    const dragCountRef = useRef(0);
+
+    const handleDragEnter = (e) => {
+        e.preventDefault();
+        dragCountRef.current++;
+        setDragOver(true);
+    };
+    const handleDragLeave = () => {
+        dragCountRef.current--;
+        if (dragCountRef.current <= 0) { dragCountRef.current = 0; setDragOver(false); }
+    };
+    const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+    const handleDrop = (e) => {
+        e.preventDefault();
+        dragCountRef.current = 0;
+        setDragOver(false);
+        const taskId = e.dataTransfer.getData('text/plain');
+        if (taskId) onDrop(taskId, col.id);
+    };
+
     return (
-        <div className="flex flex-col min-w-0 h-full">
+        <div
+            className={`flex flex-col min-w-0 h-full rounded-xl transition-colors duration-150 ${dragOver ? 'bg-white/[0.03] ring-1 ring-inset ring-white/10' : ''}`}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+        >
             <div className="mb-3 pb-3 border-b border-white/5">
                 <div className="flex items-center gap-2 mb-1">
                     <span className={`w-1.5 h-1.5 rounded-full ${col.dot}`} />
@@ -159,8 +197,8 @@ const Column = memo(function Column({ col, tasks, onStart, onPause, onComplete, 
                     ))}
                 </AnimatePresence>
                 {tasks.length === 0 && (
-                    <div className="flex items-center justify-center h-24 rounded-lg border border-dashed border-white/5 text-[11px] text-gray-600 uppercase tracking-widest">
-                        Nothing here
+                    <div className={`flex items-center justify-center h-24 rounded-lg border border-dashed text-[11px] uppercase tracking-widest transition-colors ${dragOver ? 'border-rpg-gold/40 text-rpg-gold/60 bg-rpg-gold/5' : 'border-white/5 text-gray-600'}`}>
+                        {dragOver ? 'Drop here' : 'Nothing here'}
                     </div>
                 )}
             </div>
@@ -227,6 +265,7 @@ const DoneDrawer = ({ open, onClose, doneTasks }) => (
 // ─── Main view ───────────────────────────────────────────────────────────────
 const Missions = () => {
     const { state, actions } = useGame();
+    const confirm = useConfirm();
     const [editingTask, setEditingTask] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
     const [showDone, setShowDone] = useState(false);
@@ -270,11 +309,27 @@ const Missions = () => {
         setEditingTask(task);
         setIsCreating(true);
     }, []);
-    const handleDelete = useCallback((id) => {
-        if (window.confirm('Delete this mission? This cannot be undone.')) {
+    const handleDelete = useCallback(async (id) => {
+        if (await confirm({ title: 'Abort Mission?', message: 'This mission will be permanently removed from the board.', variant: 'danger', confirmText: 'Abort' })) {
             actions.deleteTask(id);
         }
-    }, [actions]);
+    }, [actions, confirm]);
+    const handleDrop = useCallback((taskId, targetCol) => {
+        const task = state.tasks.find(t => String(t.id) === String(taskId));
+        if (!task) return;
+
+        const today = new Date().toLocaleDateString('en-CA');
+        const tomorrow = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-CA'); })();
+
+        if (targetCol === 'in_progress') {
+            actions.editTask(task.id, { status: 'in_progress' });
+        } else if (targetCol === 'today') {
+            actions.editTask(task.id, { status: null, dueDate: today });
+        } else if (targetCol === 'upcoming') {
+            const keepDate = task.dueDate && !isToday(task.dueDate) && !isPast(task.dueDate) ? task.dueDate : tomorrow;
+            actions.editTask(task.id, { status: null, dueDate: keepDate });
+        }
+    }, [state.tasks, actions]);
     const handleClose = useCallback(() => {
         setIsCreating(false);
         setEditingTask(null);
@@ -345,6 +400,7 @@ const Missions = () => {
                         onComplete={handleComplete}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
+                        onDrop={handleDrop}
                     />
                 ))}
             </div>

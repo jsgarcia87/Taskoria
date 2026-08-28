@@ -25,6 +25,7 @@ const ChunkLoader = ({ label = 'Loading…' }) => (
 import CalendarView from './components/dashboard/CalendarView';
 import PixelIcon from './components/common/PixelIcon';
 import { TASK_DIFFICULTY, calculateXpReq } from './utils/gameUtils';
+import { useConfirm } from './context/ConfirmContext';
 
 const AVATAR_ID_FIX = { fighter: 'warrior', wizard: 'mage' };
 const migrateAvatarIds = (familyData) => {
@@ -362,28 +363,29 @@ const GameContent = ({ currentUser, onLogout }) => {
     console.error("Critical rendering error in GameContent:", err);
     return (
       <div className="min-h-screen bg-rpg-bg flex flex-col items-center justify-center p-8 text-center">
-        <div className="text-6xl mb-6">⚠️</div>
-        <h2 className="text-2xl font-heading font-bold text-rpg-red mb-4 uppercase tracking-widest text-shadow-glow">Recovery System Active</h2>
+        <div className="text-6xl mb-6">⚔️</div>
+        <h2 className="text-2xl font-heading font-bold text-rpg-gold mb-4 uppercase tracking-widest">The Realm Needs a Moment</h2>
         <p className="text-gray-400 max-w-md mb-8">
-          A conflict in your profile data was detected. Don't worry, your data is safe! Please refresh the page to try again.
+          Something went wrong loading your adventure. Your data is safe — a quick refresh usually fixes this.
         </p>
-        {/* Surface the real error so we can diagnose instead of guessing */}
-        <pre className="max-w-xl text-left text-[10px] text-red-300/80 bg-black/60 border border-red-500/20 rounded-lg p-3 mb-6 overflow-auto whitespace-pre-wrap break-all">
-          {String(err?.message || err)}
-          {err?.stack && '\n\n' + err.stack.split('\n').slice(0, 5).join('\n')}
-        </pre>
-        <button 
+        <button
           onClick={() => window.location.reload()}
           className="glass-btn-primary px-8 py-4 font-bold text-lg shadow-rpg-gold/30"
         >
-          FORCE RELOAD
+          Reload the Realm
         </button>
-        <button 
+        <button
           onClick={onLogout}
-          className="mt-8 text-xs text-gray-600 hover:text-rpg-gold uppercase tracking-widest font-bold transition-colors"
+          className="mt-8 text-xs text-gray-600 hover:text-rpg-gold uppercase tracking-widest font-bold transition-colors cursor-pointer"
         >
           Back to Profile Selection
         </button>
+        <details className="mt-8 max-w-xl text-left">
+          <summary className="text-[10px] text-gray-600 cursor-pointer hover:text-gray-400 uppercase tracking-widest">Technical details</summary>
+          <pre className="mt-2 text-[10px] text-red-300/60 bg-black/40 border border-white/5 rounded-lg p-3 overflow-auto whitespace-pre-wrap break-all">
+            {String(err?.message || err)}
+          </pre>
+        </details>
       </div>
     );
   }
@@ -395,6 +397,7 @@ import LegalNotice from './components/LegalNotice';
 import CookieBanner from './components/common/CookieBanner';
 
 function App() {
+  const confirm = useConfirm();
   const [currentUser, setCurrentUser] = useState(null); // The actual logged-in web user
   const [familyData, setFamilyData] = useState(null); // The consolidated JSON of all profiles
   const [activeProfileId, setActiveProfileId] = useState(null); // The currently playing hero
@@ -586,8 +589,8 @@ function App() {
   const activeProfile = familyData?.profiles?.find(p => p.id === activeProfileId);
 
   // We need to intercept the GameLogout to just "Switch Profile" instead of fully logging out of the web
-  const onGameLogout = () => {
-    if (confirm("Switch to a different hero?")) {
+  const onGameLogout = async () => {
+    if (await confirm({ title: 'Switch Hero?', message: 'Return to the hero selection screen.', variant: 'quest', confirmText: 'Switch' })) {
       handleSwitchProfile();
     }
   };

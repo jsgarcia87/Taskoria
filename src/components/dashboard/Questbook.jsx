@@ -1,9 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useGame } from '../../context/GameContext';
 import { PeacefulRealm } from '../common/PixelEmpty';
 import TaskForm from './TaskForm';
 import Modal from '../common/Modal';
+import { useConfirm } from '../../context/ConfirmContext';
 
 // One display font stack (Outfit) for the wordmark, Inter for everything else,
 // VT323 pixel monospace kept only for numerals — matches the app's existing
@@ -67,7 +68,7 @@ const QuestRow = ({ task, onComplete, onEdit, onDelete }) => {
         </motion.button>
         <button
             onClick={() => onEdit(task)}
-            className="text-left leading-snug text-[15px] md:text-[15px] hover:text-[#78350f] transition-colors font-medium"
+            className="text-left leading-snug text-[15px] hover:text-[#78350f] transition-colors font-medium"
             style={{ color: INK }}
             title="Tap to edit"
         >
@@ -114,25 +115,63 @@ const QuestRow = ({ task, onComplete, onEdit, onDelete }) => {
  */
 const Questbook = () => {
     const { state, actions } = useGame();
+    const confirm = useConfirm();
     const activeTasks = (state.tasks || []).filter(
         (t) => !t.completed && t.category !== 'chore' && !t.projectId
     );
     const [editingTask, setEditingTask] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
+    const [quickTitle, setQuickTitle] = useState('');
+    const [prefilledTitle, setPrefilledTitle] = useState('');
+    const quickAddRef = useRef(null);
 
-    const openNewQuest = () => setIsCreating(true);
+    const openNewQuest = (title = '') => {
+        setPrefilledTitle(title);
+        setIsCreating(true);
+    };
+
+    const handleQuickKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            setQuickTitle('');
+            e.target.blur();
+        }
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const title = quickTitle.trim();
+            if (e.shiftKey) {
+                setQuickTitle('');
+                openNewQuest(title);
+            } else if (title) {
+                actions.addTask(title, 1);
+                setQuickTitle('');
+            }
+        }
+    };
+
+    useEffect(() => {
+        const handleGlobalKey = (e) => {
+            if (e.key !== 'n' && e.key !== 'N') return;
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            const tag = document.activeElement?.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+            e.preventDefault();
+            quickAddRef.current?.focus();
+        };
+        window.addEventListener('keydown', handleGlobalKey);
+        return () => window.removeEventListener('keydown', handleGlobalKey);
+    }, []);
 
     const handleComplete = useCallback(
         (id, x, y) => actions.completeTask(id, x, y),
         [actions]
     );
     const handleDelete = useCallback(
-        (id) => {
-            if (window.confirm('Strike this quest from the book?')) {
+        async (id) => {
+            if (await confirm({ title: 'Strike from the Book?', message: 'This quest will be erased from your chronicle.', variant: 'danger', confirmText: 'Strike It' })) {
                 actions.deleteTask(id);
             }
         },
-        [actions]
+        [actions, confirm]
     );
 
     const dayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long' });
@@ -141,7 +180,7 @@ const Questbook = () => {
         <div className="relative">
             <TornEdgeTop />
             <div
-                className="px-5 pt-4 pb-3 relative"
+                className="px-5 pt-4 pb-3 relative group"
                 style={{
                     backgroundColor: PARCHMENT,
                     boxShadow: 'inset 0 0 40px rgba(120,53,15,0.08)',
@@ -186,46 +225,57 @@ const Questbook = () => {
                         <div className="font-medium text-[14px]" style={{ color: INK }}>
                             Ledgar's pages lie blank.
                         </div>
-                        <button
-                            onClick={openNewQuest}
-                            className="text-[11px] font-bold uppercase tracking-widest border border-[#78350f]/40 hover:border-[#78350f] hover:bg-[#78350f]/5 px-3 py-1.5 rounded-sm transition-colors"
-                            style={{ color: INK_MID }}
-                        >
-                            Write a new quest
-                        </button>
                     </div>
                 ) : (
-                    <>
-                        <AnimatePresence mode="popLayout" initial={false}>
-                            {activeTasks.map((task) => (
-                                <QuestRow
-                                    key={task.id}
-                                    task={task}
-                                    onComplete={handleComplete}
-                                    onEdit={setEditingTask}
-                                    onDelete={handleDelete}
-                                />
-                            ))}
-                        </AnimatePresence>
+                    <AnimatePresence mode="popLayout" initial={false}>
+                        {activeTasks.map((task) => (
+                            <QuestRow
+                                key={task.id}
+                                task={task}
+                                onComplete={handleComplete}
+                                onEdit={setEditingTask}
+                                onDelete={handleDelete}
+                            />
+                        ))}
+                    </AnimatePresence>
+                )}
 
-                        {/* Footer — new quest CTA */}
-                        <div className="mt-3 pt-3 border-t border-dashed border-[#3a2a15]/25 flex items-center justify-between">
-                            <button
-                                onClick={openNewQuest}
-                                className="text-[11px] font-bold uppercase tracking-widest hover:text-[#3a2a15] transition-colors"
-                                style={{ color: INK_MID }}
-                            >
-                                + Write a new quest
-                            </button>
-                            <span
-                                className="text-[11px] font-bold uppercase tracking-wider"
-                                style={{ color: INK_MID, opacity: 0.7 }}
-                            >
+                {/* Quick-add input — always visible */}
+                <div className={`${activeTasks.length > 0 ? 'mt-3 pt-3 border-t border-dashed border-[#3a2a15]/25' : 'mt-1'}`}>
+                    <div className="flex items-center gap-2">
+                        <span style={{ color: INK_MID }} className="text-[15px] opacity-50 leading-none select-none">+</span>
+                        <input
+                            ref={quickAddRef}
+                            type="text"
+                            value={quickTitle}
+                            onChange={(e) => setQuickTitle(e.target.value)}
+                            onKeyDown={handleQuickKeyDown}
+                            placeholder="Write a quest…"
+                            aria-label="Quick-add a quest"
+                            className="flex-1 bg-transparent text-[14px] placeholder-[#78350f]/35 outline-none font-medium"
+                            style={{ color: INK, caretColor: INK_MID }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => openNewQuest(quickTitle.trim())}
+                            className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100 hover:!opacity-100 text-[10px] font-bold uppercase tracking-widest transition-opacity"
+                            style={{ color: INK_MID }}
+                            title="Open full form (Shift+Enter)"
+                        >
+                            more
+                        </button>
+                    </div>
+                    {activeTasks.length > 0 && (
+                        <div className="flex items-center justify-between mt-1.5">
+                            <span className="text-[9px] uppercase tracking-widest opacity-30 font-bold" style={{ color: INK_MID }}>
+                                Press N to focus
+                            </span>
+                            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: INK_MID, opacity: 0.5 }}>
                                 {activeTasks.length} open
                             </span>
                         </div>
-                    </>
-                )}
+                    )}
+                </div>
             </div>
             <TornEdgeBottom />
 
@@ -233,11 +283,11 @@ const Questbook = () => {
             <Modal
                 isOpen={!!(editingTask || isCreating)}
                 dismissable={false}
-                onClose={() => { setEditingTask(null); setIsCreating(false); }}
+                onClose={() => { setEditingTask(null); setIsCreating(false); setPrefilledTitle(''); }}
             >
                 <TaskForm
-                    onClose={() => { setEditingTask(null); setIsCreating(false); }}
-                    initialData={editingTask}
+                    onClose={() => { setEditingTask(null); setIsCreating(false); setPrefilledTitle(''); }}
+                    initialData={editingTask || (prefilledTitle ? { title: prefilledTitle } : null)}
                 />
             </Modal>
         </div>

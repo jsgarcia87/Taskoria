@@ -4,6 +4,7 @@ import PixelIcon from '../common/PixelIcon';
 import { PET_EVOLUTION_CHAINS } from '../../data/petSpecies';
 import { useGame } from '../../context/GameContext';
 import { useToast } from '../common/Toast';
+import { useConfirm } from '../../context/ConfirmContext';
 
 const petLabel = (type) => {
     for (const chain of Object.values(PET_EVOLUTION_CHAINS)) {
@@ -24,6 +25,7 @@ const evolutionScale = (level) => {
 const PetSanctuaryView = ({ currentUser }) => {
     const { state, actions } = useGame();
     const toast = useToast();
+    const confirm = useConfirm();
     const [abandonedPets, setAbandonedPets] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -61,7 +63,7 @@ const PetSanctuaryView = ({ currentUser }) => {
     }, []);
 
     const handleResetAll = async () => {
-        if (!confirm("CRITICAL WARNING: This will permanently delete ALL pets from ALL users in the game and clear the sanctuary. Are you 100% sure?")) return;
+        if (!await confirm({ title: 'Nuclear Reset', message: 'This will permanently delete ALL pets from ALL users and clear the sanctuary. This is irreversible.', variant: 'danger', confirmText: 'Reset Everything' })) return;
         
         setLoading(true);
         try {
@@ -96,7 +98,7 @@ const PetSanctuaryView = ({ currentUser }) => {
             return;
         }
 
-        if (!confirm(`Adopt ${pet.pet_type} (Lvl ${pet.pet_level}) for ${adoptionPrice} Gold?`)) return;
+        if (!await confirm({ title: 'Adopt Companion?', message: `Welcome ${pet.pet_type} (Lvl ${pet.pet_level}) into your party for ${adoptionPrice} Gold?`, variant: 'quest', confirmText: 'Adopt' })) return;
 
         try {
             const res = await fetch('api/sanctuary.php?action=adopt', {

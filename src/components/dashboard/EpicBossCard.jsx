@@ -4,6 +4,7 @@ import Sprite from '../common/Sprite';
 import PixelIcon from '../common/PixelIcon';
 import ProjectModal from './ProjectModal';
 import { NoThreats } from '../common/PixelEmpty';
+import { useConfirm } from '../../context/ConfirmContext';
 
 // Mock list of boss sprites available from the items sheet or custom
 const BOSS_TYPES = [
@@ -14,6 +15,7 @@ const BOSS_TYPES = [
 
 const EpicBossCard = () => {
     const { state, actions } = useGame();
+    const confirm = useConfirm();
     const { epicQuests } = state;
     const [isCreating, setIsCreating] = useState(false);
     const [editingBoss, setEditingBoss] = useState(null);
@@ -88,8 +90,8 @@ const EpicBossCard = () => {
                         <PixelIcon name="edit" size={14} />
                     </button>
                     <button
-                        onClick={() => {
-                            if (window.confirm("Are you sure you want to abandon this Epic Threat? All progress and related project tasks will be lost.")) {
+                        onClick={async () => {
+                            if (await confirm({ title: 'Abandon Threat?', message: 'All progress and related project tasks will be lost.', variant: 'danger', confirmText: 'Abandon' })) {
                                 actions.deleteEpicQuest(boss.id);
                             }
                         }}

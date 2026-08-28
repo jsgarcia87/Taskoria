@@ -8,6 +8,7 @@ import HabitForm from './HabitForm';
 import PixelIcon from '../common/PixelIcon';
 import Modal from '../common/Modal';
 import { PeacefulRealm, CleanTavern, NoRituals } from '../common/PixelEmpty';
+import { useConfirm } from '../../context/ConfirmContext';
 
 // Presets compartidos para la animación de cada quest.
 // Salida corta (x: 24, no 60) y ease "gentle-out" → la tarea "se retira" en
@@ -123,6 +124,7 @@ const TaskRow = memo(function TaskRow({ task, assignerName, onComplete, onToggle
 
 const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
     const { state, actions } = useGame();
+    const confirm = useConfirm();
     const { tasks } = state;
     const [isAddingTask, setIsAddingTask] = useState(false);
     const [editingTask, setEditingTask] = useState(null);
@@ -156,11 +158,11 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
         setIsAddingTask(true);
     }, []);
 
-    const handleDeleteTask = useCallback((taskId) => {
-        if (window.confirm('Delete this task? This cannot be undone.')) {
+    const handleDeleteTask = useCallback(async (taskId) => {
+        if (await confirm({ title: 'Abandon Quest?', message: 'This quest will be lost forever.', variant: 'danger', confirmText: 'Abandon' })) {
             actions.deleteTask(taskId);
         }
-    }, [actions]);
+    }, [actions, confirm]);
 
     const handleToggleStatus = useCallback((taskId, currentStatus) => {
         const newStatus = currentStatus === 'in_progress' ? 'pending' : 'in_progress';
@@ -373,7 +375,7 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
                                     <Edit2 size={16} className="md:w-3 md:h-3" />
                                 </button>
                                 <button
-                                    onClick={() => confirm('Delete this habit? This cannot be undone.') && actions.deleteHabit(habit.id)}
+                                    onClick={async () => { if (await confirm({ title: 'Break Ritual?', message: 'This daily ritual will be removed forever.', variant: 'danger', confirmText: 'Break It' })) actions.deleteHabit(habit.id); }}
                                     className="p-2 md:p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
                                     title="Delete Habit"
                                 >

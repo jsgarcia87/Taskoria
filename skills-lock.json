@@ -49,6 +49,12 @@
       "skillPath": "skills/find-animation-opportunities/SKILL.md",
       "computedHash": "8fb8492eb8fbed1313cb430b5831d925d9b8964ca24f3c41a6244cbd1fd98732"
     },
+    "huashu-design": {
+      "source": "alchaincyf/huashu-design",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "78397b5fe0856385bb268ee2f881de46e94fa09e516b0b9983e898b91762a61f"
+    },
     "improve-animations": {
       "source": "emilkowalski/skill",
       "sourceType": "github",

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Trash2, Image as ImageIcon, X, Upload, Save, Eraser, Pipette, PaintBucket, Undo2, Redo2, Play, Square, Plus, Copy, FileJson } from 'lucide-react';
 import { frameToBuffer } from '../../utils/pixelFormat';
+import { useConfirm } from '../../context/ConfirmContext';
 
 const GRID_SIZE = 64;
 const TOTAL = GRID_SIZE * GRID_SIZE;
@@ -34,6 +35,7 @@ const LEGACY_CAT_MAP = {
 const emptyBuffer = () => new Array(TOTAL).fill(EMPTY);
 
 const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => {
+    const confirm = useConfirm();
     const [frames, setFrames] = useState(() => {
         if (initialAsset && initialAsset.pixels) {
             // handle single frame or multiple frames, in sparse {x,y,c} or flat buffer format
@@ -250,8 +252,8 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
         return () => window.removeEventListener('pointerup', handlePointerUp);
     }, []);
 
-    const clearCanvas = () => {
-        if (!confirm('Clear all frames?')) return;
+    const clearCanvas = async () => {
+        if (!await confirm({ title: 'Clear Canvas?', message: 'All frames will be wiped clean.', variant: 'warning', confirmText: 'Clear All' })) return;
         pushUndo(framesRef.current, activeFrame);
         setFrames([emptyBuffer()]);
         setActiveFrame(0);
@@ -276,9 +278,9 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
         setIsPlaying(false);
     };
 
-    const deleteFrame = () => {
+    const deleteFrame = async () => {
         if (frames.length <= 1) return;
-        if (!confirm('Delete current frame?')) return;
+        if (!await confirm({ title: 'Delete Frame?', message: 'This frame will be removed.', variant: 'warning', confirmText: 'Delete' })) return;
         pushUndo(framesRef.current, activeFrame);
         setFrames(prev => prev.filter((_, i) => i !== activeFrame));
         setActiveFrame(Math.max(0, activeFrame - 1));

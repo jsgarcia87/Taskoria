@@ -10,6 +10,7 @@ import {
 import { Edit2, Eye, EyeOff, X } from 'lucide-react'; // keeping small utility icons
 import { PressButton } from './common/PressButton';
 import { StatBar } from './common/StatBar';
+import { useConfirm } from '../context/ConfirmContext';
 import { NumberTicker } from './common/NumberTicker';
 import PixelIcon from './common/PixelIcon';
 import { CHARACTERS } from '../data/characters';
@@ -29,16 +30,16 @@ const RING_C = 2 * Math.PI * RING_R;
 // A single progress ring with the headline value centered inside. The
 // descriptive label/subtitle now live *beside* the ring (see StatReadout)
 // so the pair fills the row width instead of floating in the middle.
-const StatusRing = ({ value, max, centerValue, gradientId, colors, size = 56 }) => {
+const StatusRing = ({ value, max, centerValue, gradientId, colors, size = 64 }) => {
     const pct = Math.min(value / max, 1);
 
     return (
         <div className="relative flex-shrink-0 flex items-center justify-center" style={{ width: size, height: size }}>
             <svg viewBox="0 0 70 70" className="absolute inset-0 w-full h-full -rotate-90">
-                <circle cx="35" cy="35" r={RING_R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
+                <circle cx="35" cy="35" r={RING_R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4.5" />
                 <circle
                     cx="35" cy="35" r={RING_R}
-                    fill="none" stroke={`url(#${gradientId})`} strokeWidth="5"
+                    fill="none" stroke={`url(#${gradientId})`} strokeWidth="4.5"
                     strokeLinecap="round"
                     strokeDasharray={RING_C}
                     strokeDashoffset={RING_C * (1 - pct)}
@@ -51,7 +52,7 @@ const StatusRing = ({ value, max, centerValue, gradientId, colors, size = 56 }) 
                     </linearGradient>
                 </defs>
             </svg>
-            <span className="z-10 font-display font-black text-white leading-none" style={{ fontSize: size * 0.28 }}>
+            <span className="z-10 font-display font-black text-white leading-none" style={{ fontSize: size * 0.3 }}>
                 <NumberTicker value={centerValue} />
             </span>
         </div>
@@ -61,11 +62,11 @@ const StatusRing = ({ value, max, centerValue, gradientId, colors, size = 56 }) 
 // Ring + label/subtitle laid out horizontally. Two of these split the header
 // row in half, so the width is used evenly and the composition stays balanced.
 const StatReadout = ({ ringProps, label, subtitle, accent }) => (
-    <div className="flex-1 flex items-center justify-center gap-2 py-3 px-2">
+    <div className="flex-1 flex items-center justify-center gap-3 py-4 px-3">
         <StatusRing {...ringProps} />
         <div className="flex flex-col leading-tight min-w-0">
             <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: accent }}>{label}</span>
-            {subtitle && <span className="text-[11px] font-bold text-gray-400 mt-0.5 truncate">{subtitle}</span>}
+            {subtitle && <span className="text-[11px] font-bold text-gray-500 mt-0.5 truncate">{subtitle}</span>}
         </div>
     </div>
 );
@@ -81,6 +82,7 @@ const petDisplayLabel = (type) => {
 const CharacterSheet = ({ setActiveView }) => {
     const { state, actions, activeProfileId, familyData } = useGame();
     const toast = useToast();
+    const confirm = useConfirm();
     const { character } = state;
     const [activeTab, setActiveTab] = useState('stats'); // stats | inventory | skills
     const [isSellModalOpen, setIsSellModalOpen] = useState(false);
@@ -192,7 +194,7 @@ const CharacterSheet = ({ setActiveView }) => {
         if (!pet) return;
         const isInSanctuary = pet.inSanctuary;
         const actionText = isInSanctuary ? "retrieve" : "deposit";
-        if (!confirm(`Are you sure you want to ${actionText} your pet ${isInSanctuary ? "from" : "to"} the Wild Sanctuary?`)) return;
+        if (!await confirm({ title: isInSanctuary ? 'Recall Companion?' : 'Release to Sanctuary?', message: `Your companion will be ${isInSanctuary ? 'retrieved from' : 'deposited into'} the Wild Sanctuary.`, variant: 'warning', confirmText: isInSanctuary ? 'Recall' : 'Release' })) return;
 
         setIsReleasing(true); // Using same loading state
         try {
@@ -230,7 +232,7 @@ const CharacterSheet = ({ setActiveView }) => {
 
     const confirmAdoption = async (pet) => {
         if (!pet) return;
-        if (confirm(`Are you sure you want to give ${petDisplayLabel(pet.type)} (Lvl ${pet.level}) up for adoption? This cannot be undone.`)) {
+        if (await confirm({ title: 'Put Up for Adoption?', message: `${petDisplayLabel(pet.type)} (Lvl ${pet.level}) will be given away. This cannot be undone.`, variant: 'danger', confirmText: 'Give Away' })) {
             setIsReleasing(true);
             try {
                 const currentProfile = familyData?.profiles?.find(p => p.id === activeProfileId);
@@ -305,17 +307,17 @@ const CharacterSheet = ({ setActiveView }) => {
     return (
         <div className="glass-panel h-full flex flex-col rounded-2xl overflow-hidden relative min-h-[600px] border border-white/10 shadow-2xl">
             {/* Background Decoration */}
-            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-purple-900/40 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/30 via-purple-950/20 to-transparent pointer-events-none"></div>
 
             {/* Header */}
             <div className="p-6 pb-2 relative z-10">
                 <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl border border-white/10 flex items-center justify-center shadow-lg relative overflow-hidden group flex-shrink-0">
+                    <div className="w-[72px] h-[72px] bg-black/30 rounded-2xl border border-white/10 flex items-center justify-center shadow-lg relative overflow-hidden group flex-shrink-0">
                         <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <AvatarSpeechBubble idleTimeMs={30000}>
                             <ModernPixelAvatar
                                 type={charData.avatarType || charData.id}
-                                scale={1.6}
+                                scale={1.8}
                                 customColors={character?.avatarColors}
                                 headOnly={true}
                             />
@@ -331,13 +333,13 @@ const CharacterSheet = ({ setActiveView }) => {
                                 <Edit2 size={12} />
                             </button>
                         </div>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm border border-white/10 uppercase tracking-wide">
+                        <div className="flex items-center gap-2 mt-1.5">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/8 text-rpg-gold shadow-sm border border-rpg-gold/20 uppercase tracking-wide">
                                 {character.class}
                             </span>
                             <button
                                 onClick={() => actions.toggleResting()}
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border shadow-lg whitespace-nowrap ${character.isResting ? 'bg-indigo-600/30 border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/40' : 'bg-black/30 border-white/10 text-gray-400 hover:text-white hover:border-white/30'}`}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border whitespace-nowrap ${character.isResting ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/30' : 'bg-black/20 border-white/10 text-gray-400 hover:text-white hover:border-white/20'}`}
                                 title={character.isResting ? "Leave the Inn" : "Rest at the Inn (Halts Penalties)"}
                             >
                                 {character.isResting ? '🌙 Resting' : '🏕️ Go to Inn'}
@@ -346,9 +348,8 @@ const CharacterSheet = ({ setActiveView }) => {
                     </div>
                 </div>
 
-                {/* Status Rings — one full-width card, split evenly so the row
-                    reads as a balanced unit instead of two floating circles. */}
-                <div className="mt-5 flex items-stretch rounded-2xl bg-black/20 border border-white/5 overflow-hidden">
+                {/* Status Rings */}
+                <div className="mt-5 flex items-stretch rounded-2xl bg-black/25 border border-white/8 overflow-hidden">
                     <StatReadout
                         accent="#fbbf24"
                         label="Level"
@@ -379,7 +380,7 @@ const CharacterSheet = ({ setActiveView }) => {
 
             {/* Navigation Tabs — icon stacked over label (mobile tab-bar
                 pattern) so 5 tabs breathe at narrow widths. */}
-            <div className="px-3 flex gap-1 border-b border-white/5 mt-3">
+            <div className="px-3 flex gap-1 border-b border-white/5 mt-4">
                 {[
                     { id: 'stats', label: 'Stats', icon: 'zap' },
                     { id: 'skills', label: 'Skills', icon: 'book' },
@@ -393,7 +394,7 @@ const CharacterSheet = ({ setActiveView }) => {
                         className={`
                             flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-t-lg border-b-2 transition-all
                             ${activeTab === tab.id
-                                ? 'border-purple-500 text-white bg-white/5'
+                                ? 'border-rpg-gold/60 text-white bg-white/5'
                                 : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'}
                         `}
                     >
@@ -430,13 +431,20 @@ const CharacterSheet = ({ setActiveView }) => {
                                 return (
                                     <div
                                         key={stat.key}
-                                        className={`glass-card p-4 flex flex-col items-center relative overflow-hidden group border-t-2 border-t-${stat.color}-500 hover:-translate-y-1 transition-transform`}
+                                        className="glass-card p-4 flex flex-col items-center relative overflow-hidden group hover:-translate-y-1 transition-transform"
                                         style={{
                                             animation: `statTileIn 0.5s ease-out ${idx * 70}ms both`,
                                         }}
                                     >
-                                        <div className={`absolute inset-0 bg-${stat.color}-500/5 group-hover:bg-${stat.color}-500/10 transition-colors`}></div>
-                                        <span className="text-xs font-bold text-gray-400 font-display uppercase tracking-widest mb-1 z-10">{stat.label}</span>
+                                        <div className={`absolute inset-0 transition-colors ${{
+                                            red: 'bg-red-500/5 group-hover:bg-red-500/10', blue: 'bg-blue-500/5 group-hover:bg-blue-500/10',
+                                            green: 'bg-green-500/5 group-hover:bg-green-500/10', orange: 'bg-orange-500/5 group-hover:bg-orange-500/10',
+                                            yellow: 'bg-amber-500/5 group-hover:bg-amber-500/10', purple: 'bg-purple-500/5 group-hover:bg-purple-500/10',
+                                        }[stat.color] || 'bg-gray-500/5 group-hover:bg-gray-500/10'}`}></div>
+                                        <span className={`text-xs font-bold font-display uppercase tracking-widest mb-1 z-10 ${{
+                                            red: 'text-red-400/70', blue: 'text-blue-400/70', green: 'text-green-400/70',
+                                            orange: 'text-orange-400/70', yellow: 'text-amber-400/70', purple: 'text-purple-400/70',
+                                        }[stat.color] || 'text-gray-400'}`}>{stat.label}</span>
                                         <div className="flex items-baseline gap-1 z-10">
                                             <NumberTicker value={totalValue} className="text-3xl font-display font-bold text-white" />
                                             {bonus > 0 && <span className="text-[10px] font-bold text-green-400">+{bonus}</span>}
@@ -461,7 +469,7 @@ const CharacterSheet = ({ setActiveView }) => {
                                             if (activeBonuses.length === 0) return null;
 
                                             return (
-                                                <div key={setId} className="glass-card p-3 border-l-2 border-l-purple-500 bg-purple-500/5">
+                                                <div key={setId} className="glass-card p-3 bg-purple-500/5">
                                                     <div className="flex justify-between items-center mb-2">
                                                         <span className="text-[10px] font-bold text-white uppercase tracking-wider">{setId} Set</span>
                                                         <span className="text-[10px] font-bold text-purple-400">{count} Items</span>
@@ -772,7 +780,13 @@ const CharacterSheet = ({ setActiveView }) => {
                                                                 xpMult: 'amber', goldMult: 'yellow', dmgMult: 'red', hardDmgMult: 'orange',
                                                             }[key] || 'gray';
                                                             return (
-                                                                <span key={key} className={`text-[10px] font-bold px-2 py-0.5 rounded border bg-${color}-500/10 text-${color}-300 border-${color}-500/30`}>
+                                                                <span key={key} className={`text-[10px] font-bold px-2 py-0.5 rounded border ${{
+                                                                    amber: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
+                                                                    yellow: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30',
+                                                                    red: 'bg-red-500/10 text-red-300 border-red-500/30',
+                                                                    orange: 'bg-orange-500/10 text-orange-300 border-orange-500/30',
+                                                                    gray: 'bg-gray-500/10 text-gray-300 border-gray-500/30',
+                                                                }[color] || 'bg-gray-500/10 text-gray-300 border-gray-500/30'}`}>
                                                                     {label}
                                                                 </span>
                                                             );

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Loader2, CheckCircle2, Clock, XCircle, Trash2 } from 'lucide-react';
+import { useConfirm } from '../../context/ConfirmContext';
 
 const CATEGORIES = [
     { id: 'all', label: 'All' },
@@ -49,6 +50,7 @@ const StatusBadge = ({ status }) => {
 };
 
 const CreationGallery = ({ currentUser }) => {
+    const confirm = useConfirm();
     const [tab, setTab] = useState('public'); // public | mine
     const [category, setCategory] = useState('all');
     const [items, setItems] = useState([]);
@@ -83,7 +85,7 @@ const CreationGallery = ({ currentUser }) => {
     useEffect(() => { load(); }, [tab, category]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const deleteMine = async (id) => {
-        if (!confirm('Delete this creation?')) return;
+        if (!await confirm({ title: 'Destroy Creation?', message: 'This artwork will be permanently deleted.', variant: 'danger', confirmText: 'Destroy' })) return;
         await fetch('api/creations.php?action=delete_mine', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

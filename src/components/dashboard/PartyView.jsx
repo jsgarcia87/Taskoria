@@ -6,6 +6,7 @@ import PetSanctuaryView from './PetSanctuaryView';
 import ChatModal from './ChatModal';
 import GuildView from './GuildView';
 import BossArena from './BossArena';
+import { useConfirm } from '../../context/ConfirmContext';
 // Shop carries the full items catalog + sprite sheet URL → defer until needed.
 const Shop = React.lazy(() => import('../Shop'));
 // PlayableWorld is the biggest single component (~1000 lines + world/sprites/
@@ -17,6 +18,7 @@ import { useToast } from '../common/Toast';
 const PartyView = ({ currentUser, onOpenChat }) => {
     const { state, dispatch, actions, activeProfileId, familyData, setFamilyData } = useGame();
     const toast = useToast();
+    const confirm = useConfirm();
     const [familyMembers, setFamilyMembers] = useState([]);
     const [friends, setFriends] = useState([]);
     const [activeTab, setActiveTab] = useState('friends'); // friends | guilds | sanctuary | boss | shop
@@ -87,8 +89,8 @@ const PartyView = ({ currentUser, onOpenChat }) => {
         toast.success(`${user.character?.name || user.username} has joined your party.`);
     };
 
-    const handleRemoveFriend = (friendId) => {
-        if (!confirm("Remove from party?")) return;
+    const handleRemoveFriend = async (friendId) => {
+        if (!await confirm({ title: 'Dismiss Ally?', message: 'This hero will leave your party.', variant: 'warning', confirmText: 'Dismiss' })) return;
         const friend = (familyData?.friends || []).find(f => f.id === friendId);
         const newFriendsList = (familyData?.friends || []).filter(f => f.id !== friendId);
         if (typeof setFamilyData === 'function') {
@@ -123,8 +125,8 @@ const PartyView = ({ currentUser, onOpenChat }) => {
         }
     };
 
-    const handleRemoveFamilyMember = (memberId) => {
-        if (!confirm("Are you sure you want to permanently delete this family member from your account? This action cannot be undone.")) return;
+    const handleRemoveFamilyMember = async (memberId) => {
+        if (!await confirm({ title: 'Delete Hero?', message: 'This family member will be permanently removed from your account. All their data will be lost.', variant: 'danger', confirmText: 'Delete Forever' })) return;
         const newProfiles = (familyData?.profiles || []).filter(p => p.id !== memberId);
         if (typeof setFamilyData === 'function') {
             setFamilyData({
@@ -135,7 +137,7 @@ const PartyView = ({ currentUser, onOpenChat }) => {
     };
 
     const handleBattle = async (opponentId, isLocal) => {
-        if (!confirm(`Challenge this player? ${isLocal ? "(Friendly Sparring!)" : "(Network Battle!)"}`)) return;
+        if (!await confirm({ title: 'Issue Challenge?', message: isLocal ? 'A friendly sparring match between allies.' : 'A network battle against this player.', variant: 'quest', confirmText: 'Fight!' })) return;
 
         const myChar = state.character;
 

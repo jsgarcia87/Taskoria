@@ -9,6 +9,7 @@ import FloatingTextLayer from './common/FloatingTextLayer';
 import ChatInbox from './dashboard/ChatInbox';
 import ChatModal from './dashboard/ChatModal';
 import NotificationDropdown from './dashboard/NotificationDropdown';
+import DashboardLandscape from './dashboard/DashboardLandscape';
 import { useGame, SYNC_STATUS } from '../context/GameContext';
 
 const Layout_v2 = ({
@@ -331,6 +332,11 @@ const Layout_v2 = ({
             <main className="flex-1 relative transition-colors duration-1000 overflow-x-hidden w-full max-w-[100vw]">
                 {/* Mesh Gradient Ambient Background */}
                 <div className={`absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b ${getAtmosphereGlow()} blur-[100px] pointer-events-none mix-blend-screen opacity-70 user-select-none transition-all duration-1000`} />
+
+                {/* Camp landscape — silueta pixel-art de fondo (solo en Camp).
+                    Vive aquí, fuera del motion.div transformado, para que su
+                    `position: fixed` se resuelva contra el viewport. */}
+                {activeView === 'home' && <DashboardLandscape />}
 
                 {/* Content Container — crossfade + micro-slide entre vistas.
                     `initial={false}` evita animar en el primer mount de la sesión. */}
