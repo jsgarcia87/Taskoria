@@ -38,7 +38,7 @@ try {
 
     if ($user && password_verify($password, $user['password_hash'])) {
         // Update last active
-        $pdo->exec("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE id = " . $user['id']);
+        $pdo->prepare("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE id = ?")->execute([$user['id']]);
 
         echo json_encode([
             'success' => true, 
@@ -54,6 +54,6 @@ try {
     }
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Database error']);
 }
 ?>

@@ -80,6 +80,13 @@ export const MAP_DATA = {
                 targetMap: 'taskoriaKeep',
                 targetX: 500, targetY: 850,
                 label: 'Taskoria Keep'
+            },
+            // Path to Free District (south-east)
+            {
+                x: 1400, y: 900, width: 100, height: 60,
+                targetMap: 'freeDistrict',
+                targetX: 800, targetY: 1100,
+                label: 'Free District'
             }
         ],
         // Composite scenes — kept to the bare-minimum that gives Town Square
@@ -699,5 +706,53 @@ export const MAP_DATA = {
             { type: 'sprite', name: 'skull', x: 260, y: 300, scale: 1.4, z: 300 },
             { type: 'sprite', name: 'skull', x: 940, y: 300, scale: 1.4, z: 300 }
         ]
+    },
+
+    freeDistrict: {
+        id: 'freeDistrict',
+        name: 'Free District',
+        width: 1600,
+        height: 1200,
+        bgColor: '#1a2810',
+        ambientLight: 0.9,
+        spawn: { x: 800, y: 1100 },
+        tileSprite: 'grass',
+        plots: [
+            { id: 'plot_0_0', gridX: 0, gridY: 0, x: 150, y: 150,  w: 200, h: 200, price: 500 },
+            { id: 'plot_1_0', gridX: 1, gridY: 0, x: 450, y: 150,  w: 200, h: 200, price: 500 },
+            { id: 'plot_2_0', gridX: 2, gridY: 0, x: 750, y: 150,  w: 200, h: 200, price: 500 },
+            { id: 'plot_3_0', gridX: 3, gridY: 0, x: 1050, y: 150, w: 200, h: 200, price: 500 },
+            { id: 'plot_0_1', gridX: 0, gridY: 1, x: 150, y: 450,  w: 200, h: 200, price: 400 },
+            { id: 'plot_1_1', gridX: 1, gridY: 1, x: 450, y: 450,  w: 200, h: 200, price: 400 },
+            { id: 'plot_2_1', gridX: 2, gridY: 1, x: 750, y: 450,  w: 200, h: 200, price: 400 },
+            { id: 'plot_3_1', gridX: 3, gridY: 1, x: 1050, y: 450, w: 200, h: 200, price: 400 },
+            { id: 'plot_0_2', gridX: 0, gridY: 2, x: 150, y: 750,  w: 200, h: 200, price: 300 },
+            { id: 'plot_1_2', gridX: 1, gridY: 2, x: 450, y: 750,  w: 200, h: 200, price: 300 },
+            { id: 'plot_2_2', gridX: 2, gridY: 2, x: 750, y: 750,  w: 200, h: 200, price: 300 },
+            { id: 'plot_3_2', gridX: 3, gridY: 2, x: 1050, y: 750, w: 200, h: 200, price: 300 },
+        ],
+        obstacles: [],
+        decorations: [
+            { type: 'signpost', x: 750, y: 1050, size: 48 },
+            { type: 'torch', x: 100, y: 100, size: 40 },
+            { type: 'torch', x: 1300, y: 100, size: 40 },
+            { type: 'torch', x: 100, y: 700, size: 40 },
+            { type: 'torch', x: 1300, y: 700, size: 40 },
+            { type: 'fence_gate', x: 700, y: 1020, size: 48 },
+        ],
+        portals: [
+            {
+                x: 750, y: 1150, width: 100, height: 50,
+                targetMap: 'townSquare',
+                targetX: 800, targetY: 900,
+                label: 'Town Square'
+            }
+        ],
+        interactables: [
+            { id: 'fx_district_sign', x: 750, y: 1050, width: 48, height: 48, radius: 80,
+              label: 'District signpost',
+              flavor: '"Welcome to the Free District. Buy a plot, build your home. — Coinhilda, Treasurer of the Council"' }
+        ],
+        npcs: []
     }
 };

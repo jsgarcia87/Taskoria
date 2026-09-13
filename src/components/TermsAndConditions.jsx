@@ -11,7 +11,7 @@ const TermsAndConditions = ({ onBack }) => {
                 </button>
             </nav>
             <main className="container mx-auto px-6 pt-32 pb-24 max-w-4xl">
-                <h1 className="text-4xl md:text-5xl font-heading mb-8 text-transparent bg-clip-text bg-gradient-to-r from-rpg-gold to-amber-600">Terms of Service</h1>
+                <h1 className="text-4xl md:text-5xl font-heading mb-8 text-rpg-gold">Terms of Service</h1>
                 <div className="space-y-6 text-gray-300 bg-rpg-panel/60 p-8 md:p-12 rounded-3xl border border-white/10">
                     <p><strong>Last Updated:</strong> {new Date().toLocaleDateString('en-US')}</p>
 

@@ -252,6 +252,24 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
         return () => window.removeEventListener('pointerup', handlePointerUp);
     }, []);
 
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'z') { e.preventDefault(); undo(); }
+                if (e.key === 'y') { e.preventDefault(); redo(); }
+                return;
+            }
+            const key = e.key.toLowerCase();
+            if (key === 'p') setTool('pencil');
+            else if (key === 'e') setTool('eraser');
+            else if (key === 'b') setTool('fill');
+            else if (key === 'i') setTool('picker');
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [undoStack, redoStack]);
+
     const clearCanvas = async () => {
         if (!await confirm({ title: 'Clear Canvas?', message: 'All frames will be wiped clean.', variant: 'warning', confirmText: 'Clear All' })) return;
         pushUndo(framesRef.current, activeFrame);
@@ -625,7 +643,8 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                             }}></div>
                         )}
                     </div>
-                    <div className="mt-2 text-[10px] text-gray-500 tracking-widest uppercase mb-4">{GRID_SIZE}×{GRID_SIZE} | {frames.length} {frames.length === 1 ? 'Frame' : 'Frames'}</div>
+                    <div className="mt-2 text-[10px] text-gray-500 tracking-widest uppercase mb-1">{GRID_SIZE}×{GRID_SIZE} | {frames.length} {frames.length === 1 ? 'Frame' : 'Frames'}</div>
+                    <div className="text-[9px] text-purple-400/60 mb-3">P pencil · E eraser · B bucket · I eyedropper · Ctrl+Z undo · Ctrl+Y redo</div>
                     
                     {/* TIMELINE CONTROLS */}
                     <div className="w-full max-w-[640px] glass-panel p-3 rounded-xl flex flex-col gap-3">

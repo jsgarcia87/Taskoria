@@ -1320,10 +1320,10 @@ export const SPRITE_REGISTRY = {
 };
 
 // -----------------------------------------------------------------------------
-//  FLOOR TILES — the 5 real game floors, mirrored from sprites.jsx so the map
-//  editor can paint WYSIWYG ground. Each is a flat 64×64 buffer of hex strings.
-//  Keys match the runtime tileSprite keys, so a saved map's floor renders in the
-//  game exactly as painted.
+//  FLOOR TILES — canonical source for all floor tile buffers. Consumed by both
+//  the game (via sprites.jsx re-export) and the map editor. Each is a flat
+//  64×64 buffer of hex strings. Keys match the runtime tileSprite keys in
+//  MapData.js.
 // -----------------------------------------------------------------------------
 
 function floorCobblestone() {

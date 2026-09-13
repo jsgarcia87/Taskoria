@@ -87,6 +87,23 @@ export const characterReducer = (state, action) => {
             };
         }
 
+        case 'BUY_PLOT': {
+            const { plotId, cost, mapId } = action.payload;
+            if (state.character.gold < cost) return state;
+            const ownedPlots = state.character.ownedPlots || [];
+            if (ownedPlots.some(p => p.plotId === plotId)) return state;
+            return {
+                ...state,
+                character: {
+                    ...state.character,
+                    gold: state.character.gold - cost,
+                    ownedPlots: [...ownedPlots, { plotId, mapId, purchasedAt: Date.now() }],
+                    dailyMissions: bumpDailyMissions(state.character.dailyMissions, 'spend_gold', cost),
+                },
+                log: [{ id: Date.now(), message: `Purchased plot in the Free District for ${cost} gold!`, type: 'reward' }, ...state.log]
+            };
+        }
+
         case 'BUY_ITEM_CUSTOM_PRICE': {
             const { item, price } = action.payload;
             return {

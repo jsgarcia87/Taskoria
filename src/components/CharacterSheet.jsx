@@ -458,8 +458,8 @@ const CharacterSheet = ({ setActiveView }) => {
                             {/* Active Set Bonuses */}
                             {character.activeSets && Object.keys(character.activeSets).length > 0 && (
                                 <div className="mt-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                    <h3 className="text-purple-400 text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
-                                        <PixelIcon name="star" size={12} color="#a855f7" /> Active Set Bonuses
+                                    <h3 className="text-rpg-gold text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <PixelIcon name="star" size={12} color="#FFD700" /> Active Set Bonuses
                                     </h3>
                                     <div className="grid grid-cols-1 gap-2">
                                         {Object.entries(character.activeSets).map(([setId, count]) => {

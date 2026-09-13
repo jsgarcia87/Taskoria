@@ -7,7 +7,8 @@ try {
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]);
+    error_log('Database connection failed: ' . $e->getMessage());
+    echo json_encode(['error' => 'Database connection failed']);
     exit;
 }
 ?>

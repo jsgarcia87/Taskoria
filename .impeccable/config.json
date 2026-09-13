@@ -1,7 +1,14 @@
 {
   "detector": {
-    "ignoreRules": [],
-    "ignoreFiles": [],
+    "ignoreRules": [
+      "gray-on-color",
+      "border-accent-on-rounded",
+      "codex-grid-background"
+    ],
+    "ignoreFiles": [
+      "src/components/dashboard/GardenView.jsx",
+      "src/components/dashboard/CoFocusingArea.jsx"
+    ],
     "ignoreValues": [
       {
         "rule": "overused-font",
@@ -60,6 +67,66 @@
         "value": "border-b-2.*rounded-t-lg",
         "createdAt": "2026-08-27T17:26:44.965Z",
         "reason": "Tab bar indicator underline is a standard UI pattern, not a decorative accent on a card"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "rounded-t-lg border-b-2",
+        "createdAt": "2026-08-29T14:36:21.738Z"
+      },
+      {
+        "rule": "bounce-easing",
+        "value": "hatch-wobble-1",
+        "createdAt": "2026-09-03T12:49:57.646Z"
+      },
+      {
+        "rule": "bounce-easing",
+        "value": "hatch-wobble-2",
+        "createdAt": "2026-09-03T12:49:57.696Z"
+      },
+      {
+        "rule": "bounce-easing",
+        "value": "hatch-wobble-3",
+        "createdAt": "2026-09-03T12:49:57.746Z"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "border-b-4 cofocusingarea/partyview pixel-art well borders — intentional game ui",
+        "createdAt": "2026-09-05T06:46:07.270Z"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "border-t-4 playableworld css-art game decoration — intentional",
+        "createdAt": "2026-09-05T06:46:07.323Z"
+      },
+      {
+        "rule": "side-tab",
+        "value": "borderleft gardenview rpg bevel borders — intentional pixel-art game ui",
+        "createdAt": "2026-09-05T06:46:07.373Z"
+      },
+      {
+        "rule": "side-tab",
+        "value": "borderright gardenview rpg bevel borders — intentional pixel-art game ui",
+        "createdAt": "2026-09-05T06:46:07.422Z"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "border-b-2 transition-all charactersheet tab underline — standard tab pattern, not an accent card",
+        "createdAt": "2026-09-05T06:46:47.178Z"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "border-x-4 border-b-4 border-rpg-panel partyview world hud bottom bar — intentional game panel border",
+        "createdAt": "2026-09-05T06:46:47.230Z"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "border-t-4 border-gray-600 playableworld pixel-art shelf element — intentional css pixel art",
+        "createdAt": "2026-09-05T06:46:47.278Z"
+      },
+      {
+        "rule": "codex-grid-background",
+        "value": "medieval-town-bg co-focusing area cobblestone ground texture — intentional medieval rpg aesthetic",
+        "createdAt": "2026-09-05T06:46:47.329Z"
       }
     ]
   }

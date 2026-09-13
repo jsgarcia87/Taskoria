@@ -15,27 +15,22 @@ use PHPMailer\PHPMailer\Exception;
  * @return bool True if sent successfully, False otherwise
  */
 function send_taskoria_email($to, $subject, $htmlBody) {
+    require_once __DIR__ . '/config.php';
+
     $mail = new PHPMailer(true);
 
     try {
-        // Server settings
-        $mail->SMTPDebug = 0;                      // Enable verbose debug output (0 = off)
-        $mail->isSMTP();                           // Send using SMTP
-        $mail->Host       = 'smtp.gmail.com';      // Set the SMTP server to send through
-        $mail->SMTPAuth   = true;                  // Enable SMTP authentication
-        
-        // ⚠️ IMPORTANTE: Aquí van las credenciales de tu cuenta
-        $mail->Username   = 'taskoriaapp@gmail.com';  // SMTP username (tu email)
-        // Necesitarás generar una "App Password" (Contraseña de Aplicación) 
-        // en la configuración de seguridad de tu cuenta de Google.
-        // NO pongas tu contraseña normal aquí.
-        $mail->Password   = 'gzrr anzk qayk tkhp';   // SMTP password
-        
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Enable TLS encryption
-        $mail->Port       = 587;                    // TCP port to connect to
+        $mail->SMTPDebug = 0;
+        $mail->isSMTP();
+        $mail->Host       = $smtp_host;
+        $mail->SMTPAuth   = true;
+        $mail->Username   = $smtp_user;
+        $mail->Password   = $smtp_pass;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = $smtp_port;
 
         // Recipients
-        $mail->setFrom('taskoriaapp@gmail.com', 'Taskoria RPG');
+        $mail->setFrom($smtp_user, 'Taskoria RPG');
         $mail->addAddress($to);
 
         // Content

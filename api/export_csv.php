@@ -1,7 +1,13 @@
 <?php
 require_once 'db.php';
 
-// Check for admin param or similar in real world, skipping for this demo
+$admin_id = (int)($_GET['admin_id'] ?? 0);
+if (!$admin_id) { http_response_code(401); echo json_encode(['error' => 'Login required']); exit; }
+$stmt = $pdo->prepare("SELECT is_admin FROM users WHERE id = ?");
+$stmt->execute([$admin_id]);
+$adminUser = $stmt->fetch();
+if (!$adminUser || !$adminUser['is_admin']) { http_response_code(403); echo json_encode(['error' => 'Forbidden']); exit; }
+
 header('Content-Type: text/csv');
 header('Content-Disposition: attachment; filename="users_export.csv"');
 

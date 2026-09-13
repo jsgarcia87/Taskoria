@@ -250,7 +250,8 @@ if ($action === 'save_post') {
         echo json_encode(['success' => true, 'id' => $id]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['error' => 'Failed to save post: ' . $e->getMessage()]);
+        error_log('CMS save_post error: ' . $e->getMessage());
+        echo json_encode(['error' => 'Failed to save post']);
     }
     exit;
 }

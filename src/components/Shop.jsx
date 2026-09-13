@@ -376,7 +376,7 @@ const Shop = ({ currentUser }) => {
                                                 />
                                             </div>
                                             <div>
-                                                <h3 className="text-sm text-indigo-400 font-bold font-heading uppercase tracking-wide group-hover:text-indigo-300 transition-colors flex items-center gap-2">
+                                                <h3 className="text-sm text-rpg-gold font-bold font-heading uppercase tracking-wide group-hover:text-rpg-gold/80 transition-colors flex items-center gap-2">
                                                     {listing.item_data.name}
                                                 </h3>
                                                 <p className="text-gray-500 text-[10px] font-bold uppercase mt-0.5 tracking-wider">Seller: <span className="text-gray-300">{listing.seller_name}</span></p>

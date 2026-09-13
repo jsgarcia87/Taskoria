@@ -376,9 +376,7 @@ const Dashboard = ({ setActiveView }) => {
                                     <EpicBossCard />
                                     <ProductivityHeatmap />
                                 </div>
-                                <div className="glass-card p-1 border-white/5 min-h-[200px]">
-                                    <BossBattle />
-                                </div>
+                                <BossBattle />
                             </div>
                         )}
                     </motion.div>

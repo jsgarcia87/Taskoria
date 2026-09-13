@@ -38,7 +38,7 @@ const TaskRow = memo(function TaskRow({ task, assignerName, onComplete, onToggle
         onComplete(task.id, e.clientX, e.clientY);
     }, [task.id, onComplete]);
     return (
-        <div className={`glass-card p-4 group transition-all duration-300 hover:bg-white/5 border-l-4 ${isInProgress ? 'border-l-blue-500 bg-blue-900/10' : 'border-l-transparent hover:border-l-rpg-gold'}`}>
+        <div className={`glass-card p-4 group transition-all duration-300 hover:bg-white/5 border-l-2 ${isInProgress ? 'border-l-blue-500 bg-blue-900/10' : 'border-l-transparent hover:border-l-rpg-gold'}`}>
             <div className="flex justify-between items-start gap-4">
                 <div className="flex items-start gap-3 w-full">
                     <motion.button

@@ -35,8 +35,7 @@ body { background: var(--bg); color: var(--text);
   flex-shrink: 0; flex-wrap: wrap;
 }
 .logo { font-family: 'Press Start 2P', monospace; font-size: 9px;
-        color: var(--gold); text-shadow: 0 0 10px #f0c04044;
-        white-space: nowrap; }
+        color: var(--gold); white-space: nowrap; }
 .logo span { color: var(--purple2); }
 
 .top-group { display: flex; gap: 4px; align-items: center; }
@@ -165,6 +164,46 @@ body { background: var(--bg); color: var(--text);
 .statusbar span { color: var(--text); }
 .statusbar .tool-hint { color: var(--purple2); margin-left: auto; }
 
+/* Portal config panel */
+.portal-cfg { display: flex; flex-direction: column; gap: 2px; }
+.portal-cfg select, .portal-cfg input {
+  width: 100%; padding: 2px 4px; background: var(--panel);
+  border: 1px solid var(--border2); border-radius: 2px;
+  color: var(--text); font-size: 9px;
+}
+.portal-cfg .pc-label { font-size: 8px; color: var(--dim); margin-top: 2px; }
+.portal-cfg .pc-row { display: flex; gap: 4px; align-items: center; }
+.portal-cfg .pc-row input { width: 40px; text-align: center; }
+
+/* World graph modal */
+[hidden] { display: none !important; }
+.wg-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  z-index: 100; display: flex; align-items: center; justify-content: center;
+}
+.wg-modal {
+  background: var(--bg2); border: 2px solid var(--border); border-radius: 8px;
+  width: 90vw; max-width: 800px; height: 70vh; max-height: 600px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.wg-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--gold);
+}
+.wg-header button { background: none; border: none; color: var(--dim);
+  cursor: pointer; font-size: 14px; }
+.wg-header button:hover { color: var(--red); }
+.wg-body { flex: 1; position: relative; overflow: hidden; }
+#worldGraphCanvas { width: 100%; height: 100%; }
+
+/* Auto-blend indicator */
+.blend-badge {
+  font-family: 'Press Start 2P', monospace; font-size: 4px;
+  color: var(--cyan); padding: 1px 3px; border: 1px solid var(--border2);
+  border-radius: 2px; background: var(--panel);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
@@ -220,6 +259,21 @@ body { background: var(--bg); color: var(--text);
     <button class="tbtn green" onclick="exportMapData()">⬇ EXPORT JS</button>
     <button class="tbtn gold" onclick="saveToLocal()">💾 SAVE</button>
     <button class="tbtn" onclick="loadFromLocal()">📂 LOAD</button>
+    <button class="tbtn" id="publishBtn" onclick="publishMapToReview()" style="color:var(--cyan);border-color:var(--cyan);">📤 PUBLICAR</button>
+    <button class="tbtn" onclick="openWorldGraph()" style="color:var(--purple2);border-color:var(--purple);">🗺 GRAFO</button>
+  </div>
+</div>
+
+<!-- World Graph Modal -->
+<div class="wg-overlay" id="worldGraphOverlay" hidden>
+  <div class="wg-modal">
+    <div class="wg-header">
+      <span>🗺 WORLD GRAPH</span>
+      <button onclick="closeWorldGraph()">✕</button>
+    </div>
+    <div class="wg-body">
+      <canvas id="worldGraphCanvas"></canvas>
+    </div>
   </div>
 </div>
 
@@ -280,6 +334,40 @@ body { background: var(--bg); color: var(--text);
         </div>
       </div>
 
+      <!-- Portal config (hidden until a portal is selected) -->
+      <div class="prop-section" id="portalCfgSection" hidden>
+        <div class="prop-section-title">🌀 PORTAL</div>
+        <div class="portal-cfg" style="padding:6px 8px">
+          <span class="pc-label">Destino</span>
+          <select id="portalTarget" onchange="updatePortalCfg()">
+            <option value="">(sin destino)</option>
+            <option value="townSquare">Town Square</option>
+            <option value="taskoriaKeep">Taskoria Keep</option>
+            <option value="tavernInterior">Tavern Interior</option>
+            <option value="mysticForest">Mystic Forest</option>
+            <option value="shadowCrypts">Shadow Crypts</option>
+          </select>
+          <span class="pc-label">Spawn destino (tiles)</span>
+          <div class="pc-row">
+            <span style="font-size:8px;color:var(--dim)">X</span>
+            <input type="number" id="portalSpawnX" value="10" min="0" max="60" onchange="updatePortalCfg()">
+            <span style="font-size:8px;color:var(--dim)">Y</span>
+            <input type="number" id="portalSpawnY" value="10" min="0" max="40" onchange="updatePortalCfg()">
+          </div>
+          <span class="pc-label">Etiqueta</span>
+          <input type="text" id="portalLabel" value="" placeholder="Nombre del portal..." oninput="updatePortalCfg()">
+          <span class="pc-label">Condición (opcional)</span>
+          <div class="pc-row">
+            <select id="portalCondType" onchange="updatePortalCfg()" style="width:60px">
+              <option value="">Ninguna</option>
+              <option value="minLevel">Nivel mín.</option>
+              <option value="questFlag">Quest flag</option>
+            </select>
+            <input type="text" id="portalCondValue" value="" placeholder="valor" oninput="updatePortalCfg()" style="flex:1">
+          </div>
+        </div>
+      </div>
+
       <!-- Capas -->
       <div class="prop-section">
         <div class="prop-section-title">📚 CAPAS</div>
@@ -329,7 +417,7 @@ body { background: var(--bg); color: var(--text);
   <div>Capa: <span id="stLayer">ground</span></div>
   <div>Objetos: <span id="stObjs">0</span></div>
   <div>Undo: <span id="stUndo">0</span></div>
-  <div class="tool-hint" id="toolHint">✏ Click para pintar · Rueda para zoom · Mayús+arrastrar para pan</div>
+  <div class="tool-hint" id="toolHint">B draw · E erase · F fill · S select · I pick · Ctrl+Z undo · Ctrl+S save · Scroll zoom · Shift+drag pan</div>
 </div>
 
 <script>
@@ -1598,6 +1686,7 @@ function render(){
   ctx.fillRect(0,0,mapCanvas.width,mapCanvas.height);
 
   // Renderizar capas en orden
+  ctx.imageSmoothingEnabled=false;
   ['ground','objects','overhead'].forEach(layerKey=>{
     if(!layerVisible[layerKey]) return;
     for(let y=0;y<mapH;y++){
@@ -1607,8 +1696,44 @@ function render(){
         const spr=SPRITES[cell.type];
         if(!spr) continue;
         const dx=x*TS, dy=y*TS;
-        ctx.imageSmoothingEnabled=false;
         ctx.drawImage(spr,dx,dy,TS,TS);
+
+        // Auto-blend edges for ground layer
+        if(layerKey==='ground'){
+          const blendW=Math.max(2,Math.round(TS*0.15));
+          const neighbors=[
+            {nx:x,ny:y-1,edge:'top'},
+            {nx:x,ny:y+1,edge:'bottom'},
+            {nx:x-1,ny:y,edge:'left'},
+            {nx:x+1,ny:y,edge:'right'},
+          ];
+          for(const{nx,ny,edge}of neighbors){
+            if(nx<0||nx>=mapW||ny<0||ny>=mapH) continue;
+            const nb=layers.ground[ny]?.[nx];
+            if(!nb||nb.type===cell.type) continue;
+            const nbSpr=SPRITES[nb.type];
+            if(!nbSpr) continue;
+            ctx.save();
+            ctx.beginPath();
+            if(edge==='top')    ctx.rect(dx,dy,TS,blendW);
+            if(edge==='bottom') ctx.rect(dx,dy+TS-blendW,TS,blendW);
+            if(edge==='left')   ctx.rect(dx,dy,blendW,TS);
+            if(edge==='right')  ctx.rect(dx+TS-blendW,dy,blendW,TS);
+            ctx.clip();
+            ctx.globalAlpha=0.4;
+            ctx.drawImage(nbSpr,dx,dy,TS,TS);
+            ctx.globalAlpha=1;
+            ctx.restore();
+          }
+        }
+
+        // Portal destination overlay
+        if(cell.type==='portal'&&cell.portalTarget){
+          ctx.fillStyle='rgba(100,200,255,0.15)';ctx.fillRect(dx,dy,TS,TS);
+          ctx.fillStyle='#50a0f0';ctx.font=`${Math.max(4,zoomLevel*3)}px monospace`;
+          ctx.fillText('→'+cell.portalTarget.slice(0,6),dx+1,dy+TS-2);
+        }
+
         // Label
         if(cell.label){
           ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(dx+1,dy+1,TS-2,8);
@@ -1712,9 +1837,16 @@ function paintTile(x,y){
   if(!selectedAsset) return;
   const targetLayer=ASSET_LAYER[selectedAsset]||currentLayer;
   if(!layers[targetLayer][y]) return;
-  // Snapshot para undo
   pushUndo();
-  layers[targetLayer][y][x]={type:selectedAsset,label:''};
+  const tile={type:selectedAsset,label:''};
+  if(selectedAsset==='portal'){
+    tile.portalTarget='';
+    tile.portalSpawnX=10;
+    tile.portalSpawnY=10;
+    tile.portalCondType='';
+    tile.portalCondValue='';
+  }
+  layers[targetLayer][y][x]=tile;
   render();
 }
 
@@ -1809,6 +1941,32 @@ function updateSelPanel(t){
   document.getElementById('selType').textContent=cell?.type||'vacío';
   document.getElementById('selLayer').textContent=cell?Object.keys(layers).find(k=>layers[k][t.y]?.[t.x]===cell):'—';
   document.getElementById('selLabel').value=cell?.label||'';
+
+  const pcSection=document.getElementById('portalCfgSection');
+  if(cell?.type==='portal'){
+    pcSection.hidden=false;
+    document.getElementById('portalTarget').value=cell.portalTarget||'';
+    document.getElementById('portalSpawnX').value=cell.portalSpawnX??10;
+    document.getElementById('portalSpawnY').value=cell.portalSpawnY??10;
+    document.getElementById('portalLabel').value=cell.label||'';
+    document.getElementById('portalCondType').value=cell.portalCondType||'';
+    document.getElementById('portalCondValue').value=cell.portalCondValue||'';
+  } else {
+    pcSection.hidden=true;
+  }
+}
+
+function updatePortalCfg(){
+  if(!selectedCell) return;
+  const cell=layers.objects[selectedCell.y]?.[selectedCell.x];
+  if(!cell||cell.type!=='portal') return;
+  cell.portalTarget=document.getElementById('portalTarget').value;
+  cell.portalSpawnX=parseInt(document.getElementById('portalSpawnX').value)||0;
+  cell.portalSpawnY=parseInt(document.getElementById('portalSpawnY').value)||0;
+  cell.label=document.getElementById('portalLabel').value;
+  cell.portalCondType=document.getElementById('portalCondType').value;
+  cell.portalCondValue=document.getElementById('portalCondValue').value;
+  render();
 }
 function updateSelLabel(){
   if(!selectedCell) return;
@@ -2012,7 +2170,16 @@ function exportMapData(){
     if(!obj) continue;
     const {type,label}=obj;
     if(type==='spawn'){ spawnPos.x=x; spawnPos.y=y; continue; }
-    if(type==='portal'){ portals.push({id:`portal_${x}_${y}`,x,y,w:1,h:1,target:'',targetSpawn:{x:0,y:0},label:label||'Portal'}); continue; }
+    if(type==='portal'){
+      const p={id:`portal_${x}_${y}`,x,y,w:1,h:1,
+        target:obj.portalTarget||'',
+        targetSpawn:{x:obj.portalSpawnX??0,y:obj.portalSpawnY??0},
+        label:obj.label||label||'Portal'};
+      if(obj.portalCondType&&obj.portalCondValue){
+        p.condition={type:obj.portalCondType,value:obj.portalCondType==='minLevel'?parseInt(obj.portalCondValue):obj.portalCondValue};
+      }
+      portals.push(p); continue;
+    }
     if(type.startsWith('npc_')){ npcs.push({id:`${type}_${x}_${y}`,type,x,y,name:label||type}); continue; }
     // Edificios como obstáculos
     if(['house_thatch','house_wood','tavern','church','smithy','tower'].includes(type)){
@@ -2085,6 +2252,188 @@ function loadFromLocal(){
   document.getElementById('mapBgColor').value=data.bgColor||'#2a1f12';
   document.getElementById('infoSize').textContent=`${mapW}×${mapH}`;
   updateCanvasSize(); render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// WORLD GRAPH — visual map connection viewer
+// ═══════════════════════════════════════════════════════════
+const KNOWN_MAPS=[
+  {id:'townSquare',name:'Town Square',color:'#b8a882',w:20,h:16},
+  {id:'taskoriaKeep',name:'Taskoria Keep',color:'#a0a0c0',w:20,h:16},
+  {id:'tavernInterior',name:'Tavern Interior',color:'#c0a060',w:14,h:12},
+  {id:'mysticForest',name:'Mystic Forest',color:'#4a9a28',w:20,h:16},
+  {id:'shadowCrypts',name:'Shadow Crypts',color:'#604060',w:20,h:16},
+];
+
+function openWorldGraph(){
+  document.getElementById('worldGraphOverlay').hidden=false;
+  drawWorldGraph();
+}
+function closeWorldGraph(){
+  document.getElementById('worldGraphOverlay').hidden=true;
+}
+
+function drawWorldGraph(){
+  const canvas=document.getElementById('worldGraphCanvas');
+  const rect=canvas.parentElement.getBoundingClientRect();
+  canvas.width=rect.width;canvas.height=rect.height;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#0d0a14';ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Collect portal connections from current map
+  const currentMapName=document.getElementById('mapName').value||'currentMap';
+  const connections=[];
+  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+    const cell=layers.objects[y]?.[x];
+    if(cell?.type==='portal'&&cell.portalTarget){
+      connections.push({from:currentMapName,to:cell.portalTarget,label:cell.label||''});
+    }
+  }
+
+  // Add current map to KNOWN_MAPS if not there
+  const allMaps=[...KNOWN_MAPS];
+  if(!allMaps.find(m=>m.id===currentMapName)){
+    allMaps.unshift({id:currentMapName,name:currentMapName+' (current)',color:'#f0c040',w:mapW,h:mapH});
+  }
+
+  // Layout: radial arrangement
+  const cx=canvas.width/2, cy=canvas.height/2;
+  const radius=Math.min(cx,cy)*0.6;
+  const nodes={};
+  allMaps.forEach((m,i)=>{
+    const angle=(i/allMaps.length)*Math.PI*2 - Math.PI/2;
+    nodes[m.id]={
+      x:cx+Math.cos(angle)*radius,
+      y:cy+Math.sin(angle)*radius,
+      ...m,
+      isCurrent:m.id===currentMapName,
+    };
+  });
+
+  // Draw connections
+  connections.forEach(c=>{
+    const from=nodes[c.from], to=nodes[c.to];
+    if(!from||!to) return;
+    ctx.beginPath();
+    ctx.moveTo(from.x,from.y);ctx.lineTo(to.x,to.y);
+    ctx.strokeStyle='rgba(100,200,255,0.4)';ctx.lineWidth=2;ctx.stroke();
+    // Arrow
+    const angle=Math.atan2(to.y-from.y,to.x-from.x);
+    const mx=(from.x+to.x)/2, my=(from.y+to.y)/2;
+    ctx.beginPath();
+    ctx.moveTo(mx+8*Math.cos(angle),my+8*Math.sin(angle));
+    ctx.lineTo(mx-5*Math.cos(angle-0.4),my-5*Math.sin(angle-0.4));
+    ctx.lineTo(mx-5*Math.cos(angle+0.4),my-5*Math.sin(angle+0.4));
+    ctx.closePath();ctx.fillStyle='rgba(100,200,255,0.6)';ctx.fill();
+    // Connection label
+    if(c.label){
+      ctx.fillStyle='rgba(100,200,255,0.5)';ctx.font='9px Outfit,sans-serif';
+      ctx.fillText(c.label,mx+10,my-4);
+    }
+  });
+
+  // Draw nodes
+  Object.values(nodes).forEach(n=>{
+    const nw=100,nh=44;
+    const nx=n.x-nw/2, ny=n.y-nh/2;
+    // Shadow
+    ctx.fillStyle='rgba(0,0,0,0.3)';
+    roundRect(ctx,nx+2,ny+2,nw,nh,6);ctx.fill();
+    // Box
+    ctx.fillStyle=n.isCurrent?'#2a1e3a':'#1e1530';
+    roundRect(ctx,nx,ny,nw,nh,6);ctx.fill();
+    ctx.strokeStyle=n.isCurrent?'#f0c040':n.color;ctx.lineWidth=n.isCurrent?2:1;
+    roundRect(ctx,nx,ny,nw,nh,6);ctx.stroke();
+    // Color dot
+    ctx.fillStyle=n.color;ctx.beginPath();ctx.arc(nx+12,ny+14,4,0,Math.PI*2);ctx.fill();
+    // Name
+    ctx.fillStyle=n.isCurrent?'#f0c040':'#d0c0e8';
+    ctx.font='bold 10px Outfit,sans-serif';
+    ctx.fillText(n.name.slice(0,14),nx+20,ny+17);
+    // Size
+    ctx.fillStyle='#706090';ctx.font='8px monospace';
+    ctx.fillText(`${n.w||'?'}×${n.h||'?'} tiles`,nx+20,ny+32);
+    // Current badge
+    if(n.isCurrent){
+      ctx.fillStyle='#f0c040';ctx.font='bold 7px Outfit,sans-serif';
+      ctx.fillText('★ EDITING',nx+nw-52,ny+36);
+    }
+  });
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+// Close modal on overlay click
+document.getElementById('worldGraphOverlay')?.addEventListener('click',e=>{
+  if(e.target.id==='worldGraphOverlay') closeWorldGraph();
+});
+
+// ═══════════════════════════════════════════════════════════
+// PUBLISH MAP TO REVIEW
+// ═══════════════════════════════════════════════════════════
+async function publishMapToReview() {
+  const mapName = document.getElementById('mapName').value || 'newMap';
+  const name = prompt('Nombre para este mapa:', mapName);
+  if (!name) return;
+
+  const btn = document.getElementById('publishBtn');
+  btn.textContent = '⏳ Enviando...';
+  btn.disabled = true;
+
+  try {
+    const userId = JSON.parse(localStorage.getItem('taskoria_user') || '{}').id;
+    if (!userId) { alert('Necesitas estar logueado en Taskoria para publicar.'); btn.textContent = '📤 PUBLICAR'; btn.disabled = false; return; }
+
+    const ambient = document.getElementById('mapAmbient').value || 85;
+    const bgColor = document.getElementById('mapBgColor').value || '#2a1f12';
+
+    const mapParams = {
+      mapW, mapH, layers,
+      ambient: parseInt(ambient),
+      bgColor,
+    };
+
+    const resp = await fetch('/api/creations.php?action=publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        name,
+        category: 'maps',
+        payload_type: 'map',
+        grid_size: 0,
+        pixels: [],
+        params: mapParams,
+        price: 200,
+      }),
+    });
+
+    const data = await resp.json();
+    if (data.success) {
+      btn.textContent = '✓ ENVIADO';
+      btn.style.color = 'var(--green)';
+      setTimeout(() => {
+        btn.textContent = '📤 PUBLICAR';
+        btn.style.color = 'var(--cyan)';
+        btn.disabled = false;
+      }, 3000);
+    } else {
+      alert(data.error || 'Error al publicar');
+      btn.textContent = '📤 PUBLICAR';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    alert('Error de conexión: ' + e.message);
+    btn.textContent = '📤 PUBLICAR';
+    btn.disabled = false;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════

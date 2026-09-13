@@ -1,45 +1,54 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Home, Map, ExternalLink, Maximize2, Minimize2, Hammer, Library, Loader, Copy, Trash2, Check } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Home, Map, Users, ExternalLink, X, Hammer, Library, Loader, Copy, Trash2, Check, ArrowLeft, Edit3 } from 'lucide-react';
 import { useToast } from '../common/Toast';
 import { useConfirm } from '../../context/ConfirmContext';
 
-/**
- * AdminWorldTools
- * Embeds the standalone HTML world-building tools (house builder + map editor)
- * inside the admin panel via iframes, and listens for postMessage events from
- * those iframes to save designs into the admin library (admin_designs table).
- *
- * Communication contract (iframe → parent):
- *   window.parent.postMessage({
- *     type: 'taskoria_design_save',
- *     tool: 'house' | 'map',
- *     name: 'My building',
- *     snippet: '// MapData.js code…',
- *     payload: { ...rawConfig },
- *   }, '*')
- *
- * The parent posts to api/admin.php?action=save_design and shows a toast.
- */
-
-// Use RELATIVE paths (no leading slash) because vite.config has `base: './'`,
-// which means the app may be served under a sub-path like /rpg/ in production.
-// Absolute paths like '/admin-tools/...' would 404 when the SPA lives at /rpg/.
 const TOOLS = [
-    { id: 'house',   label: 'House Builder', icon: Home,    src: 'admin-tools/house_builder.html', description: 'Diseña edificios pixel art. Exporta el snippet listo para prefab/prop.' },
-    { id: 'map',     label: 'Map Editor',    icon: Map,     src: 'admin-tools/map_editor.html',    description: 'Construye mapas completos con tiles, decoraciones y portales.' },
-    { id: 'library', label: 'Library',       icon: Library, src: null,                             description: 'Diseños guardados desde los editores. Copia el snippet o elimina.' },
+    {
+        id: 'house',
+        label: 'House Builder',
+        icon: Home,
+        src: 'admin-tools/house_builder.html',
+        description: 'Diseña edificios pixel art. Exporta el snippet listo para prefab/prop.',
+        color: 'amber',
+        status: 'active',
+    },
+    {
+        id: 'map',
+        label: 'Map Editor',
+        icon: Map,
+        src: 'admin-tools/map_editor.html',
+        description: 'Construye mapas completos con tiles, decoraciones y portales.',
+        color: 'purple',
+        status: 'active',
+    },
+    {
+        id: 'character',
+        label: 'Character Builder',
+        icon: Users,
+        src: 'admin-tools/character_builder.html',
+        description: 'Forja de Clases — constructor de personajes, vestimentas y armas por capas.',
+        color: 'rose',
+        status: 'constructor',
+    },
 ];
+
+const COLOR_MAP = {
+    amber:  { bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  text: 'text-amber-400',  glow: 'hover:shadow-amber-500/10' },
+    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', glow: 'hover:shadow-purple-500/10' },
+    rose:   { bg: 'bg-rose-500/10',   border: 'border-rose-500/30',   text: 'text-rose-400',   glow: 'hover:shadow-rose-500/10' },
+};
 
 const AdminWorldTools = ({ currentUser }) => {
     const toast = useToast();
     const confirm = useConfirm();
-    const [activeTool, setActiveTool] = useState('house');
-    const [fullscreen, setFullscreen] = useState(false);
+    const [openTool, setOpenTool] = useState(null);
+    const [showLibrary, setShowLibrary] = useState(false);
     const [designs, setDesigns] = useState([]);
     const [libLoading, setLibLoading] = useState(false);
     const [copiedId, setCopiedId] = useState(null);
     const [pendingEdit, setPendingEdit] = useState(null);
-    const tool = TOOLS.find(t => t.id === activeTool) || TOOLS[0];
 
     // Listen for save + library requests from the embedded editors
     useEffect(() => {
@@ -48,7 +57,6 @@ const AdminWorldTools = ({ currentUser }) => {
             const data = e?.data;
             if (!data) return;
 
-            // Editor → save a new design
             if (data.type === 'taskoria_design_save') {
                 try {
                     const res = await fetch('api/admin.php?action=save_design', {
@@ -65,7 +73,7 @@ const AdminWorldTools = ({ currentUser }) => {
                     const json = await res.json();
                     if (json.success) {
                         toast.success(`Design "${json.name}" saved to library`, { duration: 3500 });
-                        if (activeTool === 'library') loadDesigns();
+                        if (showLibrary) loadDesigns();
                     } else {
                         toast.error(json.error || 'Failed to save design');
                     }
@@ -75,8 +83,6 @@ const AdminWorldTools = ({ currentUser }) => {
                 return;
             }
 
-            // Editor → request the saved-design library (used by Map Editor to
-            // expose House Builder creations as palette items).
             if (data.type === 'taskoria_request_designs') {
                 try {
                     const res = await fetch('api/admin.php?action=list_designs', {
@@ -90,7 +96,6 @@ const AdminWorldTools = ({ currentUser }) => {
                     const json = await res.json();
                     let designs = json.designs || [];
 
-                    // Fetch all approved creations to include in the Map Editor palette
                     try {
                         const mRes = await fetch(`api/creations.php?action=list_approved`);
                         const mJson = await mRes.json();
@@ -105,13 +110,13 @@ const AdminWorldTools = ({ currentUser }) => {
                             designs: designs,
                         }, '*');
                     }
-                } catch (err) { /* iframe will just show no library items */ }
+                } catch (err) { /* ignore */ }
                 return;
             }
         };
         window.addEventListener('message', onMessage);
         return () => window.removeEventListener('message', onMessage);
-    }, [currentUser?.id, activeTool]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [currentUser?.id, showLibrary]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const loadDesigns = useCallback(async () => {
         setLibLoading(true);
@@ -130,10 +135,9 @@ const AdminWorldTools = ({ currentUser }) => {
         }
     }, [currentUser?.id]);
 
-    // Load library when tab is opened
     useEffect(() => {
-        if (activeTool === 'library') loadDesigns();
-    }, [activeTool, loadDesigns]);
+        if (showLibrary) loadDesigns();
+    }, [showLibrary, loadDesigns]);
 
     const copySnippet = async (d) => {
         try {
@@ -157,11 +161,12 @@ const AdminWorldTools = ({ currentUser }) => {
 
     const editDesign = (d) => {
         setPendingEdit(d);
-        setActiveTool(d.tool);
+        setOpenTool(d.tool);
+        setShowLibrary(false);
     };
 
     const handleIframeLoad = (e) => {
-        if (pendingEdit && pendingEdit.tool === activeTool) {
+        if (pendingEdit && pendingEdit.tool === openTool) {
             try {
                 e.target.contentWindow.postMessage({
                     type: 'taskoria_design_edit',
@@ -177,66 +182,46 @@ const AdminWorldTools = ({ currentUser }) => {
         }
     };
 
-    return (
-        <div className={`glass-card border border-white/10 rounded-2xl overflow-hidden flex flex-col ${fullscreen ? 'fixed inset-4 z-50 shadow-2xl' : ''}`}>
-            {/* Header */}
-            <div className="p-4 border-b border-white/10 bg-black/40 flex items-center justify-between flex-wrap gap-3">
-                <div>
-                    <h3 className="text-xl font-bold text-rpg-gold flex items-center gap-2">
-                        <Hammer size={18}/> World Building Tools
-                    </h3>
-                    <p className="text-xs text-gray-400">{tool.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    {tool.src && (
-                        <a
-                            href={tool.src}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-bold bg-white/5 hover:bg-white/10 border border-white/20 text-gray-300 px-2.5 py-1.5 rounded"
-                        >
-                            <ExternalLink size={11}/> New tab
-                        </a>
-                    )}
+    const activeTool = TOOLS.find(t => t.id === openTool);
+
+    // Fullscreen tool overlay — rendered via portal to escape any stacking context
+    if (openTool && activeTool) {
+        const c = COLOR_MAP[activeTool.color] || COLOR_MAP.amber;
+        return createPortal(
+            <div className="fixed inset-0 z-[9999] flex flex-col bg-[#0c0a14]">
+                {/* Toolbar */}
+                <div className="flex items-center gap-3 px-4 py-2.5 bg-black/60 border-b border-white/10 backdrop-blur-sm flex-shrink-0">
                     <button
-                        onClick={() => setFullscreen(f => !f)}
-                        className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-bold bg-rpg-gold/15 hover:bg-rpg-gold/25 border border-rpg-gold/40 text-rpg-gold px-2.5 py-1.5 rounded"
+                        onClick={() => { setOpenTool(null); setPendingEdit(null); }}
+                        className="flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg transition-all"
                     >
-                        {fullscreen ? <Minimize2 size={11}/> : <Maximize2 size={11}/>}
-                        {fullscreen ? 'Exit FS' : 'Fullscreen'}
+                        <ArrowLeft size={14}/> Back
                     </button>
+                    <div className="flex items-center gap-2 flex-1">
+                        <activeTool.icon size={16} className={c.text}/>
+                        <span className="font-bold text-white text-sm">{activeTool.label}</span>
+                        {activeTool.status === 'constructor' && (
+                            <span className="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-400">
+                                Constructor Mode
+                            </span>
+                        )}
+                    </div>
+                    <a
+                        href={activeTool.src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold text-gray-400 hover:text-white px-2 py-1"
+                    >
+                        <ExternalLink size={11}/> New Tab
+                    </a>
                 </div>
-            </div>
 
-            {/* Tabs */}
-            <div className="flex gap-0 border-b border-white/10 bg-black/30">
-                {TOOLS.map(t => {
-                    const Icon = t.icon;
-                    const isActive = t.id === activeTool;
-                    const count = t.id === 'library' && designs.length > 0 ? ` · ${designs.length}` : '';
-                    return (
-                        <button
-                            key={t.id}
-                            onClick={() => setActiveTool(t.id)}
-                            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-heading font-bold uppercase tracking-wider transition-colors border-b-2 ${
-                                isActive
-                                    ? 'text-rpg-gold border-rpg-gold bg-rpg-gold/5'
-                                    : 'text-gray-400 border-transparent hover:text-white hover:bg-white/5'
-                            }`}
-                        >
-                            <Icon size={14}/> {t.label}{count}
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* Stage — iframe for editor tools, table for library */}
-            {tool.src ? (
-                <div className={`bg-[#1a1208] flex-1 ${fullscreen ? '' : 'h-[720px]'}`}>
+                {/* Iframe */}
+                <div className="flex-1 min-h-0">
                     <iframe
-                        key={tool.id}
-                        src={tool.src}
-                        title={tool.label}
+                        key={openTool}
+                        src={activeTool.src}
+                        title={activeTool.label}
                         className="w-full h-full border-0 block"
                         sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
                         allow="clipboard-read; clipboard-write; fullscreen"
@@ -244,14 +229,35 @@ const AdminWorldTools = ({ currentUser }) => {
                         onLoad={handleIframeLoad}
                     />
                 </div>
-            ) : (
-                <div className={`bg-black/20 ${fullscreen ? 'flex-1 overflow-auto' : 'max-h-[720px] overflow-auto'}`}>
+            </div>,
+            document.body
+        );
+    }
+
+    // Library overlay
+    if (showLibrary) {
+        return (
+            <div className="glass-card border border-white/10 rounded-2xl overflow-hidden flex flex-col animate-in fade-in duration-300">
+                <div className="p-4 border-b border-white/10 bg-black/40 flex items-center gap-3">
+                    <button
+                        onClick={() => setShowLibrary(false)}
+                        className="flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg transition-all"
+                    >
+                        <ArrowLeft size={14}/> Back
+                    </button>
+                    <h3 className="text-lg font-bold text-rpg-gold flex items-center gap-2">
+                        <Library size={18}/> Saved Designs
+                    </h3>
+                    <span className="text-xs text-gray-500 ml-auto font-mono">
+                        {designs.length} design{designs.length !== 1 ? 's' : ''}
+                    </span>
+                </div>
+                <div className="bg-black/20 max-h-[600px] overflow-auto">
                     {libLoading ? (
                         <div className="flex items-center justify-center py-16 text-rpg-gold"><Loader className="animate-spin" size={24}/></div>
                     ) : designs.length === 0 ? (
                         <div className="text-center text-gray-500 italic py-16 px-4">
-                            No designs saved yet. Open House Builder or Map Editor and click<br/>
-                            <strong className="text-rpg-gold">SAVE TO LIBRARY</strong> to start collecting designs here.
+                            No designs saved yet. Open a tool and click <strong className="text-rpg-gold">SAVE TO LIBRARY</strong>.
                         </div>
                     ) : (
                         <div className="p-4 space-y-2">
@@ -260,7 +266,11 @@ const AdminWorldTools = ({ currentUser }) => {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <span className="font-bold text-white truncate" title={d.name}>{d.name}</span>
-                                            <span className={`text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded border ${d.tool === 'house' ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-purple-500/10 border-purple-500/30 text-purple-400'}`}>
+                                            <span className={`text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded border ${
+                                                d.tool === 'house' ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                                                    : d.tool === 'character' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                                                    : 'bg-purple-500/10 border-purple-500/30 text-purple-400'
+                                            }`}>
                                                 {d.tool}
                                             </span>
                                             <span className="text-[10px] text-gray-500">{new Date(d.created_at).toLocaleString()}</span>
@@ -271,23 +281,13 @@ const AdminWorldTools = ({ currentUser }) => {
                                         </details>
                                     </div>
                                     <div className="flex gap-1.5">
-                                        <button
-                                            onClick={() => copySnippet(d)}
-                                            className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold bg-rpg-gold/15 hover:bg-rpg-gold/25 border border-rpg-gold/40 text-rpg-gold px-2.5 py-1.5 rounded"
-                                        >
-                                            {copiedId === d.id ? <Check size={11}/> : <Copy size={11}/>}
-                                            {copiedId === d.id ? 'Copied' : 'Copy'}
+                                        <button onClick={() => copySnippet(d)} className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold bg-rpg-gold/15 hover:bg-rpg-gold/25 border border-rpg-gold/40 text-rpg-gold px-2.5 py-1.5 rounded">
+                                            {copiedId === d.id ? <Check size={11}/> : <Copy size={11}/>} {copiedId === d.id ? 'Copied' : 'Copy'}
                                         </button>
-                                        <button
-                                            onClick={() => editDesign(d)}
-                                            className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 px-2.5 py-1.5 rounded"
-                                        >
+                                        <button onClick={() => editDesign(d)} className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 px-2.5 py-1.5 rounded">
                                             Edit
                                         </button>
-                                        <button
-                                            onClick={() => deleteDesign(d)}
-                                            className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 px-2.5 py-1.5 rounded"
-                                        >
+                                        <button onClick={() => deleteDesign(d)} className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 px-2.5 py-1.5 rounded">
                                             <Trash2 size={11}/>
                                         </button>
                                     </div>
@@ -296,15 +296,62 @@ const AdminWorldTools = ({ currentUser }) => {
                         </div>
                     )}
                 </div>
-            )}
-
-            {/* Footer help */}
-            <div className="px-4 py-2.5 border-t border-white/10 bg-black/30 text-[10px] text-gray-500 flex justify-between flex-wrap gap-2">
-                <span>
-                    Inside each editor, click <strong className="text-rpg-gold">SAVE TO LIBRARY</strong> to send the design to your admin library (no manual copy-paste).
-                </span>
-                <span className="font-mono">Admin: {currentUser?.username}</span>
             </div>
+        );
+    }
+
+    // Main view — Tool cards
+    return (
+        <div className="space-y-4 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {TOOLS.map(t => {
+                    const Icon = t.icon;
+                    const c = COLOR_MAP[t.color] || COLOR_MAP.amber;
+                    return (
+                        <button
+                            key={t.id}
+                            onClick={() => setOpenTool(t.id)}
+                            className={`group text-left ${c.bg} border ${c.border} rounded-2xl p-5 transition-all hover:scale-[1.02] hover:shadow-lg ${c.glow} cursor-pointer`}
+                        >
+                            <div className="flex items-start justify-between mb-3">
+                                <div className={`w-10 h-10 rounded-xl ${c.bg} border ${c.border} flex items-center justify-center`}>
+                                    <Icon size={20} className={c.text}/>
+                                </div>
+                                {t.status === 'constructor' && (
+                                    <span className="text-[8px] uppercase tracking-widest font-bold px-2 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-400">
+                                        WIP
+                                    </span>
+                                )}
+                            </div>
+                            <h4 className="font-bold text-white text-sm mb-1 group-hover:text-rpg-gold transition-colors">{t.label}</h4>
+                            <p className="text-xs text-gray-400 leading-relaxed">{t.description}</p>
+                        </button>
+                    );
+                })}
+
+                {/* Library card */}
+                <button
+                    onClick={() => setShowLibrary(true)}
+                    className="group text-left bg-white/5 border border-white/10 rounded-2xl p-5 transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-white/5 cursor-pointer"
+                >
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-rpg-gold/10 border border-rpg-gold/30 flex items-center justify-center">
+                            <Library size={20} className="text-rpg-gold"/>
+                        </div>
+                        {designs.length > 0 && (
+                            <span className="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded bg-rpg-gold/15 border border-rpg-gold/30 text-rpg-gold">
+                                {designs.length}
+                            </span>
+                        )}
+                    </div>
+                    <h4 className="font-bold text-white text-sm mb-1 group-hover:text-rpg-gold transition-colors">Saved Designs</h4>
+                    <p className="text-xs text-gray-400 leading-relaxed">Diseños guardados desde los editores. Copia, edita o elimina.</p>
+                </button>
+            </div>
+
+            <p className="text-[10px] text-gray-500 text-center px-4">
+                Click a tool to open it fullscreen. Inside each editor, click <strong className="text-rpg-gold">SAVE TO LIBRARY</strong> to store your work.
+            </p>
         </div>
     );
 };

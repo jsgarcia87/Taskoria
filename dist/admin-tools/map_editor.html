@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Taskoria — Map Editor</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;500;700&display=swap');
@@ -25,7 +25,7 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text);
-       font-family: 'Outfit', sans-serif; height: 100vh; height: 100dvh;
+       font-family: 'Outfit', sans-serif; height: 100vh;
        display: flex; flex-direction: column; overflow: hidden; }
 
 /* ── TOPBAR ── */
@@ -35,8 +35,7 @@ body { background: var(--bg); color: var(--text);
   flex-shrink: 0; flex-wrap: wrap;
 }
 .logo { font-family: 'Press Start 2P', monospace; font-size: 9px;
-        color: var(--gold); text-shadow: 0 0 10px #f0c04044;
-        white-space: nowrap; }
+        color: var(--gold); white-space: nowrap; }
 .logo span { color: var(--purple2); }
 
 .top-group { display: flex; gap: 4px; align-items: center; }
@@ -106,16 +105,10 @@ body { background: var(--bg); color: var(--text);
 .canvas-area {
   flex: 1; overflow: auto; background: #080610;
   position: relative; cursor: crosshair;
-  /* Prevents tablet/stylus from scrolling the canvas-area while drawing */
-  touch-action: none;
 }
 #mapCanvas { display: block; image-rendering: pixelated; position: absolute; top: 0; left: 0; }
-#overlayCanvas {
-  display: block; image-rendering: pixelated;
-  position: absolute; top: 0; left: 0; pointer-events: auto;
-  /* Stylus/finger drawing — disables browser pan/zoom gestures on this layer */
-  touch-action: none;
-}
+#overlayCanvas { display: block; image-rendering: pixelated;
+                 position: absolute; top: 0; left: 0; pointer-events: none; }
 
 /* ── PROPS PANEL (derecha) ── */
 .props-panel {
@@ -171,46 +164,50 @@ body { background: var(--bg); color: var(--text);
 .statusbar span { color: var(--text); }
 .statusbar .tool-hint { color: var(--purple2); margin-left: auto; }
 
+/* Portal config panel */
+.portal-cfg { display: flex; flex-direction: column; gap: 2px; }
+.portal-cfg select, .portal-cfg input {
+  width: 100%; padding: 2px 4px; background: var(--panel);
+  border: 1px solid var(--border2); border-radius: 2px;
+  color: var(--text); font-size: 9px;
+}
+.portal-cfg .pc-label { font-size: 8px; color: var(--dim); margin-top: 2px; }
+.portal-cfg .pc-row { display: flex; gap: 4px; align-items: center; }
+.portal-cfg .pc-row input { width: 40px; text-align: center; }
+
+/* World graph modal */
+[hidden] { display: none !important; }
+.wg-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  z-index: 100; display: flex; align-items: center; justify-content: center;
+}
+.wg-modal {
+  background: var(--bg2); border: 2px solid var(--border); border-radius: 8px;
+  width: 90vw; max-width: 800px; height: 70vh; max-height: 600px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.wg-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--gold);
+}
+.wg-header button { background: none; border: none; color: var(--dim);
+  cursor: pointer; font-size: 14px; }
+.wg-header button:hover { color: var(--red); }
+.wg-body { flex: 1; position: relative; overflow: hidden; }
+#worldGraphCanvas { width: 100%; height: 100%; }
+
+/* Auto-blend indicator */
+.blend-badge {
+  font-family: 'Press Start 2P', monospace; font-size: 4px;
+  color: var(--cyan); padding: 1px 3px; border: 1px solid var(--border2);
+  border-radius: 2px; background: var(--panel);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-
-/* ── PANEL TOGGLE FABS (tablet) ── */
-.panel-fab{display:none;position:fixed;z-index:200;width:44px;height:44px;border-radius:50%;
-           border:2px solid var(--purple2);background:var(--panel);color:var(--gold);
-           font-size:18px;cursor:pointer;align-items:center;justify-content:center;
-           box-shadow:0 4px 16px rgba(0,0,0,.5);transition:transform .2s;}
-.panel-fab:active{transform:scale(.9);}
-.fab-left{bottom:16px;left:16px;}
-.fab-right{bottom:16px;right:16px;}
-.panel-backdrop{display:none;position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.55);}
-
-/* ── RESPONSIVE ── */
-@media (max-width:900px){
-  .layout{position:relative;}
-  .asset-panel{position:fixed;left:0;top:0;bottom:0;z-index:100;width:220px;max-width:75vw;
-               transform:translateX(-100%);transition:transform .3s cubic-bezier(.22,1,.36,1);
-               box-shadow:4px 0 24px rgba(0,0,0,.6);}
-  .asset-panel.open{transform:translateX(0);}
-  .props-panel{position:fixed;right:0;top:0;bottom:0;z-index:100;width:220px;max-width:75vw;
-               transform:translateX(100%);transition:transform .3s cubic-bezier(.22,1,.36,1);
-               box-shadow:-4px 0 24px rgba(0,0,0,.6);}
-  .props-panel.open{transform:translateX(0);}
-  .panel-fab{display:flex;}
-  .panel-backdrop.open{display:block;}
-  .sep{display:none;}
-  .topbar{gap:4px;padding:4px 8px;}
-  .tbtn{padding:6px 7px;font-size:5px;}
-  .top-group{flex-wrap:wrap;}
-  .map-size{font-size:9px;}
-  .map-size input{width:36px;font-size:6px;}
-  .statusbar{font-size:8px;gap:8px;padding:3px 8px;}
-  .statusbar .tool-hint{display:none;}
-}
-@media (max-width:600px){
-  .topbar .top-group:nth-child(n+4){display:none;}
-}
 </style>
 </head>
 <body>
@@ -231,11 +228,10 @@ body { background: var(--bg); color: var(--text);
   <div class="sep"></div>
 
   <!-- Zoom -->
-  <div class="top-group" title="Zoom del lienzo (no afecta al mapa)">
-    <span style="font-size:9px;color:var(--dim)">🔍 Zoom:</span>
-    <button class="tbtn" onclick="zoom(-1)" title="Alejar">－</button>
+  <div class="top-group">
+    <button class="tbtn" onclick="zoom(-1)">－</button>
     <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--dim)" id="zoomLabel">1×</span>
-    <button class="tbtn" onclick="zoom(1)" title="Acercar">＋</button>
+    <button class="tbtn" onclick="zoom(1)">＋</button>
   </div>
   <div class="sep"></div>
 
@@ -262,9 +258,22 @@ body { background: var(--bg); color: var(--text);
     <button class="tbtn" onclick="clearMap()">🗑 CLEAR</button>
     <button class="tbtn green" onclick="exportMapData()">⬇ EXPORT JS</button>
     <button class="tbtn gold" onclick="saveToLocal()">💾 SAVE</button>
-    <button class="tbtn" onclick="saveToLibrary()" style="background:#3a2a5a;color:#f0c040;border-color:#5a4a7a">📥 SAVE TO LIBRARY</button>
-    <button class="tbtn" onclick="loadFromFile()" title="Importar un mapa desde un archivo .json/.js">📂 LOAD</button>
-    <button class="tbtn" id="btn-fullscreen" onclick="toggleFullscreen()" title="Pantalla completa">⛶ FULLSCREEN</button>
+    <button class="tbtn" onclick="loadFromLocal()">📂 LOAD</button>
+    <button class="tbtn" id="publishBtn" onclick="publishMapToReview()" style="color:var(--cyan);border-color:var(--cyan);">📤 PUBLICAR</button>
+    <button class="tbtn" onclick="openWorldGraph()" style="color:var(--purple2);border-color:var(--purple);">🗺 GRAFO</button>
+  </div>
+</div>
+
+<!-- World Graph Modal -->
+<div class="wg-overlay" id="worldGraphOverlay" hidden>
+  <div class="wg-modal">
+    <div class="wg-header">
+      <span>🗺 WORLD GRAPH</span>
+      <button onclick="closeWorldGraph()">✕</button>
+    </div>
+    <div class="wg-body">
+      <canvas id="worldGraphCanvas"></canvas>
+    </div>
   </div>
 </div>
 
@@ -316,32 +325,46 @@ body { background: var(--bg); color: var(--text);
         <div class="prop-row"><span class="pl">Pos</span><span class="pv" id="selPos">—</span></div>
         <div class="prop-row"><span class="pl">Tipo</span><span class="pv" id="selType">—</span></div>
         <div class="prop-row"><span class="pl">Capa</span><span class="pv" id="selLayer">—</span></div>
-        <!-- Instance transform — only visible when an instance is selected -->
-        <div id="selInsBlock" style="display:none">
-          <div class="prop-row" id="selSizeRow">
-            <span class="pl">X</span>
-            <input type="number" id="selX" step="1" style="width:56px" oninput="applyInstanceInputs()">
-            <span style="width:6px"></span>
-            <span class="pl">Y</span>
-            <input type="number" id="selY" step="1" style="width:56px" oninput="applyInstanceInputs()">
-          </div>
-          <div class="prop-row">
-            <span class="pl">Scale</span>
-            <input type="number" id="selScale" min="0.25" max="8" step="0.25" style="width:56px" oninput="applyInstanceInputs()">
-            <span style="width:6px"></span>
-            <span class="pl">Rot°</span>
-            <input type="number" id="selRotation" step="15" style="width:56px" oninput="applyInstanceInputs()">
-          </div>
-        </div>
         <div class="prop-row">
           <span class="pl">Label</span>
           <input type="text" id="selLabel" value="" placeholder="nombre..." oninput="updateSelLabel()">
         </div>
         <div class="prop-row" style="justify-content:center;padding:8px">
-          <button class="tbtn red" onclick="deleteSelected()" style="width:100%">🗑 BORRAR (Del)</button>
+          <button class="tbtn red" onclick="deleteSelected()" style="width:100%">🗑 BORRAR</button>
         </div>
-        <div class="prop-row" style="justify-content:center;padding:0 8px 8px">
-          <button class="tbtn" onclick="duplicateSelectedInstance()" style="width:100%" title="Ctrl+C then Ctrl+V">📋 DUPLICAR (Ctrl+C/V)</button>
+      </div>
+
+      <!-- Portal config (hidden until a portal is selected) -->
+      <div class="prop-section" id="portalCfgSection" hidden>
+        <div class="prop-section-title">🌀 PORTAL</div>
+        <div class="portal-cfg" style="padding:6px 8px">
+          <span class="pc-label">Destino</span>
+          <select id="portalTarget" onchange="updatePortalCfg()">
+            <option value="">(sin destino)</option>
+            <option value="townSquare">Town Square</option>
+            <option value="taskoriaKeep">Taskoria Keep</option>
+            <option value="tavernInterior">Tavern Interior</option>
+            <option value="mysticForest">Mystic Forest</option>
+            <option value="shadowCrypts">Shadow Crypts</option>
+          </select>
+          <span class="pc-label">Spawn destino (tiles)</span>
+          <div class="pc-row">
+            <span style="font-size:8px;color:var(--dim)">X</span>
+            <input type="number" id="portalSpawnX" value="10" min="0" max="60" onchange="updatePortalCfg()">
+            <span style="font-size:8px;color:var(--dim)">Y</span>
+            <input type="number" id="portalSpawnY" value="10" min="0" max="40" onchange="updatePortalCfg()">
+          </div>
+          <span class="pc-label">Etiqueta</span>
+          <input type="text" id="portalLabel" value="" placeholder="Nombre del portal..." oninput="updatePortalCfg()">
+          <span class="pc-label">Condición (opcional)</span>
+          <div class="pc-row">
+            <select id="portalCondType" onchange="updatePortalCfg()" style="width:60px">
+              <option value="">Ninguna</option>
+              <option value="minLevel">Nivel mín.</option>
+              <option value="questFlag">Quest flag</option>
+            </select>
+            <input type="text" id="portalCondValue" value="" placeholder="valor" oninput="updatePortalCfg()" style="flex:1">
+          </div>
         </div>
       </div>
 
@@ -387,11 +410,6 @@ body { background: var(--bg); color: var(--text);
 
 </div>
 
-<!-- PANEL TOGGLE FABS (tablet) -->
-<button class="panel-fab fab-left" id="fabLeft" onclick="toggleAssetPanel()">🏰</button>
-<button class="panel-fab fab-right" id="fabRight" onclick="togglePropsPanel()">⚙</button>
-<div class="panel-backdrop" id="editorBackdrop" onclick="closeAllPanels()"></div>
-
 <!-- STATUSBAR -->
 <div class="statusbar">
   <div>Herramienta: <span id="stTool">draw</span></div>
@@ -399,7 +417,7 @@ body { background: var(--bg); color: var(--text);
   <div>Capa: <span id="stLayer">ground</span></div>
   <div>Objetos: <span id="stObjs">0</span></div>
   <div>Undo: <span id="stUndo">0</span></div>
-  <div class="tool-hint" id="toolHint">✏ Click para pintar · Rueda para zoom · Mayús+arrastrar para pan</div>
+  <div class="tool-hint" id="toolHint">B draw · E erase · F fill · S select · I pick · Ctrl+Z undo · Ctrl+S save · Scroll zoom · Shift+drag pan</div>
 </div>
 
 <script>
@@ -918,7 +936,6 @@ const P_dk='#200c08';
 SPRITES.npc_guard    = makeNPC('#667788','#2a3848','#603820','#e8c090','#cc2222');
 SPRITES.npc_merchant = makeNPC('#4a6890','#283050','#f0d050','#f0c888','#d8a030');
 SPRITES.npc_villager = makeNPC('#5a8040','#3a3050','#c07830','#f0c888','#a0c060');
-SPRITES.ref_hero = makeNPC('#4a90e2','#2c3e50','#d35400','#f5d7b5','#85c1e9');
 SPRITES.npc_bard     = makeNPC('#9050b0','#2a1848','#e0a030','#f0c898','#d040b8');
 
 // ═══════════════════════════════════════════════════════════
@@ -1570,16 +1587,9 @@ const CATEGORIES = {
     { key:'portal', label:'Portal' },
     { key:'spawn',  label:'Spawn' },
   ],
-  'REFERENCIAS': [
-    { key:'ref_hero', label:'Ref. Héroe' }
-  ],
 };
 
 // Qué capas acepta cada tipo
-// Display names for library assets (was assigned without ever being declared,
-// which threw a ReferenceError that silently killed applyLibraryDesigns).
-const NAMES = {};
-
 const ASSET_LAYER = {
   // Suelo
   cobblestone:'ground', grass:'ground', grass_dark:'ground', dirt:'ground',
@@ -1603,8 +1613,6 @@ const ASSET_LAYER = {
   npc_guard:'objects', npc_merchant:'objects', npc_villager:'objects', npc_bard:'objects',
   // Especial
   portal:'objects', spawn:'objects',
-  // Referencias
-  ref_hero: 'objects',
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -1612,7 +1620,7 @@ const ASSET_LAYER = {
 // ═══════════════════════════════════════════════════════════
 let mapW=20, mapH=16, tileSize=40;
 let zoomLevel=1;
-let currentDrawTool='draw';
+let currentTool='draw';
 let currentLayer='ground';
 let selectedAsset=null;
 let selectedCell=null;
@@ -1622,238 +1630,12 @@ let panStart={x:0,y:0};
 let viewOffset={x:0,y:0};
 let layerVisible={ground:true,objects:true,overhead:true};
 
-// Datos del mapa: 3 capas para tiles + array separado para instancias
+// Datos del mapa: 3 capas, cada tile = {type, label}
 let layers={
-  ground:   [],   // array[y][x] — tile brush layer
+  ground:   [],   // array[y][x]
   objects:  [],
   overhead: [],
 };
-
-// Instances — large/individual placeable objects with x,y,w,h that can be
-// moved and resized after placement (instead of being painted tile by tile).
-// Stored as { id, type, gridX, gridY, w, h, label? } with grid coordinates.
-let instances = [];
-let nextInstanceId = 1;
-let selectedInstanceId = null;
-
-// Ground overlays — freeform coloured shapes painted over the floor (roads,
-// the plaza island, worn patches). Stored in tile-space px so they line up
-// with instances. Imported from `rect`/`cobble_patch` decorations and written
-// back out on save, so the game's paths and plaza survive the round-trip.
-let overlays = [];
-
-// Last library payload received from the parent, and the id of the map currently
-// being edited (so saving preserves it and overrides the right map).
-let _libraryDesigns = [];
-let _loadedMapId = null;
-let isMovingInstance = false;
-let isResizingInstance = false;
-let dragInstanceOffset = {x:0, y:0};
-
-// Assets that should be placed as movable+resizable instances instead of
-// painted as repeating tiles. Buildings, trees, large props.
-const INSTANCE_TYPE_SET = new Set([
-  // Castles & walls
-  'castle','gate','wall_h','wall_tower','dungeon_entrance','tower',
-  // Buildings
-  'house_thatch','house_wood','tavern','church','smithy','windmill','forge',
-  // Trees
-  'oak_tree','pine_tree','dead_tree',
-  // Big props
-  'well','fountain','bridge','statue','signpost','market_stall','campfire',
-]);
-// Default placement size in TILES per instance type
-const INSTANCE_DEFAULT_SIZE = {
-  castle:{w:4,h:4}, gate:{w:2,h:3}, wall_tower:{w:2,h:3}, wall_h:{w:3,h:1},
-  dungeon_entrance:{w:2,h:2}, tower:{w:2,h:3},
-  house_thatch:{w:2,h:2}, house_wood:{w:2,h:2}, tavern:{w:3,h:3},
-  church:{w:3,h:4}, smithy:{w:2,h:2}, windmill:{w:2,h:3}, forge:{w:2,h:2},
-  oak_tree:{w:1,h:1}, pine_tree:{w:1,h:1}, dead_tree:{w:1,h:1},
-  well:{w:1,h:1}, fountain:{w:2,h:2}, bridge:{w:3,h:1},
-  statue:{w:1,h:2}, signpost:{w:1,h:1}, market_stall:{w:2,h:2}, campfire:{w:1,h:1},
-};
-
-function isInstanceType(type){
-  if(!type) return false;
-  // Library houses always go as instances
-  if(typeof type === 'string' && type.startsWith('lib_')) return true;
-  // Everything that isn't a floor tile is placed as a free instance —
-  // props, NPCs, castles, walls, buildings, trees. Painting is reserved for
-  // ground (grass/dirt/stone/water). Grow beyond INSTANCE_TYPE_SET by
-  // reading ASSET_LAYER; the whitelist is kept only as a strong hint.
-  if(INSTANCE_TYPE_SET.has(type)) return true;
-  const layer = ASSET_LAYER[type];
-  return !!(layer && layer !== 'ground');
-}
-function defaultSizeFor(type){
-  const d = INSTANCE_DEFAULT_SIZE[type];
-  if(d) return {w:d.w, h:d.h};
-  if(typeof type === 'string' && type.startsWith('lib_')) return {w:2, h:2};
-  return {w:2, h:2};
-}
-
-// ═══════════════════════════════════════════════════════════
-// Instance model — new shape is px-based with a float scale so props can be
-// moved and resized continuously. Legacy records saved before this refactor
-// used tile grid coords (gridX/gridY/w/h); we auto-migrate them on any code
-// path that reads instances. Export writes the new shape; the runtime map
-// data still reads the same fields whether saved before or after.
-//   New:    { id, type, x, y, scale, rotation, label }
-//   Legacy: { id, type, gridX, gridY, w, h, label }
-// ═══════════════════════════════════════════════════════════
-function migrateInstance(ins){
-  if(!ins) return ins;
-  if(typeof ins.x === 'number' && typeof ins.scale === 'number') return ins;
-  // Legacy migration: gridX/gridY become px in TILE-units of the source
-  // canvas (tileSize). scale collapses w & h into a single float — legacy
-  // instances were placed with defaults that had w == h, so aspect is safe.
-  return {
-    id: ins.id,
-    type: ins.type,
-    x: (ins.gridX || 0) * tileSize,
-    y: (ins.gridY || 0) * tileSize,
-    scale: ins.w || ins.h || defaultSizeFor(ins.type).w,
-    rotation: ins.rotation || 0,
-    label: ins.label || '',
-  };
-}
-function migrateAllInstances(arr){
-  return (arr || []).map(migrateInstance);
-}
-// A sprite's natural pixel dimensions (registry buffers, house previews and
-// pixel-art canvases all carry their true w/h). Falls back to one tile.
-function instanceNatural(ins){
-  const spr = SPRITES[ins.type];
-  return {
-    sw: (spr && spr.width)  ? spr.width  : tileSize,
-    sh: (spr && spr.height) ? spr.height : tileSize,
-  };
-}
-// Instance bounding box in PX (unrotated). Rotation is applied only at
-// render + hit-test time; storage stays axis-aligned.
-//
-// WYSIWYG: `scale` means exactly what the game engine's WorldSprite means —
-// rendered px = natural sprite px × scale. So a prop occupies the same real
-// footprint here as it will in production, aspect ratio included.
-function instanceBox(ins){
-  const { sw, sh } = instanceNatural(ins);
-  return { x: ins.x, y: ins.y, w: sw * ins.scale, h: sh * ins.scale };
-}
-
-// The shared game-sprite registry loads asynchronously (module at the bottom
-// of the file). Import conversion waits on this so natural sprite dimensions
-// are available for accurate anchor math.
-let _markRegistryReady;
-const registryReady = new Promise(res => { _markRegistryReady = res; });
-// Prefab expander (shared with the game engine). Set by the parity module once
-// prefabs.js loads, so imported maps can rebuild their composite scenes.
-let expandPrefabsFn = null;
-
-// Convert a runtime MapData decoration into an editor instance (top-left px +
-// scale, where rendered px = natural × scale — WYSIWYG). Mirrors the anchor
-// conventions in PlayableWorld's DecorationsLayer so an imported map looks the
-// same in the editor as in the game. Returns null for paint-only / CSS-only
-// helpers and for decorations whose sprite isn't available.
-const _BANNER_VARIANT = c => c === '#dc2626' ? 'banner_red'
-  : c === '#7c3aed' ? 'banner_purple' : c === '#2a5a9a' ? 'banner_blue' : 'banner_gold';
-const _STALL_VARIANT = c => c === '#16a34a' ? 'market_stall_green'
-  : c === '#7c3aed' ? 'market_stall_purple' : 'market_stall_red';
-// Top-left decorations (given a width/height footprint). base = the natural
-// sprite height the engine divides by; scale = height / base.
-const _TOPLEFT_BASE = { oak_tree:64, pine_tree:72, tree:64, dead_tree:64, well:36, shop_building:60, market_stall:40 };
-// Bottom-center, size-driven decorations. scale = size / base.
-const _SIZE_RULE = { barrel:{b:24,d:38}, crate:{b:20,d:42}, lamp:{b:32,d:64}, flowers:{b:28,d:30}, bush:{b:32,d:50}, bench:{b:36,d:60} };
-// Never turn these into sprites — they're runtime paint, CSS, or dynamic.
-const _SKIP_DEC = new Set(['rect','lantern_glow','crack','puddle','cobble_patch','rug','critter','torch','pillar','vendor_npc','table','bar_counter']);
-
-function decorationToInstance(d){
-  if(!d || !d.type || _SKIP_DEC.has(d.type)) return null;
-  let key, scale, cx, by; // cx = bottom-center x, by = bottom (foot) y
-  if(d.type === 'sprite'){
-    key = d.name; scale = d.scale || 1; cx = d.x; by = d.y;
-  } else if(_TOPLEFT_BASE[d.type] !== undefined){
-    key = d.type === 'market_stall' ? _STALL_VARIANT(d.color) : d.type;
-    const baseH = _TOPLEFT_BASE[d.type];
-    const spr0 = SPRITES[key];
-    const h = d.height != null ? d.height : (spr0 ? spr0.height : baseH);
-    scale = h / baseH;
-    const wRef = d.width != null ? d.width : (spr0 ? spr0.width * scale : baseH);
-    cx = d.x + wRef / 2;
-    by = d.y + h;
-  } else if(_SIZE_RULE[d.type] !== undefined){
-    key = d.type;
-    const r = _SIZE_RULE[d.type];
-    scale = (d.size != null ? d.size : r.d) / r.b;
-    cx = d.x; by = d.y;
-  } else if(d.type === 'sign'){
-    key = 'sign'; scale = 1.2; cx = d.x; by = d.y + 4;
-  } else if(d.type === 'banner'){
-    key = _BANNER_VARIANT(d.color); scale = 2; cx = d.x; by = d.y + 64;
-  } else {
-    key = d.type; scale = d.scale || 1; cx = d.x; by = d.y;
-  }
-  const spr = SPRITES[key];
-  if(!spr) return null;
-  const nw = spr.width || tileSize, nh = spr.height || tileSize;
-  return {
-    type: key,
-    x: cx - (nw * scale) / 2,
-    y: by - nh * scale,
-    scale,
-    rotation: 0,
-    ...(d.label ? { label: d.label } : {}),
-  };
-}
-
-// Convert a ground-paint `rect` / `cobble_patch` decoration into an editor
-// overlay (kept in px, preserved verbatim on save).
-function rectToOverlay(d){
-  return {
-    x: d.x, y: d.y, w: d.width || 0, h: d.height || 0,
-    color: d.color || '#000000',
-    opacity: d.opacity != null ? d.opacity : 1,
-    ...(d.radius ? { radius: d.radius } : {}),
-    z: d.z != null ? d.z : 0,
-  };
-}
-
-function getInstanceAt(px, py){
-  // Iterate in reverse so top-most (last placed) wins on overlapping picks
-  for(let i = instances.length - 1; i >= 0; i--){
-    const ins = instances[i];
-    const b = instanceBox(ins);
-    // Un-rotate the hit point around the instance center for a fair test
-    let hx = px, hy = py;
-    if(ins.rotation){
-      const cx = b.x + b.w/2, cy = b.y + b.h/2;
-      const a = -ins.rotation * Math.PI / 180;
-      const dx = px - cx, dy = py - cy;
-      hx = cx + dx * Math.cos(a) - dy * Math.sin(a);
-      hy = cy + dx * Math.sin(a) + dy * Math.cos(a);
-    }
-    if(hx >= b.x && hx <= b.x + b.w && hy >= b.y && hy <= b.y + b.h) return ins;
-  }
-  return null;
-}
-// Handle sizes tuned for touch + mouse: chunky enough to grab confidently.
-const INS_HANDLE_PX = 16;
-// Touch fingers are imprecise — widen the grab area when the last input was
-// a finger (set in pointerdown). Divide by zoom so it's constant on screen.
-let coarsePointer = false;
-function handlePad(){ return (coarsePointer ? 16 : 4) / zoomLevel; }
-function isResizeHandle(ins, px, py){
-  const b = instanceBox(ins);
-  const pad = handlePad();
-  const hx = b.x + b.w - INS_HANDLE_PX - pad, hy = b.y + b.h - INS_HANDLE_PX - pad;
-  return px >= hx && px <= b.x + b.w + pad && py >= hy && py <= b.y + b.h + pad;
-}
-function isRotationHandle(ins, px, py){
-  // Small circular knob 22 px above the top-center of the instance.
-  const b = instanceBox(ins);
-  const cx = b.x + b.w/2;
-  const cy = b.y - 22;
-  return Math.hypot(px - cx, py - cy) <= 12 + handlePad();
-}
 
 // Historial undo/redo
 let undoStack=[];
@@ -1861,15 +1643,14 @@ let redoStack=[];
 
 function initMap(){
   layers.ground=[];layers.objects=[];layers.overhead=[];
-  overlays=[];
   for(let y=0;y<mapH;y++){
     layers.ground.push(new Array(mapW).fill(null));
     layers.objects.push(new Array(mapW).fill(null));
     layers.overhead.push(new Array(mapW).fill(null));
   }
-  // Default floor uses the real game tile key so a new map's ground round-trips.
+  // Suelo por defecto
   for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
-    layers.ground[y][x]={type:'cobblestone_tile',label:''};
+    layers.ground[y][x]={type:'cobblestone',label:''};
   }
   document.getElementById('infoSize').textContent=`${mapW}×${mapH}`;
 }
@@ -1905,27 +1686,54 @@ function render(){
   ctx.fillRect(0,0,mapCanvas.width,mapCanvas.height);
 
   // Renderizar capas en orden
+  ctx.imageSmoothingEnabled=false;
   ['ground','objects','overhead'].forEach(layerKey=>{
     if(!layerVisible[layerKey]) return;
     for(let y=0;y<mapH;y++){
       for(let x=0;x<mapW;x++){
         const cell=layers[layerKey][y][x];
-        if(!cell){
-          // Empty SUELO reads as an intentional checkerboard, not a black hole.
-          if(layerKey==='ground'){
-            const dx=x*TS, dy=y*TS, h=TS/2;
-            ctx.fillStyle='#2b2b33'; ctx.fillRect(dx,dy,TS,TS);
-            ctx.fillStyle='#34343f'; ctx.fillRect(dx,dy,h,h); ctx.fillRect(dx+h,dy+h,h,h);
-          }
-          continue;
-        }
+        if(!cell) continue;
         const spr=SPRITES[cell.type];
         if(!spr) continue;
         const dx=x*TS, dy=y*TS;
-        ctx.imageSmoothingEnabled=false;
-        // Fix subpixel rendering gaps on scaled canvas by overlapping ground layer slightly
-        const stretch = layerKey === 'ground' ? 0.5 : 0;
-        ctx.drawImage(spr, dx, dy, TS + stretch, TS + stretch);
+        ctx.drawImage(spr,dx,dy,TS,TS);
+
+        // Auto-blend edges for ground layer
+        if(layerKey==='ground'){
+          const blendW=Math.max(2,Math.round(TS*0.15));
+          const neighbors=[
+            {nx:x,ny:y-1,edge:'top'},
+            {nx:x,ny:y+1,edge:'bottom'},
+            {nx:x-1,ny:y,edge:'left'},
+            {nx:x+1,ny:y,edge:'right'},
+          ];
+          for(const{nx,ny,edge}of neighbors){
+            if(nx<0||nx>=mapW||ny<0||ny>=mapH) continue;
+            const nb=layers.ground[ny]?.[nx];
+            if(!nb||nb.type===cell.type) continue;
+            const nbSpr=SPRITES[nb.type];
+            if(!nbSpr) continue;
+            ctx.save();
+            ctx.beginPath();
+            if(edge==='top')    ctx.rect(dx,dy,TS,blendW);
+            if(edge==='bottom') ctx.rect(dx,dy+TS-blendW,TS,blendW);
+            if(edge==='left')   ctx.rect(dx,dy,blendW,TS);
+            if(edge==='right')  ctx.rect(dx+TS-blendW,dy,blendW,TS);
+            ctx.clip();
+            ctx.globalAlpha=0.4;
+            ctx.drawImage(nbSpr,dx,dy,TS,TS);
+            ctx.globalAlpha=1;
+            ctx.restore();
+          }
+        }
+
+        // Portal destination overlay
+        if(cell.type==='portal'&&cell.portalTarget){
+          ctx.fillStyle='rgba(100,200,255,0.15)';ctx.fillRect(dx,dy,TS,TS);
+          ctx.fillStyle='#50a0f0';ctx.font=`${Math.max(4,zoomLevel*3)}px monospace`;
+          ctx.fillText('→'+cell.portalTarget.slice(0,6),dx+1,dy+TS-2);
+        }
+
         // Label
         if(cell.label){
           ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(dx+1,dy+1,TS-2,8);
@@ -1936,129 +1744,10 @@ function render(){
     }
   });
 
-  // ── Ground overlays (roads, plaza island) — over the floor, under props ──
-  if(overlays.length){
-    for(const ov of overlays){
-      const ox=ov.x*zoomLevel, oy=ov.y*zoomLevel, ow=ov.w*zoomLevel, oh=ov.h*zoomLevel;
-      ctx.save();
-      ctx.globalAlpha = (ov.opacity!=null?ov.opacity:1);
-      ctx.fillStyle = ov.color || '#000';
-      const round = ov.radius && (String(ov.radius).includes('9999') || String(ov.radius).includes('50%'));
-      if(round){
-        ctx.beginPath();
-        ctx.ellipse(ox+ow/2, oy+oh/2, ow/2, oh/2, 0, 0, Math.PI*2);
-        ctx.fill();
-      } else {
-        ctx.fillRect(ox, oy, ow, oh);
-      }
-      ctx.restore();
-    }
-  }
-
-  // ── Instances (objects layer, drawn above tiles, below grid) ──
-  // Positions are stored in tile-space PX (independent of zoom). Multiply
-  // by zoomLevel at render time. Rotation is applied around the instance
-  // center; storage remains axis-aligned.
-  if(layerVisible.objects){
-    instances.forEach(ins => {
-      const spr = SPRITES[ins.type];
-      if(!spr) return;
-      // Draw at natural px × scale — pixel-identical to the game renderer.
-      const b = instanceBox(ins);
-      const dx = b.x * zoomLevel, dy = b.y * zoomLevel;
-      const w = b.w * zoomLevel, h = b.h * zoomLevel;
-      ctx.imageSmoothingEnabled = false;
-      if(ins.rotation){
-        ctx.save();
-        ctx.translate(dx + w/2, dy + h/2);
-        ctx.rotate(ins.rotation * Math.PI / 180);
-        ctx.drawImage(spr, -w/2, -h/2, w, h);
-        ctx.restore();
-      } else {
-        ctx.drawImage(spr, dx, dy, w, h);
-      }
-      // Subtle bounding box so users can tell it's an instance
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(dx + 0.5, dy + 0.5, w - 1, h - 1);
-    });
-  }
-
   // Grid
   ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
   for(let x=0;x<=mapW;x++){ ctx.beginPath();ctx.moveTo(x*TS,0);ctx.lineTo(x*TS,mapH*TS);ctx.stroke(); }
   for(let y=0;y<=mapH;y++){ ctx.beginPath();ctx.moveTo(0,y*TS);ctx.lineTo(mapW*TS,y*TS);ctx.stroke(); }
-
-  // ── Selected instance: highlight + resize handle + rotation knob ──
-  // All drawn in canvas-px (screen) coords. Handles are big enough to grab
-  // reliably even at low zoom.
-  if(selectedInstanceId){
-    const ins = instances.find(i => i.id === selectedInstanceId);
-    if(ins){
-      const _b = instanceBox(ins);
-      const w = _b.w * zoomLevel, h = _b.h * zoomLevel;
-      const dx = _b.x * zoomLevel;
-      const dy = _b.y * zoomLevel;
-      // Dashed outline signals "editable object" — more scannable than solid.
-      ctx.save();
-      ctx.strokeStyle = '#f0c040';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 4]);
-      ctx.strokeRect(dx + 1, dy + 1, w - 2, h - 2);
-      ctx.restore();
-      ctx.fillStyle = 'rgba(240,192,64,0.10)';
-      ctx.fillRect(dx, dy, w, h);
-      // Foot Y indicator — magenta line at the sprite's bottom edge, hints
-      // where the runtime will Y-sort this prop against the player.
-      ctx.strokeStyle = 'rgba(255,80,220,0.85)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(dx, dy + h);
-      ctx.lineTo(dx + w, dy + h);
-      ctx.stroke();
-
-      // Resize handle (bottom-right, chunky)
-      const hs = INS_HANDLE_PX * zoomLevel;
-      const hx = dx + w - hs;
-      const hy = dy + h - hs;
-      ctx.fillStyle = '#0d0a14';
-      ctx.fillRect(hx - 1, hy - 1, hs + 2, hs + 2);
-      ctx.fillStyle = '#f0c040';
-      ctx.fillRect(hx, hy, hs, hs);
-      ctx.strokeStyle = '#0d0a14';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(hx + hs*0.25, hy + hs*0.85);
-      ctx.lineTo(hx + hs*0.85, hy + hs*0.25);
-      ctx.moveTo(hx + hs*0.50, hy + hs*0.90);
-      ctx.lineTo(hx + hs*0.90, hy + hs*0.50);
-      ctx.stroke();
-
-      // Rotation knob — small circle above top-center. Stem connects to the
-      // instance so the affordance reads "spin me".
-      const kx = dx + w/2;
-      const ky = dy - 22 * zoomLevel;
-      ctx.strokeStyle = '#f0c040';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(kx, dy);
-      ctx.lineTo(kx, ky + 12 * zoomLevel);
-      ctx.stroke();
-      ctx.fillStyle = '#0d0a14';
-      ctx.beginPath();
-      ctx.arc(kx, ky, 12 * zoomLevel, 0, Math.PI*2);
-      ctx.fill();
-      ctx.fillStyle = '#f0c040';
-      ctx.beginPath();
-      ctx.arc(kx, ky, 10 * zoomLevel, 0, Math.PI*2);
-      ctx.fill();
-      ctx.fillStyle = '#0d0a14';
-      ctx.font = `${10*zoomLevel}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('↻', kx, ky + 1);
-    }
-  }
 
   // Overlay capas apagadas (tint)
   ['ground','objects','overhead'].forEach(k=>{
@@ -2122,42 +1811,13 @@ function renderMini(){
   ctx.strokeRect(Math.max(0,vpx),Math.max(0,vpy),Math.min(vpw,mw),Math.min(vph,mh));
 }
 
-// Lightweight toast for editor feedback (export, load, cancel…).
-let _toastTimer;
-function showToast(msg, type){
-  let el=document.getElementById('editorToast');
-  if(!el){
-    el=document.createElement('div'); el.id='editorToast';
-    el.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(8px);z-index:99999;max-width:80vw;padding:10px 16px;border-radius:10px;font-family:system-ui,-apple-system,sans-serif;font-size:13px;font-weight:600;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.45);pointer-events:none;opacity:0;transition:opacity .2s,transform .2s;';
-    document.body.appendChild(el);
-  }
-  el.textContent=msg;
-  el.style.background = type==='error' ? '#5a1e14' : type==='success' ? '#1f4a24' : '#241f3a';
-  el.style.border='1px solid '+(type==='error'?'#c85030':type==='success'?'#4a9a4a':'#5a4a7a');
-  el.style.opacity='1'; el.style.transform='translateX(-50%) translateY(0)';
-  clearTimeout(_toastTimer);
-  _toastTimer=setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(-50%) translateY(8px)'; }, 2800);
-}
-
-// Reset the SELECCIÓN panel to an empty state.
-function clearSelectionPanel(){
-  ['selPos','selType','selLayer'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='—'; });
-  const lbl=document.getElementById('selLabel'); if(lbl) lbl.value='';
-  const block=document.getElementById('selInsBlock'); if(block) block.style.display='none';
-}
-
 function updateStats(){
-  // "Tiles" = floor coverage (SUELO). "Objetos" = everything placed on top —
-  // object/overhead cells AND free instances, so placing props registers.
-  let floor=0, objs=0;
-  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
-    if(layers.ground[y]?.[x]) floor++;
-    if(layers.objects[y]?.[x]) objs++;
-    if(layers.overhead[y]?.[x]) objs++;
-  }
-  objs += instances.length;
-  document.getElementById('infoTiles').textContent=floor;
-  document.getElementById('stObjs').textContent=objs;
+  let count=0;
+  ['ground','objects','overhead'].forEach(k=>{
+    for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++) if(layers[k][y]?.[x]) count++;
+  });
+  document.getElementById('infoTiles').textContent=count;
+  document.getElementById('stObjs').textContent=count;
   document.getElementById('stUndo').textContent=undoStack.length;
 }
 
@@ -2172,93 +1832,27 @@ function getTileFromEvent(e){
   if(x<0||x>=mapW||y<0||y>=mapH) return null;
   return{x,y};
 }
-// Continuous px position (tile-space, before zoom). Instances live here.
-function getPxFromEvent(e){
-  const rect=mapCanvas.getBoundingClientRect();
-  return {
-    x: (e.clientX - rect.left) / zoomLevel,
-    y: (e.clientY - rect.top) / zoomLevel,
-  };
-}
 
 function paintTile(x,y){
   if(!selectedAsset) return;
-  // Instance assets create a single placeable object instead of repeating tiles.
-  // Painting stays as before for floor tiles.
-  if(isInstanceType(selectedAsset)){
-    // paintTile is only called for tile-grid paths; instances get a
-    // dedicated px-based path in pointerdown. We keep this fallback so a
-    // legacy call site (fill, drag-continue) doesn't crash.
-    placeInstance(selectedAsset, x * tileSize, y * tileSize);
-    return;
-  }
   const targetLayer=ASSET_LAYER[selectedAsset]||currentLayer;
   if(!layers[targetLayer][y]) return;
-  // Snapshot para undo
   pushUndo();
-  layers[targetLayer][y][x]={type:selectedAsset,label:''};
+  const tile={type:selectedAsset,label:''};
+  if(selectedAsset==='portal'){
+    tile.portalTarget='';
+    tile.portalSpawnX=10;
+    tile.portalSpawnY=10;
+    tile.portalCondType='';
+    tile.portalCondValue='';
+  }
+  layers[targetLayer][y][x]=tile;
   render();
 }
 
-// Place an instance at cursor px position. Sprite is centered on the click.
-function placeInstance(type, px, py){
+function eraseTile(x,y){
   pushUndo();
-  // Default scale targets ~2 tiles on the sprite's larger side, so a freshly
-  // placed prop reads at a sensible size and is easy to resize afterward.
-  const spr = SPRITES[type];
-  const sw = (spr && spr.width)  ? spr.width  : tileSize;
-  const sh = (spr && spr.height) ? spr.height : tileSize;
-  let scale = (2 * tileSize) / Math.max(sw, sh);
-  scale = Math.max(0.5, Math.min(4, Math.round(scale * 100) / 100));
-  const w = sw * scale, h = sh * scale;
-  // Center the newly-placed sprite on the click, then clamp to the map
-  const nx = Math.max(0, Math.min(mapW * tileSize - w, px - w / 2));
-  const ny = Math.max(0, Math.min(mapH * tileSize - h, py - h / 2));
-  const ins = { id: nextInstanceId++, type, x: nx, y: ny, scale, rotation: 0, label: '' };
-  instances.push(ins);
-  selectedInstanceId = ins.id;
-  render();
-  updateSelInstancePanel(ins);
-}
-
-function eraseTile(x,y, allLayers=false){
-  // If there's an instance at the tile center (px), remove it (whole instance).
-  // eraseTile is called with tile coords from the pointer path; instances
-  // live in a continuous px space so we sample at the tile center.
-  const centerPx = { x: x * tileSize + tileSize/2, y: y * tileSize + tileSize/2 };
-  const ins = getInstanceAt(centerPx.x, centerPx.y);
-  if(ins){
-    pushUndo();
-    instances = instances.filter(i => i.id !== ins.id);
-    if(selectedInstanceId === ins.id){
-      selectedInstanceId = null;
-      const block = document.getElementById('selInsBlock');
-      if(block) block.style.display = 'none';
-    }
-    render();
-    return;
-  }
-  // Ground overlay under the cursor? Remove the smallest (most specific) one,
-  // so erasing the plaza island doesn't nuke the whole road it sits on.
-  if(overlays.length){
-    let hitOv=null, hitArea=Infinity;
-    for(const ov of overlays){
-      if(centerPx.x>=ov.x && centerPx.x<=ov.x+ov.w && centerPx.y>=ov.y && centerPx.y<=ov.y+ov.h){
-        const a=ov.w*ov.h; if(a<hitArea){ hitArea=a; hitOv=ov; }
-      }
-    }
-    if(hitOv){ pushUndo(); overlays=overlays.filter(o=>o!==hitOv); render(); return; }
-  }
-  pushUndo();
-  if(allLayers){
-    // Alt+erase — wipe all three layers on this tile. Faster than switching
-    // layers three times when you just want the tile clean.
-    layers.ground[y][x] = null;
-    layers.objects[y][x] = null;
-    layers.overhead[y][x] = null;
-  } else {
-    layers[currentLayer][y][x]=null;
-  }
+  layers[currentLayer][y][x]=null;
   render();
 }
 
@@ -2297,148 +1891,24 @@ function pickTile(x,y){
   }
 }
 
-// ── CANVAS EVENTS — pointer events for mouse + touch + stylus ─
-// Helper: detect the "draw button" across input types.
-//   mouse  → button 0 = left  → draw    | button 1 = mid → pan    | button 2 = right → erase
-//   pen    → buttons 1 = tip  → draw    | buttons 32 = eraser end → erase (Wacom/Surface)
-//   touch  → no buttons       → draw
-function pointerIntent(e){
-  if(e.pointerType==='pen'){
-    if(e.buttons===32) return 'erase';   // eraser end of stylus
-    if(e.shiftKey)     return 'pan';
-    return 'draw';
+// ── CANVAS EVENTS ───────────────────────────────────────────
+overlayCanvas.addEventListener('mousedown',e=>{
+  if(e.button===1||(e.button===0&&e.shiftKey)){ // pan
+    isPanning=true; panStart={x:e.clientX,y:e.clientY}; return;
   }
-  if(e.pointerType==='touch'){
-    // Two-finger tap = pan; we approximate via altKey, otherwise draw
-    if(e.altKey) return 'pan';
-    return 'draw';
-  }
-  // mouse
-  if(e.button===1 || (e.button===0 && e.shiftKey)) return 'pan';
-  if(e.button===2) return 'erase';
-  if(e.button===0) return 'draw';
-  return null;
-}
-
-let isRotatingInstance = false;
-let rotationStartAngle = 0;
-let rotationStartValue = 0;
-
-// ─── Multi-touch gestures: two-finger pinch-zoom + pan ──────────────────────
-const touchPts = new Map();      // pointerId -> {x,y} (clientX/Y) for active touches
-let pinch = null;                // { dist, c:{x,y} } while two fingers are down
-const _touchCentroid = () => { let x=0,y=0,n=0; touchPts.forEach(p=>{x+=p.x;y+=p.y;n++;}); return {x:x/n,y:y/n}; };
-const _touchDist = () => { const a=[...touchPts.values()]; return a.length<2 ? 0 : Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y); };
-function _applyPan(dx,dy){
-  viewOffset.x+=dx; viewOffset.y+=dy;
-  mapCanvas.style.transform=`translate(${viewOffset.x}px,${viewOffset.y}px)`;
-  overlayCanvas.style.transform=`translate(${viewOffset.x}px,${viewOffset.y}px)`;
-  renderMini();
-}
-
-overlayCanvas.addEventListener('pointerdown',e=>{
-  coarsePointer = e.pointerType==='touch';
-  // Track touches; a second finger starts a pinch/pan gesture and cancels any
-  // single-finger paint/drag already in progress.
-  if(e.pointerType==='touch'){
-    touchPts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(touchPts.size===2){
-      isDrawing=false; isMovingInstance=false; isResizingInstance=false; isRotatingInstance=false;
-      pinch = { dist:_touchDist(), c:_touchCentroid() };
-      return;
-    }
-    if(touchPts.size>2) return;
-  }
-  // Reserve mouse-right-click for the contextmenu erase shortcut
-  if(e.pointerType==='mouse' && e.button!==0 && e.button!==1) return;
-  const intent=pointerIntent(e);
-  if(intent==='pan'){
-    isPanning=true; panStart={x:e.clientX,y:e.clientY};
-    overlayCanvas.setPointerCapture(e.pointerId);
-    return;
-  }
+  if(e.button!==0) return;
   const t=getTileFromEvent(e);
-  const p=getPxFromEvent(e);
   if(!t) return;
-  overlayCanvas.setPointerCapture(e.pointerId);
   isDrawing=true;
-  if(intent==='erase'){ eraseTile(t.x,t.y, e.altKey); }
-  else if(currentDrawTool==='draw')  {
-    // Instance vs paint split at the very entry point — objects place at
-    // px precision, floors keep their tile-grid stamping behavior.
-    if(isInstanceType(selectedAsset)){
-      placeInstance(selectedAsset, p.x, p.y);
-      isDrawing=false;
-    } else {
-      paintTile(t.x, t.y);
-    }
-  }
-  else if(currentDrawTool==='erase') { eraseTile(t.x,t.y, e.altKey); }
-  else if(currentDrawTool==='fill')  { fillTile(t.x,t.y); isDrawing=false; }
-  else if(currentDrawTool==='pick')  { pickTile(t.x,t.y); isDrawing=false; }
-  else if(currentDrawTool==='select'){
-    // Try rotation knob first (extends above the sprite), then resize
-    // handle, then generic body hit.
-    let ins = null;
-    if(selectedInstanceId !== null){
-      const sel = instances.find(i => i.id === selectedInstanceId);
-      if(sel){
-        if(isRotationHandle(sel, p.x, p.y)){
-          pushUndo();
-          isRotatingInstance = true;
-          isDrawing = false;
-          const _sb = instanceBox(sel);
-          const cx = _sb.x + _sb.w/2;
-          const cy = _sb.y + _sb.h/2;
-          rotationStartAngle = Math.atan2(p.y - cy, p.x - cx);
-          rotationStartValue = sel.rotation || 0;
-          return;
-        }
-        if(isResizeHandle(sel, p.x, p.y)){
-          pushUndo();
-          isResizingInstance = true;
-          isDrawing = false;
-          render();
-          return;
-        }
-      }
-    }
-    ins = getInstanceAt(p.x, p.y);
-    if(ins){
-      selectedInstanceId = ins.id;
-      selectedCell = null;
-      pushUndo();
-      isMovingInstance = true;
-      dragInstanceOffset = { x: p.x - ins.x, y: p.y - ins.y };
-      isDrawing = false;
-      render();
-      updateSelInstancePanel(ins);
-    } else {
-      selectedInstanceId = null;
-      selectedCell = t;
-      render();
-      updateSelPanel(t);
-    }
-  }
+  if(currentTool==='draw')  { paintTile(t.x,t.y); }
+  if(currentTool==='erase') { eraseTile(t.x,t.y); }
+  if(currentTool==='fill')  { fillTile(t.x,t.y); isDrawing=false; }
+  if(currentTool==='pick')  { pickTile(t.x,t.y); isDrawing=false; }
+  if(currentTool==='select'){ selectedCell=t; render(); updateSelPanel(t); }
   document.getElementById('stCursor').textContent=`${t.x},${t.y}`;
 });
 
-overlayCanvas.addEventListener('pointermove',e=>{
-  // Two-finger gesture: pan by centroid movement, zoom by pinch ratio.
-  if(e.pointerType==='touch' && touchPts.has(e.pointerId)){
-    touchPts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(pinch && touchPts.size>=2){
-      const d=_touchDist(), c=_touchCentroid();
-      if(pinch.c) _applyPan(c.x-pinch.c.x, c.y-pinch.c.y);
-      if(pinch.dist>0){
-        const r=d/pinch.dist;
-        if(r>1.3){ zoom(1); pinch.dist=d; }
-        else if(r<0.77){ zoom(-1); pinch.dist=d; }
-      }
-      pinch.c=c;
-      return;
-    }
-  }
+overlayCanvas.addEventListener('mousemove',e=>{
   if(isPanning){
     viewOffset.x+=e.clientX-panStart.x;
     viewOffset.y+=e.clientY-panStart.y;
@@ -2448,183 +1918,66 @@ overlayCanvas.addEventListener('pointermove',e=>{
     renderMini(); return;
   }
   const t=getTileFromEvent(e);
-  const p=getPxFromEvent(e);
   if(t) document.getElementById('stCursor').textContent=`${t.x},${t.y}`;
-
-  // Rotation drag — track cursor around instance center, angle from start.
-  if(isRotatingInstance && selectedInstanceId !== null){
-    const ins = instances.find(i => i.id === selectedInstanceId);
-    if(ins){
-      const _rb = instanceBox(ins);
-      const cx = _rb.x + _rb.w/2;
-      const cy = _rb.y + _rb.h/2;
-      const cur = Math.atan2(p.y - cy, p.x - cx);
-      let deg = rotationStartValue + (cur - rotationStartAngle) * 180 / Math.PI;
-      // Snap to 15° increments while Shift is held
-      if(e.shiftKey) deg = Math.round(deg / 15) * 15;
-      // Normalize to (-180, 180]
-      deg = ((deg + 540) % 360) - 180;
-      ins.rotation = deg;
-      render();
-      updateSelInstancePanel(ins);
-    }
-    return;
-  }
-  // Free movement in px (tile-space). Ctrl snaps to 8-px grid for tight layouts.
-  if(isMovingInstance && selectedInstanceId !== null){
-    const ins = instances.find(i => i.id === selectedInstanceId);
-    if(ins){
-      let nx = p.x - dragInstanceOffset.x;
-      let ny = p.y - dragInstanceOffset.y;
-      if(e.ctrlKey || e.metaKey){
-        nx = Math.round(nx / 8) * 8;
-        ny = Math.round(ny / 8) * 8;
-      }
-      const _mb = instanceBox(ins);
-      nx = Math.max(0, Math.min(mapW * tileSize - _mb.w, nx));
-      ny = Math.max(0, Math.min(mapH * tileSize - _mb.h, ny));
-      if(nx !== ins.x || ny !== ins.y){
-        ins.x = nx; ins.y = ny;
-        render();
-        updateSelInstancePanel(ins);
-      }
-    }
-    return;
-  }
-  // Continuous scale — drag from the bottom-right corner and the diagonal
-  // distance to the top-left sets the new sprite size.
-  if(isResizingInstance && selectedInstanceId !== null){
-    const ins = instances.find(i => i.id === selectedInstanceId);
-    if(ins){
-      const dx = p.x - ins.x;
-      const dy = p.y - ins.y;
-      // Scale = drag distance ÷ the sprite's natural dimension, so the box
-      // tracks the cursor while keeping the sprite's true aspect ratio.
-      const { sw, sh } = instanceNatural(ins);
-      let sc = Math.max(dx / sw, dy / sh);
-      if(e.ctrlKey || e.metaKey) sc = Math.round(sc * 4) / 4; // snap to .25
-      sc = Math.max(0.25, Math.min(8, sc));
-      if(sc !== ins.scale){
-        ins.scale = sc;
-        render();
-        updateSelInstancePanel(ins);
-      }
-    }
-    return;
-  }
-
   if(!isDrawing||!t) return;
-  // Pen eraser button kept active across drag → erase
-  if(e.pointerType==='pen' && e.buttons===32){ eraseTile(t.x,t.y); return; }
-  if(currentDrawTool==='draw')  paintTile(t.x,t.y);
-  if(currentDrawTool==='erase') eraseTile(t.x,t.y);
+  if(currentTool==='draw')  paintTile(t.x,t.y);
+  if(currentTool==='erase') eraseTile(t.x,t.y);
 });
 
-function endPointer(e){
-  if(e && e.pointerType==='touch'){
-    touchPts.delete(e.pointerId);
-    if(touchPts.size<2) pinch=null;
-  }
-  isDrawing=false; isPanning=false;
-  isMovingInstance=false; isResizingInstance=false;
-  isRotatingInstance=false;
-  if(e && overlayCanvas.hasPointerCapture && overlayCanvas.hasPointerCapture(e.pointerId)){
-    overlayCanvas.releasePointerCapture(e.pointerId);
-  }
-}
-overlayCanvas.addEventListener('pointerup',endPointer);
-overlayCanvas.addEventListener('pointercancel',endPointer);
-overlayCanvas.addEventListener('pointerleave',()=>{ isDrawing=false; });
+overlayCanvas.addEventListener('mouseup',()=>{ isDrawing=false; isPanning=false; });
+overlayCanvas.addEventListener('mouseleave',()=>{ isDrawing=false; });
 
 overlayCanvas.addEventListener('wheel',e=>{
   e.preventDefault();
   zoom(e.deltaY<0?1:-1);
 },{passive:false});
 
-overlayCanvas.addEventListener('contextmenu',e=>{ e.preventDefault(); const t=getTileFromEvent(e); if(t) eraseTile(t.x,t.y, e.altKey); });
+overlayCanvas.addEventListener('contextmenu',e=>{ e.preventDefault(); const t=getTileFromEvent(e); if(t) eraseTile(t.x,t.y); });
 
 // ─── UPDATE SELECTION PANEL ─────────────────────────────────
 function updateSelPanel(t){
-  // Cell selection hides the instance-only inputs
-  const block = document.getElementById('selInsBlock');
-  if(block) block.style.display = 'none';
   const cell=layers.overhead[t.y]?.[t.x]||layers.objects[t.y]?.[t.x]||layers.ground[t.y]?.[t.x];
   document.getElementById('selPos').textContent=`${t.x},${t.y}`;
   document.getElementById('selType').textContent=cell?.type||'vacío';
   document.getElementById('selLayer').textContent=cell?Object.keys(layers).find(k=>layers[k][t.y]?.[t.x]===cell):'—';
   document.getElementById('selLabel').value=cell?.label||'';
+
+  const pcSection=document.getElementById('portalCfgSection');
+  if(cell?.type==='portal'){
+    pcSection.hidden=false;
+    document.getElementById('portalTarget').value=cell.portalTarget||'';
+    document.getElementById('portalSpawnX').value=cell.portalSpawnX??10;
+    document.getElementById('portalSpawnY').value=cell.portalSpawnY??10;
+    document.getElementById('portalLabel').value=cell.label||'';
+    document.getElementById('portalCondType').value=cell.portalCondType||'';
+    document.getElementById('portalCondValue').value=cell.portalCondValue||'';
+  } else {
+    pcSection.hidden=true;
+  }
+}
+
+function updatePortalCfg(){
+  if(!selectedCell) return;
+  const cell=layers.objects[selectedCell.y]?.[selectedCell.x];
+  if(!cell||cell.type!=='portal') return;
+  cell.portalTarget=document.getElementById('portalTarget').value;
+  cell.portalSpawnX=parseInt(document.getElementById('portalSpawnX').value)||0;
+  cell.portalSpawnY=parseInt(document.getElementById('portalSpawnY').value)||0;
+  cell.label=document.getElementById('portalLabel').value;
+  cell.portalCondType=document.getElementById('portalCondType').value;
+  cell.portalCondValue=document.getElementById('portalCondValue').value;
+  render();
 }
 function updateSelLabel(){
-  const val=document.getElementById('selLabel').value;
-  // Label applies to whichever thing is selected — instance takes priority
-  if(selectedInstanceId !== null){
-    const ins = instances.find(i => i.id === selectedInstanceId);
-    if(ins){ ins.label = val; render(); }
-    return;
-  }
   if(!selectedCell) return;
+  const val=document.getElementById('selLabel').value;
   ['overhead','objects','ground'].forEach(k=>{
     const c=layers[k][selectedCell.y]?.[selectedCell.x];
     if(c) c.label=val;
   });
   render();
 }
-// Panel view when an instance is selected — reveals X/Y/Scale/Rotation inputs
-// and the duplicate button. Position is shown in tile-space px, matching what
-// the runtime consumes.
-function updateSelInstancePanel(ins){
-  if(!ins) return;
-  document.getElementById('selPos').textContent = `${Math.round(ins.x)},${Math.round(ins.y)} px`;
-  document.getElementById('selType').textContent = ins.type;
-  document.getElementById('selLayer').textContent = 'instance';
-  const block = document.getElementById('selInsBlock');
-  if(block) block.style.display = 'block';
-  const setVal = (id, v) => { const el = document.getElementById(id); if(el && document.activeElement !== el) el.value = v; };
-  setVal('selX', Math.round(ins.x));
-  setVal('selY', Math.round(ins.y));
-  setVal('selScale', +(ins.scale ?? 1).toFixed(2));
-  setVal('selRotation', Math.round(ins.rotation || 0));
-  document.getElementById('selLabel').value = ins.label || '';
-}
-// Apply numeric inputs to the selected instance. Coalesces rapid keypresses
-// into one undo entry via nudgeUndoPending.
-function applyInstanceInputs(){
-  if(selectedInstanceId === null) return;
-  const ins = instances.find(i => i.id === selectedInstanceId);
-  if(!ins) return;
-  const nx = parseFloat(document.getElementById('selX').value);
-  const ny = parseFloat(document.getElementById('selY').value);
-  const nsc = parseFloat(document.getElementById('selScale').value);
-  const nrot = parseFloat(document.getElementById('selRotation').value);
-  const size = (isFinite(nsc) ? nsc : ins.scale) * tileSize;
-  const clampedX = isFinite(nx) ? Math.max(0, Math.min(mapW * tileSize - size, nx)) : ins.x;
-  const clampedY = isFinite(ny) ? Math.max(0, Math.min(mapH * tileSize - size, ny)) : ins.y;
-  const clampedScale = isFinite(nsc) ? Math.max(0.25, Math.min(8, nsc)) : ins.scale;
-  const clampedRot = isFinite(nrot) ? nrot : ins.rotation;
-  const changed = clampedX !== ins.x || clampedY !== ins.y ||
-                  clampedScale !== ins.scale || clampedRot !== ins.rotation;
-  if(!changed) return;
-  if(!nudgeUndoPending){ pushUndo(); nudgeUndoPending = true; }
-  ins.x = clampedX; ins.y = clampedY;
-  ins.scale = clampedScale; ins.rotation = clampedRot;
-  render();
-}
-// Duplicate button in the panel — one-click equivalent of Ctrl+C then Ctrl+V
-function duplicateSelectedInstance(){
-  if(!copySelectedInstance()) return;
-  pasteInstance();
-}
 function deleteSelected(){
-  // Priority: selected instance first, then selected cell
-  if(selectedInstanceId !== null){
-    pushUndo();
-    instances = instances.filter(i => i.id !== selectedInstanceId);
-    selectedInstanceId = null;
-    const block = document.getElementById('selInsBlock');
-    if(block) block.style.display = 'none';
-    render();
-    return;
-  }
   if(!selectedCell) return;
   pushUndo();
   ['ground','objects','overhead'].forEach(k=>{ layers[k][selectedCell.y][selectedCell.x]=null; });
@@ -2635,14 +1988,14 @@ function deleteSelected(){
 // CONTROLES DE UI
 // ═══════════════════════════════════════════════════════════
 function setTool(t,btn){
-  currentDrawTool=t;
+  currentTool=t;
   document.querySelectorAll('[id^="tool-"]').forEach(b=>b.classList.remove('active'));
   btn?.classList.add('active');
   document.getElementById('stTool').textContent=t;
-  const hints={draw:'✏ Click pintar · Arrastrar pintar · Clic-der borrar · Alt+borrar limpia todas las capas',
-               erase:'⌫ Click borrar capa actual · Alt+Click borra las 3 capas',
+  const hints={draw:'✏ Click pintar · Arrastrar para pintar · Clic derecho borrar',
+               erase:'⌫ Click borrar · Arrastrar para borrar',
                fill:'▣ Click para rellenar zona',
-               select:'⬚ Click seleccionar · Arrastra para mover · Arrastra esquina ◢ para redimensionar · Del/Bksp borra · Flechas empujan · Ctrl+C/V duplica',
+               select:'⬚ Click para seleccionar · Ver propiedades en panel der.',
                pick:'◉ Click para copiar el tipo de tile'};
   document.getElementById('toolHint').textContent=hints[t]||'';
 }
@@ -2661,27 +2014,6 @@ function toggleVis(layer,e){
   layerVisible[layer]=!layerVisible[layer];
   e.target.style.opacity=layerVisible[layer]?'1':'0.3';
   render();
-}
-
-function toggleFullscreen(){
-  const btn = document.getElementById('btn-fullscreen');
-  if(!document.fullscreenElement){
-    (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement);
-  } else {
-    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-  }
-}
-document.addEventListener('fullscreenchange', updateFSBtn);
-document.addEventListener('webkitfullscreenchange', updateFSBtn);
-function updateFSBtn(){
-  const btn = document.getElementById('btn-fullscreen');
-  if(document.fullscreenElement){
-    btn.textContent = '⛶ EXIT FS';
-    btn.classList.add('active');
-  } else {
-    btn.textContent = '⛶ FULLSCREEN';
-    btn.classList.remove('active');
-  }
 }
 
 function zoom(dir){
@@ -2718,221 +2050,42 @@ function resizeMap(){
 // ═══════════════════════════════════════════════════════════
 // UNDO / REDO
 // ═══════════════════════════════════════════════════════════
-// Undo snapshots BOTH the tile layers and the instances list so move/resize
-// operations are undoable too.
-function snapshotState(){
-  return JSON.stringify({ layers, instances, nextInstanceId, overlays });
-}
-function restoreState(s){
-  const st = JSON.parse(s);
-  layers = st.layers;
-  // Restoring an older undo snapshot may resurrect legacy-shaped instances,
-  // so run every load path through the migrator.
-  instances = migrateAllInstances(st.instances || []);
-  nextInstanceId = st.nextInstanceId || 1;
-  overlays = Array.isArray(st.overlays) ? st.overlays : [];
-  // If the selected instance no longer exists after undo/redo, drop the stale
-  // selection so the panel doesn't show a phantom object.
-  if(selectedInstanceId !== null && !instances.some(i => i.id === selectedInstanceId)){
-    selectedInstanceId = null;
-    clearSelectionPanel();
-  }
-}
 function pushUndo(){
-  undoStack.push(snapshotState());
+  undoStack.push(JSON.stringify(layers));
   if(undoStack.length>50) undoStack.shift();
   redoStack=[];
   document.getElementById('stUndo').textContent=undoStack.length;
 }
 function undo(){
   if(!undoStack.length) return;
-  redoStack.push(snapshotState());
-  restoreState(undoStack.pop());
+  redoStack.push(JSON.stringify(layers));
+  layers=JSON.parse(undoStack.pop());
   render();
 }
 function redo(){
   if(!redoStack.length) return;
-  undoStack.push(snapshotState());
-  restoreState(redoStack.pop());
+  undoStack.push(JSON.stringify(layers));
+  layers=JSON.parse(redoStack.pop());
   render();
 }
 function clearMap(){
   if(!confirm('¿Limpiar el mapa? No se puede deshacer.')) return;
   pushUndo();
-  instances = [];
-  selectedInstanceId = null;
   initMap(); render();
 }
 
-// ─── AUTOSAVE ────────────────────────────────────────────────
-setInterval(() => {
-  localStorage.setItem('taskoria_map_draft', snapshotState());
-}, 30000);
-
-function loadDraftIfAny() {
-  const draft = localStorage.getItem('taskoria_map_draft');
-  if (draft) {
-    setTimeout(() => {
-      if (confirm("Se ha encontrado un borrador de mapa sin guardar. ¿Deseas recuperarlo?")) {
-        try {
-          restoreState(draft);
-          // Restore inputs
-          document.getElementById('mw').value = mapW;
-          document.getElementById('mh').value = mapH;
-          document.getElementById('infoSize').textContent=`${mapW}×${mapH}`;
-          updateCanvasSize(); render();
-        } catch(e) {}
-      }
-    }, 500);
-  }
-}
-
-// ─── COPY / PASTE de instances ───────────────────────────────
-// The clipboard holds a shallow copy of the last instance the user pressed
-// Ctrl+C on. Paste places a new instance offset by (+1,+1) so it's visually
-// separate from the source; if that spot is off-map we clamp.
-let instanceClipboard = null;
-
-function copySelectedInstance(){
-  if(selectedInstanceId === null) return false;
-  const ins = instances.find(i => i.id === selectedInstanceId);
-  if(!ins) return false;
-  instanceClipboard = {
-    type: ins.type,
-    scale: ins.scale ?? 1,
-    rotation: ins.rotation ?? 0,
-    label: ins.label || '',
-  };
-  return true;
-}
-function pasteInstance(){
-  if(!instanceClipboard) return false;
-  const size = instanceClipboard.scale * tileSize;
-  const src = instances.find(i => i.id === selectedInstanceId);
-  // Offset the paste 16 px right + down of the source so it's immediately
-  // visible without overlapping the original.
-  const bx = src ? src.x + 16 : (mapW * tileSize)/2 - size/2;
-  const by = src ? src.y + 16 : (mapH * tileSize)/2 - size/2;
-  const nx = Math.max(0, Math.min(mapW * tileSize - size, bx));
-  const ny = Math.max(0, Math.min(mapH * tileSize - size, by));
-  pushUndo();
-  const ins = {
-    id: nextInstanceId++,
-    type: instanceClipboard.type,
-    x: nx, y: ny,
-    scale: instanceClipboard.scale,
-    rotation: instanceClipboard.rotation,
-    label: instanceClipboard.label,
-  };
-  instances.push(ins);
-  selectedInstanceId = ins.id;
-  render();
-  updateSelInstancePanel(ins);
-  return true;
-}
-// Arrow-key nudge: 1 tile per press, Shift = 5 tiles. Push a single undo so
-// spamming arrows doesn't blow up the undo stack.
-let nudgeUndoPending = false;
-// dx/dy are in tile units for cell selection; for instances they become
-// 1-px nudges (Shift = 8 px) so arrow-keys can position with precision.
-function nudgeSelection(dx, dy){
-  if(selectedInstanceId !== null){
-    const ins = instances.find(i => i.id === selectedInstanceId);
-    if(!ins) return;
-    const size = ins.scale * tileSize;
-    const nx = Math.max(0, Math.min(mapW * tileSize - size, ins.x + dx));
-    const ny = Math.max(0, Math.min(mapH * tileSize - size, ins.y + dy));
-    if(nx === ins.x && ny === ins.y) return;
-    if(!nudgeUndoPending){ pushUndo(); nudgeUndoPending = true; }
-    ins.x = nx; ins.y = ny;
-    render();
-    updateSelInstancePanel(ins);
-  } else if(selectedCell){
-    const nx = Math.max(0, Math.min(mapW - 1, selectedCell.x + dx));
-    const ny = Math.max(0, Math.min(mapH - 1, selectedCell.y + dy));
-    selectedCell = { x: nx, y: ny };
-    render(); updateSelPanel(selectedCell);
-  }
-}
-document.addEventListener('keyup', e => {
-  // Reset the "coalesce a single undo per burst" flag on any key release
-  if(e.key.startsWith('Arrow')) nudgeUndoPending = false;
-});
-
 // Teclado
 document.addEventListener('keydown',e=>{
-  const inInput = e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA';
-  // Character-key tool shortcuts are silenced while typing in an input
-  if(!inInput){
-    if(e.key==='b'||e.key==='B') setTool('draw',document.getElementById('tool-draw'));
-    if(e.key==='e'||e.key==='E') setTool('erase',document.getElementById('tool-erase'));
-    if(e.key==='f'||e.key==='F') setTool('fill',document.getElementById('tool-fill'));
-    if(e.key==='s'||e.key==='S' && !e.ctrlKey && !e.metaKey) setTool('select',document.getElementById('tool-select'));
-    if(e.key==='i'||e.key==='I') setTool('pick',document.getElementById('tool-pick'));
-  }
-  // Global shortcuts still work everywhere (Ctrl+Z etc)
-  const meta = e.ctrlKey || e.metaKey;
-  if(meta && (e.key==='z' || e.key==='Z')){ e.preventDefault(); undo(); return; }
-  if(meta && (e.key==='y' || e.key==='Y')){ e.preventDefault(); redo(); return; }
-  if(meta && (e.key==='s' || e.key==='S')){ e.preventDefault(); saveToLocal(); return; }
-  if(meta && (e.key==='c' || e.key==='C') && !inInput){ e.preventDefault(); copySelectedInstance(); return; }
-  if(meta && (e.key==='v' || e.key==='V') && !inInput){ e.preventDefault(); pasteInstance(); return; }
-  // Ctrl/Cmd+D — duplicate selected instance in place (copy + paste combined)
-  if(meta && (e.key==='d' || e.key==='D') && !inInput){
-    e.preventDefault();
-    if(copySelectedInstance()) pasteInstance();
-    return;
-  }
-  // R — rotate selected instance 90° clockwise (Shift+R = counter-clockwise)
-  if(!inInput && !meta && (e.key==='r' || e.key==='R')){
-    if(selectedInstanceId !== null){
-      const ins = instances.find(i => i.id === selectedInstanceId);
-      if(ins){
-        e.preventDefault();
-        pushUndo();
-        const delta = e.shiftKey ? -90 : 90;
-        let rot = ((ins.rotation || 0) + delta + 540) % 360 - 180;
-        ins.rotation = rot;
-        render();
-        updateSelInstancePanel(ins);
-        return;
-      }
-    }
-  }
-  // Arrow-key nudge — only when the user isn't editing an input
-  if(!inInput && e.key.startsWith('Arrow')){
-    e.preventDefault();
-    // Instances step in pixels (1 / Shift = 8); cell selection stays in tiles.
-    const insStep = e.shiftKey ? 8 : 1;
-    const cellStep = e.shiftKey ? 5 : 1;
-    const step = selectedInstanceId !== null ? insStep : cellStep;
-    if(e.key==='ArrowLeft')  nudgeSelection(-step, 0);
-    if(e.key==='ArrowRight') nudgeSelection( step, 0);
-    if(e.key==='ArrowUp')    nudgeSelection(0, -step);
-    if(e.key==='ArrowDown')  nudgeSelection(0,  step);
-    return;
-  }
-  // Accept both Delete (Windows/Linux) and Backspace (macOS) so both keyboards
-  // remove the selection without the mac users tapping a dead key.
-  if(!inInput && (e.key==='Delete' || e.key==='Backspace')){
-    // Priority: selected instance first, then selected cell
-    if(selectedInstanceId !== null){
-      pushUndo();
-      instances = instances.filter(i => i.id !== selectedInstanceId);
-      selectedInstanceId = null;
-      render();
-    } else if(selectedCell){
-      deleteSelected();
-    }
-  }
-  // Escape: deselect anything
-  if(e.key==='Escape'){
-    selectedInstanceId = null;
-    selectedCell = null;
-    isMovingInstance = false;
-    isResizingInstance = false;
-    render();
-  }
+  if(e.target.tagName==='INPUT') return;
+  if(e.key==='b'||e.key==='B') setTool('draw',document.getElementById('tool-draw'));
+  if(e.key==='e'||e.key==='E') setTool('erase',document.getElementById('tool-erase'));
+  if(e.key==='f'||e.key==='F') setTool('fill',document.getElementById('tool-fill'));
+  if(e.key==='s'||e.key==='S') setTool('select',document.getElementById('tool-select'));
+  if(e.key==='i'||e.key==='I') setTool('pick',document.getElementById('tool-pick'));
+  if(e.ctrlKey&&e.key==='z'){ e.preventDefault(); undo(); }
+  if(e.ctrlKey&&e.key==='y'){ e.preventDefault(); redo(); }
+  if(e.ctrlKey&&e.key==='s'){ e.preventDefault(); saveToLocal(); }
+  if(e.key==='Delete'&&selectedCell) deleteSelected();
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -2971,11 +2124,7 @@ function buildAssetGrid(){
     cvs.width=cvs.height=S*1.5;
     const c=cvs.getContext('2d');
     c.imageSmoothingEnabled=false;
-    // Aspect-fit: game sprites are rarely square — center them, don't stretch
-    const sw=spr.width||S, sh=spr.height||S;
-    const fit=Math.min((S*1.5)/sw,(S*1.5)/sh);
-    const dw=sw*fit, dh=sh*fit;
-    c.drawImage(spr,(S*1.5-dw)/2,(S*1.5-dh)/2,dw,dh);
+    c.drawImage(spr,0,0,S*1.5,S*1.5);
     const lbl=document.createElement('div');
     lbl.className='asset-label'; lbl.textContent=label;
     item.appendChild(cvs); item.appendChild(lbl);
@@ -3000,19 +2149,8 @@ function updateBrushPreview(){
     ctx.imageSmoothingEnabled=false;
     ctx.drawImage(SPRITES[selectedAsset],0,0,64,64);
     document.getElementById('brushName').textContent=selectedAsset;
-    // Reflect the mode the current asset triggers: paint tile vs place instance.
-    // The distinction is the biggest source of confusion when building maps.
-    const mode = isInstanceType(selectedAsset) ? '🎯 COLOCAR OBJETO' : '🖌 PINTAR SUELO';
-    document.getElementById('brushCat').textContent = mode;
+    document.getElementById('brushCat').textContent=`Capa: ${ASSET_LAYER[selectedAsset]||currentLayer}`;
   }
-  // Cursor style hints at the current mode too
-  const canvas = document.getElementById('mapCanvas');
-  const overlay = document.getElementById('overlayCanvas');
-  const cursor = selectedAsset
-    ? (isInstanceType(selectedAsset) ? 'crosshair' : 'cell')
-    : 'default';
-  if(canvas) canvas.style.cursor = cursor;
-  if(overlay) overlay.style.cursor = cursor;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3032,7 +2170,16 @@ function exportMapData(){
     if(!obj) continue;
     const {type,label}=obj;
     if(type==='spawn'){ spawnPos.x=x; spawnPos.y=y; continue; }
-    if(type==='portal'){ portals.push({id:`portal_${x}_${y}`,x,y,w:1,h:1,target:'',targetSpawn:{x:0,y:0},label:label||'Portal'}); continue; }
+    if(type==='portal'){
+      const p={id:`portal_${x}_${y}`,x,y,w:1,h:1,
+        target:obj.portalTarget||'',
+        targetSpawn:{x:obj.portalSpawnX??0,y:obj.portalSpawnY??0},
+        label:obj.label||label||'Portal'};
+      if(obj.portalCondType&&obj.portalCondValue){
+        p.condition={type:obj.portalCondType,value:obj.portalCondType==='minLevel'?parseInt(obj.portalCondValue):obj.portalCondValue};
+      }
+      portals.push(p); continue;
+    }
     if(type.startsWith('npc_')){ npcs.push({id:`${type}_${x}_${y}`,type,x,y,name:label||type}); continue; }
     // Edificios como obstáculos
     if(['house_thatch','house_wood','tavern','church','smithy','tower'].includes(type)){
@@ -3049,22 +2196,6 @@ function exportMapData(){
     if(t) freq[t]=(freq[t]||0)+1;
   }
   const tileSprite=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]||'cobblestone_warm';
-
-  // Ground overlays back out as rect decorations (roads, plaza island).
-  overlays.forEach(ov => decorations.push({ type:'rect', x:Math.round(ov.x), y:Math.round(ov.y), width:Math.round(ov.w), height:Math.round(ov.h), color:ov.color, opacity:ov.opacity, ...(ov.radius?{radius:ov.radius}:{}), z:ov.z??0 }));
-
-  // Movable/resizable instances become their own array — placed buildings,
-  // trees, big props that the runtime renders as positioned objects with size.
-  // Movable/resizable instances become their own array. Format is the new
-  // px + scale + rotation shape; the runtime engine reads directly from it.
-  const instancesExport = instances.map(ins => ({
-    type: ins.type,
-    x: Math.round(ins.x),
-    y: Math.round(ins.y),
-    scale: +(ins.scale ?? 1).toFixed(3),
-    ...(ins.rotation ? { rotation: +ins.rotation.toFixed(2) } : {}),
-    ...(ins.label ? { label: ins.label } : {}),
-  }));
 
   const code=`// MapData generado por Taskoria Map Editor
 // ${new Date().toLocaleString()}
@@ -3083,8 +2214,6 @@ export const ${name} = {
 
   decorations: ${JSON.stringify(decorations, null, 4)},
 
-  instances: ${JSON.stringify(instancesExport, null, 4)},
-
   portals: ${JSON.stringify(portals, null, 4)},
 
   npcs: ${JSON.stringify(npcs, null, 4)},
@@ -3096,111 +2225,13 @@ export const ${name} = {
   const a=document.createElement('a');
   a.href=url; a.download=`${name}.js`; a.click();
   URL.revokeObjectURL(url);
-  showToast(`Archivo exportado: ${name}.js`, 'success');
 }
 
 // ═══════════════════════════════════════════════════════════
 // SAVE / LOAD
 // ═══════════════════════════════════════════════════════════
-// SAVE TO TASKORIA ADMIN LIBRARY (postMessage bridge to parent React panel)
-function saveToLibrary(){
-  // Re-run the same logic as exportMapData to build the snippet, but send it
-  // to the parent window instead of triggering a file download.
-  const name=(document.getElementById('mapName').value||'').trim() || ('map_'+Date.now());
-  const ambient=document.getElementById('mapAmbient').value||85;
-  const bgColor=document.getElementById('mapBgColor').value||'#2a1f12';
-  const obstacles=[], decorations=[], npcs=[], portals=[];
-  // The runtime works in PIXELS (TILE_SIZE=40). The editor grid is in tiles, so
-  // everything below is converted to px on the way out — otherwise a saved map
-  // would be a handful of pixels wide in the game.
-  const spawnTile={x:Math.floor(mapW/2),y:Math.floor(mapH/2)};
-  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
-    const obj=layers.objects[y]?.[x]; if(!obj) continue;
-    const {type,label}=obj;
-    const px=x*tileSize, py=y*tileSize;
-    if(type==='spawn'){ spawnTile.x=x; spawnTile.y=y; continue; }
-    if(type==='portal'){ portals.push({id:`portal_${x}_${y}`,x:px,y:py,width:tileSize,height:tileSize,target:'',targetSpawn:{x:0,y:0},label:label||'Portal'}); continue; }
-    if(type.startsWith('npc_')){ npcs.push({id:`${type}_${x}_${y}`,type,x:px,y:py,name:label||type}); continue; }
-    if(['house_thatch','house_wood','tavern','church','smithy','tower'].includes(type)){
-      obstacles.push({x:px,y:py,width:tileSize,height:tileSize,type:'shop_building',roofType:type.includes('thatch')?'thatch':type.includes('church')?'stone':'wood',label:label||type});
-    } else {
-      decorations.push({type,x:px,y:py,...(label?{label}:{})});
-    }
-  }
-  const spawnPos={ x: spawnTile.x*tileSize + tileSize/2, y: spawnTile.y*tileSize + tileSize/2 };
-  const widthPx=mapW*tileSize, heightPx=mapH*tileSize;
-  const freq={};
-  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
-    const t=layers.ground[y]?.[x]?.type; if(t) freq[t]=(freq[t]||0)+1;
-  }
-  const tileSprite=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]||'cobblestone_tile';
-  // Ground overlays back out as rect decorations (roads, plaza island).
-  overlays.forEach(ov => decorations.push({ type:'rect', x:Math.round(ov.x), y:Math.round(ov.y), width:Math.round(ov.w), height:Math.round(ov.h), color:ov.color, opacity:ov.opacity, ...(ov.radius?{radius:ov.radius}:{}), z:ov.z??0 }));
-  // Movable/resizable instances become their own array. Format is the new
-  // px + scale + rotation shape; the runtime engine reads directly from it.
-  const instancesExport = instances.map(ins => ({
-    type: ins.type,
-    x: Math.round(ins.x),
-    y: Math.round(ins.y),
-    scale: +(ins.scale ?? 1).toFixed(3),
-    ...(ins.rotation ? { rotation: +ins.rotation.toFixed(2) } : {}),
-    ...(ins.label ? { label: ins.label } : {}),
-  }));
-  // Preserve the edited map's own id (so it overrides that exact map), else mint
-  // a stable, accent/space-free id from the name for a brand-new map.
-  const mapId = _loadedMapId || (name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')) || ('map_'+Date.now());
-  const snippet = `// Map "${name}" — generated by Map Editor
-export const ${mapId} = {
-  id: '${mapId}',
-  name: '${name}',
-  tileSprite: '${tileSprite}',
-  width: ${widthPx},
-  height: ${heightPx},
-  bgColor: '${bgColor}',
-  ambientLight: ${(ambient/100).toFixed(2)},
-  spawn: { x: ${spawnPos.x}, y: ${spawnPos.y} },
-  obstacles: ${JSON.stringify(obstacles, null, 4)},
-  decorations: ${JSON.stringify(decorations, null, 4)},
-  instances: ${JSON.stringify(instancesExport, null, 4)},
-  portals: ${JSON.stringify(portals, null, 4)},
-  npcs: ${JSON.stringify(npcs, null, 4)},
-};
-`;
-  try {
-    window.parent.postMessage({
-      type: 'taskoria_design_save',
-      tool: 'map',
-      name,
-      snippet,
-      payload: {
-          id: mapId,
-          name: name,
-          tileSprite,
-          width: widthPx,
-          height: heightPx,
-          bgColor,
-          ambientLight: +(ambient/100).toFixed(2),
-          spawn: spawnPos,
-          obstacles, 
-          decorations, 
-          instances: instancesExport, 
-          portals, 
-          npcs,
-          // Editor internal state
-          layers,
-          editorInstances: instances,
-          overlays,
-          mapW,
-          mapH,
-          ambient
-      },
-    }, '*');
-  } catch (e) { console.error(e); }
-}
-
 function saveToLocal(){
-  const data={mapW,mapH,layers,instances,overlays,nextInstanceId,
-              mapName:document.getElementById('mapName').value,
+  const data={mapW,mapH,layers,mapName:document.getElementById('mapName').value,
               ambient:document.getElementById('mapAmbient').value,
               bgColor:document.getElementById('mapBgColor').value};
   localStorage.setItem('taskoria_map',JSON.stringify(data));
@@ -3209,64 +2240,11 @@ function saveToLocal(){
   setTimeout(()=>btn.textContent=orig,2000);
 }
 
-// Import a map from a file the user picks. Shows a hint before the dialog and
-// handles cancellation explicitly (oncancel + a no-selection guard).
-function loadFromFile(){
-  showToast('Selecciona un archivo .json o .js con el mapa a cargar');
-  const inp=document.createElement('input');
-  inp.type='file';
-  inp.accept='.json,.js,application/json,text/javascript';
-  inp.style.display='none';
-  let handled=false;
-  const cleanup=()=>{ if(inp.parentNode) inp.parentNode.removeChild(inp); };
-  inp.addEventListener('change', e=>{
-    handled=true;
-    const f=e.target.files && e.target.files[0];
-    if(!f){ showToast('Carga cancelada'); cleanup(); return; }
-    readMapFile(f); cleanup();
-  });
-  // Fires when the picker is dismissed without choosing (modern browsers).
-  inp.addEventListener('cancel', ()=>{ if(!handled){ showToast('Carga cancelada'); cleanup(); } });
-  document.body.appendChild(inp);
-  inp.click();
-}
-
-function readMapFile(file){
-  const r=new FileReader();
-  r.onerror=()=>showToast('No se pudo leer el archivo.', 'error');
-  r.onload=()=>{
-    try{
-      const text=String(r.result||'');
-      let obj=null;
-      try{ obj=JSON.parse(text); }
-      catch(_){
-        // Tolerate an exported .js module: extract the object literal after "=".
-        const m=text.match(/=\s*(\{[\s\S]*\})\s*;?\s*$/);
-        if(m){ obj=Function('return ('+m[1]+')')(); }
-      }
-      if(!obj || typeof obj!=='object') throw new Error('bad');
-      // Reuse the full import pipeline (decorations→instances, prefabs, overlays).
-      const nm=obj.name || file.name.replace(/\.[^.]+$/,'');
-      window.postMessage({ type:'taskoria_design_edit', tool:'map', name:nm, payload:obj }, window.location.origin);
-      showToast('Mapa cargado: '+nm, 'success');
-    }catch(e){
-      showToast('No se pudo leer el archivo. ¿Es un mapa exportado válido?', 'error');
-    }
-  };
-  r.readAsText(file);
-}
-
 function loadFromLocal(){
   const raw=localStorage.getItem('taskoria_map');
   if(!raw){ alert('No hay mapa guardado'); return; }
   const data=JSON.parse(raw);
   mapW=data.mapW; mapH=data.mapH; layers=data.layers;
-  overlays = Array.isArray(data.overlays) ? data.overlays : [];
-  // Auto-migrate legacy tile-grid instances (gridX/gridY/w/h) into the new
-  // px + scale shape. Users don't lose maps saved before this refactor.
-  instances = migrateAllInstances(Array.isArray(data.instances) ? data.instances : []);
-  nextInstanceId = data.nextInstanceId || (instances.reduce((m,i)=>Math.max(m, i.id||0), 0) + 1);
-  selectedInstanceId = null;
   document.getElementById('mw').value=mapW;
   document.getElementById('mh').value=mapH;
   document.getElementById('mapName').value=data.mapName||'';
@@ -3277,254 +2255,185 @@ function loadFromLocal(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// LIBRARY BRIDGE — saved House Builder designs as palette assets
-//   Editor → parent: { type:'taskoria_request_designs', tool:'house' }
-//   Parent → editor: { type:'taskoria_designs_loaded',  designs: [...] }
-// Each design becomes a palette key 'lib_<id>' under the BIBLIOTECA category.
+// WORLD GRAPH — visual map connection viewer
 // ═══════════════════════════════════════════════════════════
-function libSpriteFor(design){
-  let payload = design.payload || {};
-  if (typeof payload === 'string') {
-    try { payload = JSON.parse(payload); } catch(e) {}
-  }
-  const cvs = document.createElement('canvas');
-  cvs.width = cvs.height = S;
-  const c = cvs.getContext('2d');
-  c.imageSmoothingEnabled = false;
-  const drawBadge = () => {
-    c.fillStyle = '#f0c040';
-    c.fillRect(S - 12, 2, 10, 10);
-    c.fillStyle = '#0d0a14';
-    c.font = 'bold 8px monospace';
-    c.fillText('L', S - 9, 10);
-  };
-  // Generic base as an immediate placeholder
-  const roof = payload.roofType || 'thatch';
-  const baseKey = (roof === 'thatch') ? 'house_thatch'
-               : (roof === 'stone' || roof === 'dark') ? 'castle'
-               : 'house_wood';
-  const base = SPRITES[baseKey] || SPRITES.house_wood;
-  if (base) c.drawImage(base, 0, 0, S, S);
-  drawBadge();
-  // The House Builder saves the design's real look as a data-URL preview —
-  // swap it in once loaded and refresh anything that copied the placeholder.
-  if (payload.previewImage) {
-    const img = new Image();
-    img.onload = () => {
-      c.clearRect(0, 0, S, S);
-      // Fit the preview inside S×S keeping aspect ratio
-      const sc = Math.min(S / img.width, S / img.height);
-      const dw = img.width * sc, dh = img.height * sc;
-      c.drawImage(img, (S - dw) / 2, S - dh, dw, dh);
-      drawBadge();
-      buildAssetGrid();
-      render();
-    };
-    img.src = payload.previewImage;
-  }
-  return cvs;
+const KNOWN_MAPS=[
+  {id:'townSquare',name:'Town Square',color:'#b8a882',w:20,h:16},
+  {id:'taskoriaKeep',name:'Taskoria Keep',color:'#a0a0c0',w:20,h:16},
+  {id:'tavernInterior',name:'Tavern Interior',color:'#c0a060',w:14,h:12},
+  {id:'mysticForest',name:'Mystic Forest',color:'#4a9a28',w:20,h:16},
+  {id:'shadowCrypts',name:'Shadow Crypts',color:'#604060',w:20,h:16},
+];
+
+function openWorldGraph(){
+  document.getElementById('worldGraphOverlay').hidden=false;
+  drawWorldGraph();
+}
+function closeWorldGraph(){
+  document.getElementById('worldGraphOverlay').hidden=true;
 }
 
-function applyLibraryDesigns(designs){
-  // Remember the payload so the parity module can re-apply it after it rebuilds
-  // the palette (order between the two is not guaranteed).
-  if (Array.isArray(designs)) _libraryDesigns = designs;
+function drawWorldGraph(){
+  const canvas=document.getElementById('worldGraphCanvas');
+  const rect=canvas.parentElement.getBoundingClientRect();
+  canvas.width=rect.width;canvas.height=rect.height;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#0d0a14';ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  // Remove ONLY previously-injected library items (keys start with 'lib_'),
-  // without wiping the built-in registry categories (NATURALEZA, MOBILIARIO…).
-  Object.keys(CATEGORIES).forEach(k => {
-    CATEGORIES[k] = CATEGORIES[k].filter(a => !String(a.key).startsWith('lib_'));
+  // Collect portal connections from current map
+  const currentMapName=document.getElementById('mapName').value||'currentMap';
+  const connections=[];
+  for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+    const cell=layers.objects[y]?.[x];
+    if(cell?.type==='portal'&&cell.portalTarget){
+      connections.push({from:currentMapName,to:cell.portalTarget,label:cell.label||''});
+    }
+  }
+
+  // Add current map to KNOWN_MAPS if not there
+  const allMaps=[...KNOWN_MAPS];
+  if(!allMaps.find(m=>m.id===currentMapName)){
+    allMaps.unshift({id:currentMapName,name:currentMapName+' (current)',color:'#f0c040',w:mapW,h:mapH});
+  }
+
+  // Layout: radial arrangement
+  const cx=canvas.width/2, cy=canvas.height/2;
+  const radius=Math.min(cx,cy)*0.6;
+  const nodes={};
+  allMaps.forEach((m,i)=>{
+    const angle=(i/allMaps.length)*Math.PI*2 - Math.PI/2;
+    nodes[m.id]={
+      x:cx+Math.cos(angle)*radius,
+      y:cy+Math.sin(angle)*radius,
+      ...m,
+      isCurrent:m.id===currentMapName,
+    };
   });
 
-  _libraryDesigns.forEach(d => {
-    if (d.pixels) {
-      // world_creations
-      const cat = (d.category || 'VARIOS').toUpperCase();
-      if (!CATEGORIES[cat]) CATEGORIES[cat] = [];
-      const key = 'lib_pixel_' + d.id;
-      
-      try {
-        let pxs = typeof d.pixels === 'string' ? JSON.parse(d.pixels) : d.pixels;
-        if (Array.isArray(pxs) && Array.isArray(pxs[0])) pxs = pxs[0];
-        const gs = d.grid_size || 64;
-        const canvas = document.createElement('canvas');
-        canvas.width = gs; canvas.height = gs;
-        const ctx = canvas.getContext('2d');
-        if (pxs.length && typeof pxs[0] === 'object' && pxs[0] !== null) {
-          // Sparse {x,y,c} format (current Pixel Studio export)
-          pxs.forEach(p => {
-            if (p && p.c && p.c !== 'transparent') {
-              ctx.fillStyle = p.c;
-              ctx.fillRect(p.x, p.y, 1, 1);
-            }
-          });
-        } else {
-          // Legacy flat buffer of color strings
-          for (let i=0; i<pxs.length; i++){
-            if (pxs[i] && pxs[i] !== 'transparent' && pxs[i] !== 'EMPTY') {
-              ctx.fillStyle = pxs[i];
-              ctx.fillRect(i % gs, Math.floor(i / gs), 1, 1);
-            }
-          }
-        }
-        const img = new Image();
-        img.src = canvas.toDataURL();
-        SPRITES[key] = img;
-        ASSET_LAYER[key] = 'objects';
-        CATEGORIES[cat].push({ key, label: (d.name || 'Creation').slice(0, 10) });
-        NAMES[key] = d.name || 'Creation';
-      } catch(e) { console.error('Error parsing pixel art', e); }
-    } else {
-      // admin_designs (House Builder/Maps)
-      const cat = 'BIBLIOTECA';
-      if (!CATEGORIES[cat]) CATEGORIES[cat] = [];
-      const key = 'lib_' + d.id;
-      SPRITES[key] = libSpriteFor(d);
-      ASSET_LAYER[key] = 'objects';
-      CATEGORIES[cat].push({ key, label: (d.name || 'design').slice(0, 10) });
-      NAMES[key] = (d.name || 'design').slice(0, 12);
+  // Draw connections
+  connections.forEach(c=>{
+    const from=nodes[c.from], to=nodes[c.to];
+    if(!from||!to) return;
+    ctx.beginPath();
+    ctx.moveTo(from.x,from.y);ctx.lineTo(to.x,to.y);
+    ctx.strokeStyle='rgba(100,200,255,0.4)';ctx.lineWidth=2;ctx.stroke();
+    // Arrow
+    const angle=Math.atan2(to.y-from.y,to.x-from.x);
+    const mx=(from.x+to.x)/2, my=(from.y+to.y)/2;
+    ctx.beginPath();
+    ctx.moveTo(mx+8*Math.cos(angle),my+8*Math.sin(angle));
+    ctx.lineTo(mx-5*Math.cos(angle-0.4),my-5*Math.sin(angle-0.4));
+    ctx.lineTo(mx-5*Math.cos(angle+0.4),my-5*Math.sin(angle+0.4));
+    ctx.closePath();ctx.fillStyle='rgba(100,200,255,0.6)';ctx.fill();
+    // Connection label
+    if(c.label){
+      ctx.fillStyle='rgba(100,200,255,0.5)';ctx.font='9px Outfit,sans-serif';
+      ctx.fillText(c.label,mx+10,my-4);
     }
   });
-  
-  // Drop only categories that are now completely empty (leftover library tabs).
-  Object.keys(CATEGORIES).forEach(k => {
-    if (CATEGORIES[k].length === 0) delete CATEGORIES[k];
-  });
 
-  // Rebuild the category tabs + grid to show the new section
-  buildAssetPanel();
+  // Draw nodes
+  Object.values(nodes).forEach(n=>{
+    const nw=100,nh=44;
+    const nx=n.x-nw/2, ny=n.y-nh/2;
+    // Shadow
+    ctx.fillStyle='rgba(0,0,0,0.3)';
+    roundRect(ctx,nx+2,ny+2,nw,nh,6);ctx.fill();
+    // Box
+    ctx.fillStyle=n.isCurrent?'#2a1e3a':'#1e1530';
+    roundRect(ctx,nx,ny,nw,nh,6);ctx.fill();
+    ctx.strokeStyle=n.isCurrent?'#f0c040':n.color;ctx.lineWidth=n.isCurrent?2:1;
+    roundRect(ctx,nx,ny,nw,nh,6);ctx.stroke();
+    // Color dot
+    ctx.fillStyle=n.color;ctx.beginPath();ctx.arc(nx+12,ny+14,4,0,Math.PI*2);ctx.fill();
+    // Name
+    ctx.fillStyle=n.isCurrent?'#f0c040':'#d0c0e8';
+    ctx.font='bold 10px Outfit,sans-serif';
+    ctx.fillText(n.name.slice(0,14),nx+20,ny+17);
+    // Size
+    ctx.fillStyle='#706090';ctx.font='8px monospace';
+    ctx.fillText(`${n.w||'?'}×${n.h||'?'} tiles`,nx+20,ny+32);
+    // Current badge
+    if(n.isCurrent){
+      ctx.fillStyle='#f0c040';ctx.font='bold 7px Outfit,sans-serif';
+      ctx.fillText('★ EDITING',nx+nw-52,ny+36);
+    }
+  });
 }
 
-window.addEventListener('message', e => {
-  if (e.origin && e.origin !== window.location.origin) return;
-  const msg = e.data;
-  if (!msg) return;
-  if (msg.type === 'taskoria_designs_loaded') {
-    applyLibraryDesigns(msg.designs || []);
-  } else if (msg.type === 'taskoria_design_edit' && (msg.tool === 'map' || msg.tool === 'house')) {
-    if (!msg.payload) return;
-    // Wait for the shared sprite registry before converting decorations so
-    // natural sprite dimensions are available for accurate placement.
-    registryReady.then(() => {
-      // msg.tool is the editor type ('map'), not the drawing tool.
-      // Runtime MapData payloads store width/height in PIXELS (engine
-      // TILE_SIZE = 40); editor round-trip payloads store mapW/mapH in
-      // tiles. Anything over 100 "tiles" is really pixels.
-      // Remember the map's own id so saving overrides THIS map (e.g. the system
-      // Town Square) instead of minting a new one from the name.
-      _loadedMapId = msg.payload.id || null;
-      const RUNTIME_TILE = 40;
-      let rawW = msg.payload.mapW || msg.payload.width || 20;
-      let rawH = msg.payload.mapH || msg.payload.height || 16;
-      const isPixelFormat = !msg.payload.layers && rawW > 100;
-      const toTile = v => isPixelFormat ? Math.min(Math.max(Math.round(v / RUNTIME_TILE), 0), 199) : v;
-      mapW = isPixelFormat ? Math.round(rawW / RUNTIME_TILE) : rawW;
-      mapH = isPixelFormat ? Math.round(rawH / RUNTIME_TILE) : rawH;
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
 
-      const legacyInstances = [];
-      // Round-trip payloads carry overlays directly; legacy MapData rebuilds
-      // them from its rect decorations below.
-      overlays = Array.isArray(msg.payload.overlays) ? msg.payload.overlays.map(o => ({ ...o })) : [];
-      if (msg.payload.layers) {
-          layers = msg.payload.layers;
-      } else {
-          // Legacy MapData.js format — rebuild an editable grid from it
-          layers = {
-            overhead: Array.from({length:mapH},()=>new Array(mapW).fill(null)),
-            objects: Array.from({length:mapH},()=>new Array(mapW).fill(null)),
-            ground: Array.from({length:mapH},()=>new Array(mapW).fill(null))
-          };
-          // Editor now paints with the real game tileSprite keys, so an
-          // imported map's floor maps 1:1. Fall back to cobblestone if unknown.
-          let ts = msg.payload.tileSprite || 'cobblestone_tile';
-          if (!SPRITES[ts]) ts = 'cobblestone_tile';
-          for (let y = 0; y < mapH; y++) {
-              for (let x = 0; x < mapW; x++) {
-                  layers.ground[y][x] = { type: ts };
-              }
-          }
-          const placeObj = (tx, ty, type, label) => {
-              if (tx >= 0 && tx < mapW && ty >= 0 && ty < mapH && SPRITES[type]) {
-                  layers.objects[ty][tx] = { type, ...(label ? { label } : {}) };
-              }
-          };
-          // Collect the map's own decorations PLUS everything its prefabs
-          // (shop_complete, forest_grove, town_houses…) expand into — the game
-          // does this at load time, so without it the editor looked half-empty.
-          let allDecs = Array.isArray(msg.payload.decorations) ? msg.payload.decorations.slice() : [];
-          if (Array.isArray(msg.payload.prefabs) && expandPrefabsFn) {
-              try {
-                  const ex = expandPrefabsFn(msg.payload.prefabs);
-                  if (ex && Array.isArray(ex.decorations)) allDecs = allDecs.concat(ex.decorations);
-              } catch (e) { console.warn('prefab expand failed', e); }
-          }
-          // Sprite decorations → free instances (WYSIWYG). Ground paints
-          // (roads, plaza island, worn patches) → overlays. Other helpers skip.
-          allDecs.forEach(d => {
-              if (d && (d.type === 'rect' || d.type === 'cobble_patch')) {
-                  overlays.push(rectToOverlay(d));
-                  return;
-              }
-              const inst = decorationToInstance(d);
-              if (inst) legacyInstances.push(inst);
-          });
-          // Obstacles are invisible collision boxes; their visual comes from the
-          // matching decoration (already imported above), so we don't place them.
-          if (msg.payload.npcs) {
-              msg.payload.npcs.forEach(n => placeObj(toTile(n.x), toTile(n.y), n.type, n.name));
-          }
-          if (msg.payload.portals) {
-              msg.payload.portals.forEach(p => {
-                  const tx = toTile(p.x), ty = toTile(p.y);
-                  if (tx >= 0 && tx < mapW && ty >= 0 && ty < mapH) {
-                      layers.objects[ty][tx] = { type: 'portal', label: p.label };
-                  }
-              });
-          }
-          if (msg.payload.spawn) {
-              const tx = toTile(msg.payload.spawn.x), ty = toTile(msg.payload.spawn.y);
-              if (tx >= 0 && tx < mapW && ty >= 0 && ty < mapH) {
-                  layers.objects[ty][tx] = { type: 'spawn', label: 'Spawn' };
-              }
-          }
-      }
-      
-      instances = migrateAllInstances(msg.payload.editorInstances || msg.payload.instances || []);
-      // Merge big props recovered from legacy MapData decorations
-      legacyInstances.forEach(li => instances.push({ id: 0, ...li }));
-      nextInstanceId = instances.reduce((m,i)=>Math.max(m, i.id||0), 0) + 1;
-      instances.forEach(i => { if (!i.id) i.id = nextInstanceId++; });
-      document.getElementById('mw').value = mapW;
-      document.getElementById('mh').value = mapH;
-      document.getElementById('mapName').value = msg.name || '';
-      document.getElementById('mapAmbient').value = msg.payload.ambient || 85;
-      document.getElementById('mapBgColor').value = msg.payload.bgColor || '#2a1f12';
-      document.getElementById('infoSize').textContent = `${mapW}×${mapH}`;
-      updateCanvasSize(); render();
-    });
-  }
+// Close modal on overlay click
+document.getElementById('worldGraphOverlay')?.addEventListener('click',e=>{
+  if(e.target.id==='worldGraphOverlay') closeWorldGraph();
 });
 
-function loadDraftIfAny(data){
-  if (!data) return;
-  mapW=data.mapW; mapH=data.mapH; layers=data.layers;
-  overlays = Array.isArray(data.overlays) ? data.overlays : [];
-  instances = migrateAllInstances(Array.isArray(data.instances) ? data.instances : []);
-  nextInstanceId = data.nextInstanceId || (instances.reduce((m,i)=>Math.max(m, i.id||0), 0) + 1);
-  selectedInstanceId = null;
-  document.getElementById('mw').value=mapW;
-  document.getElementById('mh').value=mapH;
-  document.getElementById('mapName').value=data.mapName||'';
-  document.getElementById('mapAmbient').value=data.ambient||85;
-  document.getElementById('mapBgColor').value=data.bgColor||'#2a1f12';
-  document.getElementById('infoSize').textContent=`${mapW}×${mapH}`;
-  updateCanvasSize(); render();
-}
+// ═══════════════════════════════════════════════════════════
+// PUBLISH MAP TO REVIEW
+// ═══════════════════════════════════════════════════════════
+async function publishMapToReview() {
+  const mapName = document.getElementById('mapName').value || 'newMap';
+  const name = prompt('Nombre para este mapa:', mapName);
+  if (!name) return;
 
-function requestLibrary(){
+  const btn = document.getElementById('publishBtn');
+  btn.textContent = '⏳ Enviando...';
+  btn.disabled = true;
+
   try {
-    window.parent.postMessage({ type: 'taskoria_request_designs', tool: 'house' }, '*');
-  } catch (err) { /* iframe-less mode */ }
+    const userId = JSON.parse(localStorage.getItem('taskoria_user') || '{}').id;
+    if (!userId) { alert('Necesitas estar logueado en Taskoria para publicar.'); btn.textContent = '📤 PUBLICAR'; btn.disabled = false; return; }
+
+    const ambient = document.getElementById('mapAmbient').value || 85;
+    const bgColor = document.getElementById('mapBgColor').value || '#2a1f12';
+
+    const mapParams = {
+      mapW, mapH, layers,
+      ambient: parseInt(ambient),
+      bgColor,
+    };
+
+    const resp = await fetch('/api/creations.php?action=publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        name,
+        category: 'maps',
+        payload_type: 'map',
+        grid_size: 0,
+        pixels: [],
+        params: mapParams,
+        price: 200,
+      }),
+    });
+
+    const data = await resp.json();
+    if (data.success) {
+      btn.textContent = '✓ ENVIADO';
+      btn.style.color = 'var(--green)';
+      setTimeout(() => {
+        btn.textContent = '📤 PUBLICAR';
+        btn.style.color = 'var(--cyan)';
+        btn.disabled = false;
+      }, 3000);
+    } else {
+      alert(data.error || 'Error al publicar');
+      btn.textContent = '📤 PUBLICAR';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    alert('Error de conexión: ' + e.message);
+    btn.textContent = '📤 PUBLICAR';
+    btn.disabled = false;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3539,123 +2448,6 @@ render();
 selectedAsset='cobblestone';
 updateBrushPreview();
 document.querySelector('.asset-item')?.classList.add('selected');
-
-// Pull saved House Builder designs from the parent's admin library
-requestLibrary();
-
-// ═══════════════════════════════════════════════════════════
-// RESPONSIVE PANEL TOGGLES
-// ═══════════════════════════════════════════════════════════
-function toggleAssetPanel(){
-  const p=document.querySelector('.asset-panel');
-  const bd=document.getElementById('editorBackdrop');
-  document.querySelector('.props-panel').classList.remove('open');
-  const open=p.classList.toggle('open');
-  bd.classList.toggle('open',open);
-}
-function togglePropsPanel(){
-  const p=document.querySelector('.props-panel');
-  const bd=document.getElementById('editorBackdrop');
-  document.querySelector('.asset-panel').classList.remove('open');
-  const open=p.classList.toggle('open');
-  bd.classList.toggle('open',open);
-}
-function closeAllPanels(){
-  document.querySelector('.asset-panel').classList.remove('open');
-  document.querySelector('.props-panel').classList.remove('open');
-  document.getElementById('editorBackdrop').classList.remove('open');
-}
-</script>
-<script type="module">
-// ═══════════════════════════════════════════════════════════
-// GAME-SPRITE PARITY — load the engine's real sprite registry so the palette
-// and canvas show exactly what production renders. The build copies
-// src/data/sprite-registry.js next to this file (vite copySpriteRegistry);
-// in `vite dev` we fall back to the source path. If neither resolves, the
-// editor keeps its inline approximations.
-// ═══════════════════════════════════════════════════════════
-(async () => {
-  let mod = null;
-  for (const p of ['./sprite-registry.js', '../src/data/sprite-registry.js']) {
-    try { mod = await import(p); if (mod && mod.SPRITE_REGISTRY) break; } catch (e) { mod = null; }
-  }
-  if (!mod || !mod.SPRITE_REGISTRY) { if (_markRegistryReady) _markRegistryReady(); return; }
-  const REG = mod.SPRITE_REGISTRY;
-  const FLOORS = mod.FLOOR_TILES || {};
-
-  // Load the prefab expander so imported maps can rebuild composite scenes
-  // (shop_complete, forest_grove, town_houses…) into their real decorations.
-  for (const pp of ['./prefabs.js', '../src/components/dashboard/world/prefabs.js']) {
-    try { const pm = await import(pp); if (pm && pm.expandPrefabs) { expandPrefabsFn = pm.expandPrefabs; break; } } catch (e) {}
-  }
-
-  const bufToCanvas = (buffer, w, h) => {
-    const cvs = document.createElement('canvas');
-    cvs.width = w; cvs.height = h;
-    const c = cvs.getContext('2d');
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const col = buffer[y * w + x];
-      if (col && col !== 'transparent') { c.fillStyle = col; c.fillRect(x, y, 1, 1); }
-    }
-    return cvs;
-  };
-  const toCanvas = (spr) => bufToCanvas(spr.buffer, spr.w, spr.h);
-
-  // 1) Register every real game prop (WYSIWYG) as a placeable free instance.
-  Object.keys(REG).forEach(k => {
-    SPRITES[k] = toCanvas(REG[k]);
-    ASSET_LAYER[k] = 'objects';
-    NAMES[k] = k;
-    INSTANCE_TYPE_SET.add(k);
-  });
-  // 2) Register the 5 real game floors under the runtime tileSprite keys.
-  Object.keys(FLOORS).forEach(k => {
-    SPRITES[k] = bufToCanvas(FLOORS[k], 64, 64);
-    ASSET_LAYER[k] = 'ground';
-  });
-
-  // 3) Rebuild the palette as a complete, organized catalog of what the game
-  //    can actually render. Curated Spanish labels; anything in the registry
-  //    that isn't hand-placed still shows up under VARIOS so nothing is missing.
-  const FLOOR_LABEL = { cobblestone_tile:'Adoquín', grass_tile:'Hierba', stone_floor_tile:'Piedra', dungeon_floor_tile:'Mazmorra', wood_floor_tile:'Madera', water_tile:'Agua', dirt_tile:'Tierra' };
-  const GROUPS = {
-    'NATURALEZA': { oak_tree:'Roble', pine_tree:'Pino', ancient_tree:'Árbol Anc.', bush:'Arbusto', flowers:'Flores', mushroom:'Seta', grass_tuft:'Matojo', hay:'Fardo', planter:'Jardinera' },
-    'EDIFICIOS': { shop_building:'Edificio', well:'Pozo', market_stall_red:'Puesto R', market_stall_green:'Puesto V', market_stall_purple:'Puesto M', fence:'Valla', sign:'Cartel' },
-    'MOBILIARIO': { bench:'Banco', barrel:'Barril', crate:'Caja', table:'Mesa', stool:'Taburete', bed:'Cama', bookshelf:'Estante', dining_table:'Mesa C.', dining_chair:'Silla', bar_counter:'Barra', weapon_rack:'Armas', armor_stand:'Armadura', red_carpet:'Alfombra' },
-    'LUZ': { lamp:'Farola', wall_torch:'Antorcha', fire:'Hoguera' },
-    'DECO': { ledgar_statue:'Estatua', council_board:'Tablón', banner_gold:'Est. Oro', banner_red:'Est. Rojo', banner_purple:'Est. Púrp', banner_blue:'Est. Azul', mug:'Jarra', cat_sleeping:'Gato', barrel_tipped:'Barril V.', skull:'Calavera', floor_patch:'Parche' },
-  };
-
-  // Preserve structural categories, then rebuild the whole object in a clean tab order.
-  const NPCS = CATEGORIES['NPCs'], ESP = CATEGORIES['ESPECIAL'], REFS = CATEGORIES['REFERENCIAS'], LIB = CATEGORIES['BIBLIOTECA'];
-  Object.keys(CATEGORIES).forEach(k => delete CATEGORIES[k]);
-
-  CATEGORIES['SUELO'] = Object.keys(FLOORS).map(k => ({ key: k, label: FLOOR_LABEL[k] || k }));
-  const seen = new Set();
-  Object.entries(GROUPS).forEach(([cat, items]) => {
-    const list = Object.keys(items).filter(k => REG[k]).map(k => { seen.add(k); return { key: k, label: items[k] }; });
-    if (list.length) CATEGORIES[cat] = list;
-  });
-  const misc = Object.keys(REG).filter(k => !seen.has(k));
-  if (misc.length) CATEGORIES['VARIOS'] = misc.map(k => ({ key: k, label: k.replace(/_/g, ' ').slice(0, 12) }));
-  if (LIB)  CATEGORIES['BIBLIOTECA'] = LIB;
-  if (NPCS) CATEGORIES['NPCs'] = NPCS;
-  if (ESP)  CATEGORIES['ESPECIAL'] = ESP;
-  if (REFS) CATEGORIES['REFERENCIAS'] = REFS;
-
-  currentCat = 'SUELO';
-  selectedAsset = 'cobblestone_tile';
-  // Re-apply any library payload that arrived before this rebuild, so houses
-  // and extracted objects survive (and don't get wiped by the rebuild).
-  if (_libraryDesigns.length && typeof applyLibraryDesigns === 'function') {
-    applyLibraryDesigns(_libraryDesigns);
-  } else {
-    buildAssetPanel();
-  }
-  if (typeof updateBrushPreview === 'function') updateBrushPreview();
-  render();
-  if (_markRegistryReady) _markRegistryReady();
-})();
 </script>
 </body>
 </html>

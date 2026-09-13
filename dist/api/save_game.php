@@ -40,13 +40,13 @@ try {
     }
 
     // Also update their last_active_at timestamp so they show as "online"
-    $pdo->exec("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE id = " . $user_id);
+    $pdo->prepare("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE id = ?")->execute([$user_id]);
 
     echo json_encode(['success' => true]);
 
 } catch (Exception $e) {
     http_response_code(500);
     error_log("Save Game Error: " . $e->getMessage()); 
-    echo json_encode(['error' => 'Failed to save game: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Failed to save game']);
 }
 ?>

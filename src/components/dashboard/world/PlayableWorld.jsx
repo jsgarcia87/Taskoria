@@ -9,6 +9,7 @@ import { fetchCustomBlueprints } from '../../../utils/blueprints';
 import { firstFrame, frameToBuffer } from '../../../utils/pixelFormat';
 import { playFootstep, playPortalSound, surfaceForTile } from '../../../utils/sound';
 import ChatModal from '../ChatModal';
+import PlotSystem from './PlotSystem';
 import { X, MessageSquare } from 'lucide-react';
 
 const TILE_SIZE = 40;
@@ -1169,6 +1170,9 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                 {/* Portals */}
                 <PortalsLayer portals={map.portals} />
 
+                {/* Plot grid (Free District) */}
+                {map.plots && <PlotSystem plots={map.plots} />}
+
                 {/* Dust Particles — isolated layer, owns its own state */}
                 <DustParticles ref={dustRef} />
 
@@ -1368,7 +1372,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                         </button>
 
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-14 h-14 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl border border-white/10 flex items-center justify-center flex-shrink-0">
+                            <div className="w-14 h-14 bg-purple-500/15 rounded-xl border border-white/10 flex items-center justify-center flex-shrink-0">
                                 <ModernPixelAvatar
                                     type={npcChar.avatarId || 'warrior'}
                                     scale={1.5}

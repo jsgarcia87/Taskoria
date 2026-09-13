@@ -72,6 +72,7 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    error_log('Search users error: ' . $e->getMessage());
+    echo json_encode(['error' => 'Search failed']);
 }
 ?>

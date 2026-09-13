@@ -28,6 +28,12 @@ try {
     try {
         $pdo->exec("ALTER TABLE world_creations ADD COLUMN price INT NOT NULL DEFAULT 100 AFTER pixels;");
     } catch (PDOException $e) { /* already there */ }
+    try {
+        $pdo->exec("ALTER TABLE world_creations ADD COLUMN payload_type VARCHAR(20) NOT NULL DEFAULT 'pixels' AFTER category;");
+    } catch (PDOException $e) { /* already there */ }
+    try {
+        $pdo->exec("ALTER TABLE world_creations ADD COLUMN params JSON DEFAULT NULL AFTER pixels;");
+    } catch (PDOException $e) { /* already there */ }
 
     // Purchases ledger — records who bought which creation and at what price.
     // UNIQUE(user_id, creation_id) makes idempotent buys impossible; a second
@@ -50,7 +56,7 @@ try {
     // ignore
 }
 
-$ALLOWED_CATEGORIES = ['characters','pets','houses','castles','mounts','trees','decoration','props','monsters',
+$ALLOWED_CATEGORIES = ['characters','pets','houses','castles','mounts','trees','decoration','props','monsters','maps',
     'casas','castillos','monturas','arboles','decoracion','monstruos'];
 
 function isAdmin($pdo, $userId) {
@@ -84,7 +90,7 @@ if ($method === 'GET') {
         $cat = $_GET['category'] ?? null;
         if ($cat && in_array($cat, $ALLOWED_CATEGORIES, true)) {
             $stmt = $pdo->prepare("
-                SELECT c.id, c.name, c.category, c.grid_size, c.pixels, c.price, c.created_at, u.username
+                SELECT c.id, c.name, c.category, c.payload_type, c.grid_size, c.pixels, c.params, c.price, c.created_at, u.username
                 FROM world_creations c
                 JOIN users u ON u.id = c.user_id
                 WHERE c.status = 'approved' AND c.category = ?
@@ -94,7 +100,7 @@ if ($method === 'GET') {
             $stmt->execute([$cat]);
         } else {
             $stmt = $pdo->query("
-                SELECT c.id, c.name, c.category, c.grid_size, c.pixels, c.price, c.created_at, u.username
+                SELECT c.id, c.name, c.category, c.payload_type, c.grid_size, c.pixels, c.params, c.price, c.created_at, u.username
                 FROM world_creations c
                 JOIN users u ON u.id = c.user_id
                 WHERE c.status = 'approved'
@@ -141,7 +147,7 @@ if ($method === 'GET') {
         $adminId = (int)($_GET['admin_id'] ?? 0);
         if (!isAdmin($pdo, $adminId)) { http_response_code(403); echo json_encode(['error' => 'Admins only']); exit; }
         $stmt = $pdo->query("
-            SELECT c.id, c.name, c.category, c.grid_size, c.pixels, c.price, c.created_at, u.username, c.user_id
+            SELECT c.id, c.name, c.category, c.payload_type, c.grid_size, c.pixels, c.params, c.price, c.created_at, u.username, c.user_id
             FROM world_creations c
             JOIN users u ON u.id = c.user_id
             WHERE c.status = 'pending'
@@ -158,6 +164,20 @@ if ($method === 'GET') {
 
 if ($method === 'POST') {
     $data = json_decode(file_get_contents('php://input'), true) ?: [];
+
+    if ($action === 'list_pending') {
+        $adminId = (int)($data['admin_id'] ?? 0);
+        if (!isAdmin($pdo, $adminId)) { http_response_code(403); echo json_encode(['error' => 'Admins only']); exit; }
+        $stmt = $pdo->query("
+            SELECT c.id, c.name, c.category, c.payload_type, c.grid_size, c.pixels, c.params, c.price, c.created_at, u.username, c.user_id
+            FROM world_creations c
+            JOIN users u ON u.id = c.user_id
+            WHERE c.status = 'pending'
+            ORDER BY c.created_at ASC
+        ");
+        echo json_encode(['success' => true, 'items' => $stmt->fetchAll()]);
+        exit;
+    }
 
     if ($action === 'seed_object') {
         // Admin-only: extract a built-in procedural prop into the library as an
@@ -192,9 +212,10 @@ if ($method === 'POST') {
         $userId = (int)($data['user_id'] ?? 0);
         $name = trim((string)($data['name'] ?? ''));
         $category = (string)($data['category'] ?? '');
+        $payloadType = (string)($data['payload_type'] ?? 'pixels');
         $gridSize = (int)($data['grid_size'] ?? 64);
         $pixels = $data['pixels'] ?? null;
-        // Creator-proposed price, capped 10-500. Admin may override at approval.
+        $params = $data['params'] ?? null;
         $price = isset($data['price']) ? (int)$data['price'] : 100;
         if ($price < 10) $price = 10;
         if ($price > 500) $price = 500;
@@ -203,46 +224,55 @@ if ($method === 'POST') {
         if (!hasStudioAccess($pdo, $userId)) { http_response_code(403); echo json_encode(['error' => 'Studio access not approved']); exit; }
         if ($name === '' || mb_strlen($name) > 120) { http_response_code(400); echo json_encode(['error' => 'Invalid name']); exit; }
         if (!in_array($category, $ALLOWED_CATEGORIES, true)) { http_response_code(400); echo json_encode(['error' => 'Invalid category']); exit; }
-        if ($gridSize < 8 || $gridSize > 128) { http_response_code(400); echo json_encode(['error' => 'Invalid grid_size']); exit; }
-        if (!is_array($pixels)) {
-            http_response_code(400); echo json_encode(['error' => 'Invalid pixels format']); exit;
-        }
+        if (!in_array($payloadType, ['pixels', 'house', 'map'], true)) { http_response_code(400); echo json_encode(['error' => 'Invalid payload_type']); exit; }
 
-        // Determine if this is a single frame or a multi-frame animation.
-        // Frames can be flat buffers (4096 hex strings) or sparse [{x,y,c}, ...].
-        $isSparse = isset($pixels[0]) && is_object($pixels[0]) || (isset($pixels[0]) && is_array($pixels[0]) && isset($pixels[0]['c']));
-        $isAnimated = !$isSparse && isset($pixels[0]) && is_array($pixels[0]);
-        $frames = $isAnimated ? $pixels : [$pixels];
-
-        foreach ($frames as $frame) {
-            if (!is_array($frame)) {
-                http_response_code(400); echo json_encode(['error' => 'Invalid frame format']); exit;
+        if ($payloadType === 'house') {
+            if (!is_array($params) && !is_object($params)) { http_response_code(400); echo json_encode(['error' => 'House params required']); exit; }
+            if (!is_array($pixels)) $pixels = [];
+            $gridSize = (int)($data['grid_size'] ?? 96);
+        } else if ($payloadType === 'map') {
+            if (!is_array($params) && !is_object($params)) { http_response_code(400); echo json_encode(['error' => 'Map params required']); exit; }
+            if (!is_array($pixels)) $pixels = [];
+            $gridSize = 0;
+        } else {
+            if ($gridSize < 8 || $gridSize > 128) { http_response_code(400); echo json_encode(['error' => 'Invalid grid_size']); exit; }
+            if (!is_array($pixels)) {
+                http_response_code(400); echo json_encode(['error' => 'Invalid pixels format']); exit;
             }
-            $frameIsSparse = !empty($frame) && is_array($frame[0]) && isset($frame[0]['c']);
-            if (!$frameIsSparse && count($frame) !== $gridSize * $gridSize) {
-                http_response_code(400); echo json_encode(['error' => 'Invalid frame size']); exit;
-            }
-        }
 
-        // Reject empty canvases
-        $hasContent = false;
-        foreach ($frames as $frame) {
-            $frameIsSparse = !empty($frame) && is_array($frame[0]) && isset($frame[0]['c']);
-            if ($frameIsSparse) {
-                if (!empty($frame)) { $hasContent = true; break; }
-            } else {
-                foreach ($frame as $p) {
-                    if ($p !== 'transparent' && $p !== null && $p !== '') { $hasContent = true; break 2; }
+            $isSparse = isset($pixels[0]) && is_object($pixels[0]) || (isset($pixels[0]) && is_array($pixels[0]) && isset($pixels[0]['c']));
+            $isAnimated = !$isSparse && isset($pixels[0]) && is_array($pixels[0]);
+            $frames = $isAnimated ? $pixels : [$pixels];
+
+            foreach ($frames as $frame) {
+                if (!is_array($frame)) {
+                    http_response_code(400); echo json_encode(['error' => 'Invalid frame format']); exit;
+                }
+                $frameIsSparse = !empty($frame) && is_array($frame[0]) && isset($frame[0]['c']);
+                if (!$frameIsSparse && count($frame) !== $gridSize * $gridSize) {
+                    http_response_code(400); echo json_encode(['error' => 'Invalid frame size']); exit;
                 }
             }
+
+            $hasContent = false;
+            foreach ($frames as $frame) {
+                $frameIsSparse = !empty($frame) && is_array($frame[0]) && isset($frame[0]['c']);
+                if ($frameIsSparse) {
+                    if (!empty($frame)) { $hasContent = true; break; }
+                } else {
+                    foreach ($frame as $p) {
+                        if ($p !== 'transparent' && $p !== null && $p !== '') { $hasContent = true; break 2; }
+                    }
+                }
+            }
+            if (!$hasContent) { http_response_code(400); echo json_encode(['error' => 'Empty canvas']); exit; }
         }
-        if (!$hasContent) { http_response_code(400); echo json_encode(['error' => 'Empty canvas']); exit; }
 
         $stmt = $pdo->prepare("
-            INSERT INTO world_creations (user_id, name, category, grid_size, pixels, price, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'pending')
+            INSERT INTO world_creations (user_id, name, category, payload_type, grid_size, pixels, params, price, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
         ");
-        $stmt->execute([$userId, $name, $category, $gridSize, json_encode($pixels), $price]);
+        $stmt->execute([$userId, $name, $category, $payloadType, $gridSize, json_encode($pixels), $params ? json_encode($params) : null, $price]);
         echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
         exit;
     }
@@ -273,8 +303,16 @@ if ($method === 'POST') {
 
     if ($action === 'update_meta') {
         $id = (int)($data['id'] ?? 0);
+        $userId = (int)($data['user_id'] ?? 0);
         $name = trim((string)($data['name'] ?? ''));
         $category = (string)($data['category'] ?? '');
+        if (!$id || !$userId) { http_response_code(400); echo json_encode(['error' => 'Missing ID']); exit; }
+        $ownership = $pdo->prepare("SELECT user_id FROM world_creations WHERE id = ?");
+        $ownership->execute([$id]);
+        $row = $ownership->fetch();
+        if (!$row || ($row['user_id'] != $userId && !isAdmin($pdo, $userId))) {
+            http_response_code(403); echo json_encode(['error' => 'Not authorized']); exit;
+        }
         $stmt = $pdo->prepare("UPDATE world_creations SET name = ?, category = ? WHERE id = ?");
         $stmt->execute([$name, $category, $id]);
         echo json_encode(['success' => true]);

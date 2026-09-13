@@ -268,7 +268,7 @@ function buildCastle(scene) {
             new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.7 }));
         fireOuter.position.y = 3.5; torchGroup.add(fireOuter);
         const light = new THREE.PointLight(torchLightColor, baseIntensity, 18);
-        light.position.y = 3.8; light.castShadow = true; light.shadow.mapSize.set(256, 256);
+        light.position.y = 3.8;
         torchGroup.add(light);
         return { group: torchGroup, light, fireCore, fireOuter };
     }
@@ -502,7 +502,7 @@ function buildCouncil(scene) {
     ];
     const statueCount = 6;
     const guardians = [];
-    const gltfLoader = new GLTFLoader();
+    let modelsLoaded = false;
 
     for (let i = 0; i < statueCount; i++) {
         const angle = (i / statueCount) * Math.PI * 2 - Math.PI / 2;
@@ -511,79 +511,21 @@ function buildCouncil(scene) {
         const z = Math.sin(angle) * r;
         const { name, color, hex, model: modelName } = guardianData[i];
 
-        // Statue container — populated async when the GLB loads.
-        // The container is oriented outward so its child model faces the camera.
-        // Sits on the floor (Y=0) — the GLBs bring their own base.
         const statueGroup = new THREE.Group();
         statueGroup.position.set(x, 0, z);
         statueGroup.rotation.y = -angle - Math.PI / 2;
         group.add(statueGroup);
 
-        // Track emissive materials from the loaded model for the "awakening" effect
         const statueMaterials = [];
 
-        // Build primitive fallback (used when no model or when GLB fails)
-        const buildPrimitive = () => {
-            const fallbackMat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.3, emissive: color, emissiveIntensity: 0.15 });
-            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.5, 1), fallbackMat);
-            body.position.y = 1.75; body.castShadow = true;
-            statueGroup.add(body);
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), fallbackMat);
-            head.position.y = 4;
-            statueGroup.add(head);
-            statueMaterials.push(fallbackMat);
-        };
-
-        if (!modelName) {
-            buildPrimitive();
-        } else {
-            // Async load
-            gltfLoader.load(
-            `./models/guardians/${modelName}.glb`,
-            (gltf) => {
-                const modelObj = gltf.scene;
-
-                // Fit the model to a target height (~5 units — feels imposing next to the altar)
-                const box = new THREE.Box3().setFromObject(modelObj);
-                const size = box.getSize(new THREE.Vector3());
-                const targetHeight = 5;
-                const scale = size.y > 0 ? targetHeight / size.y : 1;
-                modelObj.scale.setScalar(scale);
-
-                // Anchor the model's feet to the floor (Y=0 of statueGroup)
-                const rescaled = new THREE.Box3().setFromObject(modelObj);
-                modelObj.position.y = -rescaled.min.y;
-
-                // Shadows + collect materials for the awakening pulse.
-                // Base emissive tint gives every guardian a subtle glow in their color
-                // even at rest — the awakening then boosts it further.
-                modelObj.traverse((child) => {
-                    if (child.isMesh) {
-                        child.castShadow = true;
-                        child.receiveShadow = true;
-                        if (child.material) {
-                            const mats = Array.isArray(child.material) ? child.material : [child.material];
-                            mats.forEach(m => {
-                                // Clone so we can freely tweak emissive without touching cached refs
-                                const cloned = m.clone();
-                                cloned.emissive = new THREE.Color(color);
-                                cloned.emissiveIntensity = 0.15;
-                                child.material = cloned;
-                                statueMaterials.push(cloned);
-                            });
-                        }
-                    }
-                });
-
-                statueGroup.add(modelObj);
-            },
-            undefined,
-            (err) => {
-                console.warn(`[CastleScene] Failed to load ${modelName}.glb`, err);
-                buildPrimitive();
-            }
-        );
-        }
+        const fallbackMat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.3, emissive: color, emissiveIntensity: 0.15 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.5, 1), fallbackMat);
+        body.position.y = 1.75; body.castShadow = true;
+        statueGroup.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), fallbackMat);
+        head.position.y = 4;
+        statueGroup.add(head);
+        statueMaterials.push(fallbackMat);
 
         const glow = new THREE.PointLight(color, 4, 6);
         glow.position.set(x, 1.5, z);
@@ -606,8 +548,50 @@ function buildCouncil(scene) {
         signPlate.rotation.y = -angle - Math.PI / 2;
         group.add(signPlate);
 
-        guardians.push({ angle, statueMaterials, glow, baseGlowIntensity: 3, awakeGlowIntensity: 18 });
+        guardians.push({ angle, statueMaterials, glow, baseGlowIntensity: 3, awakeGlowIntensity: 18, statueGroup, modelName, color, primitives: [body, head] });
     }
+
+    const loadModels = () => {
+        if (modelsLoaded) return;
+        modelsLoaded = true;
+        const gltfLoader = new GLTFLoader();
+        guardianData.forEach((gd, i) => {
+            const g = guardians[i];
+            if (!gd.model) return;
+            gltfLoader.load(
+                `./models/guardians/${gd.model}.glb`,
+                (gltf) => {
+                    const modelObj = gltf.scene;
+                    const box = new THREE.Box3().setFromObject(modelObj);
+                    const sz = box.getSize(new THREE.Vector3());
+                    const scale = sz.y > 0 ? 5 / sz.y : 1;
+                    modelObj.scale.setScalar(scale);
+                    const rescaled = new THREE.Box3().setFromObject(modelObj);
+                    modelObj.position.y = -rescaled.min.y;
+                    modelObj.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            if (child.material) {
+                                const mats = Array.isArray(child.material) ? child.material : [child.material];
+                                mats.forEach(m => {
+                                    const cloned = m.clone();
+                                    cloned.emissive = new THREE.Color(gd.color);
+                                    cloned.emissiveIntensity = 0.15;
+                                    child.material = cloned;
+                                    g.statueMaterials.push(cloned);
+                                });
+                            }
+                        }
+                    });
+                    g.primitives.forEach(p => g.statueGroup.remove(p));
+                    g.statueGroup.add(modelObj);
+                },
+                undefined,
+                () => {}
+            );
+        });
+    };
 
     // Central altar with golden glow
     const altar = new THREE.Mesh(
@@ -629,7 +613,7 @@ function buildCouncil(scene) {
     group.add(altarLight);
 
     scene.add(group);
-    return { group, guardians, altarCore };
+    return { group, guardians, altarCore, loadModels };
 }
 
 function buildStudio(scene) {
@@ -692,6 +676,9 @@ const CastleScene = () => {
         const container = containerRef.current;
         if (!container) return;
 
+        const isMobile = window.innerWidth < 768;
+        const isLowEnd = isMobile || navigator.hardwareConcurrency <= 4;
+
         const h = new Date().getHours();
         const skyColor = (h >= 21 || h < 6) ? 0x0e0f1e : (h >= 18 && h < 21) ? 0x1e1520 : (h >= 6 && h < 12) ? 0x1a1b2e : 0x1c1d30;
 
@@ -702,10 +689,10 @@ const CastleScene = () => {
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 6, 35);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: !isLowEnd, powerPreference: 'high-performance' });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, isLowEnd ? 1.5 : 2));
+        renderer.shadowMap.enabled = !isLowEnd;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 0.9;
@@ -724,7 +711,7 @@ const CastleScene = () => {
         const mainLight = new THREE.DirectionalLight(dirColor, sceneIsNight ? 0.6 : sceneIsEvening ? 1.0 : 0.8);
         mainLight.position.set(dirX, 25, 20);
         mainLight.castShadow = true;
-        mainLight.shadow.mapSize.set(1024, 1024);
+        mainLight.shadow.mapSize.set(isLowEnd ? 512 : 1024, isLowEnd ? 512 : 1024);
         mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 80;
         mainLight.shadow.camera.left = -40; mainLight.shadow.camera.right = 40;
         mainLight.shadow.camera.top = 30; mainLight.shadow.camera.bottom = -5;
@@ -798,8 +785,7 @@ const CastleScene = () => {
         buildStudio(scene);
 
         // ── Particle systems ──
-        const isMobile = window.innerWidth < 768;
-        const pMul = isMobile ? 0.5 : 1;
+        const pMul = isLowEnd ? 0.3 : 1;
 
         const particleSystems = [
             // Embers near castle gate torches (hero)
@@ -858,9 +844,14 @@ const CastleScene = () => {
         const clock = new THREE.Clock();
         const lookTarget = new THREE.Vector3();
         let animId;
+        let frameCount = 0;
+        const frameSkip = isLowEnd ? 2 : 1;
 
         const animate = () => {
             animId = requestAnimationFrame(animate);
+            if (document.hidden) return;
+            frameCount++;
+            if (frameCount % frameSkip !== 0) return;
             const elapsed = clock.getElapsedTime();
 
             // Camera
@@ -872,6 +863,8 @@ const CastleScene = () => {
             lookTarget.y += (target.look[1] - lookTarget.y) * 0.04;
             lookTarget.z += (target.look[2] - lookTarget.z) * 0.04;
             camera.lookAt(lookTarget);
+
+            if (scrollPercent > 0.18) council.loadModels();
 
             // Castle doors
             const doorProgress = Math.min(Math.max((scrollPercent - 0.02) / 0.10, 0), 1);
@@ -958,6 +951,13 @@ const CastleScene = () => {
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('resize', handleResize);
             window.removeEventListener('taskoria:signed', onSigned);
+            scene.traverse(obj => {
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                    mats.forEach(m => { m.dispose(); if (m.map) m.map.dispose(); });
+                }
+            });
             renderer.dispose();
             if (container.contains(renderer.domElement)) {
                 container.removeChild(renderer.domElement);

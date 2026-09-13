@@ -6,6 +6,8 @@
  * Three missions are picked per day, deterministically based on the date,
  * so all players on the same day see the same set (creates a shared cadence).
  */
+import { bosses as WEEKLY_BOSSES } from '../../data/bestiary';
+
 const MISSION_POOL = [
     { kind: 'tasks',         target: 3,  title: 'Complete 3 quests',        rewardXp: 60,  rewardGold: 50 },
     { kind: 'tasks',         target: 5,  title: 'Complete 5 quests',        rewardXp: 120, rewardGold: 100 },
@@ -119,15 +121,43 @@ export const systemReducer = (initialState) => (state, action) => {
             const today = new Date().toLocaleDateString('en-CA');
             const now = new Date();
             let dmgTaken = 0;
-            let updatedDungeon = state.activeDungeon || { hp: 1000, maxHp: 1000, name: "Weekly Dungeon", lastReset: null };
+            let updatedDungeon = state.activeDungeon || initialState.activeDungeon;
 
             if (updatedDungeon) {
-                const dungeonLastReset = new Date(updatedDungeon.lastReset || Date.now());
-                const dungeonDaysDiff = (now - dungeonLastReset) / (1000 * 60 * 60 * 24);
-                if (!updatedDungeon.lastReset || dungeonDaysDiff >= 7) {
-                    let newMaxHp = updatedDungeon.maxHp || 1000;
-                    if (updatedDungeon.hp <= 0) newMaxHp += 250;
-                    updatedDungeon = { ...updatedDungeon, maxHp: newMaxHp, hp: newMaxHp, lastReset: Date.now() };
+                if (!updatedDungeon.lastReset) {
+                    // First login ever — stamp the current boss without rotating
+                    updatedDungeon = { ...updatedDungeon, lastReset: Date.now() };
+                    // Migrate old saves that lack bestiary fields
+                    if (!updatedDungeon.bossId && WEEKLY_BOSSES.length > 0) {
+                        const firstBoss = WEEKLY_BOSSES[0];
+                        updatedDungeon = {
+                            ...updatedDungeon,
+                            hp: firstBoss.hp,
+                            maxHp: firstBoss.hp,
+                            bossId: firstBoss.id,
+                            name: firstBoss.name,
+                            spriteRef: firstBoss.spriteRef,
+                            dangerLabel: firstBoss.dangerLabel,
+                            rotationIndex: 0,
+                        };
+                    }
+                } else {
+                    const dungeonLastReset = new Date(updatedDungeon.lastReset);
+                    const dungeonDaysDiff = (now - dungeonLastReset) / (1000 * 60 * 60 * 24);
+                    if (dungeonDaysDiff >= 7) {
+                        const nextIdx = ((updatedDungeon.rotationIndex ?? -1) + 1) % WEEKLY_BOSSES.length;
+                        const nextBoss = WEEKLY_BOSSES[nextIdx];
+                        updatedDungeon = {
+                            hp: nextBoss.hp,
+                            maxHp: nextBoss.hp,
+                            bossId: nextBoss.id,
+                            name: nextBoss.name,
+                            spriteRef: nextBoss.spriteRef,
+                            dangerLabel: nextBoss.dangerLabel,
+                            rotationIndex: nextIdx,
+                            lastReset: Date.now(),
+                        };
+                    }
                 }
             }
 

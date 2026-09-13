@@ -5,102 +5,134 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Taskoria — House Builder</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;600;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:#1a1208;color:#e8d8b0;font-family:'Outfit',sans-serif;
-     display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;500;700&display=swap');
+:root {
+  --bg:      #0d0a14;
+  --bg2:     #160f22;
+  --panel:   #1e1530;
+  --border:  #2e2248;
+  --border2: #3e3258;
+  --gold:    #f0c040;
+  --gold2:   #c89a20;
+  --purple:  #7050b0;
+  --purple2: #9070d0;
+  --green:   #40a050;
+  --red:     #b03030;
+  --cyan:    #30a0b0;
+  --text:    #d0c0e8;
+  --dim:     #706090;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif;
+       display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-header{display:flex;align-items:center;gap:12px;padding:8px 16px;
-       background:#241a0c;border-bottom:2px solid #5a3a1a;flex-shrink:0;}
-.logo{font-family:'Press Start 2P',monospace;font-size:9px;color:#f0d060;
-      text-shadow:0 0 10px #f0d06055;}
-.logo span{color:#70c840;}
-.badge{font-size:9px;padding:2px 8px;border-radius:3px;background:#1a1008;
-       color:#80d0f0;border:1px solid #3a2808;}
-.hbtn{font-family:'Press Start 2P',monospace;font-size:6px;padding:5px 8px;
-      border:1px solid #5a3a1a;background:transparent;color:#8a6840;
-      cursor:pointer;border-radius:3px;transition:all .15s;margin-left:auto;}
-.hbtn:hover{color:#f0d060;border-color:#f0a020;}
-.hbtn.active{background:#4a7020;color:#fff;border-color:#6a9a30;}
+header { display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+         background: var(--bg2); border-bottom: 2px solid var(--border); flex-shrink: 0; }
+.logo { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--gold);
+        white-space: nowrap; }
+.logo span { color: var(--green); }
+.badge { font-size: 9px; padding: 2px 8px; border-radius: 3px; background: var(--panel);
+         color: var(--cyan); border: 1px solid var(--border); }
+.hbtn { font-family: 'Press Start 2P', monospace; font-size: 6px; padding: 5px 8px;
+        border: 1px solid var(--border2); background: transparent; color: var(--dim);
+        cursor: pointer; border-radius: 3px; transition: all .15s; margin-left: auto; }
+.hbtn:hover { color: var(--text); border-color: var(--purple2); }
+.hbtn.active { background: var(--purple); color: #fff; border-color: var(--purple2); }
+.hbtn.gold { color: var(--gold); border-color: var(--gold2); }
+.hbtn.gold:hover { background: var(--gold2); color: #000; }
+.hbtn.publish { color: var(--cyan); border-color: #1a6070; }
+.hbtn.publish:hover { background: #1a6070; color: #fff; }
 
-.main{display:flex;flex:1;overflow:hidden;}
+.main { display: flex; flex: 1; overflow: hidden; }
 
 /* ── CANVAS AREA ── */
-.canvas-area{flex:1;background:#2a1e0a;display:flex;
-             flex-direction:column;align-items:center;justify-content:center;
-             gap:20px;overflow:auto;padding:20px;}
+.canvas-area { flex: 1; background: #080610; display: flex;
+               flex-direction: column; align-items: center; justify-content: center;
+               gap: 20px; overflow: auto; padding: 20px; }
 
-.zoom-row{display:flex;gap:24px;align-items:flex-end;}
-.zoom-label{font-family:'Press Start 2P',monospace;font-size:6px;
-            color:#6a5030;text-align:center;margin-top:6px;}
+.zoom-row { display: flex; gap: 24px; align-items: flex-end; }
+.zoom-label { font-family: 'Press Start 2P', monospace; font-size: 6px;
+              color: var(--dim); text-align: center; margin-top: 6px; }
 
-canvas.house{display:block;image-rendering:pixelated;image-rendering:crisp-edges;
-             border:2px solid #3a2810;border-radius:3px;background:#3a5020;}
-canvas.house.main-view{border-color:#c87820;box-shadow:0 0 20px #c8782033;}
+canvas.house { display: block; image-rendering: pixelated; image-rendering: crisp-edges;
+               border: 2px solid var(--border); border-radius: 3px; background: #2a3a20; }
+canvas.house.main-view { border-color: var(--gold2); box-shadow: 0 0 20px rgba(200,120,32,0.2); }
 
 /* Fondo damero para ver transparencias */
-.checker{background-image:
-  linear-gradient(45deg,#2a2010 25%,transparent 25%),
-  linear-gradient(-45deg,#2a2010 25%,transparent 25%),
-  linear-gradient(45deg,transparent 75%,#2a2010 75%),
-  linear-gradient(-45deg,transparent 75%,#2a2010 75%);
-  background-size:16px 16px;
-  background-position:0 0,0 8px,8px -8px,-8px 0;}
+.checker { background-image:
+  linear-gradient(45deg, #1a1528 25%, transparent 25%),
+  linear-gradient(-45deg, #1a1528 25%, transparent 25%),
+  linear-gradient(45deg, transparent 75%, #1a1528 75%),
+  linear-gradient(-45deg, transparent 75%, #1a1528 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0; }
 
 /* ── PANEL DE CONTROLES ── */
-.panel{width:300px;flex-shrink:0;background:#241a0c;border-left:2px solid #5a3a1a;
-       overflow-y:auto;display:flex;flex-direction:column;}
+.panel { width: 300px; flex-shrink: 0; background: var(--bg2); border-left: 2px solid var(--border);
+         overflow-y: auto; display: flex; flex-direction: column; }
 
-.p-section{padding:12px 14px;border-bottom:1px solid #3a2810;}
-.p-title{font-family:'Press Start 2P',monospace;font-size:6px;color:#f0d060;
-          margin-bottom:10px;letter-spacing:.5px;}
-.p-row{display:flex;align-items:center;justify-content:space-between;
-       font-size:11px;padding:4px 0;gap:8px;}
-.p-row .lbl{color:#8a7050;white-space:nowrap;min-width:80px;}
-.p-row input[type=range]{flex:1;accent-color:#c87820;height:4px;}
-.p-row .val{font-family:'Press Start 2P',monospace;font-size:7px;
-            color:#f0d060;min-width:36px;text-align:right;}
+.p-section { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.p-title { font-family: 'Press Start 2P', monospace; font-size: 6px; color: var(--gold);
+            margin-bottom: 10px; letter-spacing: .5px; }
+.p-row { display: flex; align-items: center; justify-content: space-between;
+         font-size: 11px; padding: 4px 0; gap: 8px; }
+.p-row .lbl { color: var(--dim); white-space: nowrap; min-width: 80px; }
+.p-row input[type=range] { flex: 1; accent-color: var(--purple2); height: 4px; }
+.p-row .val { font-family: 'Press Start 2P', monospace; font-size: 7px;
+              color: var(--gold); min-width: 36px; text-align: right; }
 
-.color-row{display:flex;align-items:center;gap:6px;padding:3px 0;}
-.color-row .lbl{font-size:10px;color:#8a7050;min-width:100px;}
-.color-swatch{width:24px;height:18px;border:1px solid #5a3a1a;
-              border-radius:2px;cursor:pointer;transition:transform .1s;}
-.color-swatch:hover{transform:scale(1.15);}
+.color-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+.color-row .lbl { font-size: 10px; color: var(--dim); min-width: 100px; }
+.color-swatch { width: 24px; height: 18px; border: 1px solid var(--border);
+                border-radius: 2px; cursor: pointer; transition: transform .1s; }
+.color-swatch:hover { transform: scale(1.15); }
 
 /* Selector de variante */
-.variant-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
-.vbtn{font-family:'Press Start 2P',monospace;font-size:5px;padding:4px 6px;
-      border:1px solid #4a3010;background:#1a1008;color:#8a6840;
-      cursor:pointer;border-radius:3px;transition:all .15s;}
-.vbtn:hover{border-color:#f0a020;color:#f0d060;}
-.vbtn.sel{background:#6a4010;border-color:#f0c030;color:#f8e060;}
+.variant-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.vbtn { font-family: 'Press Start 2P', monospace; font-size: 5px; padding: 4px 6px;
+        border: 1px solid var(--border2); background: var(--panel); color: var(--dim);
+        cursor: pointer; border-radius: 3px; transition: all .12s; }
+.vbtn:hover { border-color: var(--purple2); color: var(--text); }
+.vbtn.sel { background: var(--purple); border-color: var(--purple2); color: #fff; }
 
 /* Toggle switches */
-.toggle-row{display:flex;align-items:center;justify-content:space-between;
-            padding:4px 0;font-size:11px;}
-.toggle-row .lbl{color:#8a7050;}
-.sw{width:32px;height:16px;background:#2a1808;border:1px solid #4a2808;
-    border-radius:8px;cursor:pointer;position:relative;transition:background .2s;}
-.sw.on{background:#5a7a20;}
-.sw::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;
-           background:#8a6840;border-radius:50%;transition:all .2s;}
-.sw.on::after{left:18px;background:#b8e040;}
+.toggle-row { display: flex; align-items: center; justify-content: space-between;
+              padding: 4px 0; font-size: 11px; }
+.toggle-row .lbl { color: var(--dim); }
+.sw { width: 32px; height: 16px; background: var(--panel); border: 1px solid var(--border2);
+      border-radius: 8px; cursor: pointer; position: relative; transition: background .2s; }
+.sw.on { background: var(--green); }
+.sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px;
+             background: var(--dim); border-radius: 50%; transition: all .2s; }
+.sw.on::after { left: 18px; background: #b8e040; }
 
 /* Export button */
-.export-btn{margin:12px 14px;font-family:'Press Start 2P',monospace;font-size:6px;
-            padding:10px;border:1px solid #c87820;background:transparent;
-            color:#f0d060;cursor:pointer;border-radius:3px;width:calc(100%-28px);
-            transition:all .15s;}
-.export-btn:hover{background:#6a4010;border-color:#f0d060;}
+.export-btn { margin: 12px 14px; font-family: 'Press Start 2P', monospace; font-size: 6px;
+              padding: 10px; border: 1px solid var(--gold2); background: transparent;
+              color: var(--gold); cursor: pointer; border-radius: 3px; width: calc(100% - 28px);
+              transition: all .15s; }
+.export-btn:hover { background: var(--gold2); color: #000; }
 
 /* Season preview strip */
-.season-strip{display:flex;gap:8px;padding:8px 14px;
-              background:#1a1008;border-bottom:1px solid #3a2810;}
-.s-mini{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
-.s-mini canvas{image-rendering:pixelated;border:1px solid #3a2810;border-radius:2px;}
-.s-mini.sel canvas{border-color:#f0d060;}
-.s-mini .s-lbl{font-family:'Press Start 2P',monospace;font-size:4px;color:#6a5030;}
-.s-mini.sel .s-lbl{color:#f0d060;}
+.season-strip { display: flex; gap: 8px; padding: 8px 14px;
+                background: var(--panel); border-bottom: 1px solid var(--border); }
+.s-mini { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.s-mini canvas { image-rendering: pixelated; border: 1px solid var(--border); border-radius: 2px; }
+.s-mini.sel canvas { border-color: var(--gold); }
+.s-mini .s-lbl { font-family: 'Press Start 2P', monospace; font-size: 4px; color: var(--dim); }
+.s-mini.sel .s-lbl { color: var(--gold); }
+
+/* ── STATUS BAR ── */
+.statusbar { display: flex; gap: 16px; padding: 4px 12px; background: var(--bg2);
+             border-top: 1px solid var(--border); font-size: 9px; color: var(--dim);
+             flex-shrink: 0; }
+.statusbar span { color: var(--text); }
+.statusbar .shortcut { color: var(--purple2); margin-left: auto; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 </style>
 </head>
 <body>
@@ -108,7 +140,8 @@ canvas.house.main-view{border-color:#c87820;box-shadow:0 0 20px #c8782033;}
 <header>
   <div class="logo">HOUSE <span>BUILDER</span></div>
   <div class="badge">pixel-perfect · paleta SDV · dithering · perspectiva 3/4</div>
-  <button class="hbtn" onclick="copyMapData()">📋 COPIAR MapData</button>
+  <button class="hbtn gold" onclick="copyMapData()">📋 COPIAR MapData</button>
+  <button class="hbtn publish" onclick="publishToReview()" id="publishBtn">📤 PUBLICAR</button>
 </header>
 
 <div class="main">
@@ -257,31 +290,31 @@ canvas.house.main-view{border-color:#c87820;box-shadow:0 0 20px #c8782033;}
       <div class="color-row">
         <span class="lbl">Tejado claro</span>
         <input type="color" value="#e0c050" oninput="setColor('roofLight',this.value)"
-               style="width:40px;height:22px;border:1px solid #5a3a1a;border-radius:2px;
+               style="width:40px;height:22px;border:1px solid var(--border);border-radius:2px;
                       cursor:pointer;background:transparent;">
       </div>
       <div class="color-row">
         <span class="lbl">Tejado oscuro</span>
         <input type="color" value="#806010" oninput="setColor('roofDark',this.value)"
-               style="width:40px;height:22px;border:1px solid #5a3a1a;border-radius:2px;
+               style="width:40px;height:22px;border:1px solid var(--border);border-radius:2px;
                       cursor:pointer;background:transparent;">
       </div>
       <div class="color-row">
         <span class="lbl">Fachada</span>
         <input type="color" value="#f0e8c0" oninput="setColor('plasterCol',this.value)"
-               style="width:40px;height:22px;border:1px solid #5a3a1a;border-radius:2px;
+               style="width:40px;height:22px;border:1px solid var(--border);border-radius:2px;
                       cursor:pointer;background:transparent;">
       </div>
       <div class="color-row">
         <span class="lbl">Vigas</span>
         <input type="color" value="#6a3e18" oninput="setColor('beamCol',this.value)"
-               style="width:40px;height:22px;border:1px solid #5a3a1a;border-radius:2px;
+               style="width:40px;height:22px;border:1px solid var(--border);border-radius:2px;
                       cursor:pointer;background:transparent;">
       </div>
       <div class="color-row">
         <span class="lbl">Puerta</span>
         <input type="color" value="#8a5228" oninput="setColor('doorCol',this.value)"
-               style="width:40px;height:22px;border:1px solid #5a3a1a;border-radius:2px;
+               style="width:40px;height:22px;border:1px solid var(--border);border-radius:2px;
                       cursor:pointer;background:transparent;">
       </div>
     </div>
@@ -302,6 +335,11 @@ canvas.house.main-view{border-color:#c87820;box-shadow:0 0 20px #c8782033;}
     <button class="export-btn" onclick="copyMapData()">📋 EXPORTAR MapData.js</button>
 
   </div>
+</div>
+
+<div class="statusbar">
+  House Builder v2 · Taskoria World Tools
+  <span class="shortcut">Scroll = zoom · Click swatch = pick color</span>
 </div>
 
 <script>
@@ -1026,6 +1064,72 @@ function copyMapData() {
     btn.textContent='✓ COPIADO';
     setTimeout(()=>btn.textContent=orig,2000);
   });
+}
+
+// ═══════════════════════════════════════════════════════════
+// PUBLISH TO REVIEW
+// ═══════════════════════════════════════════════════════════
+async function publishToReview() {
+  const name = prompt('Nombre para esta casa:', CONFIG.roofType + ' house');
+  if (!name) return;
+
+  const btn = document.getElementById('publishBtn');
+  btn.textContent = '⏳ Enviando...';
+  btn.disabled = true;
+
+  try {
+    const off = document.createElement('canvas');
+    off.width = BASE_W; off.height = BASE_H;
+    drawHouse(off.getContext('2d'), BASE_W, BASE_H, CONFIG, 0);
+    const ctx = off.getContext('2d');
+    const imgData = ctx.getImageData(0, 0, BASE_W, BASE_H);
+    const pixels = [];
+    for (let i = 0; i < imgData.data.length; i += 4) {
+      const a = imgData.data[i + 3];
+      if (a < 128) { pixels.push('transparent'); continue; }
+      const r = imgData.data[i].toString(16).padStart(2, '0');
+      const g = imgData.data[i + 1].toString(16).padStart(2, '0');
+      const b = imgData.data[i + 2].toString(16).padStart(2, '0');
+      pixels.push('#' + r + g + b);
+    }
+
+    const userId = JSON.parse(localStorage.getItem('taskoria_user') || '{}').id;
+    if (!userId) { alert('Necesitas estar logueado en Taskoria para publicar.'); return; }
+
+    const resp = await fetch('/api/creations.php?action=publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        name,
+        category: 'houses',
+        payload_type: 'house',
+        grid_size: BASE_W,
+        pixels,
+        params: { ...CONFIG },
+        price: 100,
+      }),
+    });
+
+    const data = await resp.json();
+    if (data.success) {
+      btn.textContent = '✓ ENVIADO';
+      btn.style.color = '#80f080';
+      setTimeout(() => {
+        btn.textContent = '📤 PUBLICAR A REVISIÓN';
+        btn.style.color = '#80d0f0';
+        btn.disabled = false;
+      }, 3000);
+    } else {
+      alert(data.error || 'Error al publicar');
+      btn.textContent = '📤 PUBLICAR A REVISIÓN';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    alert('Error de conexión: ' + e.message);
+    btn.textContent = '📤 PUBLICAR A REVISIÓN';
+    btn.disabled = false;
+  }
 }
 
 // INIT

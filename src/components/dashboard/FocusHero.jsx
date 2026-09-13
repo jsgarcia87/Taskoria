@@ -68,7 +68,7 @@ const FocusHero = () => {
         const minutes = result?.totalMinutesWorked || 0;
         const quality = result?.focusQuality || 3;
 
-        if (pomodoroMode === 'hatch' && minutes >= duration) {
+        if (pomodoroMode === 'hatch' && minutes >= Math.floor(duration * 0.8)) {
             dispatch({ type: 'PROGRESS_INCUBATION' });
         }
 

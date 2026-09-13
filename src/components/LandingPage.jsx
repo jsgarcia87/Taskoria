@@ -294,25 +294,30 @@ const QUEST_TASKS = [
 ];
 
 const QuestScroll = () => {
-    // Start with 3/5 done — first render already looks alive.
     const [completedCount, setCompletedCount] = useState(3);
     const [justChecked, setJustChecked] = useState(null);
     const [xp, setXp] = useState(45);
     const [xpParticles, setXpParticles] = useState([]);
     const [level, setLevel] = useState(7);
+    const scrollRef = useRef(null);
+    const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const obs = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), { threshold: 0.1 });
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, []);
+
+    useEffect(() => {
+        if (!isVisible) return;
         const id = setInterval(() => {
             setCompletedCount(prev => {
-                // If we're done — reset to start after a pause
-                if (prev >= QUEST_TASKS.length) {
-                    return 3;
-                }
+                if (prev >= QUEST_TASKS.length) return 3;
                 const task = QUEST_TASKS[prev];
                 setJustChecked(prev);
                 setTimeout(() => setJustChecked(null), 600);
-
-                // XP + particle
                 const pid = Date.now();
                 setXpParticles(p => [...p, { id: pid, reward: task.reward }]);
                 setTimeout(() => setXpParticles(p => p.filter(x => x.id !== pid)), 1600);
@@ -324,15 +329,14 @@ const QuestScroll = () => {
                     }
                     return next;
                 });
-
                 return prev + 1;
             });
         }, 3000);
         return () => clearInterval(id);
-    }, []);
+    }, [isVisible]);
 
     return (
-        <div className="relative flex flex-col md:flex-row items-center gap-10 md:gap-14 max-w-4xl mx-auto">
+        <div ref={scrollRef} className="relative flex flex-col md:flex-row items-center gap-10 md:gap-14 max-w-4xl mx-auto">
             {/* Hero pixel avatar with XP bar */}
             <div className="relative flex flex-col items-center flex-shrink-0">
                 <div className="relative flex items-end gap-3">
@@ -458,7 +462,7 @@ const ChapterProgress = ({ chapters }) => {
             if (!el) return;
             const obs = new IntersectionObserver(
                 ([entry]) => { if (entry.isIntersecting) setActiveIdx(i); },
-                { threshold: 0.5 }
+                { threshold: 0.15, rootMargin: '-40% 0px -40% 0px' }
             );
             obs.observe(el);
             observers.push(obs);
@@ -530,24 +534,6 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
         { id: 'call', title: 'The Call', ref: waitlistRef },
     ];
 
-    // Track scroll position within the Council chapter to determine which
-    // guardian the camera is currently facing (sync with 3D orbital).
-    useEffect(() => {
-        const onScroll = () => {
-            const el = ch03Ref.current;
-            if (!el) return;
-            const rect = el.getBoundingClientRect();
-            const scrollable = el.offsetHeight - window.innerHeight;
-            if (scrollable <= 0) return;
-            const progress = Math.min(1, Math.max(0, -rect.top / scrollable));
-            const idx = Math.min(5, Math.floor(progress * 6 + 0.001));
-            setCouncilIdx(idx);
-        };
-        window.addEventListener('scroll', onScroll, { passive: true });
-        onScroll();
-        return () => window.removeEventListener('scroll', onScroll);
-    }, []);
-
     useEffect(() => {
         let ticking = false;
         const onScroll = () => {
@@ -563,6 +549,15 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     nav.style.backdropFilter = s ? 'blur(24px)' : 'none';
                     nav.style.webkitBackdropFilter = s ? 'blur(24px)' : 'none';
                     nav.style.boxShadow = s ? '0 10px 15px -3px rgba(0,0,0,0.1)' : 'none';
+                }
+                const el = ch03Ref.current;
+                if (el) {
+                    const rect = el.getBoundingClientRect();
+                    const scrollable = el.offsetHeight - window.innerHeight;
+                    if (scrollable > 0) {
+                        const progress = Math.min(1, Math.max(0, -rect.top / scrollable));
+                        setCouncilIdx(Math.min(5, Math.floor(progress * 6 + 0.001)));
+                    }
                 }
                 ticking = false;
             });

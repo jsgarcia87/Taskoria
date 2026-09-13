@@ -12,6 +12,12 @@ $db_pass = 'SangarBD';
 // then clear it again.
 $admin_bootstrap_secret = '';
 
+// SMTP settings for email delivery
+$smtp_host = 'smtp.gmail.com';
+$smtp_user = 'taskoriaapp@gmail.com';
+$smtp_pass = 'gzrr anzk qayk tkhp';
+$smtp_port = 587;
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *'); // For development.
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');

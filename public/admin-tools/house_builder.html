@@ -2,141 +2,137 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Taskoria — House Builder</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;600;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:#1a1208;color:#e8d8b0;font-family:'Outfit',sans-serif;
-     display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;}
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;500;700&display=swap');
+:root {
+  --bg:      #0d0a14;
+  --bg2:     #160f22;
+  --panel:   #1e1530;
+  --border:  #2e2248;
+  --border2: #3e3258;
+  --gold:    #f0c040;
+  --gold2:   #c89a20;
+  --purple:  #7050b0;
+  --purple2: #9070d0;
+  --green:   #40a050;
+  --red:     #b03030;
+  --cyan:    #30a0b0;
+  --text:    #d0c0e8;
+  --dim:     #706090;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif;
+       display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-header{display:flex;align-items:center;gap:8px;padding:8px 16px;
-       background:#241a0c;border-bottom:2px solid #5a3a1a;flex-shrink:0;flex-wrap:wrap;}
-.logo{font-family:'Press Start 2P',monospace;font-size:9px;color:#f0d060;
-      text-shadow:0 0 10px #f0d06055;white-space:nowrap;}
-.logo span{color:#70c840;}
-.badge{font-size:9px;padding:2px 8px;border-radius:3px;background:#1a1008;
-       color:#80d0f0;border:1px solid #3a2808;}
-.hbtn{font-family:'Press Start 2P',monospace;font-size:6px;padding:5px 8px;
-      border:1px solid #5a3a1a;background:transparent;color:#8a6840;
-      cursor:pointer;border-radius:3px;transition:all .15s;white-space:nowrap;}
-.hbtn:hover{color:#f0d060;border-color:#f0a020;}
-.hbtn.active{background:#4a7020;color:#fff;border-color:#6a9a30;}
-.header-actions{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;}
+header { display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+         background: var(--bg2); border-bottom: 2px solid var(--border); flex-shrink: 0; }
+.logo { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--gold);
+        white-space: nowrap; }
+.logo span { color: var(--green); }
+.badge { font-size: 9px; padding: 2px 8px; border-radius: 3px; background: var(--panel);
+         color: var(--cyan); border: 1px solid var(--border); }
+.hbtn { font-family: 'Press Start 2P', monospace; font-size: 6px; padding: 5px 8px;
+        border: 1px solid var(--border2); background: transparent; color: var(--dim);
+        cursor: pointer; border-radius: 3px; transition: all .15s; margin-left: auto; }
+.hbtn:hover { color: var(--text); border-color: var(--purple2); }
+.hbtn.active { background: var(--purple); color: #fff; border-color: var(--purple2); }
+.hbtn.gold { color: var(--gold); border-color: var(--gold2); }
+.hbtn.gold:hover { background: var(--gold2); color: #000; }
+.hbtn.publish { color: var(--cyan); border-color: #1a6070; }
+.hbtn.publish:hover { background: #1a6070; color: #fff; }
 
-.main{display:flex;flex:1;overflow:hidden;position:relative;}
+.main { display: flex; flex: 1; overflow: hidden; }
 
 /* ── CANVAS AREA ── */
-.canvas-area{flex:1;background:#2a1e0a;display:flex;
-             flex-direction:column;align-items:center;justify-content:center;
-             gap:20px;overflow:auto;padding:20px;}
+.canvas-area { flex: 1; background: #080610; display: flex;
+               flex-direction: column; align-items: center; justify-content: center;
+               gap: 20px; overflow: auto; padding: 20px; }
 
-.zoom-row{display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap;justify-content:center;}
-.zoom-label{font-family:'Press Start 2P',monospace;font-size:6px;
-            color:#6a5030;text-align:center;margin-top:6px;}
+.zoom-row { display: flex; gap: 24px; align-items: flex-end; }
+.zoom-label { font-family: 'Press Start 2P', monospace; font-size: 6px;
+              color: var(--dim); text-align: center; margin-top: 6px; }
 
-canvas.house{display:block;image-rendering:pixelated;image-rendering:crisp-edges;
-             border:2px solid #3a2810;border-radius:3px;background:#3a5020;}
-canvas.house.main-view{border-color:#c87820;box-shadow:0 0 20px #c8782033;}
+canvas.house { display: block; image-rendering: pixelated; image-rendering: crisp-edges;
+               border: 2px solid var(--border); border-radius: 3px; background: #2a3a20; }
+canvas.house.main-view { border-color: var(--gold2); box-shadow: 0 0 20px rgba(200,120,32,0.2); }
 
-.checker{background-image:
-  linear-gradient(45deg,#2a2010 25%,transparent 25%),
-  linear-gradient(-45deg,#2a2010 25%,transparent 25%),
-  linear-gradient(45deg,transparent 75%,#2a2010 75%),
-  linear-gradient(-45deg,transparent 75%,#2a2010 75%);
-  background-size:16px 16px;
-  background-position:0 0,0 8px,8px -8px,-8px 0;}
+/* Fondo damero para ver transparencias */
+.checker { background-image:
+  linear-gradient(45deg, #1a1528 25%, transparent 25%),
+  linear-gradient(-45deg, #1a1528 25%, transparent 25%),
+  linear-gradient(45deg, transparent 75%, #1a1528 75%),
+  linear-gradient(-45deg, transparent 75%, #1a1528 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0; }
 
 /* ── PANEL DE CONTROLES ── */
-.panel{width:300px;flex-shrink:0;background:#241a0c;border-left:2px solid #5a3a1a;
-       overflow-y:auto;display:flex;flex-direction:column;}
+.panel { width: 300px; flex-shrink: 0; background: var(--bg2); border-left: 2px solid var(--border);
+         overflow-y: auto; display: flex; flex-direction: column; }
 
-.p-section{padding:12px 14px;border-bottom:1px solid #3a2810;}
-.p-title{font-family:'Press Start 2P',monospace;font-size:6px;color:#f0d060;
-          margin-bottom:10px;letter-spacing:.5px;}
-.p-row{display:flex;align-items:center;justify-content:space-between;
-       font-size:11px;padding:4px 0;gap:8px;}
-.p-row .lbl{color:#8a7050;white-space:nowrap;min-width:80px;}
-.p-row input[type=range]{flex:1;accent-color:#c87820;height:4px;}
-.p-row .val{font-family:'Press Start 2P',monospace;font-size:7px;
-            color:#f0d060;min-width:36px;text-align:right;}
+.p-section { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.p-title { font-family: 'Press Start 2P', monospace; font-size: 6px; color: var(--gold);
+            margin-bottom: 10px; letter-spacing: .5px; }
+.p-row { display: flex; align-items: center; justify-content: space-between;
+         font-size: 11px; padding: 4px 0; gap: 8px; }
+.p-row .lbl { color: var(--dim); white-space: nowrap; min-width: 80px; }
+.p-row input[type=range] { flex: 1; accent-color: var(--purple2); height: 4px; }
+.p-row .val { font-family: 'Press Start 2P', monospace; font-size: 7px;
+              color: var(--gold); min-width: 36px; text-align: right; }
 
-.color-row{display:flex;align-items:center;gap:6px;padding:3px 0;}
-.color-row .lbl{font-size:10px;color:#8a7050;min-width:100px;}
-.color-swatch{width:24px;height:18px;border:1px solid #5a3a1a;
-              border-radius:2px;cursor:pointer;transition:transform .1s;}
-.color-swatch:hover{transform:scale(1.15);}
+.color-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+.color-row .lbl { font-size: 10px; color: var(--dim); min-width: 100px; }
+.color-swatch { width: 24px; height: 18px; border: 1px solid var(--border);
+                border-radius: 2px; cursor: pointer; transition: transform .1s; }
+.color-swatch:hover { transform: scale(1.15); }
 
-.variant-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
-.vbtn{font-family:'Press Start 2P',monospace;font-size:5px;padding:4px 6px;
-      border:1px solid #4a3010;background:#1a1008;color:#8a6840;
-      cursor:pointer;border-radius:3px;transition:all .15s;}
-.vbtn:hover{border-color:#f0a020;color:#f0d060;}
-.vbtn.sel{background:#6a4010;border-color:#f0c030;color:#f8e060;}
+/* Selector de variante */
+.variant-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.vbtn { font-family: 'Press Start 2P', monospace; font-size: 5px; padding: 4px 6px;
+        border: 1px solid var(--border2); background: var(--panel); color: var(--dim);
+        cursor: pointer; border-radius: 3px; transition: all .12s; }
+.vbtn:hover { border-color: var(--purple2); color: var(--text); }
+.vbtn.sel { background: var(--purple); border-color: var(--purple2); color: #fff; }
 
-.toggle-row{display:flex;align-items:center;justify-content:space-between;
-            padding:4px 0;font-size:11px;}
-.toggle-row .lbl{color:#8a7050;}
-.sw{width:32px;height:16px;background:#2a1808;border:1px solid #4a2808;
-    border-radius:8px;cursor:pointer;position:relative;transition:background .2s;}
-.sw.on{background:#5a7a20;}
-.sw::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;
-           background:#8a6840;border-radius:50%;transition:all .2s;}
-.sw.on::after{left:18px;background:#b8e040;}
+/* Toggle switches */
+.toggle-row { display: flex; align-items: center; justify-content: space-between;
+              padding: 4px 0; font-size: 11px; }
+.toggle-row .lbl { color: var(--dim); }
+.sw { width: 32px; height: 16px; background: var(--panel); border: 1px solid var(--border2);
+      border-radius: 8px; cursor: pointer; position: relative; transition: background .2s; }
+.sw.on { background: var(--green); }
+.sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px;
+             background: var(--dim); border-radius: 50%; transition: all .2s; }
+.sw.on::after { left: 18px; background: #b8e040; }
 
-.export-btn{margin:12px 14px;font-family:'Press Start 2P',monospace;font-size:6px;
-            padding:10px;border:1px solid #c87820;background:transparent;
-            color:#f0d060;cursor:pointer;border-radius:3px;width:calc(100%-28px);
-            transition:all .15s;}
-.export-btn:hover{background:#6a4010;border-color:#f0d060;}
+/* Export button */
+.export-btn { margin: 12px 14px; font-family: 'Press Start 2P', monospace; font-size: 6px;
+              padding: 10px; border: 1px solid var(--gold2); background: transparent;
+              color: var(--gold); cursor: pointer; border-radius: 3px; width: calc(100% - 28px);
+              transition: all .15s; }
+.export-btn:hover { background: var(--gold2); color: #000; }
 
-.season-strip{display:flex;gap:8px;padding:8px 14px;
-              background:#1a1008;border-bottom:1px solid #3a2810;}
-.s-mini{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
-.s-mini canvas{image-rendering:pixelated;border:1px solid #3a2810;border-radius:2px;}
-.s-mini.sel canvas{border-color:#f0d060;}
-.s-mini .s-lbl{font-family:'Press Start 2P',monospace;font-size:4px;color:#6a5030;}
-.s-mini.sel .s-lbl{color:#f0d060;}
+/* Season preview strip */
+.season-strip { display: flex; gap: 8px; padding: 8px 14px;
+                background: var(--panel); border-bottom: 1px solid var(--border); }
+.s-mini { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.s-mini canvas { image-rendering: pixelated; border: 1px solid var(--border); border-radius: 2px; }
+.s-mini.sel canvas { border-color: var(--gold); }
+.s-mini .s-lbl { font-family: 'Press Start 2P', monospace; font-size: 4px; color: var(--dim); }
+.s-mini.sel .s-lbl { color: var(--gold); }
 
-/* ── CORNER TOGGLE GRID ── */
-.corner-grid{display:grid;grid-template-columns:1fr auto 1fr;grid-template-rows:auto auto;
-             gap:4px;margin:8px 0;justify-items:center;align-items:center;}
-.corner-btn{font-family:'Press Start 2P',monospace;font-size:5px;padding:6px 8px;
-            border:1px solid #4a3010;background:#1a1008;color:#8a6840;
-            cursor:pointer;border-radius:3px;transition:all .15s;min-width:48px;text-align:center;}
-.corner-btn:hover{border-color:#f0a020;color:#f0d060;}
-.corner-btn.on{background:#4a6020;border-color:#8ab040;color:#d0f060;}
-.corner-center{font-family:'Press Start 2P',monospace;font-size:5px;color:#5a4030;
-               width:32px;height:24px;border:1px dashed #3a2810;border-radius:2px;
-               display:flex;align-items:center;justify-content:center;}
+/* ── STATUS BAR ── */
+.statusbar { display: flex; gap: 16px; padding: 4px 12px; background: var(--bg2);
+             border-top: 1px solid var(--border); font-size: 9px; color: var(--dim);
+             flex-shrink: 0; }
+.statusbar span { color: var(--text); }
+.statusbar .shortcut { color: var(--purple2); margin-left: auto; }
 
-/* ── PANEL TOGGLE (tablet) ── */
-.panel-toggle{display:none;position:fixed;bottom:16px;right:16px;z-index:200;
-              width:48px;height:48px;border-radius:50%;background:#c87820;
-              border:2px solid #f0d060;color:#1a1208;font-size:20px;
-              cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5);
-              align-items:center;justify-content:center;transition:transform .2s;}
-.panel-toggle:active{transform:scale(.9);}
-.panel-backdrop{display:none;position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.6);}
-
-/* ── RESPONSIVE ── */
-@media (max-width:900px){
-  .badge{display:none;}
-  .panel{position:fixed;right:0;top:0;bottom:0;z-index:100;width:300px;max-width:85vw;
-         transform:translateX(100%);transition:transform .3s cubic-bezier(.22,1,.36,1);
-         box-shadow:-4px 0 24px rgba(0,0,0,.6);}
-  .panel.open{transform:translateX(0);}
-  .panel-toggle{display:flex;}
-  .panel-backdrop.open{display:block;}
-  .zoom-row{gap:12px;}
-  .hbtn{font-size:5px;padding:4px 6px;}
-  header{padding:6px 10px;gap:6px;}
-}
-@media (max-width:600px){
-  .zoom-row{flex-direction:column;align-items:center;}
-  header{justify-content:center;}
-  .header-actions{margin-left:0;justify-content:center;width:100%;}
-}
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 </style>
 </head>
 <body>
@@ -144,11 +140,8 @@ canvas.house.main-view{border-color:#c87820;box-shadow:0 0 20px #c8782033;}
 <header>
   <div class="logo">HOUSE <span>BUILDER</span></div>
   <div class="badge">pixel-perfect · paleta SDV · dithering · perspectiva 3/4</div>
-  <div class="header-actions">
-    <button class="hbtn" onclick="copyMapData()">📋 COPIAR MapData</button>
-    <button class="hbtn" onclick="saveToLibrary()" style="background:#4a3a1a;color:#f0d060;border-color:#7a5a2a">💾 SAVE TO LIBRARY</button>
-    <button class="hbtn" id="btn-fullscreen" onclick="toggleFullscreen()">⛶ FULLSCREEN</button>
-  </div>
+  <button class="hbtn gold" onclick="copyMapData()">📋 COPIAR MapData</button>
+  <button class="hbtn publish" onclick="publishToReview()" id="publishBtn">📤 PUBLICAR</button>
 </header>
 
 <div class="main">
@@ -169,14 +162,15 @@ canvas.house.main-view{border-color:#c87820;box-shadow:0 0 20px #c8782033;}
       </div>
     </div>
 
-    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;justify-content:center;">
+    <!-- Strip de estaciones -->
+    <div style="display:flex;gap:12px;align-items:flex-end;">
       <div style="font-family:'Press Start 2P',monospace;font-size:6px;color:#6a5030;">Estaciones:</div>
       <div id="seasonStrip" style="display:flex;gap:8px;"></div>
     </div>
   </div>
 
   <!-- PANEL -->
-  <div class="panel" id="panel">
+  <div class="panel">
 
     <!-- Tipo de tejado -->
     <div class="p-section">
@@ -296,122 +290,45 @@ canvas.house.main-view{border-color:#c87820;box-shadow:0 0 20px #c8782033;}
       <div class="color-row">
         <span class="lbl">Tejado claro</span>
         <input type="color" value="#e0c050" oninput="setColor('roofLight',this.value)"
-               style="width:40px;height:22px;border:1px solid #5a3a1a;border-radius:2px;
+               style="width:40px;height:22px;border:1px solid var(--border);border-radius:2px;
                       cursor:pointer;background:transparent;">
       </div>
       <div class="color-row">
         <span class="lbl">Tejado oscuro</span>
         <input type="color" value="#806010" oninput="setColor('roofDark',this.value)"
-               style="width:40px;height:22px;border:1px solid #5a3a1a;border-radius:2px;
+               style="width:40px;height:22px;border:1px solid var(--border);border-radius:2px;
                       cursor:pointer;background:transparent;">
       </div>
       <div class="color-row">
         <span class="lbl">Fachada</span>
         <input type="color" value="#f0e8c0" oninput="setColor('plasterCol',this.value)"
-               style="width:40px;height:22px;border:1px solid #5a3a1a;border-radius:2px;
+               style="width:40px;height:22px;border:1px solid var(--border);border-radius:2px;
                       cursor:pointer;background:transparent;">
       </div>
       <div class="color-row">
         <span class="lbl">Vigas</span>
         <input type="color" value="#6a3e18" oninput="setColor('beamCol',this.value)"
-               style="width:40px;height:22px;border:1px solid #5a3a1a;border-radius:2px;
+               style="width:40px;height:22px;border:1px solid var(--border);border-radius:2px;
                       cursor:pointer;background:transparent;">
       </div>
       <div class="color-row">
         <span class="lbl">Puerta</span>
         <input type="color" value="#8a5228" oninput="setColor('doorCol',this.value)"
-               style="width:40px;height:22px;border:1px solid #5a3a1a;border-radius:2px;
+               style="width:40px;height:22px;border:1px solid var(--border);border-radius:2px;
                       cursor:pointer;background:transparent;">
       </div>
     </div>
 
-    <!-- Tipo de construcción -->
+    <!-- Presets -->
     <div class="p-section">
-      <div class="p-title">TIPO DE CONSTRUCCIÓN</div>
-      <div class="variant-row" id="buildingTypeRow">
-        <div class="vbtn sel" onclick="setBuildingType('house', this)">CASA</div>
-        <div class="vbtn" onclick="setBuildingType('castle', this)">CASTILLO</div>
-      </div>
-      <div class="p-row" style="margin-top:10px;">
-        <span class="lbl">Almenas</span>
-        <input type="checkbox" id="battlementsToggle" onchange="setParam('battlements', this.checked)">
-        <span class="val" id="battlementsVal">no</span>
-      </div>
-    </div>
-
-    <!-- Castle-only: towers + features -->
-    <div class="p-section castle-only" style="display:none;">
-      <div class="p-title">🏰 TORRES</div>
-      <div style="font-size:9px;color:#8a7050;margin-bottom:6px;">Esquinas (protuyen):</div>
-      <div class="corner-grid">
-        <button class="corner-btn" id="btn_towerTL" onclick="toggleCorner('towerTL',this)">↖ TL</button>
-        <div class="corner-center">🏠</div>
-        <button class="corner-btn" id="btn_towerTR" onclick="toggleCorner('towerTR',this)">↗ TR</button>
-        <button class="corner-btn" id="btn_towerBL" onclick="toggleCorner('towerBL',this)">↙ BL</button>
-        <div class="corner-center" style="border:none;"></div>
-        <button class="corner-btn" id="btn_towerBR" onclick="toggleCorner('towerBR',this)">↘ BR</button>
-      </div>
-      <div class="toggle-row">
-        <span class="lbl">Torre central</span>
-        <div class="sw" id="sw_centralTower" onclick="toggleSw('centralTower',this)"></div>
-      </div>
-      <div class="p-row" style="margin-top:8px;">
-        <span class="lbl">Ancho torre</span>
-        <input type="range" min="10" max="28" value="16" oninput="setSlider('towerWidth',this)">
-        <span class="val" id="towerWidthVal">16px</span>
-      </div>
-      <div class="p-row">
-        <span class="lbl">Altura extra</span>
-        <input type="range" min="0" max="40" value="16" oninput="setSlider('towerHeight',this)">
-        <span class="val" id="towerHeightVal">16px</span>
-      </div>
-      <div class="toggle-row">
-        <span class="lbl">Saetera (ventana)</span>
-        <div class="sw on" id="sw_towerWindow" onclick="toggleSw('towerWindow',this)"></div>
-      </div>
-    </div>
-
-    <!-- Castle-only: other elements -->
-    <div class="p-section castle-only" style="display:none;">
-      <div class="p-title">🏰 ELEMENTOS</div>
-      <div class="toggle-row">
-        <span class="lbl">Portón levadizo</span>
-        <div class="sw" id="sw_portcullis" onclick="toggleSw('portcullis',this)"></div>
-      </div>
-      <div class="toggle-row">
-        <span class="lbl">Musgo / desgaste</span>
-        <div class="sw" id="sw_moss" onclick="toggleSw('moss',this)"></div>
-      </div>
-      <div class="toggle-row">
-        <span class="lbl">Cornisa gruesa</span>
-        <div class="sw" id="sw_heavyBase" onclick="toggleSw('heavyBase',this)"></div>
-      </div>
-    </div>
-
-    <!-- Presets — CASAS -->
-    <div class="p-section preset-house">
-      <div class="p-title">PRESETS · CASAS</div>
+      <div class="p-title">📦 PRESETS</div>
       <div class="variant-row">
-        <div class="vbtn" onclick="loadPreset('hut')">Choza</div>
-        <div class="vbtn" onclick="loadPreset('cottage')">Cabaña</div>
-        <div class="vbtn" onclick="loadPreset('farmhouse')">Granja</div>
-        <div class="vbtn" onclick="loadPreset('shop')">Tienda</div>
-        <div class="vbtn" onclick="loadPreset('tavern')">Taberna</div>
-        <div class="vbtn" onclick="loadPreset('smithy')">Herrería</div>
-        <div class="vbtn" onclick="loadPreset('church')">Iglesia</div>
-        <div class="vbtn" onclick="loadPreset('manor')">Mansión</div>
-        <div class="vbtn" onclick="loadPreset('palace')">Palacete</div>
-      </div>
-    </div>
-
-    <!-- Presets — CASTILLOS -->
-    <div class="p-section preset-castle" style="display:none;">
-      <div class="p-title">PRESETS · CASTILLOS</div>
-      <div class="variant-row">
-        <div class="vbtn" onclick="loadPreset('watchtower')">Torre Vigía</div>
-        <div class="vbtn" onclick="loadPreset('outpost')">Puesto Avanzado</div>
-        <div class="vbtn" onclick="loadPreset('fortress')">Fortaleza</div>
-        <div class="vbtn" onclick="loadPreset('royal_keep')">Real</div>
+        <div class="vbtn" onclick="loadPreset('farmhouse')">🌾 Granja</div>
+        <div class="vbtn" onclick="loadPreset('tavern')">🍺 Taberna</div>
+        <div class="vbtn" onclick="loadPreset('church')">⛪ Iglesia</div>
+        <div class="vbtn" onclick="loadPreset('smithy')">⚒ Herrería</div>
+        <div class="vbtn" onclick="loadPreset('shop')">🛍 Tienda</div>
+        <div class="vbtn" onclick="loadPreset('manor')">🏰 Manor</div>
       </div>
     </div>
 
@@ -420,35 +337,21 @@ canvas.house.main-view{border-color:#c87820;box-shadow:0 0 20px #c8782033;}
   </div>
 </div>
 
-<!-- Panel toggle FAB (tablet) -->
-<button class="panel-toggle" id="panelToggle" onclick="togglePanel()">⚙</button>
-<div class="panel-backdrop" id="panelBackdrop" onclick="togglePanel()"></div>
+<div class="statusbar">
+  House Builder v2 · Taskoria World Tools
+  <span class="shortcut">Scroll = zoom · Click swatch = pick color</span>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
 // ESTADO
 // ═══════════════════════════════════════════════════════════
 const CONFIG = {
-  buildingType: 'house',
-  battlements:  false,
-  // Tower corners — independent toggles
-  towerTL:      false,
-  towerTR:      false,
-  towerBL:      false,
-  towerBR:      false,
-  towerWidth:   16,       // px (10-28)
-  towerHeight:  16,       // px above roof (0-40)
-  towerWindow:  true,     // arrow slit
-  centralTower: false,    // tall central keep tower
-  // Castle elements
-  portcullis:   false,
-  moss:         false,
-  heavyBase:    false,
   // Tejado
   roofType:    'thatch',
-  roofRatio:   40,
-  eaveSize:    5,
-  perspH:      10,
+  roofRatio:   40,      // % de la altura total
+  eaveSize:    5,       // px de alero
+  perspH:      10,      // px cara sur visible
   // Fachada
   facadeType:  'halftimber',
   beamCount:   3,
@@ -458,7 +361,7 @@ const CONFIG = {
   winLight:    true,
   // Puerta
   doorType:    'arch',
-  doorX:       40,
+  doorX:       40,      // % del ancho
   doorStep:    true,
   // Extras
   chimney:     true,
@@ -475,167 +378,46 @@ const CONFIG = {
   doorCol:     '#8a5228',
 };
 
+// Tamaño base del sprite (en px)
 const BASE_W = 96;
 const BASE_H = 96;
 let season = 0;
 let frame = 0;
 
-// ═══════════════════════════════════════════════════════════
-// FULLSCREEN
-// ═══════════════════════════════════════════════════════════
-function toggleFullscreen(){
-  if(!document.fullscreenElement){
-    (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement);
-  } else {
-    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-  }
-}
-document.addEventListener('fullscreenchange', updateFSBtn);
-document.addEventListener('webkitfullscreenchange', updateFSBtn);
-function updateFSBtn(){
-  const btn = document.getElementById('btn-fullscreen');
-  if(document.fullscreenElement){
-    btn.textContent = '⛶ EXIT FS';
-    btn.style.background = '#4a7020';
-    btn.style.color = '#fff';
-    btn.style.borderColor = '#6a9a30';
-  } else {
-    btn.textContent = '⛶ FULLSCREEN';
-    btn.style.background = '';
-    btn.style.color = '';
-    btn.style.borderColor = '';
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// EFFECTIVE DIMENSIONS — canvas expands for protruding towers
-// ═══════════════════════════════════════════════════════════
-function getEffectiveDims() {
-  const hasAnyTower = CONFIG.towerTL || CONFIG.towerTR || CONFIG.towerBL || CONFIG.towerBR;
-  if (!hasAnyTower && !CONFIG.centralTower) return { w: BASE_W, h: BASE_H, ox: 0, oy: 0 };
-
-  const tw = CONFIG.towerWidth;
-  const protrude = Math.ceil(tw * 0.5);
-  const hasL = CONFIG.towerTL || CONFIG.towerBL;
-  const hasR = CONFIG.towerTR || CONFIG.towerBR;
-  const hasTop = CONFIG.towerTL || CONFIG.towerTR || CONFIG.centralTower;
-  const topExt = hasTop ? CONFIG.towerHeight : 0;
-
-  return {
-    w: BASE_W + (hasL ? protrude : 0) + (hasR ? protrude : 0),
-    h: BASE_H + topExt,
-    ox: hasL ? protrude : 0,
-    oy: topExt,
-  };
-}
-
-// ═══════════════════════════════════════════════════════════
-// PRESETS
-// ═══════════════════════════════════════════════════════════
+// Presets
 const PRESETS = {
-  farmhouse: {buildingType:'house',battlements:false,
-    towerTL:false,towerTR:false,towerBL:false,towerBR:false,centralTower:false,
-    roofType:'thatch',roofRatio:38,eaveSize:6,perspH:10,
+  farmhouse: {roofType:'thatch',roofRatio:38,eaveSize:6,perspH:10,
     facadeType:'halftimber',beamCount:3,winCount:1,flowerBox:true,
     doorType:'arch',chimney:true,smoke:true,
-    portcullis:false,moss:false,heavyBase:false,
     roofLight:'#e0c050',roofDark:'#786010',plasterCol:'#f0e8c0',beamCol:'#6a3e18',doorCol:'#8a5228'},
-  tavern:    {buildingType:'house',battlements:false,
-    towerTL:false,towerTR:false,towerBL:false,towerBR:false,centralTower:false,
-    roofType:'wood',roofRatio:42,eaveSize:7,perspH:12,
+  tavern:    {roofType:'wood',roofRatio:42,eaveSize:7,perspH:12,
     facadeType:'halftimber',beamCount:4,winCount:2,flowerBox:true,
     doorType:'double',chimney:true,smoke:true,sign:true,
-    portcullis:false,moss:false,heavyBase:false,
     roofLight:'#c87838',roofDark:'#6a3010',plasterCol:'#f0e8c0',beamCol:'#5a3010',doorCol:'#6a3818'},
-  church:    {buildingType:'house',battlements:false,
-    towerTL:false,towerTR:false,towerBL:false,towerBR:false,centralTower:false,
-    roofType:'stone',roofRatio:50,eaveSize:4,perspH:8,
+  church:    {roofType:'stone',roofRatio:50,eaveSize:4,perspH:8,
     facadeType:'stone',beamCount:2,winCount:2,flowerBox:false,
     doorType:'arch',chimney:false,smoke:false,
-    portcullis:false,moss:false,heavyBase:false,
     roofLight:'#989898',roofDark:'#484848',plasterCol:'#c8c8c0',beamCol:'#484848',doorCol:'#5a3810'},
-  smithy:    {buildingType:'house',battlements:false,
-    towerTL:false,towerTR:false,towerBL:false,towerBR:false,centralTower:false,
-    roofType:'dark',roofRatio:35,eaveSize:4,perspH:8,
+  smithy:    {roofType:'dark',roofRatio:35,eaveSize:4,perspH:8,
     facadeType:'wood',beamCount:2,winCount:1,flowerBox:false,
     doorType:'flat',chimney:true,smoke:true,
-    portcullis:false,moss:false,heavyBase:false,
     roofLight:'#585858',roofDark:'#202020',plasterCol:'#a09080',beamCol:'#483020',doorCol:'#3a2010'},
-  shop:      {buildingType:'house',battlements:false,
-    towerTL:false,towerTR:false,towerBL:false,towerBR:false,centralTower:false,
-    roofType:'wood',roofRatio:36,eaveSize:5,perspH:10,
+  shop:      {roofType:'wood',roofRatio:36,eaveSize:5,perspH:10,
     facadeType:'halftimber',beamCount:3,winCount:2,flowerBox:true,
     doorType:'arch',chimney:false,smoke:false,sign:true,
-    portcullis:false,moss:false,heavyBase:false,
     roofLight:'#b07030',roofDark:'#603010',plasterCol:'#f8f0d8',beamCol:'#6a3e18',doorCol:'#7a4820'},
-  manor:     {buildingType:'house',battlements:false,
-    towerTL:false,towerTR:false,towerBL:false,towerBR:false,centralTower:false,
-    roofType:'stone',roofRatio:45,eaveSize:8,perspH:14,
+  manor:     {roofType:'stone',roofRatio:45,eaveSize:8,perspH:14,
     facadeType:'halftimber',beamCount:4,winCount:3,flowerBox:true,
     doorType:'double',chimney:true,smoke:true,
-    portcullis:false,moss:false,heavyBase:false,
     roofLight:'#4868a0',roofDark:'#1a2848',plasterCol:'#e8e0c8',beamCol:'#483020',doorCol:'#5a3010'},
-  cottage:   {buildingType:'house',battlements:false,
-    towerTL:false,towerTR:false,towerBL:false,towerBR:false,centralTower:false,
-    roofType:'thatch',roofRatio:46,eaveSize:7,perspH:8,
-    facadeType:'plaster',beamCount:1,winCount:1,flowerBox:true,winLight:true,
-    doorType:'arch',chimney:true,smoke:true,sign:false,
-    portcullis:false,moss:false,heavyBase:false,
-    roofLight:'#d8b860',roofDark:'#705010',plasterCol:'#f8eed0',beamCol:'#604020',doorCol:'#5a3010'},
-  hut:       {buildingType:'house',battlements:false,
-    towerTL:false,towerTR:false,towerBL:false,towerBR:false,centralTower:false,
-    roofType:'thatch',roofRatio:55,eaveSize:5,perspH:6,
-    facadeType:'wood',beamCount:1,winCount:1,flowerBox:false,winLight:false,
-    doorType:'flat',chimney:false,smoke:false,sign:false,
-    portcullis:false,moss:false,heavyBase:false,
-    roofLight:'#a08038',roofDark:'#503010',plasterCol:'#604028',beamCol:'#382010',doorCol:'#2a1808'},
-  palace:    {buildingType:'house',battlements:false,
-    towerTL:false,towerTR:false,towerBL:false,towerBR:false,centralTower:false,
-    roofType:'stone',roofRatio:42,eaveSize:8,perspH:14,
-    facadeType:'stone',beamCount:4,winCount:4,flowerBox:false,winLight:true,
-    doorType:'double',chimney:true,smoke:true,sign:false,
-    portcullis:false,moss:false,heavyBase:false,
-    roofLight:'#a878d0',roofDark:'#382048',plasterCol:'#f0e8d8',beamCol:'#604030',doorCol:'#6a3020'},
-  // ── CASTILLOS ──────────────────────────────────────────────
-  watchtower:{buildingType:'castle',battlements:true,
-    towerTL:false,towerTR:true,towerBL:false,towerBR:false,centralTower:false,
-    towerWidth:14,towerHeight:20,towerWindow:true,
-    portcullis:false,moss:true,heavyBase:true,
-    roofType:'dark',roofRatio:25,eaveSize:3,perspH:6,
-    facadeType:'stone',beamCount:1,winCount:1,flowerBox:false,winLight:true,
-    doorType:'arch',chimney:false,smoke:false,sign:false,
-    roofLight:'#787878',roofDark:'#383838',plasterCol:'#a8a8a8',beamCol:'#484848',doorCol:'#4a3010'},
-  outpost:   {buildingType:'castle',battlements:true,
-    towerTL:true,towerTR:false,towerBL:false,towerBR:true,centralTower:false,
-    towerWidth:14,towerHeight:14,towerWindow:true,
-    portcullis:false,moss:true,heavyBase:true,
-    roofType:'dark',roofRatio:28,eaveSize:3,perspH:6,
-    facadeType:'stone',beamCount:2,winCount:1,flowerBox:false,winLight:true,
-    doorType:'arch',chimney:false,smoke:false,sign:false,
-    roofLight:'#808080',roofDark:'#404040',plasterCol:'#b0b0a8',beamCol:'#505050',doorCol:'#4a3010'},
-  fortress:  {buildingType:'castle',battlements:true,
-    towerTL:true,towerTR:true,towerBL:true,towerBR:true,centralTower:false,
-    towerWidth:16,towerHeight:18,towerWindow:true,
-    portcullis:true,moss:true,heavyBase:true,
-    roofType:'stone',roofRatio:30,eaveSize:4,perspH:8,
-    facadeType:'stone',beamCount:2,winCount:3,flowerBox:false,winLight:true,
-    doorType:'portcullis',chimney:true,smoke:false,sign:false,
-    roofLight:'#a0a0a0',roofDark:'#505050',plasterCol:'#c0c0c0',beamCol:'#505050',doorCol:'#3a2010'},
-  royal_keep:{buildingType:'castle',battlements:true,
-    towerTL:true,towerTR:true,towerBL:true,towerBR:true,centralTower:true,
-    towerWidth:18,towerHeight:24,towerWindow:true,
-    portcullis:true,moss:false,heavyBase:true,
-    roofType:'stone',roofRatio:48,eaveSize:6,perspH:12,
-    facadeType:'stone',beamCount:3,winCount:3,flowerBox:false,winLight:true,
-    doorType:'portcullis',chimney:true,smoke:true,sign:true,
-    roofLight:'#5078a8',roofDark:'#202848',plasterCol:'#d8d0b8',beamCol:'#383028',doorCol:'#4a2810'},
 };
 
+// Paleta flores por estación
 const SEASON_FLOWERS=[
-  ['#f878a0','#f8e060','#c0f0e0','#d0a0f8'],
-  ['#f89030','#f8e040','#50d060','#f86050'],
-  ['#e86020','#d08020','#e09020','#c04020'],
-  ['#d0e8f8','#c8e0f0','#b8d8e8','#e8f4fc'],
+  ['#f878a0','#f8e060','#c0f0e0','#d0a0f8'],  // spring
+  ['#f89030','#f8e040','#50d060','#f86050'],   // summer
+  ['#e86020','#d08020','#e09020','#c04020'],   // fall
+  ['#d0e8f8','#c8e0f0','#b8d8e8','#e8f4fc'],  // winter
 ];
 
 // ═══════════════════════════════════════════════════════════
@@ -669,16 +451,8 @@ function ditherBlock(ctx, x, y, w, h, c1, c2, thresh) {
 // ═══════════════════════════════════════════════════════════
 // DRAWING ENGINE
 // ═══════════════════════════════════════════════════════════
-function drawHouse(ctx, W, H, cfg, fr, ox, oy) {
-  const dims = getEffectiveDims();
-  ctx.clearRect(0, 0, dims.w, dims.h);
-
-  // ── PROTRUDING TOWERS (back layer — TL/TR behind main building) ──
-  drawProtrudingTowers(ctx, W, H, cfg, ox, oy, 'back');
-
-  // ── MAIN BUILDING — offset by (ox, oy) so towers can protrude ──
-  ctx.save();
-  ctx.translate(ox, oy);
+function drawHouse(ctx, W, H, cfg, fr) {
+  ctx.clearRect(0, 0, W, H);
 
   const rh    = Math.round(H * (cfg.roofRatio/100));
   const fh    = H - rh;
@@ -698,53 +472,24 @@ function drawHouse(ctx, W, H, cfg, fr, ox, oy) {
   // ── TEJADO ──────────────────────────────────────────────
   drawRoof(ctx, 0, 0, W, rh, cfg, fr);
 
-  // ── ALMENAS / CRENELLATIONS ─────────────────────────────
-  if (cfg.battlements) {
-    const battleTop  = 0;
-    const battleH    = Math.max(6, Math.round(rh * 0.45));
-    const stoneCol   = cfg.roofLight || '#a0a0a0';
-    const stoneShade = cfg.roofDark  || '#404040';
-    ctx.fillStyle = stoneCol;
-    ctx.fillRect(0, battleTop, W, battleH);
-    ctx.fillStyle = stoneShade;
-    ctx.fillRect(0, battleTop + battleH - 1, W, 1);
-    ctx.fillStyle = lighten(stoneCol, 0.15);
-    for (let x = 0; x < W; x++) {
-      if (BAYER[0][x % 4] < 8) ctx.fillRect(x, battleTop, 1, 1);
-    }
-    const merlonW = 5, gapW = 4;
-    const period  = merlonW + gapW;
-    const startX  = Math.floor((W - Math.floor(W / period) * period) / 2);
-    ctx.fillStyle = '#000';
-    for (let x = startX; x + merlonW < W; x += period) {
-      ctx.clearRect(x + merlonW, battleTop, gapW, Math.max(3, Math.round(battleH * 0.45)));
-    }
-    ctx.fillStyle = stoneShade;
-    for (let x = startX; x < W; x += period) {
-      ctx.fillRect(x, battleTop + 1, 1, battleH - 2);
-    }
-  }
-
   // ── CARA SUR / PERSPECTIVA 3/4 ──────────────────────────
   if(persp > 0) {
     const shadeCol = darken(cfg.roofDark, 0.7);
     ctx.fillStyle = shadeCol;
     ctx.fillRect(-eave, rh, W+eave*2, persp);
+    // Dithering en la transición
     for(let dx=0; dx<W+eave*2; dx++){
       const bv=BAYER[0][(dx)%4];
       ctx.fillStyle = bv<8 ? cfg.roofDark : shadeCol;
       ctx.fillRect(-eave+dx, rh, 1, 1);
     }
+    // Borde inferior cara sur (separación visual con la fachada)
     ctx.fillStyle=darken(cfg.roofDark,0.5);
     ctx.fillRect(-eave, rh+persp-1, W+eave*2, 1);
   }
 
   // ── FACHADA ─────────────────────────────────────────────
   drawFacade(ctx, 0, faceY, W, faceH, cfg);
-
-  // ── CASTLE OVERLAYS (moss + base) ──────────────────────
-  drawMoss(ctx, W, faceY, faceH, cfg);
-  drawHeavyBase(ctx, W, H, cfg);
 
   // ── VENTANAS ────────────────────────────────────────────
   if(cfg.winCount > 0) {
@@ -768,161 +513,6 @@ function drawHouse(ctx, W, H, cfg, fr, ox, oy) {
 
   // ── LETRERO ─────────────────────────────────────────────
   if(cfg.sign) drawSign(ctx, 4, faceY+4, cfg);
-
-  ctx.restore();
-
-  // ── PROTRUDING TOWERS (front layer — BL/BR in front of main) ──
-  drawProtrudingTowers(ctx, W, H, cfg, ox, oy, 'front');
-
-  // ── CENTRAL TOWER ──────────────────────────────────────
-  if (cfg.centralTower) drawCentralTower(ctx, W, H, cfg, ox, oy);
-}
-
-// ═══════════════════════════════════════════════════════════
-// PROTRUDING CORNER TOWERS
-// ═══════════════════════════════════════════════════════════
-function drawProtrudingTowers(ctx, W, H, cfg, ox, oy, pass) {
-  const hasAny = cfg.towerTL || cfg.towerTR || cfg.towerBL || cfg.towerBR;
-  if (!hasAny) return;
-
-  const tw = cfg.towerWidth;
-  const protrude = Math.ceil(tw * 0.5);
-  const overlap = tw - protrude;
-  const stone = cfg.roofLight || '#a0a0a0';
-  const shade = darken(stone, 0.5);
-  const lite  = lighten(stone, 0.15);
-
-  const midY = oy + Math.round(H * 0.5);
-  const topY = 0;
-  const botY = oy + H - 2;
-
-  // Left towers
-  const hasLT = cfg.towerTL, hasLB = cfg.towerBL;
-  if (hasLT || hasLB) {
-    const tx = ox - overlap;
-    if (pass === 'back' && hasLT) {
-      const ty1 = topY;
-      const ty2 = hasLB ? botY : midY;
-      drawTowerBody(ctx, tx, ty1, tw, ty2 - ty1, stone, shade, lite, true, cfg);
-    }
-    if (pass === 'front' && hasLB && !hasLT) {
-      drawTowerBody(ctx, tx, midY, tw, botY - midY, stone, shade, lite, true, cfg);
-    }
-    if (pass === 'front' && hasLB && hasLT) {
-      // Full tower already drawn in back pass — skip
-    }
-  }
-
-  // Right towers
-  const hasRT = cfg.towerTR, hasRB = cfg.towerBR;
-  if (hasRT || hasRB) {
-    const tx = ox + W - overlap;
-    if (pass === 'back' && hasRT) {
-      const ty1 = topY;
-      const ty2 = hasRB ? botY : midY;
-      drawTowerBody(ctx, tx, ty1, tw, ty2 - ty1, stone, shade, lite, true, cfg);
-    }
-    if (pass === 'front' && hasRB && !hasRT) {
-      drawTowerBody(ctx, tx, midY, tw, botY - midY, stone, shade, lite, true, cfg);
-    }
-  }
-}
-
-function drawTowerBody(ctx, x, y, w, h, stone, shade, lite, hasMerlons, cfg) {
-  // Stone body
-  ctx.fillStyle = stone;
-  ctx.fillRect(x, y, w, h);
-
-  // Volume shading
-  ctx.fillStyle = shade;
-  ctx.fillRect(x + w - 2, y, 2, h);
-  ctx.fillStyle = lite;
-  ctx.fillRect(x, y, 1, h);
-
-  // Horizontal stone courses
-  ctx.fillStyle = shade;
-  for (let ry = y + 8; ry < y + h - 4; ry += 8) {
-    ctx.fillRect(x + 1, ry, w - 2, 1);
-  }
-  // Vertical seams (offset every other row)
-  ctx.fillStyle = shade;
-  for (let ry = y + 4; ry < y + h - 4; ry += 8) {
-    for (let sx = x + 6; sx < x + w - 2; sx += 10) {
-      ctx.fillRect(sx, ry, 1, 8);
-    }
-  }
-  for (let ry = y + 8; ry < y + h - 4; ry += 8) {
-    for (let sx = x + 11; sx < x + w - 2; sx += 10) {
-      ctx.fillRect(sx, ry, 1, 8);
-    }
-  }
-
-  // Merlons at top — stone with crenellations
-  if (hasMerlons) {
-    const mH = 5;
-    const mTop = y;
-    // Wider cap for the merlon row
-    ctx.fillStyle = stone;
-    ctx.fillRect(x - 1, mTop, w + 2, mH);
-    // Bottom line of merlon cap
-    ctx.fillStyle = shade;
-    ctx.fillRect(x - 1, mTop + mH - 1, w + 2, 1);
-    // Top highlight
-    ctx.fillStyle = lite;
-    ctx.fillRect(x, mTop, w, 1);
-
-    // Carve notches (gaps between merlons)
-    const merlonW = 3, gapW = 3;
-    const period = merlonW + gapW;
-    for (let mx = x; mx + merlonW <= x + w; mx += period) {
-      ctx.clearRect(mx + merlonW, mTop, gapW, Math.ceil(mH * 0.6));
-    }
-  }
-
-  // Arrow-slit window
-  if (cfg.towerWindow && h > 20) {
-    const slitX = x + Math.floor(w / 2) - 1;
-    const slitY = y + Math.round(h * 0.35);
-    ctx.fillStyle = '#0d0a14';
-    ctx.fillRect(slitX, slitY, 2, 7);
-    // Slit frame
-    ctx.fillStyle = shade;
-    ctx.fillRect(slitX - 1, slitY - 1, 4, 1);
-    ctx.fillRect(slitX - 1, slitY + 7, 4, 1);
-  }
-
-  // Base footing — slightly wider
-  ctx.fillStyle = shade;
-  ctx.fillRect(x - 1, y + h - 4, w + 2, 4);
-  ctx.fillStyle = stone;
-  ctx.fillRect(x, y + h - 4, w, 1);
-}
-
-// ═══════════════════════════════════════════════════════════
-// CENTRAL TOWER (keep donjon)
-// ═══════════════════════════════════════════════════════════
-function drawCentralTower(ctx, W, H, cfg, ox, oy) {
-  const tw = Math.round(cfg.towerWidth * 1.2);
-  const th = cfg.towerHeight + 6;
-  const stone = cfg.roofLight || '#a0a0a0';
-  const shade = darken(stone, 0.5);
-  const lite  = lighten(stone, 0.15);
-
-  const cx = ox + Math.round(W / 2 - tw / 2);
-  const cy = 0;
-  const towerH = oy + Math.round(H * 0.55);
-
-  drawTowerBody(ctx, cx, cy, tw, towerH, stone, shade, lite, true, cfg);
-
-  // Banner on central tower
-  const flagX = cx + Math.floor(tw / 2) - 1;
-  const flagY = cy + 6;
-  ctx.fillStyle = '#3a2010';
-  ctx.fillRect(flagX, flagY, 1, 10); // pole
-  ctx.fillStyle = '#c03030';
-  ctx.fillRect(flagX + 1, flagY, 5, 3); // flag
-  ctx.fillStyle = '#e04040';
-  ctx.fillRect(flagX + 1, flagY, 5, 1); // highlight
 }
 
 // ── TEJADO ──────────────────────────────────────────────────
@@ -931,14 +521,19 @@ function drawRoof(ctx, rx, ry, rw, rh, cfg, fr) {
   const rL = cfg.roofLight, rD = cfg.roofDark;
 
   if(cfg.roofType === 'thatch') {
+    // BASE — relleno con color oscuro
     ctx.fillStyle=rD; ctx.fillRect(rx-eave, ry, rw+eave*2, rh+2);
+
+    // Haces de paja — filas con dithering
     const bandH = 4;
     const bands = Math.ceil(rh/bandH);
     for(let b=0; b<bands; b++){
-      const t = b/bands;
+      const t = b/bands; // 0=cima, 1=alero
       const by = ry + b*bandH;
       const bh = Math.min(bandH, ry+rh-by);
       if(bh<=0) break;
+
+      // Color de esta banda (5 tonos de cima a alero)
       const colIdx = Math.floor(t*4);
       const ramp = [
         mixColors(rL,'#ffffff',0.3), rL,
@@ -946,28 +541,39 @@ function drawRoof(ctx, rx, ry, rw, rh, cfg, fr) {
       ];
       const c1=ramp[Math.min(colIdx,4)], c2=ramp[Math.min(colIdx+1,4)];
       const thresh = Math.floor((t*4%1)*15);
+
+      // Haces de 4px ancho
       for(let col=0; col<rw+eave*2; col+=4){
         const hx = rx-eave+col;
+        // Cuerpo del haz
         ctx.fillStyle=c1; ctx.fillRect(hx, by, 4, bh);
+        // Highlight top del haz
         ctx.fillStyle=mixColors(c1,'#ffffff',0.25);
         ctx.fillRect(hx, by, 4, 1);
+        // Dither en borde inferior del haz
         if(bh>=2 && b<bands-1){
           ditherLine(ctx, hx, by+bh-1, 4, c1, c2, thresh);
         }
       }
     }
+
+    // ALERO pronunciado (sobresale con fibras)
     const aleX=rx-eave-2, aleY=ry+rh-2, aleW=rw+eave*2+4;
     ctx.fillStyle=rD; ctx.fillRect(aleX, aleY, aleW, 5);
     ctx.fillStyle=mixColors(rD,rL,0.3); ctx.fillRect(aleX, aleY, aleW, 2);
+    // Fibras del alero
     for(let fi=0; fi<aleW; fi+=3){
       ctx.fillStyle=fi%2===0?rD:mixColors(rD,rL,0.2);
       ctx.fillRect(aleX+fi, aleY+2, 3, 3);
     }
+    // Dither en borde del alero
     ditherBlock(ctx, aleX, aleY+4, aleW, 1, rD, darken(rD,0.6), 8);
+    // Cumbrera
     ctx.fillStyle=darken(rD,0.6); ctx.fillRect(rx, ry, rw, 2);
     ctx.fillStyle=mixColors(rL,'#ffffff',0.4); ctx.fillRect(rx+2, ry, rw-4, 1);
 
   } else if(cfg.roofType === 'wood' || cfg.roofType === 'dark') {
+    // Tejado de tablones de madera
     const ramp=[
       mixColors(rL,'#ffffff',0.2), rL,
       mixColors(rL,rD,0.5), rD, darken(rD,0.7)
@@ -984,6 +590,7 @@ function drawRoof(ctx, rx, ry, rw, rh, cfg, fr) {
         ctx.fillRect(tx2, ty2, tileW-1, tileH-1);
         ctx.fillStyle=mixColors(c1,'#ffffff',0.15); ctx.fillRect(tx2,ty2,tileW-1,1);
         ctx.fillStyle=darken(c2,0.7); ctx.fillRect(tx2,ty2+tileH-1,tileW-1,1);
+        // Dither en bordes
         if(CONFIG.dither){
           ditherLine(ctx,tx2,ty2+tileH-2,tileW-1,c1,c2,8);
         }
@@ -991,10 +598,11 @@ function drawRoof(ctx, rx, ry, rw, rh, cfg, fr) {
     }
     ctx.fillStyle=darken(rD,0.7); ctx.fillRect(rx,ry,rw,2);
     ctx.fillStyle=mixColors(rL,'#ffffff',0.3); ctx.fillRect(rx+2,ry,rw-4,1);
+    // Alero
     ctx.fillStyle=rD; ctx.fillRect(rx-eave-2,ry+rh-2,rw+eave*2+4,5);
     ctx.fillStyle=mixColors(rD,rL,0.2); ctx.fillRect(rx-eave-2,ry+rh-2,rw+eave*2+4,2);
 
-  } else {
+  } else { // stone
     const ramp=[
       mixColors(rL,'#ffffff',0.2), rL,
       mixColors(rL,rD,0.4), mixColors(rL,rD,0.7), rD
@@ -1030,21 +638,34 @@ function drawFacade(ctx, bx, by, bw, bh, cfg) {
   const Pd=darken(P,0.85), Pl=lighten(P,0.1);
 
   if(cfg.facadeType === 'halftimber'){
+    // Base yeso
     ctx.fillStyle=P; ctx.fillRect(bx,by,bw,bh);
+    // Zona superior iluminada
     const ilumH=Math.floor(bh*0.35);
     ctx.fillStyle=Pl; ctx.fillRect(bx+2,by,bw-4,ilumH);
+    // Dithering en transición
     ditherBlock(ctx, bx+2, by+ilumH-1, bw-4, 2, Pl, P, 8);
+    // Zona inferior levemente más oscura
     ctx.fillStyle=Pd+'66'; ctx.fillRect(bx,by+Math.floor(bh*0.6),bw,Math.floor(bh*0.4));
+
+    // VIGAS
     ctx.fillStyle=B;
+    // Pilares verticales (siempre en bordes)
     ctx.fillRect(bx,by,3,bh); ctx.fillRect(bx+bw-3,by,3,bh);
+    // Pilares intermedios
     const secW=Math.floor(bw/cfg.beamCount);
     for(let i=1;i<cfg.beamCount;i++){
       ctx.fillRect(bx+i*secW-1,by,3,bh);
     }
+    // Viga horizontal top
     ctx.fillRect(bx,by,bw,3);
+    // Viga horizontal mid
     const midY=by+Math.floor(bh*0.48);
     ctx.fillRect(bx,midY,bw,2);
+    // Viga horizontal bottom (zócalo)
     ctx.fillRect(bx,by+bh-6,bw,4);
+
+    // DIAGONALES X en cada sección
     for(let sec=0;sec<cfg.beamCount;sec++){
       const sx=bx+sec*secW, ex=bx+(sec+1)*secW;
       const sy=by+3, ey=midY;
@@ -1052,24 +673,30 @@ function drawFacade(ctx, bx, by, bw, bh, cfg) {
       const steps=Math.min(dx2,dy2)/3;
       for(let di=0;di<steps;di++){
         const t=di/steps;
+        // TL→BR
         ctx.fillRect(Math.round(sx+t*dx2),Math.round(sy+t*dy2),3,3);
+        // TR→BL
         ctx.fillRect(Math.round(ex-t*dx2-3),Math.round(sy+t*dy2),3,3);
       }
     }
+    // Highlight en vigas
     ctx.fillStyle=lighten(B,0.2);
     ctx.fillRect(bx,by,bw,1); ctx.fillRect(bx,midY,bw,1);
+    // Zócalo madera
     ctx.fillStyle=darken(B,0.7); ctx.fillRect(bx,by+bh-6,bw,6);
     ctx.fillStyle=B; ctx.fillRect(bx,by+bh-6,bw,2);
 
   } else if(cfg.facadeType === 'plaster'){
     ctx.fillStyle=P; ctx.fillRect(bx,by,bw,bh);
     ctx.fillStyle=Pl; ctx.fillRect(bx+2,by,bw-4,Math.floor(bh*0.3));
+    // Líneas de rejuntado
     ctx.fillStyle=Pd+'44';
     for(let ly=by+10;ly<by+bh;ly+=8) ctx.fillRect(bx,ly,bw,1);
     ctx.fillStyle=B; ctx.fillRect(bx,by,2,bh); ctx.fillRect(bx+bw-2,by,2,bh);
     ctx.fillStyle=B; ctx.fillRect(bx,by+bh-5,bw,5);
 
   } else if(cfg.facadeType === 'wood'){
+    // Tablones verticales
     for(let pi=0;pi<Math.floor(bw/8);pi++){
       ctx.fillStyle=pi%2===0?P:Pd;
       ctx.fillRect(bx+pi*8,by,7,bh);
@@ -1080,7 +707,7 @@ function drawFacade(ctx, bx, by, bw, bh, cfg) {
     }
     ctx.fillStyle=darken(B,0.7); ctx.fillRect(bx,by,bw,3); ctx.fillRect(bx,by+bh-5,bw,5);
 
-  } else {
+  } else { // stone
     ctx.fillStyle=darken(P,0.5); ctx.fillRect(bx,by,bw,bh);
     const sc0=mixColors(P,'#ffffff',0.1), sc1=mixColors(P,B,0.3);
     const blockHs=[10,8,10,8], blockWs=[20,14,18,16,12,20];
@@ -1109,10 +736,14 @@ function drawFacade(ctx, bx, by, bw, bh, cfg) {
 // ── VENTANA ──────────────────────────────────────────────────
 function drawWindow(ctx, wx, wy, cfg, fr) {
   const B=cfg.beamCol, Bd=darken(B,0.7);
+  // Marco exterior
   ctx.fillStyle=B; ctx.fillRect(wx,wy,22,18);
+  // Marco interior (profundidad)
   ctx.fillStyle=Bd; ctx.fillRect(wx+2,wy+2,18,14);
+  // Cristal
   const glassC = isNight&&cfg.winLight ? '#f8d870' : '#b0d8e8';
   ctx.fillStyle=glassC; ctx.fillRect(wx+3,wy+3,16,12);
+  // Reflejos en cristal (sub-pixel)
   if(!isNight){
     ctx.fillStyle='#e4f4fc'; ctx.fillRect(wx+4,wy+4,5,1);
     ctx.fillStyle='#d4ecf4'; ctx.fillRect(wx+4,wy+4,1,5);
@@ -1120,31 +751,39 @@ function drawWindow(ctx, wx, wy, cfg, fr) {
   } else if(cfg.winLight){
     ctx.fillStyle='rgba(255,220,80,0.35)';
     ctx.fillRect(wx+3,wy+3,16,12);
+    // Halo exterior
     const gl=ctx.createRadialGradient(wx+11,wy+9,0,wx+11,wy+9,20);
     gl.addColorStop(0,'rgba(255,200,50,0.3)'); gl.addColorStop(1,'rgba(0,0,0,0)');
     ctx.fillStyle=gl; ctx.fillRect(wx-10,wy-10,42,38);
   }
+  // Parteluz
   ctx.fillStyle=B;
-  ctx.fillRect(wx+3,wy+9,16,1);
-  ctx.fillRect(wx+11,wy+3,1,12);
+  ctx.fillRect(wx+3,wy+9,16,1); // horizontal
+  ctx.fillRect(wx+11,wy+3,1,12); // vertical
+  // Dithering en borde del cristal
   if(cfg.dither){
     ditherLine(ctx,wx+3,wy+14,16,glassC,Bd,10);
     ditherLine(ctx,wx+18,wy+3,1,glassC,Bd,5);
   }
+
+  // MACETERO DE FLORES
   if(cfg.flowerBox){
+    // Macetero terracota
     ctx.fillStyle='#b86030'; ctx.fillRect(wx+3,wy+15,16,7);
     ctx.fillStyle='#d07848'; ctx.fillRect(wx+3,wy+15,16,2);
     ctx.fillStyle='#904020'; ctx.fillRect(wx+3,wy+21,16,1);
+    // Tierra
     ctx.fillStyle='#7a4820'; ctx.fillRect(wx+4,wy+17,14,4);
     ctx.fillStyle='#6a3810'; ctx.fillRect(wx+4,wy+20,14,1);
+    // Flores (3) por estación
     const flC=SEASON_FLOWERS[season];
     for(let fi=0;fi<3;fi++){
       const fx=wx+5+fi*5, fy=wy+12;
-      ctx.fillStyle='#4a8020'; ctx.fillRect(fx+1,fy+1,1,5);
-      ctx.fillStyle=flC[fi]; ctx.fillRect(fx,fy,3,3);
-      ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillRect(fx+1,fy,1,1);
+      ctx.fillStyle='#4a8020'; ctx.fillRect(fx+1,fy+1,1,5); // tallo
+      ctx.fillStyle=flC[fi]; ctx.fillRect(fx,fy,3,3); // flor
+      ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillRect(fx+1,fy,1,1); // highlight
     }
-    if(season===3){
+    if(season===3){ // nieve en invierno
       ctx.fillStyle='rgba(220,235,250,0.8)';
       ctx.fillRect(wx+3,wy+15,16,3);
     }
@@ -1157,22 +796,28 @@ function drawDoor(ctx, dx, dy, cfg) {
   const Dl=lighten(D,0.15), Dd=darken(D,0.7);
 
   if(cfg.doorType==='arch'){
+    // Marco con arco
     ctx.fillStyle=B; ctx.fillRect(dx,dy+6,22,24);
+    // Arco (pixelado)
     const archPts=[[dx+1,dy+5],[dx+2,dy+3],[dx+3,dy+2],[dx+4,dy+1],[dx+5,dy+1],
                    [dx+6,dy],[dx+16,dy],[dx+17,dy+1],[dx+18,dy+1],
                    [dx+19,dy+2],[dx+20,dy+3],[dx+21,dy+5]];
     ctx.fillStyle=B; archPts.forEach(([ax,ay])=>ctx.fillRect(ax,ay,1,1));
+    // Relleno arco interior
     ctx.fillStyle=Dd; ctx.fillRect(dx+2,dy+6,18,22);
     for(let ai=1;ai<=5;ai++){
       const aw=Math.min(ai*3,16);
       ctx.fillStyle=Dd; ctx.fillRect(dx+11-aw/2,dy+5-ai,aw,1);
     }
+    // Tablones
     ctx.fillStyle=D; ctx.fillRect(dx+2,dy+6,9,22);
     ctx.fillStyle=D; ctx.fillRect(dx+12,dy+6,8,22);
     ctx.fillStyle=Dl; ctx.fillRect(dx+2,dy+6,9,2);
     ctx.fillStyle=Dl; ctx.fillRect(dx+12,dy+6,8,2);
     ctx.fillStyle=Dd; ctx.fillRect(dx+11,dy+6,2,22);
+    // Travesaños
     ctx.fillStyle=B; ctx.fillRect(dx+2,dy+14,18,1); ctx.fillRect(dx+2,dy+22,18,1);
+    // Pomo
     ctx.fillStyle='#c8900f'; ctx.fillRect(dx+15,dy+16,4,4);
     ctx.fillStyle='#f0c030'; ctx.fillRect(dx+15,dy+16,4,2);
     ctx.fillStyle='#906010'; ctx.fillRect(dx+15,dy+18,4,2);
@@ -1187,40 +832,10 @@ function drawDoor(ctx, dx, dy, cfg) {
     ctx.fillStyle='#c8900f'; ctx.fillRect(dx+14,dy+14,4,4);
     ctx.fillStyle='#f0c030'; ctx.fillRect(dx+14,dy+14,4,2);
 
-  } else if(cfg.doorType==='portcullis' || cfg.portcullis){
-    const gw = 40, gh = 34, gx = dx - 9, gy = dy - 6;
-    const stoneCol   = lighten(B, 0.10);
-    const stoneShade = darken(B, 0.4);
-    ctx.fillStyle = stoneShade; ctx.fillRect(gx, gy, gw, gh);
-    ctx.fillStyle = stoneCol;   ctx.fillRect(gx+2, gy+2, gw-4, gh-4);
-    const cavX = gx+3, cavY = gy+3, cavW = gw-6, cavH = gh-6;
-    ctx.fillStyle = '#0a0a12'; ctx.fillRect(cavX, cavY, cavW, cavH);
-    ctx.fillStyle = stoneCol;
-    for (let ai = 0; ai < 3; ai++) {
-      ctx.fillRect(cavX + ai, cavY + ai, 1, 1);
-      ctx.fillRect(cavX + cavW - 1 - ai, cavY + ai, 1, 1);
-    }
-    ctx.fillStyle = '#2a2a34';
-    for (let bx = cavX + 2; bx < cavX + cavW - 1; bx += 4) {
-      ctx.fillRect(bx, cavY + 3, 2, cavH - 4);
-    }
-    for (let by = cavY + 4; by < cavY + cavH - 1; by += 6) {
-      ctx.fillRect(cavX + 1, by, cavW - 2, 1);
-    }
-    ctx.fillStyle = '#4a4a58';
-    for (let bx = cavX + 2; bx < cavX + cavW - 1; bx += 4) {
-      ctx.fillRect(bx, cavY + 3, 1, cavH - 4);
-    }
-    ctx.fillStyle = '#1a1a22';
-    for (let bx = cavX + 2; bx < cavX + cavW - 1; bx += 4) {
-      ctx.fillRect(bx, cavY + cavH - 1, 2, 2);
-    }
-    ctx.fillStyle = lighten(stoneCol, 0.15);
-    ctx.fillRect(gx + gw/2 - 2, gy, 4, 3);
-
-  } else {
+  } else { // double
     ctx.fillStyle=B; ctx.fillRect(dx-8,dy+2,38,26);
     ctx.fillStyle=Dd; ctx.fillRect(dx-6,dy+4,34,22);
+    // 2 puertas
     ctx.fillStyle=D; ctx.fillRect(dx-5,dy+4,16,22); ctx.fillRect(dx+12,dy+4,16,22);
     ctx.fillStyle=Dl; ctx.fillRect(dx-5,dy+4,16,2); ctx.fillRect(dx+12,dy+4,16,2);
     ctx.fillStyle=Dd; ctx.fillRect(dx+10,dy+4,3,22);
@@ -1229,10 +844,12 @@ function drawDoor(ctx, dx, dy, cfg) {
     ctx.fillStyle='#f0c030'; ctx.fillRect(dx+6,dy+16,4,2); ctx.fillRect(dx+13,dy+16,4,2);
   }
 
+  // Escalón
   if(cfg.doorStep){
     ctx.fillStyle='#a89878'; ctx.fillRect(dx-3,dy+27,28,5);
     ctx.fillStyle='#c0b090'; ctx.fillRect(dx-3,dy+27,28,1);
     ctx.fillStyle='#786848'; ctx.fillRect(dx-3,dy+31,28,1);
+    // Dithering en escalón
     if(cfg.dither) ditherLine(ctx,dx-3,dy+30,28,'#a89878','#786848',8);
   }
 }
@@ -1244,8 +861,10 @@ function drawChimney(ctx, cx2, ry, rh, cfg, fr) {
   ctx.fillStyle='#9898a0'; ctx.fillRect(cx2+1,chTop,chW-2,rh+12);
   ctx.fillStyle='#aaaab0'; ctx.fillRect(cx2+2,chTop,chW-4,4);
   ctx.fillStyle='#686868'; ctx.fillRect(cx2,chTop,chW,2);
+  // Humo
   if(cfg.smoke){
     for(let si=0;si<5;si++){
+      const t=(si+fr*0.02*si)%1;
       const sy=chTop-si*12-(fr*0.4+si*6)%24;
       const sw=Math.sin(fr*0.04+si*1.2)*4;
       const salpha=Math.max(0,0.45-si*0.08);
@@ -1259,65 +878,21 @@ function drawChimney(ctx, cx2, ry, rh, cfg, fr) {
 // ── LETRERO ──────────────────────────────────────────────────
 function drawSign(ctx, sx, sy, cfg) {
   const B=cfg.beamCol;
+  // Cuerda
   ctx.fillStyle=B; ctx.fillRect(sx+8,sy-8,1,10); ctx.fillRect(sx+22,sy-8,1,10);
+  // Panel
   ctx.fillStyle=darken(B,0.7); ctx.fillRect(sx,sy,32,12);
   ctx.fillStyle=lighten(cfg.doorCol,0.2); ctx.fillRect(sx+1,sy+1,30,10);
   ctx.fillStyle=lighten(cfg.plasterCol,0.05); ctx.fillRect(sx+2,sy+2,28,8);
+  // Borde dorado
   ctx.strokeStyle='#c0900f'; ctx.lineWidth=1;
   ctx.strokeRect(sx+1.5,sy+1.5,29,9);
+  // Texto pixelado (simulado con puntos)
   ctx.fillStyle='#3a1808';
   [[4,5],[6,5],[8,5],[10,5],[12,5],[14,5],[16,5],
    [4,8],[8,8],[12,8],[16,8]].forEach(([px,py])=>{
     ctx.fillRect(sx+px,sy+py,2,2);
   });
-}
-
-// ── CASTLE OVERLAYS ────────────────────────────────────────
-function seededRand(seed) {
-  return function() {
-    seed = (seed * 9301 + 49297) % 233280;
-    return seed / 233280;
-  };
-}
-
-function drawMoss(ctx, W, faceY, faceH, cfg) {
-  if (!cfg.moss) return;
-  const rand = seededRand(97);
-  const mossDark = '#2a5028';
-  const mossLite = '#4a7838';
-  const patches = 14;
-  for (let i = 0; i < patches; i++) {
-    const px = Math.floor(rand() * W);
-    const py = faceY + Math.floor(rand() * faceH);
-    const ps = 2 + Math.floor(rand() * 3);
-    ctx.fillStyle = rand() > 0.5 ? mossDark : mossLite;
-    ctx.fillRect(px, py, ps, ps);
-    if (rand() > 0.4) ctx.fillRect(px + ps + 1, py + 1, 1, 1);
-    if (rand() > 0.5) ctx.fillRect(px - 1, py + ps, 1, 1);
-  }
-  const baseCount = 8;
-  for (let i = 0; i < baseCount; i++) {
-    const px = Math.floor(rand() * W);
-    const py = faceY + faceH - 3 - Math.floor(rand() * 4);
-    ctx.fillStyle = rand() > 0.5 ? mossDark : mossLite;
-    ctx.fillRect(px, py, 2, 2);
-  }
-}
-
-function drawHeavyBase(ctx, W, H, cfg) {
-  if (!cfg.heavyBase) return;
-  const stone = cfg.roofLight || '#a0a0a0';
-  const shade = darken(stone, 0.45);
-  const lite  = lighten(stone, 0.10);
-  const baseH = 8;
-  const by    = H - baseH - 2;
-  ctx.fillStyle = stone; ctx.fillRect(0, by, W, baseH);
-  ctx.fillStyle = lite;  ctx.fillRect(0, by, W, 1);
-  ctx.fillStyle = shade; ctx.fillRect(0, by + baseH - 1, W, 1);
-  ctx.fillStyle = shade;
-  for (let sx = 12; sx < W; sx += 12) {
-    ctx.fillRect(sx, by + 1, 1, baseH - 2);
-  }
 }
 
 // ── COLOR UTILS ─────────────────────────────────────────────
@@ -1337,71 +912,16 @@ let isNight=false;
 
 function setParam(key, val, btn) {
   CONFIG[key]=val;
-  if (btn) {
-    const parent=btn.parentElement;
-    parent.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('sel'));
-    btn.classList.add('sel');
-  }
-  const boolLabels = ['battlements'];
-  if (boolLabels.includes(key)) {
-    const v = document.getElementById(key+'Val');
-    if (v) v.textContent = val ? 'sí' : 'no';
-  }
-  scheduleRedraw();
-}
-
-function toggleCorner(key, btn) {
-  CONFIG[key] = !CONFIG[key];
-  btn.classList.toggle('on', CONFIG[key]);
-  scheduleRedraw();
-}
-
-function setBuildingType(type, btn) {
-  CONFIG.buildingType = type;
-  if (btn) {
-    const parent = btn.parentElement;
-    parent.querySelectorAll('.vbtn').forEach(b => b.classList.remove('sel'));
-    btn.classList.add('sel');
-  }
-  document.querySelectorAll('.preset-house').forEach(el => el.style.display = type === 'house' ? '' : 'none');
-  document.querySelectorAll('.preset-castle').forEach(el => el.style.display = type === 'castle' ? '' : 'none');
-  document.querySelectorAll('.castle-only').forEach(el => el.style.display = type === 'castle' ? '' : 'none');
-  if (type === 'castle') {
-    if (CONFIG.facadeType !== 'stone') {
-      CONFIG.facadeType = 'stone';
-      const row = document.getElementById('facadeTypeRow');
-      if (row) row.querySelectorAll('.vbtn').forEach(b => {
-        b.classList.toggle('sel', b.getAttribute('onclick').includes("'stone'"));
-      });
-    }
-    CONFIG.battlements = true;
-    const cb = document.getElementById('battlementsToggle');
-    if (cb) cb.checked = true;
-    const bv = document.getElementById('battlementsVal');
-    if (bv) bv.textContent = 'sí';
-  } else {
-    ['towerTL','towerTR','towerBL','towerBR'].forEach(k => {
-      CONFIG[k] = false;
-      const b = document.getElementById('btn_'+k);
-      if (b) b.classList.remove('on');
-    });
-    CONFIG.centralTower = false;
-    const csw = document.getElementById('sw_centralTower');
-    if (csw) csw.classList.remove('on');
-    ['portcullis','moss','heavyBase'].forEach(k => {
-      CONFIG[k] = false;
-      const sw = document.getElementById('sw_'+k);
-      if (sw) sw.classList.remove('on');
-    });
-  }
+  const parent=btn.parentElement;
+  parent.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
   scheduleRedraw();
 }
 
 function setSlider(key, el) {
   CONFIG[key]=parseInt(el.value);
-  const suffix = (key==='roofRatio'||key==='doorX') ? '%' : 'px';
-  const valEl = document.getElementById(key+'Val');
-  if (valEl) valEl.textContent = (key==='beamCount'||key==='winCount') ? el.value : `${el.value}${suffix}`;
+  document.getElementById(key+'Val').textContent=
+    key==='roofRatio'?`${el.value}%`:key==='doorX'?`${el.value}%`:`${el.value}px`;
   scheduleRedraw();
 }
 
@@ -1413,34 +933,16 @@ function setColor(key, val) {
 function toggleSw(key, el) {
   CONFIG[key]=!CONFIG[key];
   el.classList.toggle('on', CONFIG[key]);
+  if(key==='dither') CONFIG.dither=CONFIG[key];
+  if(key==='persp')  CONFIG.persp=CONFIG[key];
   scheduleRedraw();
 }
 
 function loadPreset(name) {
   const p=PRESETS[name];
-  if (!p) return;
-
-  // Backwards compat: old presets with cornerTowers bool → expand to 4 corners
-  if (p.cornerTowers === true && !('towerTL' in p)) {
-    p.towerTL = true; p.towerTR = true; p.towerBL = true; p.towerBR = true;
-  }
-
-  Object.assign(CONFIG, p);
-
-  // Ensure all tower keys have a value
-  ['towerTL','towerTR','towerBL','towerBR'].forEach(k => {
-    if (CONFIG[k] === undefined) CONFIG[k] = false;
-  });
-  if (CONFIG.towerWidth === undefined) CONFIG.towerWidth = 16;
-  if (CONFIG.towerHeight === undefined) CONFIG.towerHeight = 16;
-  if (CONFIG.towerWindow === undefined) CONFIG.towerWindow = true;
-  if (CONFIG.centralTower === undefined) CONFIG.centralTower = false;
-  if (CONFIG.portcullis === undefined) CONFIG.portcullis = false;
-  if (CONFIG.moss === undefined) CONFIG.moss = false;
-  if (CONFIG.heavyBase === undefined) CONFIG.heavyBase = false;
-
-  // Sync sliders
-  ['roofRatio','eaveSize','perspH','beamCount','winCount','doorX','towerWidth','towerHeight'].forEach(k=>{
+  Object.assign(CONFIG,p);
+  // Sync UI sliders
+  ['roofRatio','eaveSize','perspH','beamCount','winCount','doorX'].forEach(k=>{
     const el=document.querySelector(`input[oninput*="${k}"]`);
     if(el) { el.value=CONFIG[k]; setSlider(k,el); }
   });
@@ -1449,15 +951,10 @@ function loadPreset(name) {
     const el=document.querySelector(`input[oninput*="${k}"]`);
     if(el) el.value=CONFIG[k];
   });
-  // Sync toggle switches
-  ['flowerBox','winLight','doorStep','chimney','smoke','sign','shadow','dither','towerWindow','centralTower','portcullis','moss','heavyBase'].forEach(k=>{
+  // Sync toggles
+  ['flowerBox','winLight','doorStep','chimney','smoke','sign','shadow','dither'].forEach(k=>{
     const el=document.getElementById('sw_'+k);
     if(el) el.classList.toggle('on',!!CONFIG[k]);
-  });
-  // Sync corner buttons
-  ['towerTL','towerTR','towerBL','towerBR'].forEach(k=>{
-    const btn = document.getElementById('btn_'+k);
-    if(btn) btn.classList.toggle('on', !!CONFIG[k]);
   });
   // Sync variant buttons
   [{key:'roofType',row:'roofTypeRow'},{key:'facadeType',row:'facadeTypeRow'}].forEach(({key,row})=>{
@@ -1468,21 +965,6 @@ function loadPreset(name) {
       b.classList.toggle('sel',matches);
     });
   });
-  // Sync building type
-  const btRow = document.getElementById('buildingTypeRow');
-  if (btRow) {
-    btRow.querySelectorAll('.vbtn').forEach(b => {
-      const matches = b.getAttribute('onclick').includes(`'${CONFIG.buildingType || 'house'}'`);
-      b.classList.toggle('sel', matches);
-    });
-  }
-  document.querySelectorAll('.preset-house').forEach(el => el.style.display = (CONFIG.buildingType === 'castle') ? 'none' : '');
-  document.querySelectorAll('.preset-castle').forEach(el => el.style.display = (CONFIG.buildingType === 'castle') ? '' : 'none');
-  document.querySelectorAll('.castle-only').forEach(el => el.style.display = (CONFIG.buildingType === 'castle') ? '' : 'none');
-  const cb = document.getElementById('battlementsToggle');
-  if (cb) cb.checked = !!CONFIG.battlements;
-  const bv = document.getElementById('battlementsVal');
-  if (bv) bv.textContent = CONFIG.battlements ? 'sí' : 'no';
   scheduleRedraw();
 }
 
@@ -1495,7 +977,6 @@ function scheduleRedraw(){ redrawPending=true; }
 function renderAll(){
   if(redrawPending){
     redrawPending=false;
-    const dims = getEffectiveDims();
     const canvases=[
       {el:'c1x', scale:1},
       {el:'c2x', scale:2},
@@ -1504,15 +985,18 @@ function renderAll(){
     canvases.forEach(({el,scale})=>{
       const c=document.getElementById(el);
       const off=document.createElement('canvas');
-      off.width=dims.w; off.height=dims.h;
-      drawHouse(off.getContext('2d'), BASE_W, BASE_H, CONFIG, frame, dims.ox, dims.oy);
-      c.width=dims.w*scale; c.height=dims.h*scale;
+      off.width=BASE_W; off.height=BASE_H;
+      drawHouse(off.getContext('2d'), BASE_W, BASE_H, CONFIG, frame);
+      // Escalar pixel-perfect
+      c.width=BASE_W*scale; c.height=BASE_H*scale;
       const ctx=c.getContext('2d');
       ctx.imageSmoothingEnabled=false;
-      ctx.drawImage(off,0,0,dims.w*scale,dims.h*scale);
+      ctx.drawImage(off,0,0,BASE_W*scale,BASE_H*scale);
     });
+    // Season strip
     renderSeasonStrip();
   }
+  // Smoke animation
   if(CONFIG.smoke&&CONFIG.chimney){ redrawPending=true; }
   frame++;
   requestAnimationFrame(renderAll);
@@ -1534,17 +1018,16 @@ function renderSeasonStrip(){
       strip.appendChild(wrap);
     });
   }
-  const dims = getEffectiveDims();
   ['🌸 Spring','☀ Summer','🍂 Fall','❄ Winter'].forEach((_,si)=>{
     const wrap=document.getElementById('smini_'+si);
     if(!wrap) return;
     wrap.classList.toggle('sel',si===season);
     const c=wrap.querySelector('canvas');
     const off=document.createElement('canvas');
-    off.width=dims.w; off.height=dims.h;
+    off.width=BASE_W; off.height=BASE_H;
     const savedSeason=season;
     season=si;
-    drawHouse(off.getContext('2d'), BASE_W, BASE_H, CONFIG, frame, dims.ox, dims.oy);
+    drawHouse(off.getContext('2d'), BASE_W, BASE_H, CONFIG, frame);
     season=savedSeason;
     c.width=64; c.height=64;
     const sctx=c.getContext('2d');
@@ -1557,30 +1040,14 @@ function renderSeasonStrip(){
 // EXPORT
 // ═══════════════════════════════════════════════════════════
 function copyMapData() {
-  const towers = [];
-  if (CONFIG.towerTL) towers.push('TL');
-  if (CONFIG.towerTR) towers.push('TR');
-  if (CONFIG.towerBL) towers.push('BL');
-  if (CONFIG.towerBR) towers.push('BR');
-  const towerLine = towers.length ? `\n  towers: [${towers.map(t=>`'${t}'`).join(',')}],` : '';
-  const centralLine = CONFIG.centralTower ? '\n  centralTower: true,' : '';
-  const towerCfgLine = towers.length || CONFIG.centralTower
-    ? `\n  towerWidth: ${CONFIG.towerWidth}, towerHeight: ${CONFIG.towerHeight},`
-    : '';
-
-  const code=`// ${CONFIG.buildingType === 'castle' ? 'Castillo' : 'Casa'} generada por House Builder
+  const code=`// Casa generada por House Builder
 {
   type: 'building',
-  buildingType: '${CONFIG.buildingType}',
-  battlements: ${!!CONFIG.battlements},${towerLine}${centralLine}${towerCfgLine}
   roofType: '${CONFIG.roofType}',
   facadeType: '${CONFIG.facadeType}',
   wins: ${CONFIG.winCount},
   chimney: ${CONFIG.chimney},
   doorType: '${CONFIG.doorType}',
-  portcullis: ${!!CONFIG.portcullis},
-  moss: ${!!CONFIG.moss},
-  heavyBase: ${!!CONFIG.heavyBase},
   colors: {
     roofLight: '${CONFIG.roofLight}',
     roofDark:  '${CONFIG.roofDark}',
@@ -1599,117 +1066,75 @@ function copyMapData() {
   });
 }
 
-function saveToLibrary() {
-  const bt = CONFIG.buildingType || 'house';
-  const defaultName = `${bt}_${Date.now()}`;
-  const name = (prompt(`Name this ${bt} design:`, defaultName) || '').trim();
+// ═══════════════════════════════════════════════════════════
+// PUBLISH TO REVIEW
+// ═══════════════════════════════════════════════════════════
+async function publishToReview() {
+  const name = prompt('Nombre para esta casa:', CONFIG.roofType + ' house');
   if (!name) return;
 
-  // Generate preview image
-  const dims = getEffectiveDims();
-  const off = document.createElement('canvas');
-  off.width = dims.w; off.height = dims.h;
-  drawHouse(off.getContext('2d'), BASE_W, BASE_H, CONFIG, 0, dims.ox, dims.oy);
-  const previewImage = off.toDataURL('image/png');
+  const btn = document.getElementById('publishBtn');
+  btn.textContent = '⏳ Enviando...';
+  btn.disabled = true;
 
-  const code = `// ${bt.toUpperCase()} design "${name}" — generated by Building Builder
-{
-  type: 'building',
-  buildingType: '${bt}',
-  battlements: ${!!CONFIG.battlements},
-  roofType: '${CONFIG.roofType}',
-  facadeType: '${CONFIG.facadeType}',
-  wins: ${CONFIG.winCount},
-  chimney: ${CONFIG.chimney},
-  doorType: '${CONFIG.doorType}',
-  colors: {
-    roofLight: '${CONFIG.roofLight}',
-    roofDark:  '${CONFIG.roofDark}',
-    plaster:   '${CONFIG.plasterCol}',
-    beams:     '${CONFIG.beamCol}',
-    door:      '${CONFIG.doorCol}',
-  },
-}`;
   try {
-    window.parent.postMessage({
-      type: 'taskoria_design_save',
-      tool: 'house',
-      name,
-      snippet: code,
-      payload: { ...CONFIG, previewImage },
-    }, '*');
-  } catch (e) { console.error(e); }
-}
-
-// ═══════════════════════════════════════════════════════════
-// PANEL TOGGLE (responsive)
-// ═══════════════════════════════════════════════════════════
-function togglePanel() {
-  const panel = document.getElementById('panel');
-  const backdrop = document.getElementById('panelBackdrop');
-  const open = panel.classList.toggle('open');
-  backdrop.classList.toggle('open', open);
-}
-
-window.addEventListener('message', e => {
-  if (e.origin && e.origin !== window.location.origin) return;
-  const msg = e.data;
-  if (!msg) return;
-  if (msg.type === 'taskoria_design_edit' && msg.tool === 'house') {
-    if (msg.payload) {
-      Object.assign(CONFIG, msg.payload);
-      ['roofRatio','eaveSize','perspH','beamCount','winCount','doorX','towerWidth','towerHeight'].forEach(k=>{
-        const el=document.querySelector(`input[oninput*="${k}"]`);
-        if(el) { el.value=CONFIG[k]; setSlider(k,el); }
-      });
-      ['roofLight','roofDark','plasterCol','beamCol','doorCol'].forEach(k=>{
-        const el=document.querySelector(`input[oninput*="${k}"]`);
-        if(el) el.value=CONFIG[k];
-      });
-      ['flowerBox','winLight','doorStep','chimney','smoke','sign','shadow','dither','towerWindow','centralTower','portcullis','moss','heavyBase'].forEach(k=>{
-        const el=document.getElementById('sw_'+k);
-        if(el) el.classList.toggle('on',!!CONFIG[k]);
-      });
-      ['towerTL','towerTR','towerBL','towerBR'].forEach(k=>{
-        const btn = document.getElementById('btn_'+k);
-        if(btn) btn.classList.toggle('on', !!CONFIG[k]);
-      });
-      const cb = document.getElementById('battlementsToggle');
-      if (cb) cb.checked = !!CONFIG.battlements;
-      const bv = document.getElementById('battlementsVal');
-      if (bv) bv.textContent = CONFIG.battlements ? 'sí' : 'no';
-      const btRow = document.getElementById('buildingTypeRow');
-      if (btRow) {
-        btRow.querySelectorAll('.vbtn').forEach(b => {
-          const matches = b.getAttribute('onclick').includes(`'${CONFIG.buildingType || 'house'}'`);
-          b.classList.toggle('sel', matches);
-        });
-      }
-      scheduleRedraw();
+    const off = document.createElement('canvas');
+    off.width = BASE_W; off.height = BASE_H;
+    drawHouse(off.getContext('2d'), BASE_W, BASE_H, CONFIG, 0);
+    const ctx = off.getContext('2d');
+    const imgData = ctx.getImageData(0, 0, BASE_W, BASE_H);
+    const pixels = [];
+    for (let i = 0; i < imgData.data.length; i += 4) {
+      const a = imgData.data[i + 3];
+      if (a < 128) { pixels.push('transparent'); continue; }
+      const r = imgData.data[i].toString(16).padStart(2, '0');
+      const g = imgData.data[i + 1].toString(16).padStart(2, '0');
+      const b = imgData.data[i + 2].toString(16).padStart(2, '0');
+      pixels.push('#' + r + g + b);
     }
+
+    const userId = JSON.parse(localStorage.getItem('taskoria_user') || '{}').id;
+    if (!userId) { alert('Necesitas estar logueado en Taskoria para publicar.'); return; }
+
+    const resp = await fetch('/api/creations.php?action=publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        name,
+        category: 'houses',
+        payload_type: 'house',
+        grid_size: BASE_W,
+        pixels,
+        params: { ...CONFIG },
+        price: 100,
+      }),
+    });
+
+    const data = await resp.json();
+    if (data.success) {
+      btn.textContent = '✓ ENVIADO';
+      btn.style.color = '#80f080';
+      setTimeout(() => {
+        btn.textContent = '📤 PUBLICAR A REVISIÓN';
+        btn.style.color = '#80d0f0';
+        btn.disabled = false;
+      }, 3000);
+    } else {
+      alert(data.error || 'Error al publicar');
+      btn.textContent = '📤 PUBLICAR A REVISIÓN';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    alert('Error de conexión: ' + e.message);
+    btn.textContent = '📤 PUBLICAR A REVISIÓN';
+    btn.disabled = false;
   }
-});
+}
 
 // INIT
 scheduleRedraw();
 renderAll();
-
-// AUTOSAVE
-setInterval(() => {
-  localStorage.setItem('taskoria_house_draft', JSON.stringify(CONFIG));
-}, 30000);
-
-const draft = localStorage.getItem('taskoria_house_draft');
-if (draft) {
-  setTimeout(() => {
-    if (confirm("Se ha encontrado un borrador de sesión anterior de House Builder. ¿Deseas recuperarlo?")) {
-      try {
-        const parsed = JSON.parse(draft);
-        window.postMessage({ type: 'taskoria_design_edit', tool: 'house', payload: parsed }, '*');
-      } catch(e) {}
-    }
-  }, 500);
-}
 </script>
 </body>
 </html>

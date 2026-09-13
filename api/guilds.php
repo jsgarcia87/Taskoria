@@ -79,7 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (isset($e->errorInfo) && $e->errorInfo[1] === 1062) {
                 echo json_encode(['error' => 'Guild name already exists.']);
             } else {
-                echo json_encode(['error' => $e->getMessage()]);
+                error_log('Guild create error: ' . $e->getMessage());
+                echo json_encode(['error' => 'Failed to create guild']);
             }
         } catch (Exception $e) {
             $pdo->rollBack();

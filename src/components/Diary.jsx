@@ -143,7 +143,7 @@ const Diary = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="relative">
                         <div className="absolute -inset-4 bg-rpg-gold/10 blur-xl rounded-full opacity-50"></div>
-                        <h1 className="text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-400 drop-shadow-md relative z-10 flex items-center gap-3">
+                        <h1 className="text-3xl font-heading font-bold text-rpg-gold drop-shadow-md relative z-10 flex items-center gap-3">
                             <Book className="text-rpg-gold" size={28} />
                             Traveler's Diary
                         </h1>
@@ -195,8 +195,7 @@ const Diary = () => {
 
                         {/* Drafting Area */}
                     {isWriting && (
-                        <div className="glass-panel p-6 border-l-4 border-l-rpg-gold relative overflow-hidden animate-in slide-in-from-top-4">
-                            <div className="absolute right-0 top-0 w-32 h-32 bg-rpg-gold/10 rounded-bl-full blur-2xl pointer-events-none"></div>
+                        <div className="glass-panel p-6 border-l-2 border-l-rpg-gold/60 relative overflow-hidden animate-in slide-in-from-top-4">
 
                             {/* Type Selector */}
                             <div className="flex gap-2 mb-6 border-b border-white/10 pb-4">

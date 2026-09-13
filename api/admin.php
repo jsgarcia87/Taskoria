@@ -304,7 +304,8 @@ if ($action === 'delete_user') {
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
         $pdo->rollBack();
-        echo json_encode(['error' => 'Failed to delete user: ' . $e->getMessage()]);
+        error_log('Failed to delete user: ' . $e->getMessage());
+        echo json_encode(['error' => 'Failed to delete user']);
     }
     exit;
 }

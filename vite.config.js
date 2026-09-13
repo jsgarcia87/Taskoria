@@ -37,7 +37,6 @@ const copySpriteRegistry = () => ({
   },
 })
 
-// Minimal config to isolate build error
 export default defineConfig({
   plugins: [
     react(),
@@ -93,7 +92,7 @@ export default defineConfig({
         // standalone editors. Without this, navigating the iframe to
         // /admin-tools/map_editor.html serves index.html instead — the SPA then
         // boots inside the iframe and 404s all its assets under /admin-tools/.
-        navigateFallbackDenylist: [/^\/admin-tools\//],
+        navigateFallbackDenylist: [/^\/admin-tools\//, /^\/admin\.html/],
         // Workbox precache has a 2 MiB per-file cap by default; sprite sheets
         // sit just under but we exclude them via globPatterns above.
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
@@ -141,6 +140,10 @@ export default defineConfig({
     // download the world engine, admin panel and studio just to read marketing.
     // Each chunk is fetched on demand by React.lazy() at the route layer.
     rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        admin: resolve(__dirname, 'admin.html'),
+      },
       output: {
         manualChunks(id) {
           // Vendor split — React + icons are app-wide critical, keep separate.

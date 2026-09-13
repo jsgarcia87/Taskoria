@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Library, Edit3, Trash2, Check, X, Loader, Search, RefreshCw, Download, FileJson } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Library, Edit3, Trash2, Check, X, Loader, Search, RefreshCw, Download, FileJson, ArrowUpDown } from 'lucide-react';
 import { useToast } from '../common/Toast';
 import { useConfirm } from '../../context/ConfirmContext';
 import AssetEditorModal from './AssetEditorModal';
@@ -29,6 +29,7 @@ const AssetManager = ({ currentUser }) => {
     const [activeTab, setActiveTab] = useState('ALL');
     const [editingAsset, setEditingAsset] = useState(null);
     const [editForm, setEditForm] = useState({ name: '', category: '' });
+    const [sortBy, setSortBy] = useState('date_desc');
 
     const fetchAssets = async () => {
         setLoading(true);
@@ -176,14 +177,33 @@ const AssetManager = ({ currentUser }) => {
         }
     };
 
-    const categories = ['ALL', ...new Set(assets.map(a => a.displayCategory))].sort();
+    const categories = useMemo(() => {
+        const cats = [...new Set(assets.map(a => a.displayCategory))].sort();
+        return ['ALL', ...cats];
+    }, [assets]);
 
-    const filteredAssets = assets.filter(a => {
-        const matchesTab = activeTab === 'ALL' || a.displayCategory === activeTab;
-        const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                              (a.username && a.username.toLowerCase().includes(searchQuery.toLowerCase()));
-        return matchesTab && matchesSearch;
-    });
+    const categoryCounts = useMemo(() => {
+        const counts = { ALL: assets.length };
+        for (const a of assets) counts[a.displayCategory] = (counts[a.displayCategory] || 0) + 1;
+        return counts;
+    }, [assets]);
+
+    const filteredAssets = useMemo(() => {
+        let result = assets.filter(a => {
+            const matchesTab = activeTab === 'ALL' || a.displayCategory === activeTab;
+            const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                  (a.username && a.username.toLowerCase().includes(searchQuery.toLowerCase()));
+            return matchesTab && matchesSearch;
+        });
+        switch (sortBy) {
+            case 'name_asc': result.sort((a, b) => a.name.localeCompare(b.name)); break;
+            case 'name_desc': result.sort((a, b) => b.name.localeCompare(a.name)); break;
+            case 'date_asc': result.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)); break;
+            case 'category': result.sort((a, b) => (a.displayCategory || '').localeCompare(b.displayCategory || '') || a.name.localeCompare(b.name)); break;
+            default: result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        }
+        return result;
+    }, [assets, activeTab, searchQuery, sortBy]);
 
     const renderAssetPreview = (asset) => {
         if (asset.source === 'world_creations') {
@@ -461,20 +481,39 @@ const AssetManager = ({ currentUser }) => {
                 )}
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                {categories.map(cat => (
-                    <button
-                        key={cat}
-                        onClick={() => setActiveTab(cat)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase whitespace-nowrap transition-all ${
-                            activeTab === cat 
-                            ? 'bg-rpg-gold text-rpg-bg shadow-[0_0_10px_rgba(251,191,36,0.3)]' 
-                            : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5'
-                        }`}
+            <div className="flex items-center gap-3">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin flex-1 min-w-0">
+                    {categories.map(cat => (
+                        <button
+                            key={cat}
+                            onClick={() => setActiveTab(cat)}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                                activeTab === cat
+                                ? 'bg-rpg-gold text-rpg-bg shadow-[0_0_10px_rgba(251,191,36,0.3)]'
+                                : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5'
+                            }`}
+                        >
+                            {cat}
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                                activeTab === cat ? 'bg-rpg-bg/20' : 'bg-white/10'
+                            }`}>{categoryCounts[cat] || 0}</span>
+                        </button>
+                    ))}
+                </div>
+                <div className="relative flex-shrink-0 pb-2">
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="appearance-none bg-white/5 border border-white/10 text-gray-300 text-xs font-bold uppercase tracking-widest rounded-xl pl-3 pr-8 py-2 cursor-pointer hover:bg-white/10 transition-all focus:outline-none focus:ring-1 focus:ring-rpg-gold/50"
                     >
-                        {cat}
-                    </button>
-                ))}
+                        <option value="date_desc">Newest</option>
+                        <option value="date_asc">Oldest</option>
+                        <option value="name_asc">A → Z</option>
+                        <option value="name_desc">Z → A</option>
+                        <option value="category">Category</option>
+                    </select>
+                    <ArrowUpDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                </div>
             </div>
 
             {loading ? (
