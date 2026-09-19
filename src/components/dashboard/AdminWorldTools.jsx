@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Home, Map, Users, ExternalLink, X, Hammer, Library, Loader, Copy, Trash2, Check, ArrowLeft, Edit3 } from 'lucide-react';
 import { useToast } from '../common/Toast';
 import { useConfirm } from '../../context/ConfirmContext';
+import MapEditor from './admin/MapEditor';
 
 const TOOLS = [
     {
@@ -160,29 +161,95 @@ const AdminWorldTools = ({ currentUser }) => {
     };
 
     const editDesign = (d) => {
-        setPendingEdit(d);
-        setOpenTool(d.tool);
+        const toolId = d.tool
+            || (d.category === 'maps' ? 'map'
+                : d.category === 'characters' ? 'character'
+                : 'house');
+
+        // Map opens in the new React editor (fullscreen modal, WYSIWYG).
+        // House still uses the legacy HTML editor in a modal iframe.
+        if (toolId === 'map') {
+            let pl = d.payload || d.params;
+            if (typeof pl === 'string') {
+                try { pl = JSON.parse(pl); } catch (_) { pl = {}; }
+            }
+            setPendingEdit({ id: d.id, name: d.name || '', payload: pl || {}, tool: 'map' });
+            setOpenTool('map');
+            setShowLibrary(false);
+            return;
+        }
+
+        if (toolId === 'house') {
+            let pl = d.payload || d.params;
+            if (typeof pl === 'string') {
+                try { pl = JSON.parse(pl); } catch (_) { pl = {}; }
+            }
+            const editSession = {
+                type: 'taskoria_design_edit',
+                tool: toolId,
+                name: d.name || '',
+                payload: pl || {}
+            };
+            localStorage.setItem('taskoria_edit_session', JSON.stringify(editSession));
+            const tool = TOOLS.find(t => t.id === toolId);
+            window.open(tool ? tool.src : 'admin-tools/house_builder.html', 'taskoria_editor');
+            setShowLibrary(false);
+            toast.success(`Opened "${d.name}" in editor tab`);
+            return;
+        }
+
+        setPendingEdit({ ...d, tool: toolId });
+        setOpenTool(toolId);
         setShowLibrary(false);
     };
 
     const handleIframeLoad = (e) => {
+        console.log('[AdminWorldTools] handleIframeLoad fired, pendingEdit:', !!pendingEdit, 'openTool:', openTool);
         if (pendingEdit && pendingEdit.tool === openTool) {
-            try {
-                e.target.contentWindow.postMessage({
-                    type: 'taskoria_design_edit',
-                    tool: pendingEdit.tool,
-                    name: pendingEdit.name,
-                    payload: pendingEdit.payload
-                }, '*');
-                toast.success(`Loaded "${pendingEdit.name}" for editing`);
-            } catch (err) {
-                toast.error('Failed to load design for editing');
-            }
+            const sendPayload = () => {
+                try {
+                    let pl = pendingEdit.payload || pendingEdit.params;
+                    console.log('[AdminWorldTools] payload type before parse:', typeof pl, 'length:', String(pl||'').length);
+                    if (typeof pl === 'string') {
+                        try { pl = JSON.parse(pl); } catch (_) { pl = {}; }
+                    }
+                    console.log('[AdminWorldTools] sending postMessage, payload keys:', Object.keys(pl||{}).join(','));
+                    e.target.contentWindow.postMessage({
+                        type: 'taskoria_design_edit',
+                        tool: pendingEdit.tool,
+                        name: pendingEdit.name,
+                        payload: pl || {}
+                    }, '*');
+                } catch (err) {
+                    console.error('[AdminWorldTools] postMessage error:', err);
+                }
+            };
+            sendPayload();
+            setTimeout(sendPayload, 300);
+            toast.success(`Loaded "${pendingEdit.name}" for editing`);
             setPendingEdit(null);
+        } else {
+            console.log('[AdminWorldTools] skipped postMessage - pendingEdit null or tool mismatch');
         }
     };
 
     const activeTool = TOOLS.find(t => t.id === openTool);
+
+    // Map Editor — new React component with WYSIWYG rendering that matches
+    // production exactly (same PlayableWorld renderer under the hood).
+    // When editing an existing library design, onSaved refreshes the list so
+    // the library reflects the edit right away.
+    if (openTool === 'map') {
+        return createPortal(
+            <MapEditor
+                currentUser={currentUser}
+                initialDesign={pendingEdit}
+                onClose={() => { setOpenTool(null); setPendingEdit(null); }}
+                onSaved={() => { if (showLibrary || pendingEdit?.id) loadDesigns(); }}
+            />,
+            document.body
+        );
+    }
 
     // Fullscreen tool overlay — rendered via portal to escape any stacking context
     if (openTool && activeTool) {
@@ -310,7 +377,13 @@ const AdminWorldTools = ({ currentUser }) => {
                     return (
                         <button
                             key={t.id}
-                            onClick={() => setOpenTool(t.id)}
+                            onClick={() => {
+                                if (t.id === 'map' || t.id === 'house') {
+                                    window.open(t.src, 'taskoria_editor');
+                                    return;
+                                }
+                                setOpenTool(t.id);
+                            }}
                             className={`group text-left ${c.bg} border ${c.border} rounded-2xl p-5 transition-all hover:scale-[1.02] hover:shadow-lg ${c.glow} cursor-pointer`}
                         >
                             <div className="flex items-start justify-between mb-3">

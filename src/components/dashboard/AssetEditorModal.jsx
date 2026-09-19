@@ -4,6 +4,7 @@ import { useToast } from '../common/Toast';
 import ModernPixelAvatar from '../common/ModernPixelAvatar';
 import ModernPixelPet from '../common/ModernPixelPet';
 import CreationStudio from './CreationStudio';
+import MapEditor from './admin/MapEditor';
 import { pixelsToDataUrl } from '../../utils/pixelFormat';
 
 const AssetEditorModal = ({ asset, currentUser, onClose, onSaved }) => {
@@ -67,7 +68,25 @@ const AssetEditorModal = ({ asset, currentUser, onClose, onSaved }) => {
         setStats(parsedPayload.stats || { hp: 100, damage: 10, speed: 5 });
     }, [asset, parsedPayload]);
 
-    // MAP EDITOR IFRAME LOGIC
+    // Auto-open editor in new tab only for house tool (map now renders inline
+    // via the new React MapEditor — see the render branch below).
+    useEffect(() => {
+        if (!asset || asset.tool !== 'house') return;
+        let p = asset.payload || {};
+        if (typeof p === 'string') {
+            try { p = JSON.parse(p); } catch (err) { p = {}; }
+        }
+        const editSession = {
+            type: 'taskoria_design_edit',
+            tool: asset.tool,
+            name: asset.name || '',
+            payload: p
+        };
+        localStorage.setItem('taskoria_edit_session', JSON.stringify(editSession));
+        window.open('admin-tools/house_builder.html', 'taskoria_editor');
+    }, [asset]);
+
+    // MAP EDITOR SAVE LOGIC (handles messages from both iframe and new-tab editor)
     useEffect(() => {
         const handleMessage = async (e) => {
             if (e.data && e.data.type === 'taskoria_design_save' && (e.data.tool === 'map' || e.data.tool === 'house')) {
@@ -196,41 +215,52 @@ const AssetEditorModal = ({ asset, currentUser, onClose, onSaved }) => {
 
     if (!asset) return null;
 
-    if (asset.tool === 'map' || asset.tool === 'house') {
-        // Full screen map editor or house builder
-        // Relative path — the app deploys under a sub-path (sangar.studio/rpg),
-        // an absolute /admin-tools/... would 404 there (same as AdminWorldTools).
-        const editorSrc = asset.tool === 'house' ? 'admin-tools/house_builder.html' : 'admin-tools/map_editor.html';
+    if (asset.tool === 'map') {
+        // New React map editor — WYSIWYG, uses PlayableWorld's renderer.
+        // onSaved refreshes AssetManager's grid so the edit shows up right
+        // away; onClose goes back to the previous screen.
         return (
-            <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col">
-                <div className="h-12 bg-black flex justify-between items-center px-4 border-b border-white/10 shrink-0">
-                    <div className="text-rpg-gold font-bold font-heading uppercase tracking-widest text-sm flex items-center gap-2">
-                        <Edit3 size={16} /> Editing {asset.tool}: {name}
-                    </div>
+            <MapEditor
+                currentUser={currentUser}
+                initialDesign={{ name: asset.name, payload: parsedPayload, id: asset.id }}
+                onClose={onClose}
+                onSaved={onSaved}
+            />
+        );
+    }
+
+    if (asset.tool === 'house') {
+        // House builder is still the legacy HTML editor — opens in a new tab.
+        const openEditorTab = () => {
+            let p = asset.payload || {};
+            if (typeof p === 'string') {
+                try { p = JSON.parse(p); } catch (err) { p = {}; }
+            }
+            const editSession = {
+                type: 'taskoria_design_edit',
+                tool: asset.tool,
+                name: asset.name || '',
+                payload: p
+            };
+            localStorage.setItem('taskoria_edit_session', JSON.stringify(editSession));
+            window.open('admin-tools/house_builder.html', 'taskoria_editor');
+        };
+
+        return (
+            <div className="fixed inset-x-0 top-0 z-50 bg-black/95 border-b border-white/10 px-4 py-3 flex items-center justify-between gap-4 shadow-lg">
+                <div className="text-rpg-gold font-bold font-heading uppercase tracking-widest text-sm flex items-center gap-2">
+                    <Edit3 size={16} /> Editing {asset.tool}: {name}
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={openEditorTab}
+                        className="px-4 py-1.5 rounded-lg bg-rpg-gold/15 border border-rpg-gold/30 text-rpg-gold text-xs font-bold uppercase tracking-widest hover:bg-rpg-gold/25 transition-colors"
+                    >
+                        Open Editor
+                    </button>
                     <button onClick={onClose} className="text-gray-400 hover:text-white bg-white/5 p-2 rounded-lg transition-colors">
                         <X size={20} />
                     </button>
-                </div>
-                <div className="flex-1 relative">
-                    <iframe
-                        src={editorSrc}
-                        className="w-full h-full border-none"
-                        allowFullScreen
-                        onLoad={(e) => {
-                            // Parse payload synchronously to avoid closure stale state on first render
-                            let p = asset.payload || {};
-                            if (typeof p === 'string') {
-                                try { p = JSON.parse(p); } catch (err) { p = {}; }
-                            }
-                            // Send the payload to initialize the editor
-                            e.target.contentWindow.postMessage({
-                                type: 'taskoria_design_edit',
-                                tool: asset.tool,
-                                name: asset.name || '',
-                                payload: p
-                            }, '*');
-                        }}
-                    />
                 </div>
             </div>
         );

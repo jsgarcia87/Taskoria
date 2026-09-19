@@ -19,6 +19,7 @@
   --green:   #40a050;
   --red:     #b03030;
   --cyan:    #30a0b0;
+  --orange:  #e08030;
   --text:    #d0c0e8;
   --dim:     #706090;
   --tile:    40;
@@ -241,6 +242,7 @@ body { background: var(--bg); color: var(--text);
     <button class="tbtn active" id="layer-ground" onclick="setLayer('ground',this)">SUELO</button>
     <button class="tbtn" id="layer-objects" onclick="setLayer('objects',this)">OBJETOS</button>
     <button class="tbtn" id="layer-overhead" onclick="setLayer('overhead',this)">OVERHEAD</button>
+    <button class="tbtn" id="btn-obstacles" onclick="showObstacles=!showObstacles;this.classList.toggle('active');render()" title="Mostrar obstáculos (O)">🚧</button>
   </div>
   <div class="sep"></div>
 
@@ -259,8 +261,11 @@ body { background: var(--bg); color: var(--text);
     <button class="tbtn green" onclick="exportMapData()">⬇ EXPORT JS</button>
     <button class="tbtn gold" onclick="saveToLocal()">💾 SAVE</button>
     <button class="tbtn" onclick="loadFromLocal()">📂 LOAD</button>
+    <button class="tbtn" onclick="openImportModal()" style="color:var(--orange);border-color:var(--orange);">📥 IMPORT</button>
     <button class="tbtn" id="publishBtn" onclick="publishMapToReview()" style="color:var(--cyan);border-color:var(--cyan);">📤 PUBLICAR</button>
     <button class="tbtn" onclick="openWorldGraph()" style="color:var(--purple2);border-color:var(--purple);">🗺 GRAFO</button>
+    <div class="sep"></div>
+    <button class="tbtn" id="previewBtn" onclick="togglePreview()" title="P — Preview mode">👁 PREVIEW</button>
   </div>
 </div>
 
@@ -275,6 +280,33 @@ body { background: var(--bg); color: var(--text);
       <canvas id="worldGraphCanvas"></canvas>
     </div>
   </div>
+</div>
+
+<!-- Import MapData Modal -->
+<div class="wg-overlay" id="importOverlay" hidden>
+  <div class="wg-modal" style="max-width:700px">
+    <div class="wg-header">
+      <span>📥 IMPORTAR MAPA (MapData.js)</span>
+      <button onclick="closeImportModal()">✕</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+      <p style="color:#aaa;font-size:11px;margin:0">Pega aquí el JSON de un mapa de MapData.js (el objeto completo: {id, name, width, height, tileSprite, obstacles, decorations, portals, ...}). Se convertirá al formato del editor automáticamente.</p>
+      <textarea id="importTextarea" style="width:100%;height:280px;background:#0a0a14;color:#ccc;border:1px solid #333;border-radius:6px;padding:10px;font-family:monospace;font-size:11px;resize:vertical" placeholder='{ "id": "townSquare", "name": "Town Square", "width": 1600, ... }'></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="tbtn" onclick="closeImportModal()">Cancelar</button>
+        <button class="tbtn gold" onclick="doImportMapData()">📥 Importar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import conversion log (outside modal so it stays visible) -->
+<div id="importLog" style="display:none;position:fixed;bottom:12px;left:50%;transform:translateX(-50%);width:600px;max-height:160px;overflow-y:auto;background:#0a0a14;border:1px solid var(--orange);border-radius:6px;padding:10px;font-size:10px;font-family:monospace;color:#8a8;z-index:9000;box-shadow:0 4px 20px rgba(0,0,0,.6)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <span style="color:var(--orange);font-weight:bold;font-size:11px">📥 Import Log</span>
+    <button onclick="document.getElementById('importLog').style.display='none'" style="background:none;border:none;color:#666;cursor:pointer;font-size:14px">✕</button>
+  </div>
+  <div id="importLogContent"></div>
 </div>
 
 <!-- MAIN -->
@@ -341,11 +373,6 @@ body { background: var(--bg); color: var(--text);
           <span class="pc-label">Destino</span>
           <select id="portalTarget" onchange="updatePortalCfg()">
             <option value="">(sin destino)</option>
-            <option value="townSquare">Town Square</option>
-            <option value="taskoriaKeep">Taskoria Keep</option>
-            <option value="tavernInterior">Tavern Interior</option>
-            <option value="mysticForest">Mystic Forest</option>
-            <option value="shadowCrypts">Shadow Crypts</option>
           </select>
           <span class="pc-label">Spawn destino (tiles)</span>
           <div class="pc-row">
@@ -365,6 +392,28 @@ body { background: var(--bg); color: var(--text);
             </select>
             <input type="text" id="portalCondValue" value="" placeholder="valor" oninput="updatePortalCfg()" style="flex:1">
           </div>
+        </div>
+      </div>
+
+      <div class="prop-section" id="interactCfgSection" hidden>
+        <div class="prop-section-title">🟠 ZONA INTERACTIVA</div>
+        <div class="portal-cfg" style="padding:6px 8px">
+          <span class="pc-label">Target (acción)</span>
+          <select id="interactTarget" onchange="updateInteractCfg()">
+            <option value="">examine (solo flavor)</option>
+            <option value="shop">shop</option>
+            <option value="sanctuary">sanctuary</option>
+            <option value="focus">focus</option>
+            <option value="character">character</option>
+            <option value="garden">garden</option>
+            <option value="custom">custom</option>
+          </select>
+          <span class="pc-label">Label</span>
+          <input type="text" id="interactLabel" value="" placeholder="Nombre visible..." oninput="updateInteractCfg()">
+          <span class="pc-label">Flavor text</span>
+          <input type="text" id="interactFlavor" value="" placeholder="Texto de examen..." oninput="updateInteractCfg()">
+          <span class="pc-label">Radio (px, default 90)</span>
+          <input type="number" id="interactRadius" value="90" min="20" max="300" onchange="updateInteractCfg()">
         </div>
       </div>
 
@@ -420,6 +469,7 @@ body { background: var(--bg); color: var(--text);
   <div class="tool-hint" id="toolHint">B draw · E erase · F fill · S select · I pick · Ctrl+Z undo · Ctrl+S save · Scroll zoom · Shift+drag pan</div>
 </div>
 
+<script src="game-sprites.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════
 // PALETA COMPLETA SDV + Medieval
@@ -1522,6 +1572,167 @@ SPRITES.spawn = makeS((ctx,s)=>{
   ctx.font='5px "Press Start 2P"';ctx.fillStyle='#00ff88';ctx.fillText('SPAWN',3,s/2+2);
 });
 
+SPRITES.interactable = makeS((ctx,s)=>{
+  ctx.strokeStyle='#ffa50088';ctx.lineWidth=1;ctx.setLineDash([4,2]);
+  ctx.strokeRect(2,2,s-4,s-4);ctx.setLineDash([]);
+  ctx.fillStyle='#ffa50018';ctx.fillRect(4,4,s-8,s-8);
+  ctx.font='4px "Press Start 2P"';ctx.fillStyle='#ffa500';ctx.fillText('ZONE',5,s/2+1);
+});
+
+// ═══════════════════════════════════════════════════════════
+// GAME SPRITE UPGRADE — replace simplified 32px sprites with
+// actual 64×64 game sprites from sprite-registry.js
+// ═══════════════════════════════════════════════════════════
+const GAME_SPRITE_SIZE = 64;
+if(window.GAME_SPRITE_REGISTRY){
+  const reg = window.GAME_SPRITE_REGISTRY;
+  Object.keys(reg).forEach(key => {
+    const {w, h, buffer} = reg[key];
+    const cvs = document.createElement('canvas');
+    cvs.width = w; cvs.height = h;
+    window.gameRenderBuffer(buffer, w, h, cvs, 1);
+    SPRITES[key] = cvs;
+  });
+  // Map editor-only names to game equivalents
+  const editorToGame = {
+    market_stall: 'market_stall_red',
+    banner: 'banner_purple',
+    torch: 'wall_torch',
+    haybale: 'hay',
+    crate: 'crate',
+    bench: 'bench',
+    barrel: 'barrel',
+    signpost: 'sign',
+    statue: 'ledgar_statue',
+    campfire: 'fire',
+  };
+  Object.entries(editorToGame).forEach(([edKey, gameKey]) => {
+    if(reg[gameKey] && !reg[edKey]){
+      const {w, h, buffer} = reg[gameKey];
+      const cvs = document.createElement('canvas');
+      cvs.width = w; cvs.height = h;
+      window.gameRenderBuffer(buffer, w, h, cvs, 1);
+      SPRITES[edKey] = cvs;
+    }
+  });
+}
+if(window.GAME_FLOOR_TILES){
+  const flr = window.GAME_FLOOR_TILES;
+  const floorMap = {
+    cobblestone_tile:'cobblestone', stone_floor_tile:'stone_path',
+    grass_tile:'grass', dungeon_floor_tile:'dungeon_stone',
+    wood_floor_tile:'wood_floor', water_tile:'water', dirt_tile:'dirt',
+  };
+  Object.entries(floorMap).forEach(([gameKey, edKey]) => {
+    const entry = flr[gameKey];
+    if(!entry) return;
+    const buf = Array.isArray(entry) ? entry : entry.buffer || entry;
+    const sz = 64;
+    const cvs = document.createElement('canvas');
+    cvs.width = sz; cvs.height = sz;
+    window.gameRenderBuffer(buf, sz, sz, cvs, 1);
+    SPRITES[edKey] = cvs;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// INSTANCE SYSTEM — free-position objects at pixel coords
+// ═══════════════════════════════════════════════════════════
+let instances = [];
+let nextInstanceId = 1;
+let selectedInstanceId = null;
+let isMovingInstance = false;
+let isResizingInstance = false;
+let dragInstanceOffset = {x:0, y:0};
+const INS_HANDLE_PX = 12;
+
+const INSTANCE_TYPE_SET = new Set([
+  'castle','gate','wall_h','wall_tower','dungeon_entrance','tower',
+  'house_thatch','house_wood','tavern','church','smithy','windmill','forge',
+  'oak_tree','pine_tree','dead_tree','ancient_tree',
+  'well','fountain','bridge','statue','signpost','market_stall','campfire',
+  'barrel','crate','bench','lamp','sign','fence','planter','hay',
+  'weapon_rack','shop_building','market_stall_red','market_stall_green','market_stall_purple',
+  'banner_purple','banner_red','banner_gold','banner_blue',
+  'mug','stool','fire','table','bar_counter','wall_torch',
+  'bookshelf','bed','dining_chair','dining_table','red_carpet',
+  'armor_stand','floor_patch','skull','ledgar_statue','barrel_tipped',
+  'cat_sleeping','council_board',
+  'banner','haybale','gravestone','scarecrow','chest','torch',
+  'grass_tuft','flowers','bush','mushroom','npc_guard','npc_merchant','npc_villager','npc_bard',
+  'pillar',
+]);
+
+const INSTANCE_DEFAULT_SIZE = {
+  castle:{w:4,h:4}, gate:{w:2,h:3}, wall_tower:{w:2,h:3}, wall_h:{w:3,h:1},
+  dungeon_entrance:{w:2,h:2}, tower:{w:2,h:3},
+  house_thatch:{w:2,h:2}, house_wood:{w:2,h:2}, tavern:{w:3,h:3},
+  church:{w:3,h:4}, smithy:{w:2,h:2}, windmill:{w:2,h:3}, forge:{w:2,h:2},
+  oak_tree:{w:2,h:2}, pine_tree:{w:2,h:2}, dead_tree:{w:1,h:1}, ancient_tree:{w:3,h:3},
+  well:{w:1,h:1}, fountain:{w:2,h:2}, bridge:{w:3,h:1},
+  statue:{w:1,h:2}, signpost:{w:1,h:1}, market_stall:{w:2,h:2}, campfire:{w:1,h:1},
+  shop_building:{w:3,h:3},
+};
+
+function isInstanceType(type){
+  if(!type) return false;
+  if(typeof type === 'string' && type.startsWith('lib_')) return true;
+  if(INSTANCE_TYPE_SET.has(type)) return true;
+  const layer = ASSET_LAYER[type];
+  return !!(layer && layer !== 'ground' && type !== 'portal' && type !== 'spawn' && type !== 'interactable');
+}
+
+function defaultSizeFor(type){
+  const d = INSTANCE_DEFAULT_SIZE[type];
+  if(d) return {w:d.w, h:d.h};
+  if(typeof type === 'string' && type.startsWith('lib_')) return {w:2, h:2};
+  return {w:1, h:1};
+}
+
+function instanceBox(ins){
+  if(ins.type === 'rect_overlay'){
+    return {x:ins.x, y:ins.y, w:ins.rectW||64, h:ins.rectH||64};
+  }
+  const size = ins.scale * tileSize;
+  return {x:ins.x, y:ins.y, w:size, h:size};
+}
+
+function getInstanceAt(px, py){
+  for(let i = instances.length - 1; i >= 0; i--){
+    const ins = instances[i];
+    const b = instanceBox(ins);
+    if(px >= b.x && px < b.x+b.w && py >= b.y && py < b.y+b.h) return ins;
+  }
+  return null;
+}
+
+function isOnResizeHandle(ins, px, py){
+  const b = instanceBox(ins);
+  const hs = INS_HANDLE_PX;
+  return px >= b.x+b.w-hs && px < b.x+b.w && py >= b.y+b.h-hs && py < b.y+b.h;
+}
+
+function placeInstance(type, px, py){
+  const {w:defTiles} = defaultSizeFor(type);
+  const scale = defTiles;
+  const size = scale * tileSize;
+  const nx = Math.max(0, Math.min(mapW * tileSize - size, px - size / 2));
+  const ny = Math.max(0, Math.min(mapH * tileSize - size, py - size / 2));
+  pushUndo();
+  const ins = { id: nextInstanceId++, type, x: nx, y: ny, scale, rotation: 0, label: '' };
+  instances.push(ins);
+  selectedInstanceId = ins.id;
+  render();
+}
+
+function updateSelInstancePanel(ins){
+  if(!ins) return;
+  document.getElementById('selPos').textContent=`${Math.round(ins.x)},${Math.round(ins.y)} px`;
+  document.getElementById('selType').textContent=ins.type;
+  document.getElementById('selLayer').textContent='instance';
+  document.getElementById('selLabel').value=ins.label||'';
+}
+
 const CATEGORIES = {
   'SUELO': [
     { key:'cobblestone',   label:'Adoquín' },
@@ -1583,9 +1794,53 @@ const CATEGORIES = {
     { key:'npc_villager', label:'Aldeano' },
     { key:'npc_bard',     label:'Bardo' },
   ],
+  'NATURALEZA': [
+    { key:'bush',       label:'Arbusto' },
+    { key:'flowers',    label:'Flores' },
+    { key:'mushroom',   label:'Seta' },
+    { key:'grass_tuft', label:'Hierba S' },
+    { key:'ancient_tree', label:'Árbol Ant.' },
+  ],
+  'INTERIOR': [
+    { key:'mug',           label:'Jarra' },
+    { key:'stool',         label:'Taburete' },
+    { key:'fire',          label:'Chimenea' },
+    { key:'table',         label:'Mesa' },
+    { key:'bar_counter',   label:'Barra' },
+    { key:'wall_torch',    label:'Antorcha M' },
+    { key:'bookshelf',     label:'Librería' },
+    { key:'bed',           label:'Cama' },
+    { key:'dining_chair',  label:'Silla' },
+    { key:'dining_table',  label:'Mesa Com.' },
+    { key:'red_carpet',    label:'Alfombra' },
+    { key:'armor_stand',   label:'Armadura' },
+    { key:'skull',         label:'Cráneo' },
+    { key:'cat_sleeping',  label:'Gato' },
+    { key:'barrel_tipped', label:'Barril V.' },
+  ],
+  'DECO EXTRA': [
+    { key:'lamp',          label:'Farola' },
+    { key:'sign',          label:'Cartel' },
+    { key:'fence',         label:'Valla' },
+    { key:'planter',       label:'Macetero' },
+    { key:'hay',           label:'Paja' },
+    { key:'weapon_rack',   label:'Armas' },
+    { key:'shop_building', label:'Tienda' },
+    { key:'council_board', label:'Tablón' },
+    { key:'ledgar_statue', label:'Est. Ledgar' },
+    { key:'floor_patch',   label:'Suelo Roto' },
+    { key:'market_stall_red',    label:'Puesto R' },
+    { key:'market_stall_green',  label:'Puesto V' },
+    { key:'market_stall_purple', label:'Puesto P' },
+    { key:'banner_purple', label:'Banner P' },
+    { key:'banner_red',    label:'Banner R' },
+    { key:'banner_gold',   label:'Banner G' },
+    { key:'banner_blue',   label:'Banner B' },
+  ],
   'ESPECIAL': [
     { key:'portal', label:'Portal' },
     { key:'spawn',  label:'Spawn' },
+    { key:'interactable', label:'Zona Interactiva' },
   ],
 };
 
@@ -1612,23 +1867,41 @@ const ASSET_LAYER = {
   // NPCs
   npc_guard:'objects', npc_merchant:'objects', npc_villager:'objects', npc_bard:'objects',
   // Especial
-  portal:'objects', spawn:'objects',
+  portal:'objects', spawn:'objects', interactable:'objects',
+  // Game sprites (from sprite-registry)
+  bush:'objects', flowers:'objects', mushroom:'objects', grass_tuft:'ground',
+  lamp:'objects', sign:'objects', fence:'objects', planter:'objects', hay:'objects',
+  weapon_rack:'objects', shop_building:'objects',
+  market_stall_red:'objects', market_stall_green:'objects', market_stall_purple:'objects',
+  banner_purple:'objects', banner_red:'objects', banner_gold:'objects', banner_blue:'objects',
+  mug:'objects', stool:'objects', fire:'objects', table:'objects', bar_counter:'objects',
+  wall_torch:'objects', bookshelf:'objects', bed:'objects', dining_chair:'objects',
+  dining_table:'objects', red_carpet:'ground', armor_stand:'objects', floor_patch:'ground',
+  skull:'objects', ledgar_statue:'objects', barrel_tipped:'objects',
+  cat_sleeping:'objects', council_board:'objects', ancient_tree:'objects',
 };
 
 // ═══════════════════════════════════════════════════════════
 // ESTADO DEL EDITOR
 // ═══════════════════════════════════════════════════════════
 let mapW=20, mapH=16, tileSize=40;
+let prodTileSize=40; // production tileSize for coordinate scaling (set during import)
+let previewMode=false; // hide editor chrome for WYSIWYG preview
 let zoomLevel=1;
 let currentTool='draw';
 let currentLayer='ground';
 let selectedAsset=null;
 let selectedCell=null;
+let selRect=null;     // {x1,y1,x2,y2} drag region
+let selStart=null;    // mousedown origin for drag select
+let clipboard=null;   // {w,h,layers:{ground,objects,overhead}} copied region
+let stampMode=false;  // true while pasting
 let isDrawing=false;
 let isPanning=false;
 let panStart={x:0,y:0};
 let viewOffset={x:0,y:0};
 let layerVisible={ground:true,objects:true,overhead:true};
+let showObstacles=false;
 
 // Datos del mapa: 3 capas, cada tile = {type, label}
 let layers={
@@ -1727,27 +2000,142 @@ function render(){
           }
         }
 
-        // Portal destination overlay
-        if(cell.type==='portal'&&cell.portalTarget){
-          ctx.fillStyle='rgba(100,200,255,0.15)';ctx.fillRect(dx,dy,TS,TS);
-          ctx.fillStyle='#50a0f0';ctx.font=`${Math.max(4,zoomLevel*3)}px monospace`;
-          ctx.fillText('→'+cell.portalTarget.slice(0,6),dx+1,dy+TS-2);
-        }
-
-        // Label
-        if(cell.label){
-          ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(dx+1,dy+1,TS-2,8);
-          ctx.fillStyle='#f0d060'; ctx.font=`${Math.max(5,zoomLevel*4)}px monospace`;
-          ctx.fillText(cell.label,dx+2,dy+8);
+        if(!previewMode){
+          // Portal destination overlay
+          if(cell.type==='portal'&&cell.portalTarget){
+            ctx.fillStyle='rgba(100,200,255,0.15)';ctx.fillRect(dx,dy,TS,TS);
+            ctx.fillStyle='#50a0f0';ctx.font=`${Math.max(4,zoomLevel*3)}px monospace`;
+            ctx.fillText('→'+cell.portalTarget.slice(0,6),dx+1,dy+TS-2);
+          }
+          // Interactable zone radius preview
+          if(cell.type==='interactable'){
+            const r=(cell.interactRadius||90)/tileSize*TS;
+            ctx.beginPath();ctx.arc(dx+TS/2,dy+TS/2,r,0,Math.PI*2);
+            ctx.fillStyle='rgba(255,165,0,0.06)';ctx.fill();
+            ctx.strokeStyle='rgba(255,165,0,0.3)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+            ctx.stroke();ctx.setLineDash([]);
+          }
+          // Label
+          if(cell.label){
+            ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(dx+1,dy+1,TS-2,8);
+            ctx.fillStyle='#f0d060'; ctx.font=`${Math.max(5,zoomLevel*4)}px monospace`;
+            ctx.fillText(cell.label,dx+2,dy+8);
+          }
         }
       }
     }
   });
 
-  // Grid
-  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
-  for(let x=0;x<=mapW;x++){ ctx.beginPath();ctx.moveTo(x*TS,0);ctx.lineTo(x*TS,mapH*TS);ctx.stroke(); }
-  for(let y=0;y<=mapH;y++){ ctx.beginPath();ctx.moveTo(0,y*TS);ctx.lineTo(mapW*TS,y*TS);ctx.stroke(); }
+  // ── Instances (free-position objects, drawn above tiles, below grid) ──
+  if(layerVisible.objects){
+    // Draw rect_overlays first (below sprites)
+    instances.filter(ins => ins.type === 'rect_overlay').forEach(ins => {
+      const dx = ins.x * zoomLevel;
+      const dy = ins.y * zoomLevel;
+      const dw = (ins.rectW||64) * zoomLevel;
+      const dh = (ins.rectH||64) * zoomLevel;
+      ctx.globalAlpha = ins.rectOpacity || 0.5;
+      ctx.fillStyle = ins.rectColor || '#888';
+      if(ins.rectRadius){
+        const r = Math.min(parseFloat(ins.rectRadius)||0, dw/2, dh/2) * zoomLevel;
+        ctx.beginPath();
+        ctx.roundRect(dx, dy, dw, dh, r);
+        ctx.fill();
+      } else {
+        ctx.fillRect(dx, dy, dw, dh);
+      }
+      ctx.globalAlpha = 1;
+      if(!previewMode){
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3,3]);
+        ctx.strokeRect(dx+0.5, dy+0.5, dw-1, dh-1);
+        ctx.setLineDash([]);
+        if(ins.label){
+          ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(dx+1,dy+1,Math.min(dw-2,80),10);
+          ctx.fillStyle='#aaa'; ctx.font=`${Math.max(6,zoomLevel*5)}px monospace`;
+          ctx.fillText(ins.label.substring(0,12),dx+3,dy+9);
+        }
+      }
+    });
+
+    // Draw sprite instances (Y-sorted for depth)
+    const spriteInstances = instances.filter(ins => ins.type !== 'rect_overlay');
+    spriteInstances.sort((a, b) => a.y - b.y);
+    spriteInstances.forEach(ins => {
+      const spr = SPRITES[ins.type];
+      if(!spr) return;
+      const size = ins.scale * tileSize * zoomLevel;
+      const dx = ins.x * zoomLevel;
+      const dy = ins.y * zoomLevel;
+      ctx.imageSmoothingEnabled = false;
+      if(ins.rotation){
+        ctx.save();
+        ctx.translate(dx + size/2, dy + size/2);
+        ctx.rotate(ins.rotation * Math.PI / 180);
+        ctx.drawImage(spr, -size/2, -size/2, size, size);
+        ctx.restore();
+      } else {
+        ctx.drawImage(spr, dx, dy, size, size);
+      }
+      if(!previewMode){
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(dx + 0.5, dy + 0.5, size - 1, size - 1);
+        if(ins.label){
+          ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(dx+1,dy+1,size-2,10);
+          ctx.fillStyle='#f0d060'; ctx.font=`${Math.max(6,zoomLevel*5)}px monospace`;
+          ctx.fillText(ins.label,dx+3,dy+9);
+        }
+      }
+    });
+  }
+
+  // ── Selected instance highlight ──
+  if(selectedInstanceId){
+    const ins = instances.find(i => i.id === selectedInstanceId);
+    if(ins){
+      const b = instanceBox(ins);
+      const dx = b.x * zoomLevel;
+      const dy = b.y * zoomLevel;
+      const dw = b.w * zoomLevel;
+      const dh = b.h * zoomLevel;
+      ctx.save();
+      ctx.strokeStyle = '#f0c040'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+      ctx.strokeRect(dx + 1, dy + 1, dw - 2, dh - 2);
+      ctx.restore();
+      ctx.fillStyle = 'rgba(240,192,64,0.10)';
+      ctx.fillRect(dx, dy, dw, dh);
+      // Resize handle (bottom-right)
+      const hs = INS_HANDLE_PX * zoomLevel;
+      const hx = dx + dw - hs;
+      const hy = dy + dh - hs;
+      ctx.fillStyle = '#0d0a14'; ctx.fillRect(hx - 1, hy - 1, hs + 2, hs + 2);
+      ctx.fillStyle = '#f0c040'; ctx.fillRect(hx, hy, hs, hs);
+    }
+  }
+
+  // Grid (hidden in preview mode)
+  if(!previewMode){
+    ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+    for(let x=0;x<=mapW;x++){ ctx.beginPath();ctx.moveTo(x*TS,0);ctx.lineTo(x*TS,mapH*TS);ctx.stroke(); }
+    for(let y=0;y<=mapH;y++){ ctx.beginPath();ctx.moveTo(0,y*TS);ctx.lineTo(mapW*TS,y*TS);ctx.stroke(); }
+  }
+
+  // Obstacle visualization overlay
+  if(showObstacles && !previewMode){
+    const obstacleTypes=new Set(['house_thatch','house_wood','tavern','church','smithy','tower','castle','gate','wall_h','wall_tower','dungeon_entrance']);
+    ctx.strokeStyle='rgba(255,50,50,0.8)'; ctx.lineWidth=2; ctx.setLineDash([4,3]);
+    for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+      const obj=layers.objects[y]?.[x];
+      if(obj&&obstacleTypes.has(obj.type)){
+        const dx=x*TS, dy=y*TS;
+        ctx.fillStyle='rgba(255,0,0,0.15)'; ctx.fillRect(dx,dy,TS,TS);
+        ctx.strokeRect(dx+1,dy+1,TS-2,TS-2);
+      }
+    }
+    ctx.setLineDash([]);
+  }
 
   // Overlay capas apagadas (tint)
   ['ground','objects','overhead'].forEach(k=>{
@@ -1759,16 +2147,44 @@ function render(){
   updateStats();
 }
 
-function renderOverlay(){
+function renderOverlay(hoverTile){
   const ctx=overlayCtx, TS=tileSize*zoomLevel;
   ctx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
 
-  // Resaltado celda seleccionada
-  if(selectedCell){
+  // Multi-tile selection rectangle
+  if(selRect){
+    const {x1,y1,x2,y2}=selRect;
+    const rx=x1*TS, ry=y1*TS, rw=(x2-x1+1)*TS, rh=(y2-y1+1)*TS;
+    ctx.fillStyle='rgba(100,180,255,0.12)'; ctx.fillRect(rx,ry,rw,rh);
+    ctx.strokeStyle='#50a0ff'; ctx.lineWidth=2; ctx.setLineDash([6,3]);
+    ctx.strokeRect(rx+1,ry+1,rw-2,rh-2);
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font=`${Math.max(8,zoomLevel*6)}px monospace`;
+    ctx.fillText(`${x2-x1+1}×${y2-y1+1}`,rx+3,ry-3);
+  } else if(selectedCell){
     const {x,y}=selectedCell;
     ctx.strokeStyle='#f0c040'; ctx.lineWidth=2;
     ctx.strokeRect(x*TS+1,y*TS+1,TS-2,TS-2);
     ctx.fillStyle='rgba(240,192,64,0.12)'; ctx.fillRect(x*TS,y*TS,TS,TS);
+  }
+
+  // Stamp preview while pasting
+  if(stampMode&&clipboard&&hoverTile){
+    ctx.globalAlpha=0.5;
+    for(let dy=0;dy<clipboard.h;dy++) for(let dx=0;dx<clipboard.w;dx++){
+      const tx=hoverTile.x+dx, ty=hoverTile.y+dy;
+      if(tx>=mapW||ty>=mapH) continue;
+      ['ground','objects','overhead'].forEach(k=>{
+        const cell=clipboard.layers[k][dy]?.[dx];
+        if(!cell) return;
+        const spr=SPRITES[cell.type];
+        if(spr) ctx.drawImage(spr,tx*TS,ty*TS,TS,TS);
+      });
+    }
+    ctx.globalAlpha=1;
+    ctx.strokeStyle='#50ff80'; ctx.lineWidth=2; ctx.setLineDash([4,4]);
+    ctx.strokeRect(hoverTile.x*TS,hoverTile.y*TS,clipboard.w*TS,clipboard.h*TS);
+    ctx.setLineDash([]);
   }
 }
 
@@ -1797,7 +2213,7 @@ function renderMini(){
       haybale:'#e0c050',gravestone:'#909098',signpost:'#8a5228',
       crate:'#9a5a28',fence_gate:'#7a4820',bridge:'#9a6030',
       npc_guard:'#667788',npc_merchant:'#4a6890',
-      npc_villager:'#5a8040',npc_bard:'#9050b0',portal:'#50a0f0',spawn:'#00ff88'};
+      npc_villager:'#5a8040',npc_bard:'#9050b0',portal:'#50a0f0',spawn:'#00ff88',interactable:'#ffa500'};
     ctx.fillStyle=colors[cell.type]||'#888';
     ctx.fillRect(x*scx,y*scy,Math.ceil(scx),Math.ceil(scy));
   }
@@ -1811,11 +2227,32 @@ function renderMini(){
   ctx.strokeRect(Math.max(0,vpx),Math.max(0,vpy),Math.min(vpw,mw),Math.min(vph,mh));
 }
 
+// Minimap click-to-scroll: click on minimap to pan the viewport there
+miniCanvas.style.cursor='crosshair';
+miniCanvas.addEventListener('mousedown',e=>{
+  const panToMiniClick=(ev)=>{
+    const rect=miniCanvas.getBoundingClientRect();
+    const mx=(ev.clientX-rect.left)/rect.width;
+    const my=(ev.clientY-rect.top)/rect.height;
+    const va=canvasArea.getBoundingClientRect();
+    const targetX=mx*mapW*tileSize*zoomLevel - va.width/2;
+    const targetY=my*mapH*tileSize*zoomLevel - va.height/2;
+    viewOffset.x=-targetX; viewOffset.y=-targetY;
+    render();
+  };
+  panToMiniClick(e);
+  const onMove=(ev)=>panToMiniClick(ev);
+  const onUp=()=>{ window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); };
+  window.addEventListener('mousemove',onMove);
+  window.addEventListener('mouseup',onUp);
+});
+
 function updateStats(){
   let count=0;
   ['ground','objects','overhead'].forEach(k=>{
     for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++) if(layers[k][y]?.[x]) count++;
   });
+  count += instances.length;
   document.getElementById('infoTiles').textContent=count;
   document.getElementById('stObjs').textContent=count;
   document.getElementById('stUndo').textContent=undoStack.length;
@@ -1835,6 +2272,10 @@ function getTileFromEvent(e){
 
 function paintTile(x,y){
   if(!selectedAsset) return;
+  if(isInstanceType(selectedAsset)){
+    placeInstance(selectedAsset, x * tileSize, y * tileSize);
+    return;
+  }
   const targetLayer=ASSET_LAYER[selectedAsset]||currentLayer;
   if(!layers[targetLayer][y]) return;
   pushUndo();
@@ -1851,6 +2292,15 @@ function paintTile(x,y){
 }
 
 function eraseTile(x,y){
+  const centerPx = { x: x * tileSize + tileSize/2, y: y * tileSize + tileSize/2 };
+  const ins = getInstanceAt(centerPx.x, centerPx.y);
+  if(ins){
+    pushUndo();
+    instances = instances.filter(i => i.id !== ins.id);
+    if(selectedInstanceId === ins.id) selectedInstanceId = null;
+    render();
+    return;
+  }
   pushUndo();
   layers[currentLayer][y][x]=null;
   render();
@@ -1892,6 +2342,13 @@ function pickTile(x,y){
 }
 
 // ── CANVAS EVENTS ───────────────────────────────────────────
+function getPxFromEvent(e){
+  const rect=mapCanvas.getBoundingClientRect();
+  const px = (e.clientX-rect.left)/zoomLevel;
+  const py = (e.clientY-rect.top)/zoomLevel;
+  return {px, py};
+}
+
 overlayCanvas.addEventListener('mousedown',e=>{
   if(e.button===1||(e.button===0&&e.shiftKey)){ // pan
     isPanning=true; panStart={x:e.clientX,y:e.clientY}; return;
@@ -1899,12 +2356,43 @@ overlayCanvas.addEventListener('mousedown',e=>{
   if(e.button!==0) return;
   const t=getTileFromEvent(e);
   if(!t) return;
+  const {px:curPx, py:curPy} = getPxFromEvent(e);
+
+  // Check if clicking on an instance (select tool or direct click on instance)
+  if(currentTool==='select' || currentTool==='draw'){
+    const clickedIns = getInstanceAt(curPx, curPy);
+    if(clickedIns && currentTool==='select'){
+      selectedInstanceId = clickedIns.id;
+      selectedCell = null; selRect = null;
+      // Check resize handle
+      if(isOnResizeHandle(clickedIns, curPx, curPy)){
+        isResizingInstance = true;
+        dragInstanceOffset = {x: curPx, y: curPy, origScale: clickedIns.scale, origRectW: clickedIns.rectW, origRectH: clickedIns.rectH};
+      } else {
+        isMovingInstance = true;
+        dragInstanceOffset = {x: curPx - clickedIns.x, y: curPy - clickedIns.y};
+      }
+      render();
+      updateSelInstancePanel(clickedIns);
+      document.getElementById('stCursor').textContent=`${t.x},${t.y}`;
+      return;
+    }
+  }
+
+  selectedInstanceId = null;
   isDrawing=true;
   if(currentTool==='draw')  { paintTile(t.x,t.y); }
   if(currentTool==='erase') { eraseTile(t.x,t.y); }
   if(currentTool==='fill')  { fillTile(t.x,t.y); isDrawing=false; }
   if(currentTool==='pick')  { pickTile(t.x,t.y); isDrawing=false; }
-  if(currentTool==='select'){ selectedCell=t; render(); updateSelPanel(t); }
+  if(currentTool==='select'){
+    if(stampMode&&clipboard){
+      pasteStamp(t.x,t.y); stampMode=false; render(); renderOverlay();
+    } else {
+      selStart={x:t.x,y:t.y}; selRect={x1:t.x,y1:t.y,x2:t.x,y2:t.y};
+      selectedCell=t; render(); renderOverlay(); updateSelPanel(t);
+    }
+  }
   document.getElementById('stCursor').textContent=`${t.x},${t.y}`;
 });
 
@@ -1919,12 +2407,45 @@ overlayCanvas.addEventListener('mousemove',e=>{
   }
   const t=getTileFromEvent(e);
   if(t) document.getElementById('stCursor').textContent=`${t.x},${t.y}`;
+  // Instance move/resize
+  if(isMovingInstance && selectedInstanceId){
+    const {px:curPx, py:curPy} = getPxFromEvent(e);
+    const ins = instances.find(i => i.id === selectedInstanceId);
+    if(ins){
+      ins.x = Math.max(0, curPx - dragInstanceOffset.x);
+      ins.y = Math.max(0, curPy - dragInstanceOffset.y);
+      render();
+    }
+    return;
+  }
+  if(isResizingInstance && selectedInstanceId){
+    const {px:curPx, py:curPy} = getPxFromEvent(e);
+    const ins = instances.find(i => i.id === selectedInstanceId);
+    if(ins){
+      const dx = curPx - dragInstanceOffset.x;
+      const dy = curPy - dragInstanceOffset.y;
+      const delta = Math.max(dx, dy);
+      if(ins.type === 'rect_overlay'){
+        ins.rectW = Math.max(10, (dragInstanceOffset.origRectW||ins.rectW||64) + dx);
+        ins.rectH = Math.max(10, (dragInstanceOffset.origRectH||ins.rectH||64) + dy);
+      } else {
+        ins.scale = Math.max(0.5, dragInstanceOffset.origScale + delta / tileSize);
+      }
+      render();
+    }
+    return;
+  }
+  if(currentTool==='select'&&selStart&&isDrawing){
+    selRect={x1:Math.min(selStart.x,t.x),y1:Math.min(selStart.y,t.y),x2:Math.max(selStart.x,t.x),y2:Math.max(selStart.y,t.y)};
+    renderOverlay(); return;
+  }
+  if(stampMode&&clipboard){ renderOverlay(t); return; }
   if(!isDrawing||!t) return;
   if(currentTool==='draw')  paintTile(t.x,t.y);
   if(currentTool==='erase') eraseTile(t.x,t.y);
 });
 
-overlayCanvas.addEventListener('mouseup',()=>{ isDrawing=false; isPanning=false; });
+overlayCanvas.addEventListener('mouseup',()=>{ isDrawing=false; isPanning=false; selStart=null; isMovingInstance=false; isResizingInstance=false; });
 overlayCanvas.addEventListener('mouseleave',()=>{ isDrawing=false; });
 
 overlayCanvas.addEventListener('wheel',e=>{
@@ -1933,6 +2454,33 @@ overlayCanvas.addEventListener('wheel',e=>{
 },{passive:false});
 
 overlayCanvas.addEventListener('contextmenu',e=>{ e.preventDefault(); const t=getTileFromEvent(e); if(t) eraseTile(t.x,t.y); });
+
+// Rebuild portal target dropdown with system + custom maps
+function rebuildPortalDropdown(){
+  const sel=document.getElementById('portalTarget');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">(sin destino)</option>';
+  const system=[
+    {id:'townSquare',name:'Town Square'},{id:'taskoriaKeep',name:'Taskoria Keep'},
+    {id:'tavernInterior',name:'Tavern Interior'},{id:'mysticForest',name:'Mystic Forest'},
+    {id:'shadowCrypts',name:'Shadow Crypts'},{id:'freeDistrict',name:'Free District'}
+  ];
+  system.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=m.name; sel.appendChild(o); });
+  // Add any custom map names found in portals on THIS map
+  const seen=new Set(system.map(m=>m.id));
+  ['ground','objects','overhead'].forEach(k=>{
+    for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
+      const c=layers[k][y]?.[x];
+      if(c?.type==='portal'&&c.portalTarget&&!seen.has(c.portalTarget)){
+        seen.add(c.portalTarget);
+        const o=document.createElement('option'); o.value=c.portalTarget; o.textContent=c.portalTarget+' (custom)'; sel.appendChild(o);
+      }
+    }
+  });
+  // Always allow typing a custom name — add the current value if not listed
+  if(cur&&!seen.has(cur)){ const o=document.createElement('option'); o.value=cur; o.textContent=cur+' (custom)'; sel.appendChild(o); }
+  sel.value=cur;
+}
 
 // ─── UPDATE SELECTION PANEL ─────────────────────────────────
 function updateSelPanel(t){
@@ -1945,6 +2493,7 @@ function updateSelPanel(t){
   const pcSection=document.getElementById('portalCfgSection');
   if(cell?.type==='portal'){
     pcSection.hidden=false;
+    rebuildPortalDropdown();
     document.getElementById('portalTarget').value=cell.portalTarget||'';
     document.getElementById('portalSpawnX').value=cell.portalSpawnX??10;
     document.getElementById('portalSpawnY').value=cell.portalSpawnY??10;
@@ -1954,6 +2503,29 @@ function updateSelPanel(t){
   } else {
     pcSection.hidden=true;
   }
+
+  const icSection=document.getElementById('interactCfgSection');
+  if(cell?.type==='interactable'){
+    icSection.hidden=false;
+    document.getElementById('interactTarget').value=cell.interactTarget||'';
+    document.getElementById('interactLabel').value=cell.interactLabel||cell.label||'';
+    document.getElementById('interactFlavor').value=cell.interactFlavor||'';
+    document.getElementById('interactRadius').value=cell.interactRadius||90;
+  } else {
+    icSection.hidden=true;
+  }
+}
+
+function updateInteractCfg(){
+  if(!selectedCell) return;
+  const cell=layers.objects[selectedCell.y]?.[selectedCell.x];
+  if(!cell||cell.type!=='interactable') return;
+  cell.interactTarget=document.getElementById('interactTarget').value;
+  cell.interactLabel=document.getElementById('interactLabel').value;
+  cell.interactFlavor=document.getElementById('interactFlavor').value;
+  cell.interactRadius=parseInt(document.getElementById('interactRadius').value)||90;
+  cell.label=cell.interactLabel;
+  render();
 }
 
 function updatePortalCfg(){
@@ -1984,6 +2556,38 @@ function deleteSelected(){
   selectedCell=null; render();
 }
 
+function copySelection(){
+  if(!selRect) return;
+  const {x1,y1,x2,y2}=selRect;
+  const w=x2-x1+1, h=y2-y1+1;
+  const buf={w,h,layers:{ground:[],objects:[],overhead:[]}};
+  for(let dy=0;dy<h;dy++){
+    buf.layers.ground[dy]=[]; buf.layers.objects[dy]=[]; buf.layers.overhead[dy]=[];
+    for(let dx=0;dx<w;dx++){
+      const sy=y1+dy, sx=x1+dx;
+      ['ground','objects','overhead'].forEach(k=>{
+        const cell=layers[k][sy]?.[sx];
+        buf.layers[k][dy][dx]=cell?JSON.parse(JSON.stringify(cell)):null;
+      });
+    }
+  }
+  clipboard=buf;
+  document.getElementById('toolHint').textContent=`📋 Copiado ${w}×${h} tiles — Ctrl+V para pegar`;
+}
+function pasteStamp(ox,oy){
+  if(!clipboard) return;
+  pushUndo();
+  for(let dy=0;dy<clipboard.h;dy++) for(let dx=0;dx<clipboard.w;dx++){
+    const tx=ox+dx, ty=oy+dy;
+    if(tx>=mapW||ty>=mapH) continue;
+    ['ground','objects','overhead'].forEach(k=>{
+      const cell=clipboard.layers[k][dy]?.[dx];
+      if(cell) layers[k][ty][tx]=JSON.parse(JSON.stringify(cell));
+    });
+  }
+  render();
+}
+
 // ═══════════════════════════════════════════════════════════
 // CONTROLES DE UI
 // ═══════════════════════════════════════════════════════════
@@ -1995,7 +2599,7 @@ function setTool(t,btn){
   const hints={draw:'✏ Click pintar · Arrastrar para pintar · Clic derecho borrar',
                erase:'⌫ Click borrar · Arrastrar para borrar',
                fill:'▣ Click para rellenar zona',
-               select:'⬚ Click para seleccionar · Ver propiedades en panel der.',
+               select:'⬚ Arrastra para seleccionar región · Ctrl+C copiar · Ctrl+V pegar · Esc cancelar',
                pick:'◉ Click para copiar el tipo de tile'};
   document.getElementById('toolHint').textContent=hints[t]||'';
 }
@@ -2026,6 +2630,21 @@ function zoom(dir){
   updateCanvasSize(); render();
 }
 
+function togglePreview(){
+  previewMode = !previewMode;
+  const btn = document.getElementById('previewBtn');
+  if(previewMode){
+    btn.style.background = 'var(--gold)';
+    btn.style.color = '#000';
+    btn.textContent = '👁 LIVE';
+  } else {
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.textContent = '👁 PREVIEW';
+  }
+  render();
+}
+
 function resizeMap(){
   mapW=parseInt(document.getElementById('mw').value)||20;
   mapH=parseInt(document.getElementById('mh').value)||16;
@@ -2051,26 +2670,31 @@ function resizeMap(){
 // UNDO / REDO
 // ═══════════════════════════════════════════════════════════
 function pushUndo(){
-  undoStack.push(JSON.stringify(layers));
+  undoStack.push(JSON.stringify({ layers, instances, nextInstanceId }));
   if(undoStack.length>50) undoStack.shift();
   redoStack=[];
   document.getElementById('stUndo').textContent=undoStack.length;
 }
 function undo(){
   if(!undoStack.length) return;
-  redoStack.push(JSON.stringify(layers));
-  layers=JSON.parse(undoStack.pop());
+  redoStack.push(JSON.stringify({ layers, instances, nextInstanceId }));
+  const st=JSON.parse(undoStack.pop());
+  layers=st.layers; instances=st.instances||[]; nextInstanceId=st.nextInstanceId||1;
+  selectedInstanceId=null;
   render();
 }
 function redo(){
   if(!redoStack.length) return;
-  undoStack.push(JSON.stringify(layers));
-  layers=JSON.parse(redoStack.pop());
+  undoStack.push(JSON.stringify({ layers, instances, nextInstanceId }));
+  const st=JSON.parse(redoStack.pop());
+  layers=st.layers; instances=st.instances||[]; nextInstanceId=st.nextInstanceId||1;
+  selectedInstanceId=null;
   render();
 }
 function clearMap(){
   if(!confirm('¿Limpiar el mapa? No se puede deshacer.')) return;
   pushUndo();
+  instances=[]; nextInstanceId=1; selectedInstanceId=null;
   initMap(); render();
 }
 
@@ -2085,8 +2709,45 @@ document.addEventListener('keydown',e=>{
   if(e.ctrlKey&&e.key==='z'){ e.preventDefault(); undo(); }
   if(e.ctrlKey&&e.key==='y'){ e.preventDefault(); redo(); }
   if(e.ctrlKey&&e.key==='s'){ e.preventDefault(); saveToLocal(); }
-  if(e.key==='Delete'&&selectedCell) deleteSelected();
+  if(e.ctrlKey&&e.key==='c'){ e.preventDefault(); copySelection(); }
+  if(e.ctrlKey&&e.key==='v'&&clipboard){ e.preventDefault(); stampMode=true; document.getElementById('toolHint').textContent=`📌 Modo pegar ${clipboard.w}×${clipboard.h} — click para colocar · Esc cancelar`; }
+  if(e.key==='Escape'){ stampMode=false; selRect=null; selStart=null; renderOverlay(); }
+  if(e.key==='Delete'||e.key==='Backspace'){
+    if(selectedInstanceId){
+      pushUndo();
+      instances = instances.filter(i => i.id !== selectedInstanceId);
+      selectedInstanceId = null;
+      render();
+    } else if(selectedCell) deleteSelected();
+  }
+  if(e.key==='?') toggleShortcutsOverlay();
+  if(e.key==='o'||e.key==='O'){ showObstacles=!showObstacles; document.getElementById('btn-obstacles').classList.toggle('active'); render(); }
+  if(e.key==='p'||e.key==='P') togglePreview();
 });
+
+// Shortcuts overlay
+function toggleShortcutsOverlay(){
+  let ov=document.getElementById('shortcutsOverlay');
+  if(ov){ ov.hidden=!ov.hidden; return; }
+  ov=document.createElement('div'); ov.id='shortcutsOverlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7)';
+  ov.innerHTML=`<div style="background:var(--panel);border:2px solid var(--gold);border-radius:12px;padding:20px 28px;max-width:380px;font-size:11px;line-height:2">
+    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold);margin-bottom:10px">⌨ ATAJOS DE TECLADO</div>
+    <div style="color:var(--text)">
+      <b style="color:var(--gold)">B</b> Dibujar &nbsp; <b style="color:var(--gold)">E</b> Borrar &nbsp; <b style="color:var(--gold)">F</b> Rellenar<br>
+      <b style="color:var(--gold)">S</b> Seleccionar &nbsp; <b style="color:var(--gold)">I</b> Cuentagotas<br>
+      <b style="color:var(--gold)">Ctrl+Z</b> Deshacer &nbsp; <b style="color:var(--gold)">Ctrl+Y</b> Rehacer<br>
+      <b style="color:var(--gold)">Ctrl+C</b> Copiar región &nbsp; <b style="color:var(--gold)">Ctrl+V</b> Pegar stamp<br>
+      <b style="color:var(--gold)">Ctrl+S</b> Guardar &nbsp; <b style="color:var(--gold)">Del</b> Eliminar selección<br>
+      <b style="color:var(--gold)">Scroll</b> Zoom &nbsp; <b style="color:var(--gold)">Shift+drag</b> Mover vista<br>
+      <b style="color:var(--gold)">O</b> Obstáculos &nbsp; <b style="color:var(--gold)">Click dcho.</b> Borrar tile &nbsp; <b style="color:var(--gold)">?</b> Este panel
+    </div>
+    <div style="text-align:center;margin-top:12px;font-size:9px;color:var(--dim)">Pulsa ? o Esc para cerrar</div>
+  </div>`;
+  ov.onclick=()=>{ ov.hidden=true; };
+  document.body.appendChild(ov);
+  document.addEventListener('keydown',function esc(ev){ if(ev.key==='Escape'){ ov.hidden=true; document.removeEventListener('keydown',esc); } });
+}
 
 // ═══════════════════════════════════════════════════════════
 // ASSET PANEL
@@ -2162,7 +2823,7 @@ function exportMapData(){
   const bgColor=document.getElementById('mapBgColor').value||'#2a1f12';
 
   // Construir obstacles y decorations desde objetos
-  const obstacles=[], decorations=[], npcs=[], portals=[];
+  const obstacles=[], decorations=[], npcs=[], portals=[], interactables=[];
   const spawnPos={x:Math.floor(mapW/2),y:Math.floor(mapH/2)};
 
   for(let y=0;y<mapH;y++) for(let x=0;x<mapW;x++){
@@ -2180,12 +2841,47 @@ function exportMapData(){
       }
       portals.push(p); continue;
     }
+    if(type==='interactable'){
+      const it={id:`interact_${x}_${y}`,x:x*tileSize,y:y*tileSize,width:tileSize,height:tileSize,
+        radius:obj.interactRadius||90, label:obj.interactLabel||obj.label||'Interact'};
+      if(obj.interactTarget) it.target=obj.interactTarget;
+      if(obj.interactFlavor) it.flavor=obj.interactFlavor;
+      interactables.push(it); continue;
+    }
     if(type.startsWith('npc_')){ npcs.push({id:`${type}_${x}_${y}`,type,x,y,name:label||type}); continue; }
     // Edificios como obstáculos
     if(['house_thatch','house_wood','tavern','church','smithy','tower'].includes(type)){
       obstacles.push({x,y,w:1,h:1,type:'shop_building',roofType:type.includes('thatch')?'thatch':type.includes('church')?'stone':'wood',label:label||type});
     } else {
       decorations.push({type,x,y,...(label?{label}:{})});
+    }
+  }
+
+  // Export instances as decorations with production pixel coords
+  const invS = prodTileSize / tileSize; // editor → production scale
+  for(const ins of instances){
+    if(ins.type === 'rect_overlay'){
+      decorations.push({
+        type:'rect',
+        x:Math.round(ins.x * invS), y:Math.round(ins.y * invS),
+        width:Math.round((ins.rectW||64) * invS), height:Math.round((ins.rectH||64) * invS),
+        color: ins.rectColor||'#888',
+        opacity: ins.rectOpacity||0.5,
+        ...(ins.rectRadius ? {radius:ins.rectRadius} : {}),
+        z: ins.z||0,
+        ...(ins.label && !ins.label.startsWith('[') ? {label:ins.label} : {}),
+      });
+    } else {
+      const px = Math.round(ins.x * invS);
+      const py = Math.round(ins.y * invS);
+      decorations.push({
+        type:'sprite', name:ins.type,
+        x:px, y:py,
+        scale: ins.scale,
+        z: py,
+        ...(ins.label?{label:ins.label}:{}),
+        ...(ins.rotation?{rotation:ins.rotation}:{})
+      });
     }
   }
 
@@ -2197,6 +2893,8 @@ function exportMapData(){
   }
   const tileSprite=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]||'cobblestone_warm';
 
+  const prodW = mapW * prodTileSize;
+  const prodH = mapH * prodTileSize;
   const code=`// MapData generado por Taskoria Map Editor
 // ${new Date().toLocaleString()}
 
@@ -2204,17 +2902,20 @@ export const ${name} = {
   id: '${name}',
   name: '${name}',
   tileSprite: '${tileSprite}',
-  width: ${mapW},
-  height: ${mapH},
+  tileSize: ${prodTileSize},
+  width: ${prodW},
+  height: ${prodH},
   bgColor: '${bgColor}',
   ambientLight: ${(ambient/100).toFixed(2)},
-  spawn: { x: ${spawnPos.x}, y: ${spawnPos.y} },
+  spawn: { x: ${Math.round(spawnPos.x * prodTileSize)}, y: ${Math.round(spawnPos.y * prodTileSize)} },
 
   obstacles: ${JSON.stringify(obstacles, null, 4)},
 
   decorations: ${JSON.stringify(decorations, null, 4)},
 
   portals: ${JSON.stringify(portals, null, 4)},
+
+  interactables: ${JSON.stringify(interactables, null, 4)},
 
   npcs: ${JSON.stringify(npcs, null, 4)},
 };
@@ -2231,10 +2932,26 @@ export const ${name} = {
 // SAVE / LOAD
 // ═══════════════════════════════════════════════════════════
 function saveToLocal(){
-  const data={mapW,mapH,layers,mapName:document.getElementById('mapName').value,
+  const data={mapW,mapH,layers,instances,nextInstanceId,prodTileSize,
+              mapName:document.getElementById('mapName').value,
               ambient:document.getElementById('mapAmbient').value,
               bgColor:document.getElementById('mapBgColor').value};
   localStorage.setItem('taskoria_map',JSON.stringify(data));
+  const saveMsg = {
+    type: 'taskoria_design_save',
+    tool: 'map',
+    name: data.mapName || 'newMap',
+    snippet: 'SYSTEM_MAP',
+    payload: { params: data },
+  };
+  // Notify parent iframe if embedded
+  if(window.parent !== window){
+    window.parent.postMessage(saveMsg, '*');
+  }
+  // Notify opener if opened as new tab from React app
+  if(window.opener){
+    try { window.opener.postMessage(saveMsg, '*'); } catch(e){}
+  }
   const btn=document.querySelector('.tbtn.gold');
   const orig=btn.textContent; btn.textContent='✓ SAVED';
   setTimeout(()=>btn.textContent=orig,2000);
@@ -2245,6 +2962,7 @@ function loadFromLocal(){
   if(!raw){ alert('No hay mapa guardado'); return; }
   const data=JSON.parse(raw);
   mapW=data.mapW; mapH=data.mapH; layers=data.layers;
+  instances=data.instances||[]; nextInstanceId=data.nextInstanceId||1; selectedInstanceId=null;
   document.getElementById('mw').value=mapW;
   document.getElementById('mh').value=mapH;
   document.getElementById('mapName').value=data.mapName||'';
@@ -2388,7 +3106,7 @@ async function publishMapToReview() {
   btn.disabled = true;
 
   try {
-    const userId = JSON.parse(localStorage.getItem('taskoria_user') || '{}').id;
+    const userId = JSON.parse(localStorage.getItem('taskoria_session') || '{}').id;
     if (!userId) { alert('Necesitas estar logueado en Taskoria para publicar.'); btn.textContent = '📤 PUBLICAR'; btn.disabled = false; return; }
 
     const ambient = document.getElementById('mapAmbient').value || 85;
@@ -2437,6 +3155,344 @@ async function publishMapToReview() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// IMPORT MAPDATA.JS FORMAT → EDITOR FORMAT
+// ═══════════════════════════════════════════════════════════
+
+const TILE_SPRITE_MAP = {
+  cobblestone_tile:'cobblestone', cobblestone:'cobblestone',
+  grass_tile:'grass', grass:'grass', grass_dense:'grass',
+  wood_floor_tile:'wood_floor', wood_floor:'wood_floor',
+  dungeon_floor_tile:'dungeon_stone', dungeon_stone:'dungeon_stone',
+  stone_floor_tile:'stone_path', stone_path:'stone_path',
+  royal_stone:'royal_stone', dirt:'dirt', water:'water',
+};
+
+const DECORATION_TYPE_MAP = {
+  well:'well', barrel:'barrel', chest:'chest', torch:'torch',
+  market_stall:'market_stall', fountain:'fountain', bench:'bench',
+  pillar:'pillar', banner:'banner', statue:'statue', campfire:'campfire',
+  scarecrow:'scarecrow', haybale:'haybale', gravestone:'gravestone',
+  signpost:'signpost', crate:'crate', fence_gate:'fence_gate', bridge:'bridge',
+  lamp:'torch', sign:'signpost',
+  shop_building:'tavern', shop_complete:'house_thatch',
+  house_thatch:'house_thatch', house_wood:'house_wood',
+  tavern:'tavern', church:'church', smithy:'smithy',
+  castle:'castle', gate:'gate', wall_h:'wall_h', wall_tower:'wall_tower',
+  tower:'tower', dungeon_entrance:'dungeon_entrance',
+  windmill:'windmill', forge:'forge',
+  npc_guard:'npc_guard', npc_merchant:'npc_merchant',
+  npc_villager:'npc_villager', npc_bard:'npc_bard',
+};
+
+const SPRITE_NAME_MAP = {
+  oak_tree:'oak_tree', pine_tree:'pine_tree', dead_tree:'dead_tree',
+  ancient_tree:'ancient_tree',
+  grass_tuft:'grass_tuft', ledgar_statue:'ledgar_statue',
+  council_board:'council_board', barrel_tipped:'barrel_tipped',
+  cat_sleeping:'cat_sleeping', crate:'crate',
+  banner_gold:'banner_gold', banner_purple:'banner_purple',
+  banner_red:'banner_red', banner_blue:'banner_blue',
+  market_stall_red:'market_stall_red', market_stall_green:'market_stall_green',
+  market_stall_purple:'market_stall_purple',
+  bush:'bush', mushroom:'mushroom', flowers:'flowers',
+  well:'well', fountain:'fountain', barrel:'barrel',
+  bench:'bench', lamp:'lamp', sign:'sign', fence:'fence',
+  fire:'fire', campfire:'campfire', torch:'wall_torch',
+  wall_torch:'wall_torch', bookshelf:'bookshelf', bed:'bed',
+  armor_stand:'armor_stand', skull:'skull', hay:'hay',
+  weapon_rack:'weapon_rack', floor_patch:'floor_patch',
+  mug:'mug', stool:'stool', table:'table', bar_counter:'bar_counter',
+  dining_chair:'dining_chair', dining_table:'dining_table',
+  red_carpet:'red_carpet', planter:'planter',
+};
+
+function isMapDataFormat(p){
+  return (p.tileSprite || p.obstacles || p.decorations || p.portals || p.prefabs) && !p.layers;
+}
+
+function convertMapDataToEditor(md){
+  const ts = md.tileSize || 64;
+  const w = Math.ceil((md.width || 800) / ts);
+  const h = Math.ceil((md.height || 600) / ts);
+  const baseTile = TILE_SPRITE_MAP[md.tileSprite] || 'cobblestone';
+  const S = tileSize / ts; // coordinate scale: production → editor
+
+  const ground=[], objects=[], overhead=[];
+  for(let y=0;y<h;y++){
+    ground[y]=[]; objects[y]=[]; overhead[y]=[];
+    for(let x=0;x<w;x++){
+      ground[y][x]={type:baseTile,label:''};
+      objects[y][x]=null;
+      overhead[y][x]=null;
+    }
+  }
+
+  const log=[];
+  let placed=0, skipped=0;
+  const resultInstances = [];
+  let insId = 1;
+
+  function placeObj(gx,gy,cell){
+    if(gx>=0 && gx<w && gy>=0 && gy<h && !objects[gy][gx]){
+      objects[gy][gx]=cell;
+      placed++;
+      return true;
+    }
+    return false;
+  }
+
+  function addInstance(type, px, py, label, origScale){
+    const scale = origScale || defaultSizeFor(type).w;
+    resultInstances.push({ id: insId++, type, x: px * S, y: py * S, scale, rotation: 0, label: label||'' });
+    placed++;
+  }
+
+  // Obstacles → instances for typed objects, grid for boundary walls
+  if(md.obstacles){
+    for(const obs of md.obstacles){
+      const isBoundary = (!obs.type) &&
+        ((obs.width>=md.width*0.8) || (obs.height>=md.height*0.8) ||
+         obs.x<=0 || obs.y<=0 || obs.x+obs.width>=md.width || obs.y+obs.height>=md.height);
+      if(isBoundary){ log.push(`⊘ Boundary wall skipped (${obs.x},${obs.y} ${obs.width}×${obs.height})`); skipped++; continue; }
+
+      const editorType = obs.type ? (DECORATION_TYPE_MAP[obs.type] || obs.type) : 'wall_h';
+      if(isInstanceType(editorType)){
+        const obsScale = obs.width ? Math.max(obs.width, obs.height||obs.width) / ts : null;
+        addInstance(editorType, obs.x, obs.y, obs.type||'', obsScale);
+      } else {
+        const gx = Math.floor(obs.x / ts);
+        const gy = Math.floor(obs.y / ts);
+        placeObj(gx,gy,{type:editorType,label:obs.type||''});
+      }
+    }
+  }
+
+  // Decorations → instances for known sprite types, rect overlays for colored zones
+  if(md.decorations){
+    for(const dec of md.decorations){
+      if(dec.type==='rect'){
+        resultInstances.push({
+          id: insId++, type: 'rect_overlay',
+          x: (dec.x||0)*S, y: (dec.y||0)*S,
+          rectW: (dec.width||64)*S, rectH: (dec.height||64)*S,
+          rectColor: dec.color||'#888', rectOpacity: dec.opacity||0.5,
+          rectRadius: dec.radius||'',
+          scale: 1, rotation: 0,
+          label: dec.label || '',
+          z: dec.z||0,
+        });
+        placed++;
+        continue;
+      }
+      if(dec.type==='flowers'){
+        const editorType = SPRITE_NAME_MAP['flowers'] || 'flowers';
+        const decScale = dec.scale || (dec.size ? dec.size / ts : 0.5);
+        addInstance(editorType, dec.x||0, dec.y||0, 'flowers', decScale);
+        continue;
+      }
+      if(dec.type==='sprite' && dec.name){
+        const editorType = SPRITE_NAME_MAP[dec.name] || DECORATION_TYPE_MAP[dec.name] || dec.name;
+        if(isInstanceType(editorType)){
+          addInstance(editorType, dec.x, dec.y, dec.name, dec.scale);
+        } else if(SPRITES[editorType]){
+          addInstance(editorType, dec.x, dec.y, dec.name, dec.scale);
+        } else {
+          log.push(`⚠ Unknown sprite "${dec.name}" at (${dec.x},${dec.y}) — skipped`);
+          skipped++;
+        }
+        continue;
+      }
+      // Non-sprite decorations (bench, lamp, barrel, well, etc.)
+      const editorType = SPRITE_NAME_MAP[dec.type] || DECORATION_TYPE_MAP[dec.type] || null;
+      if(editorType){
+        const decScale = dec.scale || (dec.size ? dec.size / ts : null) || (dec.width ? dec.width / ts : null);
+        addInstance(editorType, dec.x||0, dec.y||0, dec.type, decScale);
+      } else {
+        log.push(`⚠ Unknown decoration type "${dec.type}" at (${dec.x},${dec.y}) — skipped`);
+        skipped++;
+      }
+    }
+  }
+
+  // Portals → grid (not instances)
+  if(md.portals){
+    for(const p of md.portals){
+      const gx = Math.floor(p.x / ts);
+      const gy = Math.floor(p.y / ts);
+      const gw = Math.max(1, Math.ceil((p.width||ts) / ts));
+      for(let dx=0;dx<gw;dx++){
+        placeObj(gx+dx,gy,{
+          type:'portal',
+          portalTarget:p.targetMap||'',
+          portalSpawnX:p.targetX||0,
+          portalSpawnY:p.targetY||0,
+          label:p.label||p.targetMap||''
+        });
+      }
+    }
+  }
+
+  // Interactables → grid
+  if(md.interactables){
+    for(const iz of md.interactables){
+      const gx = Math.floor(iz.x / ts);
+      const gy = Math.floor(iz.y / ts);
+      placeObj(gx,gy,{
+        type:'interactable',
+        interactTarget:iz.target||'examine',
+        interactLabel:iz.label||'',
+        interactFlavor:iz.flavor||'',
+        interactRadius:iz.radius||80,
+        label:iz.label||''
+      });
+    }
+  }
+
+  // Prefabs → instances (use mapped type or create rect_overlay placeholder)
+  if(md.prefabs){
+    for(const pf of md.prefabs){
+      const editorType = DECORATION_TYPE_MAP[pf.name] || null;
+      if(editorType){
+        addInstance(editorType, pf.x, pf.y, pf.name);
+      } else {
+        const pw = (pf.width || 200)*S;
+        const ph = (pf.height || 160)*S;
+        resultInstances.push({
+          id: insId++, type: 'rect_overlay',
+          x: (pf.x||0)*S, y: (pf.y||0)*S,
+          rectW: pw, rectH: ph,
+          rectColor: '#6a4a2a', rectOpacity: 0.3,
+          rectRadius: '', scale: 1, rotation: 0,
+          label: `[${pf.name}]`, z: 0,
+        });
+        placed++;
+        log.push(`📦 Prefab "${pf.name}" → placeholder rect at (${pf.x},${pf.y})`);
+      }
+    }
+  }
+
+  log.unshift(`✅ Convertido: ${w}×${h} celdas, suelo=${baseTile}, ${placed} objetos (${resultInstances.length} instancias), ${skipped} omitidos`);
+  if(md.name) log.unshift(`📋 Mapa: "${md.name}" (${md.width}×${md.height}px, tileSize=${ts})`);
+
+  return {
+    mapW: w, mapH: h,
+    layers: { ground, objects, overhead },
+    instances: resultInstances,
+    nextInstanceId: insId,
+    prodTileSize: ts,
+    mapName: md.name || md.id || '',
+    bgColor: md.bgColor || md.baseColor || '#2a1f12',
+    ambient: md.ambientLight ? Math.round(md.ambientLight * 100) : 85,
+    log
+  };
+}
+
+function openImportModal(){
+  document.getElementById('importOverlay').hidden=false;
+  document.getElementById('importTextarea').value='';
+  document.getElementById('importLog').style.display='none';
+}
+function closeImportModal(){
+  document.getElementById('importOverlay').hidden=true;
+}
+function applyConvertedMap(result){
+  mapW = result.mapW;
+  mapH = result.mapH;
+  layers = result.layers;
+  if(result.prodTileSize) prodTileSize = result.prodTileSize;
+  if(result.instances){
+    instances = result.instances;
+    nextInstanceId = result.nextInstanceId || (instances.length ? Math.max(...instances.map(i=>i.id))+1 : 1);
+    selectedInstanceId = null;
+  }
+  document.getElementById('mw').value = mapW;
+  document.getElementById('mh').value = mapH;
+  if(result.mapName) document.getElementById('mapName').value = result.mapName;
+  if(result.bgColor) document.getElementById('mapBgColor').value = result.bgColor;
+  if(result.ambient) document.getElementById('mapAmbient').value = result.ambient;
+  document.getElementById('infoSize').textContent = `${mapW}×${mapH}`;
+  updateCanvasSize();
+  render();
+  if(result.log && result.log.length){
+    const logEl = document.getElementById('importLog');
+    logEl.style.display='block';
+    document.getElementById('importLogContent').innerHTML = result.log.map(l=>`<div>${l}</div>`).join('');
+  }
+}
+
+function doImportMapData(){
+  const raw = document.getElementById('importTextarea').value.trim();
+  if(!raw){ alert('Pega el JSON del mapa primero'); return; }
+  let data;
+  try{ data = JSON.parse(raw); }catch(e){ alert('JSON inválido: '+e.message); return; }
+  if(!isMapDataFormat(data)){ alert('Este JSON no parece formato MapData.js (falta tileSprite, obstacles, etc.)'); return; }
+  const result = convertMapDataToEditor(data);
+  applyConvertedMap(result);
+  closeImportModal();
+}
+
+// ═══════════════════════════════════════════════════════════
+// RECEIVE MAP FROM PARENT (edit existing)
+// ═══════════════════════════════════════════════════════════
+function loadMapFromPayload(payload){
+  console.log('[MapEditor] loadMapFromPayload called, payload type:', typeof payload);
+  if(typeof payload === 'string'){
+    try{ payload = JSON.parse(payload); }catch(e){ console.error('[MapEditor] JSON parse failed'); return; }
+  }
+  if(!payload || typeof payload !== 'object'){ console.warn('[MapEditor] payload empty or not object'); return; }
+  let p = payload.params || payload;
+  if(typeof p === 'string'){
+    try{ p = JSON.parse(p); }catch(e){ p = payload; }
+  }
+
+  console.log('[MapEditor] isMapDataFormat:', isMapDataFormat(p), 'keys:', Object.keys(p).join(','));
+
+  // Auto-detect MapData.js format and convert
+  if(isMapDataFormat(p)){
+    if(!p.name && payload.name) p.name = payload.name;
+    console.log('[MapEditor] Converting MapData format...');
+    const result = convertMapDataToEditor(p);
+    console.log('[MapEditor] Conversion done:', result.mapW + 'x' + result.mapH,
+      'objects:', result.layers.objects.flat().filter(c => c !== 'empty').length);
+    applyConvertedMap(result);
+    return;
+  }
+
+  if(p.mapW) mapW = p.mapW;
+  if(p.mapH) mapH = p.mapH;
+  if(p.prodTileSize) prodTileSize = p.prodTileSize;
+  document.getElementById('mw').value = mapW;
+  document.getElementById('mh').value = mapH;
+  if(p.layers && p.layers.ground){
+    layers = p.layers;
+  } else {
+    initMap();
+  }
+  if(p.instances){
+    instances = p.instances;
+    nextInstanceId = p.nextInstanceId || (instances.length ? Math.max(...instances.map(i=>i.id))+1 : 1);
+    selectedInstanceId = null;
+  }
+  if(p.ambient) document.getElementById('mapAmbient').value = p.ambient;
+  if(p.bgColor) document.getElementById('mapBgColor').value = p.bgColor;
+  if(p.mapName) document.getElementById('mapName').value = p.mapName;
+  if(payload.name && !p.mapName) document.getElementById('mapName').value = payload.name;
+  document.getElementById('infoSize').textContent = `${mapW}×${mapH}`;
+  updateCanvasSize();
+  render();
+}
+
+window.addEventListener('message', (e) => {
+  if(e.data && e.data.type === 'taskoria_design_edit' && e.data.tool === 'map'){
+    console.log('[MapEditor] postMessage received:', JSON.stringify(e.data).substring(0,200));
+    const pl = e.data.payload || {};
+    if(typeof pl === 'object' && !pl.name && e.data.name) pl.name = e.data.name;
+    console.log('[MapEditor] payload type:', typeof pl, 'keys:', Object.keys(pl||{}).join(','));
+    loadMapFromPayload(pl);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
 initMap();
@@ -2447,6 +3503,21 @@ render();
 // Seleccionar cobblestone por defecto
 selectedAsset='cobblestone';
 updateBrushPreview();
+
+// Check for edit session from React app (opened in new tab)
+try {
+  const editSession = localStorage.getItem('taskoria_edit_session');
+  if(editSession){
+    const session = JSON.parse(editSession);
+    if(session.tool === 'map'){
+      localStorage.removeItem('taskoria_edit_session');
+      console.log('[MapEditor] Loading edit session from localStorage');
+      const pl = session.payload || {};
+      if(typeof pl === 'object' && !pl.name && session.name) pl.name = session.name;
+      loadMapFromPayload(pl);
+    }
+  }
+} catch(e){ console.warn('[MapEditor] edit session parse error:', e); }
 document.querySelector('.asset-item')?.classList.add('selected');
 </script>
 </body>

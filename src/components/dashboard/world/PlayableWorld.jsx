@@ -70,7 +70,7 @@ const DustParticles = React.forwardRef(function DustParticles(_props, ref) {
 // re-render (isMoving/facing/pos/nearTarget), which was the main source of
 // Town lag — without this, ~150-250 decoration elements were fully re-diffed
 // every time the player started/stopped walking or turned.
-const DecorationsLayer = React.memo(function DecorationsLayer({ decorations }) {
+export const DecorationsLayer = React.memo(function DecorationsLayer({ decorations }) {
     return (
         <>
             {decorations?.map((dec, i) => {
@@ -570,7 +570,7 @@ const DecorationsLayer = React.memo(function DecorationsLayer({ decorations }) {
 });
 
 // Portals are static per map — memoized for the same reason as decorations.
-const PortalsLayer = React.memo(function PortalsLayer({ portals }) {
+export const PortalsLayer = React.memo(function PortalsLayer({ portals }) {
     return (
         <>
             {portals?.map((portal, i) => (
@@ -796,6 +796,13 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
 
     // Filter State
     const [retroMode, setRetroMode] = useState('crt'); // 'none', 'crt', 'gameboy'
+
+    // Day/night cycle — updates once per minute based on real clock
+    const [hour, setHour] = useState(() => new Date().getHours());
+    useEffect(() => {
+        const id = setInterval(() => setHour(new Date().getHours()), 60_000);
+        return () => clearInterval(id);
+    }, []);
 
     // Viewport culling — track which chunk of the map is visible so the
     // decoration layer can render only the props inside (plus a margin) and
@@ -1256,6 +1263,19 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                     </div>
                 </div>
             </div>
+
+            {/* Day/night ambient overlay — purely cosmetic */}
+            {(() => {
+                let bg = 'transparent';
+                if (hour >= 21 || hour < 5)       bg = 'rgba(10,10,40,0.45)';
+                else if (hour >= 5 && hour < 7)   bg = 'rgba(255,160,60,0.12)';
+                else if (hour >= 7 && hour < 17)  bg = 'transparent';
+                else if (hour >= 17 && hour < 19) bg = 'rgba(255,130,50,0.14)';
+                else if (hour >= 19 && hour < 21) bg = 'rgba(30,20,60,0.25)';
+                return bg !== 'transparent' ? (
+                    <div className="pointer-events-none absolute inset-0 z-30 transition-colors duration-[60000ms]" style={{ background: bg }} />
+                ) : null;
+            })()}
 
             {/* Retro Overlays (viewport locked) */}
             {retroMode !== 'none' && (

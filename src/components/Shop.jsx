@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useGame } from '../context/GameContext';
-import { Coins, Clock, ShoppingBag, Gift, Plus, Trash2, Loader2, Hammer, RefreshCw } from 'lucide-react';
+import { Coins, Clock, ShoppingBag, Gift, Plus, Trash2, Loader2, Hammer, RefreshCw, Store } from 'lucide-react';
 import { ITEMS, ITEM_TYPES, RARITY } from '../data/items';
 import Sprite from './common/Sprite';
 import PixelIcon from './common/PixelIcon';
@@ -285,9 +285,17 @@ const Shop = ({ currentUser }) => {
                     >
                         MARKET
                     </button>
-                    {/* BAZAAR tab hidden until the open world is properly built.
-                        Keep state, fetchBazaar and the panel intact — re-enable
-                        by uncommenting this button. */}
+                    <button
+                        onClick={() => setActiveTab('bazaar')}
+                        className={`
+                            flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-bold text-xs transition-all duration-300 flex-1 sm:flex-none
+                            ${activeTab === 'bazaar'
+                                ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(147,51,234,0.5)]'
+                                : 'text-gray-400 hover:text-white hover:bg-white/5'}
+                        `}
+                    >
+                        <Store size={16} /> BAZAAR
+                    </button>
                     <button
                         onClick={() => setActiveTab('rewards')}
                         className={`

@@ -6,6 +6,18 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8765", "--directory", "/Users/sangar/Github/Editor-pixel-character"],
       "port": 8765
+    },
+    {
+      "name": "taskoria",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8766", "--directory", "/Users/sangar/Github/Taskoria/public"],
+      "port": 8766
+    },
+    {
+      "name": "taskoria-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
     }
   ]
 }

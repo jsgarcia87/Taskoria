@@ -104,6 +104,25 @@ export const characterReducer = (state, action) => {
             };
         }
 
+        case 'BUILD_ON_PLOT': {
+            const { plotId, buildingId, buildingName, cost: buildCost = 0 } = action.payload;
+            if (buildCost > 0 && state.character.gold < buildCost) return state;
+            const plots = state.character.ownedPlots || [];
+            const idx = plots.findIndex(p => p.plotId === plotId);
+            if (idx === -1) return state;
+            const updated = [...plots];
+            updated[idx] = { ...updated[idx], buildingId, buildingName, builtAt: Date.now() };
+            return {
+                ...state,
+                character: {
+                    ...state.character,
+                    gold: state.character.gold - (buildCost || 0),
+                    ownedPlots: updated,
+                },
+                log: [{ id: Date.now(), message: `Built ${buildingName || 'a building'} on your plot!`, type: 'reward' }, ...state.log]
+            };
+        }
+
         case 'BUY_ITEM_CUSTOM_PRICE': {
             const { item, price } = action.payload;
             return {

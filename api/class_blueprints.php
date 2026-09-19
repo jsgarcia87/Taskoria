@@ -8,7 +8,7 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
 
-$pdo = getDB();
+// $pdo is provided by db.php
 
 $pdo->exec("CREATE TABLE IF NOT EXISTS class_blueprints (
     class_id VARCHAR(64) NOT NULL PRIMARY KEY,
