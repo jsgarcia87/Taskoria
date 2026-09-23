@@ -4,6 +4,9 @@ import { Home, Map, Users, ExternalLink, X, Hammer, Library, Loader, Copy, Trash
 import { useToast } from '../common/Toast';
 import { useConfirm } from '../../context/ConfirmContext';
 import MapEditor from './admin/MapEditor';
+import StudioAccessRequests from './StudioAccessRequests';
+import CreationsModeration from './CreationsModeration';
+import { Palette } from 'lucide-react';
 
 const TOOLS = [
     {
@@ -33,12 +36,22 @@ const TOOLS = [
         color: 'rose',
         status: 'constructor',
     },
+    {
+        id: 'studio',
+        label: 'Pixel Studio',
+        icon: Palette,
+        src: null,
+        description: 'Cola de moderación de sprites y gestión de accesos al Studio.',
+        color: 'emerald',
+        status: 'active',
+    },
 ];
 
 const COLOR_MAP = {
-    amber:  { bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  text: 'text-amber-400',  glow: 'hover:shadow-amber-500/10' },
-    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', glow: 'hover:shadow-purple-500/10' },
-    rose:   { bg: 'bg-rose-500/10',   border: 'border-rose-500/30',   text: 'text-rose-400',   glow: 'hover:shadow-rose-500/10' },
+    amber:   { bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   text: 'text-amber-400',   glow: 'hover:shadow-amber-500/10' },
+    purple:  { bg: 'bg-purple-500/10',  border: 'border-purple-500/30',  text: 'text-purple-400',  glow: 'hover:shadow-purple-500/10' },
+    rose:    { bg: 'bg-rose-500/10',    border: 'border-rose-500/30',    text: 'text-rose-400',    glow: 'hover:shadow-rose-500/10' },
+    emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', glow: 'hover:shadow-emerald-500/10' },
 };
 
 const AdminWorldTools = ({ currentUser }) => {
@@ -283,19 +296,26 @@ const AdminWorldTools = ({ currentUser }) => {
                     </a>
                 </div>
 
-                {/* Iframe */}
-                <div className="flex-1 min-h-0">
-                    <iframe
-                        key={openTool}
-                        src={activeTool.src}
-                        title={activeTool.label}
-                        className="w-full h-full border-0 block"
-                        sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
-                        allow="clipboard-read; clipboard-write; fullscreen"
-                        allowFullScreen
-                        onLoad={handleIframeLoad}
-                    />
-                </div>
+                {/* Content */}
+                {activeTool.id === 'studio' ? (
+                    <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+                        <StudioAccessRequests currentUser={currentUser} />
+                        <CreationsModeration currentUser={currentUser} />
+                    </div>
+                ) : (
+                    <div className="flex-1 min-h-0">
+                        <iframe
+                            key={openTool}
+                            src={activeTool.src}
+                            title={activeTool.label}
+                            className="w-full h-full border-0 block"
+                            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
+                            allow="clipboard-read; clipboard-write; fullscreen"
+                            allowFullScreen
+                            onLoad={handleIframeLoad}
+                        />
+                    </div>
+                )}
             </div>,
             document.body
         );
@@ -378,8 +398,13 @@ const AdminWorldTools = ({ currentUser }) => {
                         <button
                             key={t.id}
                             onClick={() => {
-                                if (t.id === 'map' || t.id === 'house') {
+                                if (t.id === 'house') {
                                     window.open(t.src, 'taskoria_editor');
+                                    return;
+                                }
+                                if (t.id === 'map') {
+                                    setPendingEdit(null);
+                                    setOpenTool('map');
                                     return;
                                 }
                                 setOpenTool(t.id);

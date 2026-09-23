@@ -3,10 +3,12 @@ import {
     ArrowLeft, Save, FileUp, FileDown, Trash2, MousePointer2, Plus,
     Move, Grid, Eye, EyeOff, Layers, Info, Sparkles, MapPin, Home,
     Compass, TreePine, Package, Loader, X, Blocks, Magnet, Edit3,
+    ZoomIn, ZoomOut,
 } from 'lucide-react';
 import WorldCanvas from '../world/WorldCanvas';
 import { MAP_DATA } from '../world/MapData';
 import { WORLD_PROPS, WorldSprite } from '../world/worldProps';
+import { SPRITES, pixelBufferToDataUrl } from '../world/sprites';
 import { PREFAB_NAMES } from '../world/prefabs';
 import { useToast } from '../../common/Toast';
 
@@ -214,6 +216,11 @@ export default function MapEditor({ currentUser, initialDesign, onClose, onSaved
     // Scale reported by WorldCanvas (fit-to-container × zoom). Used to convert
     // screen-pixel deltas into map-pixel deltas when the operator drags.
     const scaleRef = useRef(1);
+    
+    // Pan state for middle-click/shift drag panning
+    const [pan, setPan] = useState({ x: 0, y: 0 });
+    const isPanning = useRef(false);
+
     // Live drag state (null when idle). Directly mutates the selected element;
     // pushed to history at drag start so undo restores the pre-drag position.
     const [dragState, setDragState] = useState(null);
@@ -224,6 +231,60 @@ export default function MapEditor({ currentUser, initialDesign, onClose, onSaved
         setHistory(h => [...h.slice(-49), JSON.parse(JSON.stringify(map))]);
         setRedoHistory([]);
     }, [map]);
+
+    useEffect(() => {
+        let hasMousePanned = false;
+        const onMouseMove = (e) => {
+            if (isPanning.current) {
+                if (Math.abs(e.movementX) > 1 || Math.abs(e.movementY) > 1) hasMousePanned = true;
+                setPan(p => ({ x: p.x + e.movementX, y: p.y + e.movementY }));
+            }
+        };
+        const onMouseUp = (e) => {
+            if (isPanning.current) {
+                isPanning.current = false;
+                if (hasMousePanned) suppressNextClickRef.current = true;
+                hasMousePanned = false;
+            }
+        };
+        
+        // Touch panning support
+        let lastTouch = null;
+        let hasPanned = false;
+        const onTouchMove = (e) => {
+            if (e.touches.length === 1 && isPanning.current) {
+                const touch = e.touches[0];
+                if (lastTouch) {
+                    const dx = touch.clientX - lastTouch.x;
+                    const dy = touch.clientY - lastTouch.y;
+                    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) hasPanned = true;
+                    setPan(p => ({ x: p.x + dx, y: p.y + dy }));
+                }
+                lastTouch = { x: touch.clientX, y: touch.clientY };
+            } else if (e.touches.length > 1) {
+                lastTouch = null; // Pinch zooming handled separately if needed
+            }
+        };
+        const onTouchEnd = () => {
+            if (isPanning.current) {
+                isPanning.current = false;
+                if (hasPanned) suppressNextClickRef.current = true;
+                lastTouch = null;
+                hasPanned = false;
+            }
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('touchmove', onTouchMove, { passive: false });
+        document.addEventListener('touchend', onTouchEnd);
+        return () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.removeEventListener('touchmove', onTouchMove);
+            document.removeEventListener('touchend', onTouchEnd);
+        };
+    }, []);
 
     const undo = () => {
         setHistory(h => {
@@ -453,7 +514,7 @@ export default function MapEditor({ currentUser, initialDesign, onClose, onSaved
     };
 
     const handleCanvasClick = (mapX, mapY) => {
-        // Any click that immediately follows a drag is the mouseup — swallow it
+        // Any click that immediately follows a drag or pan is the mouseup — swallow it
         // so the user's careful position isn't cleared as a "click elsewhere".
         if (suppressNextClickRef.current) {
             suppressNextClickRef.current = false;
@@ -495,12 +556,14 @@ export default function MapEditor({ currentUser, initialDesign, onClose, onSaved
     const beginDrag = (mode) => (e) => {
         if (!selectedItem || !selectedData) return;
         e.stopPropagation();
-        e.preventDefault();
+        if (e.type !== 'touchstart') e.preventDefault();
         pushHistory();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         setDragState({
             mode,
-            startX: e.clientX,
-            startY: e.clientY,
+            startX: clientX,
+            startY: clientY,
             startData: { ...selectedData },
         });
     };
@@ -511,8 +574,10 @@ export default function MapEditor({ currentUser, initialDesign, onClose, onSaved
         if (!dragState) return;
         const scale = scaleRef.current || 1;
         const onMove = (e) => {
-            const dx = (e.clientX - dragState.startX) / scale;
-            const dy = (e.clientY - dragState.startY) / scale;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const dx = (clientX - dragState.startX) / scale;
+            const dy = (clientY - dragState.startY) / scale;
             const start = dragState.startData;
             const patch = {};
             switch (dragState.mode) {
@@ -565,9 +630,13 @@ export default function MapEditor({ currentUser, initialDesign, onClose, onSaved
         document.body.style.userSelect = 'none';
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend', onUp);
         return () => {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend', onUp);
             document.body.style.userSelect = '';
         };
     }, [dragState, selectedItem]);
@@ -730,7 +799,7 @@ export default function MapEditor({ currentUser, initialDesign, onClose, onSaved
     return (
         <div className="fixed inset-0 z-[9999] flex flex-col bg-[#0c0a14] text-white">
             {/* Toolbar */}
-            <header className="flex items-center gap-2 px-4 py-2 bg-black/60 border-b border-white/10 backdrop-blur flex-shrink-0">
+            <header className="flex items-center gap-2 px-4 py-2 bg-black/60 border-b border-white/10 backdrop-blur flex-shrink-0 overflow-x-auto no-scrollbar">
                 <button
                     onClick={onClose}
                     className="flex items-center gap-1.5 text-xs font-bold text-gray-200 hover:text-white bg-rpg-gold/15 hover:bg-rpg-gold/25 border border-rpg-gold/40 text-rpg-gold px-3 py-1.5 rounded-lg transition-all"
@@ -803,8 +872,18 @@ export default function MapEditor({ currentUser, initialDesign, onClose, onSaved
                 </button>
 
                 <div className="flex-1" />
-
+                
                 {/* View controls */}
+                <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-lg p-1 mr-2">
+                    <button onClick={() => setZoom(z => Math.max(0.2, z - 0.2))} className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-all" title="Alejar (-)">
+                        <ZoomOut size={13}/>
+                    </button>
+                    <span className="text-[10px] font-mono text-gray-400 w-10 text-center select-none">{Math.round(zoom * 100)}%</span>
+                    <button onClick={() => setZoom(z => Math.min(3, z + 0.2))} className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-all" title="Acercar (+)">
+                        <ZoomIn size={13}/>
+                    </button>
+                </div>
+
                 <button onClick={() => setShowGrid(v => !v)} className={`flex items-center gap-1.5 text-xs font-bold border px-3 py-1.5 rounded-lg transition-all ${showGrid ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'}`} title="Grid (G)">
                     <Grid size={13}/>
                 </button>
@@ -845,50 +924,94 @@ export default function MapEditor({ currentUser, initialDesign, onClose, onSaved
                         })}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                    <div className="flex-1 overflow-y-auto p-2 grid grid-cols-2 gap-1 content-start">
                         {selectedCategory === 'tiles' ? (
                             PALETTE.tiles.items.map(item => (
                                 <button
                                     key={item.id}
                                     onClick={() => updateMap(m => { m.tileSprite = item.id; })}
-                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left border transition-all ${
+                                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
                                         map.tileSprite === item.id
                                             ? 'bg-rpg-gold/15 border-rpg-gold/40 text-rpg-gold'
                                             : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white'
                                     }`}
                                 >
-                                    <Grid size={14}/> {item.label}
-                                    <span className="ml-auto text-[10px] font-mono text-gray-500">{item.id}</span>
+                                    <div className="w-8 h-8 rounded border border-white/20" style={{
+                                        backgroundImage: SPRITES[item.id] ? `url("${pixelBufferToDataUrl(SPRITES[item.id], 64)}")` : 'none',
+                                        backgroundSize: '100% 100%',
+                                        imageRendering: 'pixelated'
+                                    }}/>
+                                    <span className="text-[9px] font-bold text-center leading-tight truncate w-full">{item.label}</span>
                                 </button>
                             ))
                         ) : (
-                            PALETTE[selectedCategory].items.map(item => (
+                            PALETTE[selectedCategory].items.map(item => {
+                                const prop = WORLD_PROPS[item.id];
+                                // We use a scaled down SVG or the WorldSprite for preview.
+                                // For prefabs or non-props, we just show a box.
+                                return (
                                 <button
                                     key={item.id}
                                     onClick={() => {
                                         setSelectedAsset(item);
                                         setTool('place');
                                     }}
-                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left border transition-all ${
+                                    className={`flex flex-col items-center p-2 rounded-lg border transition-all ${
                                         selectedAsset?.id === item.id && tool === 'place'
                                             ? 'bg-rpg-gold/15 border-rpg-gold/40 text-rpg-gold'
                                             : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white'
                                     }`}
                                 >
-                                    {item.label}
-                                    <span className="ml-auto text-[10px] font-mono text-gray-500 truncate max-w-[80px]">{item.id}</span>
+                                    <div className="h-12 w-full flex items-center justify-center overflow-hidden mb-1 relative">
+                                        {prop ? (
+                                            <div style={{ position: 'absolute', transform: 'scale(0.8)' }}>
+                                                <WorldSprite name={item.id} x={0} y={20} scale={1} shadow={false} />
+                                            </div>
+                                        ) : item.prefab ? (
+                                            <Blocks size={20} className="text-gray-500 opacity-50" />
+                                        ) : item.special ? (
+                                            <MapPin size={20} className="text-gray-500 opacity-50" />
+                                        ) : (
+                                            <div className="w-6 h-6 border border-dashed border-gray-500"/>
+                                        )}
+                                    </div>
+                                    <span className="text-[9px] font-bold text-center leading-tight w-full truncate">{item.label}</span>
                                 </button>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </aside>
 
                 {/* Canvas area */}
-                <main className="flex-1 relative min-w-0 bg-[#0a0812] overflow-hidden">
+                <main 
+                    className="flex-1 relative min-w-0 bg-[#0a0812] overflow-hidden"
+                    onWheel={(e) => {
+                        if (e.ctrlKey || e.metaKey) {
+                            e.preventDefault();
+                            setZoom(z => Math.min(3, Math.max(0.25, z - e.deltaY * 0.01)));
+                        } else {
+                            setPan(p => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
+                        }
+                    }}
+                    onMouseDown={(e) => {
+                        if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+                            e.preventDefault();
+                            isPanning.current = true;
+                        }
+                    }}
+                    onTouchStart={(e) => {
+                        // Two finger touch is for pinch zooming, one finger for panning (or click if no move)
+                        if (e.touches.length === 1) {
+                            isPanning.current = true;
+                        }
+                    }}
+                >
                     <WorldCanvas
                         map={map}
                         fit="contain"
                         zoom={zoom}
+                        pan={pan}
                         showGrid={showGrid}
                         showObstacles={showObstacles}
                         className="absolute inset-0"
@@ -1031,15 +1154,16 @@ function SelectionOutline({ item, data, onBeginDrag }) {
                 cursor: 'move',
             }}
             onMouseDown={onBeginDrag('move')}
+            onTouchStart={onBeginDrag('move')}
         >
             {isInstance ? (
-                <ResizeHandle style={{ right: -HANDLE / 2, bottom: -HANDLE / 2, cursor: 'nwse-resize' }} onMouseDown={onBeginDrag('scale')} />
+                <ResizeHandle style={{ right: -HANDLE / 2, bottom: -HANDLE / 2, cursor: 'nwse-resize' }} onMouseDown={onBeginDrag('scale')} onTouchStart={onBeginDrag('scale')} />
             ) : (isPrefab && !prefabResizable) ? null : (
                 <>
-                    <ResizeHandle style={{ left: -HANDLE / 2, top: -HANDLE / 2, cursor: 'nwse-resize' }} onMouseDown={onBeginDrag('nw')} />
-                    <ResizeHandle style={{ right: -HANDLE / 2, top: -HANDLE / 2, cursor: 'nesw-resize' }} onMouseDown={onBeginDrag('ne')} />
-                    <ResizeHandle style={{ left: -HANDLE / 2, bottom: -HANDLE / 2, cursor: 'nesw-resize' }} onMouseDown={onBeginDrag('sw')} />
-                    <ResizeHandle style={{ right: -HANDLE / 2, bottom: -HANDLE / 2, cursor: 'nwse-resize' }} onMouseDown={onBeginDrag('se')} />
+                    <ResizeHandle style={{ left: -HANDLE / 2, top: -HANDLE / 2, cursor: 'nwse-resize' }} onMouseDown={onBeginDrag('nw')} onTouchStart={onBeginDrag('nw')} />
+                    <ResizeHandle style={{ right: -HANDLE / 2, top: -HANDLE / 2, cursor: 'nesw-resize' }} onMouseDown={onBeginDrag('ne')} onTouchStart={onBeginDrag('ne')} />
+                    <ResizeHandle style={{ left: -HANDLE / 2, bottom: -HANDLE / 2, cursor: 'nesw-resize' }} onMouseDown={onBeginDrag('sw')} onTouchStart={onBeginDrag('sw')} />
+                    <ResizeHandle style={{ right: -HANDLE / 2, bottom: -HANDLE / 2, cursor: 'nwse-resize' }} onMouseDown={onBeginDrag('se')} onTouchStart={onBeginDrag('se')} />
                 </>
             )}
         </div>
@@ -1122,10 +1246,11 @@ function PlacementGhost({ asset, pos, snapFn }) {
     );
 }
 
-function ResizeHandle({ style, onMouseDown }) {
+function ResizeHandle({ style, onMouseDown, onTouchStart }) {
     return (
         <div
             onMouseDown={onMouseDown}
+            onTouchStart={onTouchStart}
             style={{
                 position: 'absolute',
                 width: 12, height: 12,

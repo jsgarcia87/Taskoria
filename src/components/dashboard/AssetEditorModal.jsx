@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save, Edit3, Trash2 } from 'lucide-react';
 import { useToast } from '../common/Toast';
 import ModernPixelAvatar from '../common/ModernPixelAvatar';
@@ -219,13 +220,14 @@ const AssetEditorModal = ({ asset, currentUser, onClose, onSaved }) => {
         // New React map editor — WYSIWYG, uses PlayableWorld's renderer.
         // onSaved refreshes AssetManager's grid so the edit shows up right
         // away; onClose goes back to the previous screen.
-        return (
+        return createPortal(
             <MapEditor
                 currentUser={currentUser}
                 initialDesign={{ name: asset.name, payload: parsedPayload, id: asset.id }}
                 onClose={onClose}
                 onSaved={onSaved}
-            />
+            />,
+            document.body
         );
     }
 

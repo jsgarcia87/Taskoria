@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, UserPlus, Shield, ShieldOff, Search, Loader, Users as UsersIcon, Settings as SettingsIcon, Hammer, Palette, Lightbulb, Check, Library, FileText, Eye, Clock, Mail, Save, Send, ChevronDown, ChevronUp, BarChart3, Swords } from 'lucide-react';
 import PixelIcon from '../common/PixelIcon';
-import CreationsModeration from './CreationsModeration';
-import StudioAccessRequests from './StudioAccessRequests';
 import AdminWorldTools from './AdminWorldTools';
 import AssetManager from './AssetManager';
 import CmsManager from '../admin/CmsManager';
@@ -318,7 +316,6 @@ const AdminPanel = ({ currentUser }) => {
                         { id: 'users',     label: 'Citizens',  icon: UsersIcon },
                         { id: 'server',    label: 'Gates',     icon: SettingsIcon, badge: waitlist.length || 0 },
                         { id: 'feedback',  label: 'Whispers',  icon: Lightbulb,    badge: suggestions.filter(s => s.status === 'new').length },
-                        { id: 'studio',    label: 'Studio',    icon: Palette },
                         { id: 'world',     label: 'World',     icon: Hammer },
                         { id: 'library',   label: 'Library',   icon: Library },
                         { id: 'emails',    label: 'Emails',    icon: Mail },
@@ -759,13 +756,6 @@ const AdminPanel = ({ currentUser }) => {
                 </div>
             )}
 
-            {/* === SECTION: PIXEL STUDIO (access requests + creations moderation) === */}
-            {activeSection === 'studio' && (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                    <StudioAccessRequests currentUser={currentUser} />
-                    <CreationsModeration currentUser={currentUser} />
-                </div>
-            )}
 
             {/* === SECTION: WORLD TOOLS === */}
             {activeSection === 'world' && (

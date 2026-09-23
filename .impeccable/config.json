@@ -127,6 +127,16 @@
         "rule": "codex-grid-background",
         "value": "medieval-town-bg co-focusing area cobblestone ground texture — intentional medieval rpg aesthetic",
         "createdAt": "2026-09-05T06:46:47.329Z"
+      },
+      {
+        "rule": "text-purple-400",
+        "value": "taskoria design system primary is #8b5cf6 (purple); set bonuses use purple consistently",
+        "createdAt": "2026-09-19T15:24:12.254Z"
+      },
+      {
+        "rule": "#a78bfa",
+        "value": "taskoria design system primary family; set resonance uses purple intentionally",
+        "createdAt": "2026-09-19T15:33:10.847Z"
       }
     ]
   }

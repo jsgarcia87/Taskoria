@@ -7,7 +7,7 @@ import {
     canEvolvePet,
     PET_BOND_MAX,
 } from '../utils/gameUtils';
-import { Edit2, Eye, EyeOff, X } from 'lucide-react'; // keeping small utility icons
+import { Edit2, Eye, EyeOff, X } from 'lucide-react';
 import { PressButton } from './common/PressButton';
 import { StatBar } from './common/StatBar';
 import { useConfirm } from '../context/ConfirmContext';
@@ -24,52 +24,117 @@ import DailyProgressChart from './dashboard/DailyProgressChart';
 import StatsRadarChart from './dashboard/StatsRadarChart';
 import { useToast } from './common/Toast';
 
-const RING_R = 30;
-const RING_C = 2 * Math.PI * RING_R;
+const CLASS_THEME = {
+    Fighter:     { accent: '#ef4444', icon: 'sword',  skillsLabel: 'Battle Stances',  gearLabel: 'Armory' },
+    Wizard:      { accent: '#818cf8', icon: 'book',   skillsLabel: 'Arcane Arts',     gearLabel: 'Arcanum' },
+    Rogue:       { accent: '#10b981', icon: 'skull',  skillsLabel: 'Shadow Tricks',   gearLabel: 'Stash' },
+    Cleric:      { accent: '#fbbf24', icon: 'zap',    skillsLabel: 'Divine Rites',    gearLabel: 'Vestments' },
+    Paladin:     { accent: '#f59e0b', icon: 'shield', skillsLabel: 'Sacred Oaths',    gearLabel: 'Arsenal' },
+    Ranger:      { accent: '#22c55e', icon: 'star',   skillsLabel: 'Wild Craft',      gearLabel: 'Kit' },
+    Barbarian:   { accent: '#dc2626', icon: 'sword',  skillsLabel: 'Primal Fury',     gearLabel: 'War Spoils' },
+    Bard:        { accent: '#a78bfa', icon: 'bell',   skillsLabel: 'Performances',    gearLabel: 'Repertoire' },
+    Druid:       { accent: '#4ade80', icon: 'heart',  skillsLabel: 'Nature Bonds',    gearLabel: 'Grove Cache' },
+    Monk:        { accent: '#f97316', icon: 'zap',    skillsLabel: 'Inner Forms',     gearLabel: 'Wrappings' },
+    Necromancer: { accent: '#7c3aed', icon: 'skull',  skillsLabel: 'Dark Pacts',      gearLabel: 'Reliquary' },
+    Antipaladin: { accent: '#991b1b', icon: 'shield', skillsLabel: 'Dread Vows',      gearLabel: 'Blight Forge' },
+    Sorcerer:    { accent: '#c084fc', icon: 'zap',    skillsLabel: 'Raw Channeling',  gearLabel: 'Focus Array' },
+    Scout:       { accent: '#06b6d4', icon: 'star',   skillsLabel: 'Recon Tactics',   gearLabel: 'Field Pack' },
+};
 
-// A single progress ring with the headline value centered inside. The
-// descriptive label/subtitle now live *beside* the ring (see StatReadout)
-// so the pair fills the row width instead of floating in the middle.
-const StatusRing = ({ value, max, centerValue, gradientId, colors, size = 64 }) => {
-    const pct = Math.min(value / max, 1);
+const STAT_CONFIG = [
+    { key: 'str', label: 'STR', full: 'Strength',     color: '#ef4444', bg: 'bg-red-500',    icon: 'sword'  },
+    { key: 'int', label: 'INT', full: 'Intelligence',  color: '#3b82f6', bg: 'bg-blue-500',   icon: 'book'   },
+    { key: 'dex', label: 'DEX', full: 'Dexterity',     color: '#22c55e', bg: 'bg-green-500',  icon: 'zap'    },
+    { key: 'con', label: 'CON', full: 'Constitution',  color: '#f97316', bg: 'bg-orange-500', icon: 'shield' },
+    { key: 'cha', label: 'CHA', full: 'Charisma',      color: '#eab308', bg: 'bg-yellow-500', icon: 'bell'   },
+    { key: 'will', label: 'WILL', full: 'Willpower',   color: '#a855f7', bg: 'bg-purple-500', icon: 'star'   },
+];
+
+const TIER_COLORS = {
+    bronze: { bg: 'from-amber-700 via-amber-600 to-amber-800', border: 'border-amber-600', text: 'text-amber-500' },
+    silver: { bg: 'from-slate-400 via-slate-300 to-slate-500', border: 'border-slate-400', text: 'text-slate-400' },
+    gold:   { bg: 'from-yellow-300 via-rpg-gold to-yellow-600', border: 'border-yellow-200', text: 'text-rpg-gold' },
+};
+
+const VitalRings = ({ xp, hp, level }) => {
+    const size = 160;
+    const cx = size / 2;
+    const cy = size / 2;
+    const strokeWidth = 11;
+    const gap = 5;
+    const outerR = (size - strokeWidth) / 2;
+    const innerR = outerR - strokeWidth - gap;
+    const xpPct = Math.min(xp.current / Math.max(xp.max, 1), 1);
+    const hpPct = Math.min(hp.current / Math.max(hp.max, 1), 1);
+    const outerCirc = 2 * Math.PI * outerR;
+    const innerCirc = 2 * Math.PI * innerR;
+    const xpToNext = xp.max - xp.current;
 
     return (
-        <div className="relative flex-shrink-0 flex items-center justify-center" style={{ width: size, height: size }}>
-            <svg viewBox="0 0 70 70" className="absolute inset-0 w-full h-full -rotate-90">
-                <circle cx="35" cy="35" r={RING_R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4.5" />
-                <circle
-                    cx="35" cy="35" r={RING_R}
-                    fill="none" stroke={`url(#${gradientId})`} strokeWidth="4.5"
-                    strokeLinecap="round"
-                    strokeDasharray={RING_C}
-                    strokeDashoffset={RING_C * (1 - pct)}
-                    className="transition-all duration-1000 ease-out"
-                />
-                <defs>
-                    <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor={colors[0]} />
-                        <stop offset="100%" stopColor={colors[1]} />
-                    </linearGradient>
-                </defs>
+        <div className="flex items-center gap-4">
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="block shrink-0">
+                <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} />
+                <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="#f59e0b" strokeWidth={strokeWidth}
+                    strokeLinecap="round" strokeDasharray={outerCirc} strokeDashoffset={outerCirc * (1 - xpPct)}
+                    transform={`rotate(-90 ${cx} ${cy})`} className="transition-all duration-1000 ease-out" />
+                <circle cx={cx} cy={cy} r={innerR} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} />
+                <circle cx={cx} cy={cy} r={innerR} fill="none" stroke="#ef4444" strokeWidth={strokeWidth}
+                    strokeLinecap="round" strokeDasharray={innerCirc} strokeDashoffset={innerCirc * (1 - hpPct)}
+                    transform={`rotate(-90 ${cx} ${cy})`} className="transition-all duration-1000 ease-out" />
+                <text x={cx} y={cy - 4} textAnchor="middle" fill="white" fontSize="26" fontWeight="bold" fontFamily="VT323, monospace">
+                    {level}
+                </text>
+                <text x={cx} y={cy + 14} textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="9" fontWeight="bold" letterSpacing="0.12em">
+                    LEVEL
+                </text>
             </svg>
-            <span className="z-10 font-display font-black text-white leading-none" style={{ fontSize: size * 0.3 }}>
-                <NumberTicker value={centerValue} />
-            </span>
+            <div className="flex flex-col gap-3 min-w-0">
+                <div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                        <span className="text-[10px] font-bold text-amber-400/80 uppercase tracking-wider">Exp</span>
+                    </div>
+                    <p className="text-sm font-pixel text-white leading-none">{xp.current.toLocaleString()} <span className="text-gray-600">/ {xp.max.toLocaleString()}</span></p>
+                    <p className="text-[9px] text-gray-600 mt-0.5">{xpToNext.toLocaleString()} to next</p>
+                </div>
+                <div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+                        <span className="text-[10px] font-bold text-red-400/80 uppercase tracking-wider">Health</span>
+                    </div>
+                    <p className="text-sm font-pixel text-white leading-none">{hp.current} <span className="text-gray-600">/ {hp.max}</span></p>
+                </div>
+            </div>
         </div>
     );
 };
 
-// Ring + label/subtitle laid out horizontally. Two of these split the header
-// row in half, so the width is used evenly and the composition stays balanced.
-const StatReadout = ({ ringProps, label, subtitle, accent }) => (
-    <div className="flex-1 flex items-center justify-center gap-3 py-4 px-3">
-        <StatusRing {...ringProps} />
-        <div className="flex flex-col leading-tight min-w-0">
-            <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: accent }}>{label}</span>
-            {subtitle && <span className="text-[11px] font-bold text-gray-500 mt-0.5 truncate">{subtitle}</span>}
-        </div>
+const SectionDivider = ({ label, icon, color }) => (
+    <div className="flex items-center gap-2">
+        <PixelIcon name={icon} size={10} color={color + '70'} />
+        <span className="text-[10px] font-heading font-bold uppercase tracking-[0.15em]" style={{ color: color + '80' }}>{label}</span>
+        <div className="h-px flex-1" style={{ backgroundColor: color + '15' }} />
     </div>
 );
+
+const getHeroTitle = (level, tasksCompleted, charClass) => {
+    if (level >= 30) return `Legendary ${charClass}`;
+    if (level >= 20) return `Veteran ${charClass}`;
+    if (level >= 10) return `Seasoned ${charClass}`;
+    if (level >= 5) return `Aspiring ${charClass}`;
+    return `Fledgling ${charClass}`;
+};
+
+const getChronicleQuip = (tasksCompleted, habitsCompleted, goldEarned) => {
+    const total = tasksCompleted + habitsCompleted;
+    if (total >= 500) return 'A pillar of the Archive. The kingdom stands on your discipline.';
+    if (total >= 200) return 'The Council speaks your name with reverence.';
+    if (total >= 100) return 'Your deeds echo through the halls of the Archive.';
+    if (total >= 50) return 'A rising force in the realm. The Council takes notice.';
+    if (total >= 20) return 'The first chapters of your legend are being written.';
+    if (total >= 5) return 'Every journey begins with a single quest.';
+    return 'The Archive awaits your first mark.';
+};
 
 const petDisplayLabel = (type) => {
     for (const chain of Object.values(PET_EVOLUTION_CHAINS)) {
@@ -84,7 +149,7 @@ const CharacterSheet = ({ setActiveView }) => {
     const toast = useToast();
     const confirm = useConfirm();
     const { character } = state;
-    const [activeTab, setActiveTab] = useState('stats'); // stats | inventory | skills
+    const [activeTab, setActiveTab] = useState('overview');
     const [isSellModalOpen, setIsSellModalOpen] = useState(false);
     const [itemToSell, setItemToSell] = useState(null);
     const [sellPrice, setSellPrice] = useState('');
@@ -98,42 +163,31 @@ const CharacterSheet = ({ setActiveView }) => {
 
     const inventoryGroups = character.inventory?.reduce((acc, item) => {
         const existing = acc.find(i => i.id === item.id);
-        if (existing) {
-            existing.count += 1;
-        } else {
-            acc.push({ ...item, count: 1 });
-        }
+        if (existing) existing.count += 1;
+        else acc.push({ ...item, count: 1 });
         return acc;
     }, []) || [];
 
-    // Resolve the avatar with a fallback chain so legacy characters that never
-    // set `avatarId` still show a face (class → sensible default → fighter).
     const charData =
         CHARACTERS.find(c => c.id === character.avatarId) ||
         CHARACTERS.find(c => c.class === character.class) ||
         CHARACTERS.find(c => c.id === (character.avatarType || '').toLowerCase()) ||
         CHARACTERS[0];
 
-    // Calculate percentages for bars with safety checks
-    const hpPercent = character.hp ? (character.hp.current / character.hp.max) * 100 : 0;
-    const xpPercent = character.xp ? (character.xp.current / character.xp.max) * 100 : 0;
+    const theme = CLASS_THEME[character.class] || CLASS_THEME.Fighter;
 
-    const startEditing = () => {
-        setIsEditModalOpen(true);
-    };
+    const startEditing = () => setIsEditModalOpen(true);
 
     const handleSaveAvatar = (newAvatarId, newColors, cost) => {
         actions.updateAvatar(newAvatarId, newColors, cost);
         setIsEditModalOpen(false);
     };
 
-    const handleEquip = (item) => {
-        actions.equipItem(item, item.slot);
-    };
+    const handleEquip = (item) => actions.equipItem(item, item.slot);
 
     const handleSellClick = (item) => {
         setItemToSell(item);
-        setSellPrice(item.cost.toString()); // default to original cost
+        setSellPrice(item.cost.toString());
         setIsSellModalOpen(true);
     };
 
@@ -147,36 +201,19 @@ const CharacterSheet = ({ setActiveView }) => {
 
     const confirmMarketListing = async () => {
         if (!itemToSell || !sellPrice) return;
-
         setIsListing(true);
-        // Find seller info from family data
         const currentProfile = familyData?.profiles?.find(p => p.id === activeProfileId);
         const sellerName = currentProfile ? currentProfile.name : character.name;
-        // In this single-user but multi-profile mock, the overall user ID isn't directly exposed here, 
-        // we can grab it from localStorage session or pass it down via GameContext.
         const session = JSON.parse(localStorage.getItem('taskoria_session') || '{}');
         const userId = session.id || 1;
-
         try {
             const res = await fetch('api/market.php?action=sell', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    profile_id: activeProfileId,
-                    seller_name: sellerName,
-                    item: itemToSell,
-                    price: parseInt(sellPrice)
-                })
+                body: JSON.stringify({ user_id: userId, profile_id: activeProfileId, seller_name: sellerName, item: itemToSell, price: parseInt(sellPrice) })
             });
-
             const data = await res.json();
             if (data.success) {
-                // Must remove item from inventory
-                // To do this simply, we can re-use a variant of sellItem but for 0 gold, 
-                // or just call a new action `REMOVE_ITEM`.
-                // For now, let's just use sellItem but we'd need to modify context slightly.
-                // Or we can add a simple remove action. Let's add and call listMarketItem
                 actions.listMarketItem(itemToSell);
                 setIsSellModalOpen(false);
                 setItemToSell(null);
@@ -195,35 +232,21 @@ const CharacterSheet = ({ setActiveView }) => {
         const isInSanctuary = pet.inSanctuary;
         const actionText = isInSanctuary ? "retrieve" : "deposit";
         if (!await confirm({ title: isInSanctuary ? 'Recall Companion?' : 'Release to Sanctuary?', message: `Your companion will be ${isInSanctuary ? 'retrieved from' : 'deposited into'} the Wild Sanctuary.`, variant: 'warning', confirmText: isInSanctuary ? 'Recall' : 'Release' })) return;
-
-        setIsReleasing(true); // Using same loading state
+        setIsReleasing(true);
         try {
             const currentProfile = familyData?.profiles?.find(p => p.id === activeProfileId);
             const ownerName = currentProfile ? currentProfile.name : character.name;
-            const profileId = activeProfileId || 'default'; // Fallback
-
+            const profileId = activeProfileId || 'default';
             const res = await fetch(`api/sanctuary.php?action=${actionText}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    profile_id: profileId,
-                    owner_name: ownerName,
-                    pet_type: pet.type,
-                    pet_level: pet.level,
-                    pet_xp: pet.xp.current,
-                    is_market: 0
-                })
+                body: JSON.stringify({ profile_id: profileId, owner_name: ownerName, pet_type: pet.type, pet_level: pet.level, pet_xp: pet.xp.current, is_market: 0 })
             });
-
             const data = await res.json();
-            if (data.success) {
-                actions.toggleSanctuaryPet(pet.id);
-            } else {
-                toast.error(data.error || `The Sanctuary could not ${actionText} your companion.`);
-            }
+            if (data.success) actions.toggleSanctuaryPet(pet.id);
+            else toast.error(data.error || `The Sanctuary could not ${actionText} your companion.`);
         } catch (e) {
             console.error(`Sanctuary ${actionText} error`, e);
-            // Fallback for offline mode or syntax errors
             actions.toggleSanctuaryPet(pet.id);
         } finally {
             setIsReleasing(false);
@@ -238,30 +261,15 @@ const CharacterSheet = ({ setActiveView }) => {
                 const currentProfile = familyData?.profiles?.find(p => p.id === activeProfileId);
                 const ownerName = currentProfile ? currentProfile.name : character.name;
                 const profileId = activeProfileId || 'default';
-
-                // Adoption fee/price logic: level * 100
                 const price = pet.level * 100;
-
                 const res = await fetch(`api/sanctuary.php?action=deposit`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        profile_id: profileId,
-                        owner_name: ownerName,
-                        pet_type: pet.type,
-                        pet_level: pet.level,
-                        pet_xp: pet.xp.current,
-                        price: price,
-                        is_market: 1 // This IS for the adoption market
-                    })
+                    body: JSON.stringify({ profile_id: profileId, owner_name: ownerName, pet_type: pet.type, pet_level: pet.level, pet_xp: pet.xp.current, price, is_market: 1 })
                 });
-
                 const data = await res.json();
-                if (data.success) {
-                    actions.releasePet(pet.id);
-                } else {
-                    toast.error(data.error || "The Sanctuary could not process this adoption.");
-                }
+                if (data.success) actions.releasePet(pet.id);
+                else toast.error(data.error || "The Sanctuary could not process this adoption.");
             } catch (e) {
                 console.error("Adoption error", e);
                 actions.releasePet(pet.id);
@@ -271,10 +279,8 @@ const CharacterSheet = ({ setActiveView }) => {
         }
     };
 
-    // Mock Skills Data based on Class
     const getSkills = (charClass) => {
         const skills = {
-            // Skill icons reference PixelIcon names (sword/shield/zap/bell/book/skull/trophy/star/heart)
             'Fighter': [
                 { name: 'Power Strike', type: 'Physical', desc: 'Deal 150% DMG', icon: 'sword', color: '#ef4444' },
                 { name: 'Shield Wall', type: 'Defense', desc: '+50 Defense for 1 turn', icon: 'shield', color: '#94a3b8' },
@@ -299,202 +305,299 @@ const CharacterSheet = ({ setActiveView }) => {
                 { name: 'Smite', type: 'Physical', desc: 'Deal 120% Holy DMG', icon: 'zap', color: '#fbbf24' },
                 { name: 'Aura of Courage', type: 'Passive', desc: 'Party is immune to fear', icon: 'shield', color: '#f59e0b' },
                 { name: 'Lay on Hands', type: 'Utility', desc: 'Massive single-target heal', icon: 'trophy', color: '#fde68a' }
-            ]
+            ],
+            'Ranger': [
+                { name: 'Twin Arrows', type: 'Physical', desc: 'Hit twice at 80% DMG each', icon: 'star', color: '#22c55e' },
+                { name: 'Trap Sense', type: 'Passive', desc: '+15% loot from quests', icon: 'zap', color: '#4ade80' },
+                { name: 'Nature\'s Cloak', type: 'Utility', desc: 'Reduce penalty on overdue tasks', icon: 'shield', color: '#16a34a' }
+            ],
+            'Barbarian': [
+                { name: 'Reckless Blow', type: 'Physical', desc: 'Deal 200% DMG, take 20% recoil', icon: 'sword', color: '#dc2626' },
+                { name: 'Blood Rage', type: 'Buff', desc: '+30% DMG when HP below 50%', icon: 'heart', color: '#b91c1c' },
+                { name: 'Unbreakable', type: 'Passive', desc: 'Survive a killing blow once per day', icon: 'shield', color: '#991b1b' }
+            ],
+            'Bard': [
+                { name: 'Inspiring Ballad', type: 'Buff', desc: '+10% XP to all party members', icon: 'bell', color: '#a78bfa' },
+                { name: 'Discordant Note', type: 'Magic', desc: 'Reduce enemy DEF by 25%', icon: 'zap', color: '#8b5cf6' },
+                { name: 'Encore', type: 'Passive', desc: 'Streak bonuses last 1 extra day', icon: 'star', color: '#c084fc' }
+            ],
+            'Druid': [
+                { name: 'Thornwall', type: 'Defense', desc: 'Reflect 30% DMG to attackers', icon: 'shield', color: '#4ade80' },
+                { name: 'Wild Growth', type: 'Magic', desc: 'Heal 20 HP + remove 1 debuff', icon: 'heart', color: '#22c55e' },
+                { name: 'Symbiosis', type: 'Passive', desc: 'Pet gains +25% Bond from tasks', icon: 'star', color: '#15803d' }
+            ],
+            'Monk': [
+                { name: 'Flurry of Blows', type: 'Physical', desc: '3 hits at 60% DMG each', icon: 'zap', color: '#f97316' },
+                { name: 'Inner Peace', type: 'Passive', desc: '+15% XP from Focus sessions', icon: 'star', color: '#ea580c' },
+                { name: 'Iron Body', type: 'Defense', desc: 'Reduce all damage taken by 20%', icon: 'shield', color: '#c2410c' }
+            ],
+            'Necromancer': [
+                { name: 'Life Drain', type: 'Magic', desc: 'Deal DMG and heal for 50% dealt', icon: 'skull', color: '#7c3aed' },
+                { name: 'Bone Armor', type: 'Defense', desc: 'Absorb next 3 hits', icon: 'shield', color: '#6d28d9' },
+                { name: 'Raise Dead', type: 'Utility', desc: 'Recover a failed task without penalty', icon: 'zap', color: '#5b21b6' }
+            ],
+            'Antipaladin': [
+                { name: 'Smite the Worthy', type: 'Physical', desc: 'Deal 140% DMG, ignore DEF', icon: 'sword', color: '#991b1b' },
+                { name: 'Aura of Dread', type: 'Buff', desc: 'Enemy damage reduced by 15%', icon: 'skull', color: '#7f1d1d' },
+                { name: 'Dark Pact', type: 'Passive', desc: '+20% Gold from hard tasks', icon: 'star', color: '#450a0a' }
+            ],
+            'Sorcerer': [
+                { name: 'Chain Lightning', type: 'Magic', desc: 'Hit 3 targets for 70% DMG each', icon: 'zap', color: '#c084fc' },
+                { name: 'Mana Shield', type: 'Defense', desc: 'Absorb DMG using MP first', icon: 'shield', color: '#a855f7' },
+                { name: 'Surge', type: 'Passive', desc: 'Crit chance +10% per completed streak', icon: 'star', color: '#9333ea' }
+            ],
+            'Scout': [
+                { name: 'Quick Shot', type: 'Physical', desc: 'Always strike first in combat', icon: 'star', color: '#06b6d4' },
+                { name: 'Cartography', type: 'Passive', desc: 'Reveal hidden loot in dungeons', icon: 'book', color: '#0891b2' },
+                { name: 'Evasion', type: 'Defense', desc: '30% chance to dodge any attack', icon: 'zap', color: '#0e7490' }
+            ],
         };
         return skills[charClass] || [];
     };
 
+    const xpToNext = character.xp.max - character.xp.current;
+    const equippedCount = character.equipment ? Object.values(character.equipment).filter(Boolean).length : 0;
+
     return (
         <div className="glass-panel h-full flex flex-col rounded-2xl overflow-hidden relative min-h-[600px] border border-white/10 shadow-2xl">
-            {/* Background Decoration */}
-            <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/30 via-purple-950/20 to-transparent pointer-events-none"></div>
 
-            {/* Header */}
-            <div className="p-6 pb-2 relative z-10">
-                <div className="flex items-center gap-4">
-                    <div className="w-[72px] h-[72px] bg-black/30 rounded-2xl border border-white/10 flex items-center justify-center shadow-lg relative overflow-hidden group flex-shrink-0">
-                        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <AvatarSpeechBubble idleTimeMs={30000}>
-                            <ModernPixelAvatar
-                                type={charData.avatarType || charData.id}
-                                scale={1.8}
-                                customColors={character?.avatarColors}
-                                headOnly={true}
-                            />
-                        </AvatarSpeechBubble>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                            <h2 className="text-2xl font-display font-bold text-white tracking-tight truncate">{character.name}</h2>
-                            <button
-                                onClick={startEditing}
-                                className="p-1.5 text-gray-400 hover:text-white bg-white/5 rounded-full hover:bg-white/10 transition-all flex-shrink-0"
-                            >
-                                <Edit2 size={12} />
-                            </button>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1.5">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/8 text-rpg-gold shadow-sm border border-rpg-gold/20 uppercase tracking-wide">
-                                {character.class}
+            {/* ═══════ HERO BANNER ═══════ */}
+            <div className="px-5 pt-5 pb-4 border-b border-white/5">
+                {/* Top row: currencies + actions */}
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-black/30">
+                            <PixelIcon name="coins" size={12} color="#fbbf24" />
+                            <span className="font-pixel text-base text-amber-400 leading-none">
+                                <NumberTicker value={character.gold} />
                             </span>
-                            <button
-                                onClick={() => actions.toggleResting()}
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border whitespace-nowrap ${character.isResting ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/30' : 'bg-black/20 border-white/10 text-gray-400 hover:text-white hover:border-white/20'}`}
-                                title={character.isResting ? "Leave the Inn" : "Rest at the Inn (Halts Penalties)"}
-                            >
-                                {character.isResting ? '🌙 Resting' : '🏕️ Go to Inn'}
-                            </button>
                         </div>
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-black/30">
+                            <PixelIcon name="clock" size={12} color="#60a5fa" />
+                            <span className="font-pixel text-base text-blue-400 leading-none">{character.timePoints}m</span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => actions.toggleResting()}
+                            className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${character.isResting
+                                ? 'bg-indigo-500/15 text-indigo-300'
+                                : 'text-gray-500 hover:text-gray-300'}`}
+                            title={character.isResting ? "Leave the Inn" : "Rest at the Inn"}
+                        >
+                            {character.isResting ? 'Resting' : 'Inn'}
+                        </button>
+                        <button onClick={startEditing} className="p-1.5 text-gray-500 hover:text-white transition-colors">
+                            <Edit2 size={12} />
+                        </button>
                     </div>
                 </div>
 
-                {/* Status Rings */}
-                <div className="mt-5 flex items-stretch rounded-2xl bg-black/25 border border-white/8 overflow-hidden">
-                    <StatReadout
-                        accent="#fbbf24"
-                        label="Level"
-                        subtitle={`${(character.xp.max - character.xp.current).toLocaleString()} XP`}
-                        ringProps={{
-                            value: character.xp.current,
-                            max: character.xp.max,
-                            centerValue: character.level,
-                            gradientId: 'xpGrad',
-                            colors: ['#fbbf24', '#f59e0b'],
-                        }}
-                    />
-                    <div className="w-px bg-white/10 my-4" />
-                    <StatReadout
-                        accent="#f87171"
-                        label="Health"
-                        subtitle={`of ${character.hp.max} max`}
-                        ringProps={{
-                            value: character.hp.current,
-                            max: character.hp.max,
-                            centerValue: character.hp.current,
-                            gradientId: 'hpGrad',
-                            colors: ['#ef4444', '#f87171'],
-                        }}
-                    />
+                {/* Avatar + Identity */}
+                <div className="flex items-center gap-4">
+                    <div className="relative flex-shrink-0">
+                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-black/30 flex items-center justify-center"
+                            style={{ border: `2px solid ${theme.accent}25` }}>
+                            <AvatarSpeechBubble idleTimeMs={30000}>
+                                <ModernPixelAvatar
+                                    type={charData.avatarType || charData.id}
+                                    headOnly
+                                    scale={3.5}
+                                    customColors={character?.avatarColors}
+                                />
+                            </AvatarSpeechBubble>
+                        </div>
+                        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-black/90 rounded px-1.5 py-0.5 flex items-center gap-0.5 whitespace-nowrap"
+                            style={{ border: `1px solid ${theme.accent}40` }}>
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500">Lv</span>
+                            <span className="font-pixel text-sm leading-none" style={{ color: theme.accent }}>
+                                <NumberTicker value={character.level} />
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                        <h2 className="text-lg font-heading font-bold text-white tracking-tight truncate leading-tight">{character.name}</h2>
+                        <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: theme.accent }}>
+                            <PixelIcon name={theme.icon} size={9} color={theme.accent} /> {character.class}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            {/* Navigation Tabs — icon stacked over label (mobile tab-bar
-                pattern) so 5 tabs breathe at narrow widths. */}
-            <div className="px-3 flex gap-1 border-b border-white/5 mt-4">
+            {/* ═══════ TAB BAR ═══════ */}
+            <div className="px-3 flex gap-0.5 border-b border-white/5 bg-black/20">
                 {[
-                    { id: 'stats', label: 'Stats', icon: 'zap' },
-                    { id: 'skills', label: 'Skills', icon: 'book' },
-                    { id: 'inventory', label: 'Gear', icon: 'gear' },
-                    { id: 'companion', label: 'Pet', icon: 'heart' },
-                    { id: 'medals', label: 'Medals', icon: 'star' },
+                    { id: 'overview', label: 'Hero', icon: 'star' },
+                    { id: 'gear', label: 'Gear', icon: 'sword' },
+                    { id: 'companion', label: 'Bond', icon: 'heart' },
+                    { id: 'journal', label: 'Ledger', icon: 'book' },
                 ].map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`
-                            flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-t-lg border-b-2 transition-all
-                            ${activeTab === tab.id
-                                ? 'border-rpg-gold/60 text-white bg-white/5'
-                                : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'}
-                        `}
+                        className={`flex-1 flex flex-col items-center gap-1 py-2 border-b-2 transition-all ${activeTab === tab.id
+                            ? 'border-rpg-gold/60 text-white bg-white/5'
+                            : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'}`}
                     >
-                        <PixelIcon name={tab.icon} size={16} />
-                        <span className="text-[10px] font-bold uppercase tracking-wide">{tab.label}</span>
+                        <PixelIcon name={tab.icon} size={14} />
+                        <span className="text-[9px] font-bold uppercase tracking-wide">{tab.label}</span>
                     </button>
                 ))}
             </div>
 
-            {/* Content Area */}
-            <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
-                {activeTab === 'stats' && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* ═══════ TAB CONTENT ═══════ */}
+            <div className="flex-grow overflow-y-auto custom-scrollbar">
 
-                        {/* Daily Progress Chart */}
-                        <DailyProgressChart />
+                {/* ─── OVERVIEW TAB ─── */}
+                {activeTab === 'overview' && (
+                    <div className="p-5 space-y-5 animate-tab-in">
 
-                        {/* Attribute Radar Chart */}
-                        <StatsRadarChart stats={character.stats || { str: 10, int: 10, dex: 10 }} />
+                        {/* Vitals + Radar side by side on desktop */}
+                        <div className="flex flex-col md:flex-row items-stretch gap-4">
+                            <div className="flex-1 flex items-center justify-center p-4 rounded-xl bg-black/20 border border-white/5">
+                                <VitalRings xp={character.xp} hp={character.hp} level={character.level || 1} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <StatsRadarChart stats={character.stats || { str: 10, int: 10, dex: 10 }} />
+                            </div>
+                        </div>
 
-                        {/* Attribute Stats Grid */}
-                        <div className="grid grid-cols-3 gap-4">
-                            {[
-                                { key: 'str', label: 'STR', color: 'red' },
-                                { key: 'int', label: 'INT', color: 'blue' },
-                                { key: 'dex', label: 'DEX', color: 'green' },
-                                { key: 'con', label: 'CON', color: 'orange' },
-                                { key: 'cha', label: 'CHA', color: 'yellow' },
-                                { key: 'will', label: 'WILL', color: 'purple' },
-                            ].map((stat, idx) => {
+                        {/* 6 Attribute Tiles */}
+                        <div className="grid grid-cols-3 gap-2.5">
+                            {STAT_CONFIG.map((stat, idx) => {
                                 const baseValue = character.baseStats?.[stat.key] || 10;
                                 const totalValue = character.stats?.[stat.key] || 10;
                                 const bonus = totalValue - baseValue;
+                                const pct = Math.min(totalValue / 50, 1);
                                 return (
-                                    <div
-                                        key={stat.key}
-                                        className="glass-card p-4 flex flex-col items-center relative overflow-hidden group hover:-translate-y-1 transition-transform"
-                                        style={{
-                                            animation: `statTileIn 0.5s ease-out ${idx * 70}ms both`,
-                                        }}
-                                    >
-                                        <div className={`absolute inset-0 transition-colors ${{
-                                            red: 'bg-red-500/5 group-hover:bg-red-500/10', blue: 'bg-blue-500/5 group-hover:bg-blue-500/10',
-                                            green: 'bg-green-500/5 group-hover:bg-green-500/10', orange: 'bg-orange-500/5 group-hover:bg-orange-500/10',
-                                            yellow: 'bg-amber-500/5 group-hover:bg-amber-500/10', purple: 'bg-purple-500/5 group-hover:bg-purple-500/10',
-                                        }[stat.color] || 'bg-gray-500/5 group-hover:bg-gray-500/10'}`}></div>
-                                        <span className={`text-xs font-bold font-display uppercase tracking-widest mb-1 z-10 ${{
-                                            red: 'text-red-400/70', blue: 'text-blue-400/70', green: 'text-green-400/70',
-                                            orange: 'text-orange-400/70', yellow: 'text-amber-400/70', purple: 'text-purple-400/70',
-                                        }[stat.color] || 'text-gray-400'}`}>{stat.label}</span>
-                                        <div className="flex items-baseline gap-1 z-10">
-                                            <NumberTicker value={totalValue} className="text-3xl font-display font-bold text-white" />
-                                            {bonus > 0 && <span className="text-[10px] font-bold text-green-400">+{bonus}</span>}
+                                    <div key={stat.key} className="relative p-3 pb-2 rounded-xl bg-black/30 border border-white/5 overflow-hidden"
+                                        style={{ animation: `statTileIn 0.5s ease-out ${idx * 60}ms both` }}>
+                                        <div className="flex flex-col items-center">
+                                            <div className="flex items-center gap-1 mb-0.5">
+                                                <PixelIcon name={stat.icon} size={8} color={stat.color + '80'} />
+                                                <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: stat.color + '99' }}>{stat.label}</span>
+                                            </div>
+                                            <div className="flex items-baseline gap-0.5">
+                                                <NumberTicker value={totalValue} className="text-2xl font-pixel text-white leading-none" />
+                                                {bonus > 0 && <span className="text-[9px] font-bold text-green-400">+{bonus}</span>}
+                                            </div>
+                                            <span className="text-[7px] font-bold uppercase tracking-widest mt-0.5 opacity-40" style={{ color: stat.color }}>{stat.full}</span>
+                                        </div>
+                                        {/* Bottom progress track */}
+                                        <div className="mt-2 h-[3px] rounded-full bg-white/5 overflow-hidden">
+                                            <div className="h-full rounded-full transition-all duration-1000 ease-out"
+                                                style={{ width: `${pct * 100}%`, backgroundColor: stat.color, opacity: 0.6 }} />
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
 
-
-                            {/* Active Set Bonuses */}
-                            {character.activeSets && Object.keys(character.activeSets).length > 0 && (
-                                <div className="mt-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                    <h3 className="text-rpg-gold text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
-                                        <PixelIcon name="star" size={12} color="#FFD700" /> Active Set Bonuses
-                                    </h3>
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {Object.entries(character.activeSets).map(([setId, count]) => {
-                                            const bonuses = SET_BONUSES[setId] || [];
-                                            const activeBonuses = bonuses.filter(b => count >= b.count);
-                                            
-                                            if (activeBonuses.length === 0) return null;
-
-                                            return (
-                                                <div key={setId} className="glass-card p-3 bg-purple-500/5">
-                                                    <div className="flex justify-between items-center mb-2">
-                                                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">{setId} Set</span>
-                                                        <span className="text-[10px] font-bold text-purple-400">{count} Items</span>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        {activeBonuses.map((bonus, idx) => (
-                                                            <div key={idx} className="flex items-center gap-2">
-                                                                <div className="w-1 h-1 rounded-full bg-purple-400"></div>
-                                                                <span className="text-[11px] text-gray-300 font-medium">{bonus.label}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                        {/* Equipment Quick View */}
+                        <div>
+                            <div className="mb-3">
+                                <SectionDivider label={theme.gearLabel} icon="shield" color={theme.accent} />
+                                <div className="text-right mt-1">
+                                    <span className="text-xs font-pixel text-gray-500">{equippedCount}/5 equipped</span>
                                 </div>
-                            )}
+                            </div>
+                            <div className="grid grid-cols-5 gap-2">
+                                {[
+                                    { label: 'Head', slot: EQUIPMENT_SLOTS.HEAD, icon: 'shield' },
+                                    { label: 'Body', slot: EQUIPMENT_SLOTS.BODY, icon: 'shirt' },
+                                    { label: 'Main', slot: EQUIPMENT_SLOTS.MAIN_HAND, icon: 'sword' },
+                                    { label: 'Off', slot: EQUIPMENT_SLOTS.OFF_HAND, icon: 'shield' },
+                                    { label: 'Ring', slot: EQUIPMENT_SLOTS.RING, icon: 'zap' },
+                                ].map((slotInfo) => {
+                                    const equippedItem = character.equipment && character.equipment[slotInfo.slot];
+                                    return (
+                                        <div key={slotInfo.slot} className="flex flex-col items-center gap-1">
+                                            <div className={`w-full aspect-square rounded-xl border flex items-center justify-center transition-all ${equippedItem
+                                                ? 'bg-white/5 border-white/15 shadow-sm'
+                                                : 'bg-black/30 border-white/5'}`}
+                                                title={equippedItem ? `${equippedItem.name} (${slotInfo.label})` : `${slotInfo.label} - Empty`}>
+                                                {equippedItem ? (
+                                                    <Sprite src={equippedItem.sprite.src} x={equippedItem.sprite.x} y={equippedItem.sprite.y} width={equippedItem.sprite.width} height={equippedItem.sprite.height} scale={1} />
+                                                ) : (
+                                                    <PixelIcon name={slotInfo.icon} size={16} color="#4b5563" />
+                                                )}
+                                            </div>
+                                            <span className="text-[8px] font-bold text-gray-600 uppercase tracking-wider">{slotInfo.label}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
 
-                            {/* Equipment Section (The Doll) */}
-                        <div className="mt-8">
-                            <h3 className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <PixelIcon name="shield" size={12} color="#94a3b8" /> Equipment Slots
-                            </h3>
-                            <div className="grid grid-cols-2 gap-3">
+                        {/* Active Set Bonuses */}
+                        {character.activeSets && Object.keys(character.activeSets).length > 0 && (
+                            <div>
+                                <div className="mb-3">
+                                    <SectionDivider label="Set Resonance" icon="star" color="#a78bfa" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    {Object.entries(character.activeSets).map(([setId, count]) => {
+                                        const bonuses = SET_BONUSES[setId] || [];
+                                        const activeBonuses = bonuses.filter(b => count >= b.count);
+                                        if (activeBonuses.length === 0) return null;
+                                        return (
+                                            <div key={setId} className="p-2.5 rounded-lg bg-purple-500/5 border border-purple-500/10">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="text-[10px] font-bold text-white uppercase tracking-wider">{setId}</span>
+                                                    <span className="font-pixel text-sm text-purple-400">{count} pcs</span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {activeBonuses.map((bonus, idx) => (
+                                                        <span key={idx} className="text-[9px] font-medium text-purple-300/80 bg-purple-500/10 px-1.5 py-0.5 rounded">{bonus.label}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Skills */}
+                        <div>
+                            <div className="mb-3">
+                                <SectionDivider label={theme.skillsLabel} icon={theme.icon} color={theme.accent} />
+                            </div>
+                            <div className="space-y-2">
+                                {getSkills(character.class).map((skill, idx) => {
+                                    const isLocked = character.level < (idx * 3 + 1);
+                                    return (
+                                        <div key={idx} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${isLocked
+                                            ? 'opacity-40 grayscale border-white/5 bg-black/20'
+                                            : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10'}`}>
+                                            <div className="w-9 h-9 flex items-center justify-center bg-black/40 rounded-lg border border-white/10 shrink-0">
+                                                <PixelIcon name={skill.icon} size={18} color={isLocked ? '#6b7280' : skill.color} />
+                                            </div>
+                                            <div className="flex-grow min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-white text-xs truncate">{skill.name}</span>
+                                                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400 border border-white/5 uppercase font-bold tracking-wider shrink-0">{skill.type}</span>
+                                                </div>
+                                                <p className="text-[10px] text-gray-500 mt-0.5">{isLocked ? `Unlocks at Level ${idx * 3 + 1}` : skill.desc}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ─── GEAR TAB ─── */}
+                {activeTab === 'gear' && (
+                    <div className="p-5 space-y-5 animate-tab-in">
+                        {/* Equipment Slots (detailed) */}
+                        <div>
+                            <div className="mb-3">
+                                <SectionDivider label={theme.gearLabel} icon="shield" color={theme.accent} />
+                            </div>
+                            <div className="space-y-2">
                                 {[
                                     { label: 'Head', slot: EQUIPMENT_SLOTS.HEAD, icon: 'shield', color: '#64748b' },
                                     { label: 'Armor', slot: EQUIPMENT_SLOTS.BODY, icon: 'shirt', color: '#94a3b8' },
@@ -504,35 +607,24 @@ const CharacterSheet = ({ setActiveView }) => {
                                 ].map((slotInfo) => {
                                     const equippedItem = character.equipment && character.equipment[slotInfo.slot];
                                     return (
-                                        <div key={slotInfo.slot} className="flex flex-col gap-2 p-3 glass-card bg-black/30 border border-white/5 group hover:border-purple-500/30 transition-all">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-black/40 rounded border border-white/10 flex items-center justify-center shrink-0">
-                                                    {equippedItem ? (
-                                                        <Sprite
-                                                            src={equippedItem.sprite.src}
-                                                            x={equippedItem.sprite.x}
-                                                            y={equippedItem.sprite.y}
-                                                            width={equippedItem.sprite.width}
-                                                            height={equippedItem.sprite.height}
-                                                            scale={1}
-                                                        />
-                                                    ) : (
-                                                        <PixelIcon name={slotInfo.icon} size={16} color={slotInfo.color} className="opacity-30" />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 overflow-hidden">
-                                                    <p className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">{slotInfo.label}</p>
-                                                    <p className={`text-[11px] font-bold truncate ${equippedItem ? 'text-white' : 'text-gray-600 italic'}`}>
-                                                        {equippedItem ? equippedItem.name : 'Empty'}
-                                                    </p>
-                                                </div>
+                                        <div key={slotInfo.slot} className="flex items-center gap-3 p-2.5 rounded-xl bg-black/20 border border-white/5 group hover:border-white/10 transition-all">
+                                            <div className="w-10 h-10 bg-black/40 rounded-lg border border-white/10 flex items-center justify-center shrink-0">
+                                                {equippedItem ? (
+                                                    <Sprite src={equippedItem.sprite.src} x={equippedItem.sprite.x} y={equippedItem.sprite.y} width={equippedItem.sprite.width} height={equippedItem.sprite.height} scale={1} />
+                                                ) : (
+                                                    <PixelIcon name={slotInfo.icon} size={16} color={slotInfo.color} className="opacity-30" />
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">{slotInfo.label}</p>
+                                                <p className={`text-xs font-bold truncate ${equippedItem ? 'text-white' : 'text-gray-600 italic'}`}>
+                                                    {equippedItem ? equippedItem.name : 'Empty'}
+                                                </p>
                                             </div>
                                             {equippedItem && (
-                                                <button
-                                                    onClick={() => actions.unequipItem(slotInfo.slot)}
-                                                    className="w-full py-1 text-[9px] font-bold uppercase tracking-tighter bg-red-500/5 hover:bg-red-500/20 text-red-500 rounded border border-red-500/10 transition-all mt-1"
-                                                >
-                                                    Unequip
+                                                <button onClick={() => actions.unequipItem(slotInfo.slot)}
+                                                    className="px-2 py-1 text-[9px] font-bold uppercase bg-red-500/5 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 rounded-lg border border-red-500/10 transition-all opacity-0 group-hover:opacity-100">
+                                                    Remove
                                                 </button>
                                             )}
                                         </div>
@@ -540,272 +632,185 @@ const CharacterSheet = ({ setActiveView }) => {
                                 })}
                             </div>
                         </div>
-                    </div>
-                )}
 
-                {activeTab === 'skills' && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {getSkills(character.class).map((skill, idx) => {
-                            const isLocked = character.level < (idx * 3 + 1);
-                            return (
-                                <div key={idx} className={`glass-card p-4 flex items-start gap-4 ${isLocked ? 'opacity-50 grayscale' : ''} group hover:border-white/20 transition-all`}>
-                                    <div className="w-12 h-12 flex items-center justify-center bg-black/30 rounded-xl border border-white/10 shrink-0">
-                                        <PixelIcon name={skill.icon} size={22} color={skill.color || '#fbbf24'} />
-                                    </div>
-                                    <div className="flex-grow">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <h4 className="font-bold text-white text-sm">{skill.name}</h4>
-                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-gray-300 border border-white/5 uppercase font-bold tracking-wider">{skill.type}</span>
-                                        </div>
-                                        <p className="text-xs text-gray-400 leading-relaxed">{skill.desc}</p>
-                                        {isLocked && (
-                                            <p className="text-xs text-red-400 mt-2 font-bold flex items-center gap-1">
-                                                <PixelIcon name="shield" size={10} color="#f87171" /> Unlocks at Level {idx * 3 + 1}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-
-                {activeTab === 'inventory' && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {inventoryGroups.length > 0 ? (
-                            inventoryGroups.map((item, index) => (
-                                <div key={index} className="glass-card p-2 pr-4 flex justify-between items-center group hover:bg-white/5 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-black/30 rounded-lg flex items-center justify-center border border-white/10 relative">
-                                            {item.sprite ? (
-                                                <Sprite
-                                                    src={item.sprite.src}
-                                                    x={item.sprite.x}
-                                                    y={item.sprite.y}
-                                                    width={item.sprite.width}
-                                                    height={item.sprite.height}
-                                                    scale={1}
-                                                />
-                                            ) : (
-                                                <PixelIcon name="box" size={20} className="text-gray-500" />
-                                            )}
-                                            {item.count > 1 && (
-                                                <span className="absolute -top-2 -right-2 bg-rpg-gold text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-yellow-200 shadow-md">
-                                                    x{item.count}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <p className="text-white font-bold text-xs">{item.name}</p>
-                                            <p className="text-gray-500 text-[10px]">{item.description}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {item.type === ITEM_TYPES.GEAR && (
-                                            <button
-                                                onClick={() => handleEquip(item)}
-                                                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-purple-600/50 hover:text-white text-[10px] font-bold text-gray-300 transition-colors border border-white/5"
-                                            >
-                                                EQUIP
-                                            </button>
-                                        )}
-                                        {item.type === ITEM_TYPES.CONSUMABLE && (
-                                            <button
-                                                onClick={() => actions.useItem(item)}
-                                                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-green-600/50 hover:text-white text-[10px] font-bold text-gray-300 transition-colors border border-white/5"
-                                            >
-                                                USE
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => handleSellClick(item)}
-                                            className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-yellow-500/20 hover:text-yellow-400 text-[10px] font-bold text-gray-400 transition-colors border border-white/5"
-                                        >
-                                            SELL
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="text-center py-10 px-4 glass-panel border-dashed border-white/10 opacity-80 flex flex-col items-center justify-center gap-3">
-                                <PixelIcon name="box" size={40} className="text-gray-500" />
-                                <div>
-                                    <div className="text-sm font-bold text-gray-300 uppercase tracking-widest">Empty Satchel</div>
-                                    <div className="text-xs text-gray-500 mt-1 max-w-[260px] mx-auto">Complete quests and defeat bosses to find loot.</div>
-                                </div>
-                                {setActiveView && (
-                                    <button
-                                        onClick={() => setActiveView('shop')}
-                                        className="text-[11px] font-bold uppercase tracking-widest border border-rpg-gold/40 text-rpg-gold hover:bg-rpg-gold/10 hover:border-rpg-gold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
-                                    >
-                                        <PixelIcon name="coins" size={12} color="#fbbf24" /> Visit the Shop
-                                    </button>
-                                )}
+                        {/* Inventory */}
+                        <div>
+                            <div className="mb-3">
+                                <SectionDivider label="Satchel" icon="box" color="#94a3b8" />
+                                {inventoryGroups.length > 0 && <div className="text-right mt-1"><span className="text-gray-600 font-pixel text-sm">{inventoryGroups.length} items</span></div>}
                             </div>
-                        )}
+                            {inventoryGroups.length > 0 ? (
+                                <div className="space-y-1.5">
+                                    {inventoryGroups.map((item, index) => (
+                                        <div key={index} className="flex items-center gap-3 p-2 rounded-xl bg-black/20 border border-white/5 group hover:bg-white/[0.03] transition-colors">
+                                            <div className="w-9 h-9 bg-black/40 rounded-lg flex items-center justify-center border border-white/10 relative shrink-0">
+                                                {item.sprite ? (
+                                                    <Sprite src={item.sprite.src} x={item.sprite.x} y={item.sprite.y} width={item.sprite.width} height={item.sprite.height} scale={1} />
+                                                ) : (
+                                                    <PixelIcon name="box" size={18} className="text-gray-500" />
+                                                )}
+                                                {item.count > 1 && (
+                                                    <span className="absolute -top-1.5 -right-1.5 bg-rpg-gold text-black text-[8px] font-bold px-1 py-px rounded-full border border-yellow-200 shadow-sm">
+                                                        x{item.count}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-white font-bold text-xs truncate">{item.name}</p>
+                                                <p className="text-gray-500 text-[9px] truncate">{item.description}</p>
+                                            </div>
+                                            <div className="flex gap-1.5 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                {item.type === ITEM_TYPES.GEAR && (
+                                                    <button onClick={() => handleEquip(item)}
+                                                        className="px-2 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/30 text-[9px] font-bold text-purple-300 transition-colors border border-purple-500/20">
+                                                        EQUIP
+                                                    </button>
+                                                )}
+                                                {item.type === ITEM_TYPES.CONSUMABLE && (
+                                                    <button onClick={() => actions.useItem(item)}
+                                                        className="px-2 py-1 rounded-lg bg-green-500/10 hover:bg-green-500/30 text-[9px] font-bold text-green-300 transition-colors border border-green-500/20">
+                                                        USE
+                                                    </button>
+                                                )}
+                                                <button onClick={() => handleSellClick(item)}
+                                                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-amber-500/20 text-[9px] font-bold text-gray-400 hover:text-amber-400 transition-colors border border-white/5">
+                                                    SELL
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 px-4 rounded-xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-2">
+                                    <PixelIcon name="box" size={32} className="text-gray-600" />
+                                    <div>
+                                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Empty Satchel</div>
+                                        <div className="text-[10px] text-gray-600 mt-0.5">Complete quests to find loot.</div>
+                                    </div>
+                                    {setActiveView && (
+                                        <button onClick={() => setActiveView('shop')}
+                                            className="mt-1 text-[10px] font-bold uppercase tracking-widest border border-rpg-gold/30 text-rpg-gold hover:bg-rpg-gold/10 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
+                                            <PixelIcon name="coins" size={10} color="#fbbf24" /> Visit Shop
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
 
+                {/* ─── COMPANION TAB ─── */}
                 {activeTab === 'companion' && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="p-5 space-y-5 animate-tab-in">
                         {character.pets && character.pets.length > 0 ? (
                             character.pets.map((pet) => (
-                                <div key={pet.id} className="flex flex-col items-center bg-black/20 p-6 rounded-2xl border border-white/5 relative mb-6">
-                                    <button
-                                        onClick={() => confirmAdoption(pet)}
-                                        disabled={isReleasing}
-                                        className="absolute top-4 right-4 text-[10px] font-bold uppercase tracking-wider text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-lg border border-red-500/20 transition-all disabled:opacity-50"
-                                    >
-                                        Give for Adoption
+                                <div key={pet.id} className="flex flex-col items-center bg-black/20 p-5 rounded-2xl border border-white/5 relative">
+                                    <button onClick={() => confirmAdoption(pet)} disabled={isReleasing}
+                                        className="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-wider text-red-400/60 hover:text-red-400 bg-red-500/5 hover:bg-red-500/15 px-2 py-1 rounded-lg border border-red-500/10 transition-all disabled:opacity-50">
+                                        Give Away
                                     </button>
-                                    <div className="w-32 h-32 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full border border-white/10 flex items-center justify-center shadow-lg relative mb-4 overflow-hidden">
-                                        <ModernPixelPet type={pet.type} size={120} />
-                                    </div>
-                                    <h3 className="text-xl font-display font-bold text-white capitalize">{petDisplayLabel(pet.type)}</h3>
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-sm border border-white/10 uppercase tracking-wide">
-                                            Lvl {pet.level}
-                                        </span>
-                                    </div>
-                                    <div className="mb-6 bg-black/40 p-2 rounded-xl border border-white/5 flex items-center gap-3">
-                                        <span className="text-xs text-gray-400 font-bold uppercase tracking-widest pl-2">Display Next to Hero</span>
-                                        <button
-                                            onClick={() => actions.togglePetVisibility(pet.id)}
-                                            className={`flex items-center justify-center p-2 rounded-lg transition-colors border ${pet.showPet !== false ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-white/5 border-white/10 text-gray-500 hover:text-white'}`}
-                                        >
-                                            {pet.showPet !== false ? <Eye size={16} /> : <EyeOff size={16} />}
-                                        </button>
-                                    </div>
 
-                                    <div className="mb-6 w-full flex justify-center">
-                                        <button
-                                            onClick={() => toggleSanctuary(pet)}
-                                            disabled={isReleasing}
-                                            className={`text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-xl transition-all disabled:opacity-50 border ${pet.inSanctuary
-                                                ? 'text-amber-400 hover:text-amber-300 border-amber-500/30 hover:bg-amber-500/10'
-                                                : 'text-emerald-400 hover:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10'
-                                                }`}
-                                        >
-                                            {isReleasing
-                                                ? 'Processing...'
-                                                : (pet.inSanctuary ? 'Retrieve from Sanctuary' : 'Send to Sanctuary (Rest)')}
+                                    {/* Pet Visual */}
+                                    <div className="w-28 h-28 bg-black/30 rounded-full border border-white/10 flex items-center justify-center relative mb-3 overflow-hidden">
+                                        <ModernPixelPet type={pet.type} size={110} />
+                                    </div>
+                                    <h3 className="text-lg font-display font-bold text-white capitalize">{petDisplayLabel(pet.type)}</h3>
+                                    <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 uppercase tracking-wide mt-1 mb-3 font-pixel text-base">
+                                        Lvl {pet.level}
+                                    </span>
+
+                                    {/* Toggle buttons row */}
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <button onClick={() => actions.togglePetVisibility(pet.id)}
+                                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${pet.showPet !== false
+                                                ? 'bg-green-500/15 border-green-500/30 text-green-400'
+                                                : 'bg-white/5 border-white/10 text-gray-500 hover:text-white'}`}>
+                                            {pet.showPet !== false ? <Eye size={12} /> : <EyeOff size={12} />}
+                                            {pet.showPet !== false ? 'Visible' : 'Hidden'}
+                                        </button>
+                                        <button onClick={() => toggleSanctuary(pet)} disabled={isReleasing}
+                                            className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all disabled:opacity-50 border ${pet.inSanctuary
+                                                ? 'text-amber-400 border-amber-500/30 hover:bg-amber-500/10'
+                                                : 'text-gray-400 border-white/10 hover:text-emerald-400 hover:border-emerald-500/20'}`}>
+                                            {isReleasing ? '...' : (pet.inSanctuary ? 'Retrieve' : 'To Sanctuary')}
                                         </button>
                                     </div>
 
                                     {/* Pet Stats */}
-                                    <div className="w-full space-y-4">
-                                        <div className="relative group">
-                                            <div className="flex justify-between mb-1 text-xs font-bold uppercase tracking-wider">
-                                                <span className="text-amber-400 flex items-center gap-1"><PixelIcon name="star" size={12} color="#fbbf24" className="fill-current" /> Exp</span>
-                                                <span className="text-gray-400">{Math.floor(pet.xp.current)} / {pet.xp.max}</span>
+                                    <div className="w-full space-y-3">
+                                        <div>
+                                            <div className="flex justify-between mb-1 text-[10px] font-bold uppercase tracking-wider">
+                                                <span className="text-amber-400 flex items-center gap-1"><PixelIcon name="star" size={10} color="#fbbf24" /> Exp</span>
+                                                <span className="text-gray-500 font-pixel text-sm">{Math.floor(pet.xp.current)}/{pet.xp.max}</span>
                                             </div>
                                             <StatBar current={pet.xp.current} max={pet.xp.max} kind="xp" celebrateAtMax={false} />
                                         </div>
-
-                                        {/* Bond — grows with every interaction, amplifies pet perks */}
-                                        <div className="relative group">
-                                            <div className="flex justify-between mb-1 text-xs font-bold uppercase tracking-wider">
-                                                <span className="text-rose-400 flex items-center gap-1"><PixelIcon name="heart" size={12} color="#fb7185" /> Bond</span>
-                                                <span className="text-gray-400">{pet.bond || 0} / {PET_BOND_MAX}</span>
+                                        <div>
+                                            <div className="flex justify-between mb-1 text-[10px] font-bold uppercase tracking-wider">
+                                                <span className="text-rose-400 flex items-center gap-1"><PixelIcon name="heart" size={10} color="#fb7185" /> Bond</span>
+                                                <span className="text-gray-500 font-pixel text-sm">{pet.bond || 0}/{PET_BOND_MAX}</span>
                                             </div>
-                                            <StatBar current={pet.bond || 0} max={PET_BOND_MAX} kind="bond" height="h-2" />
+                                            <StatBar current={pet.bond || 0} max={PET_BOND_MAX} kind="bond" height="h-1.5" />
                                         </div>
-
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div className="relative group">
-                                                <div className="flex justify-between mb-1 text-[10px] font-bold uppercase tracking-wider">
-                                                    <span className="text-orange-400 flex items-center gap-1">Hunger</span>
-                                                    <span className={pet.hunger < 20 ? "text-red-500 animate-pulse" : "text-gray-400"}>{Math.floor(pet.hunger)}%</span>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {[
+                                                { label: 'Hunger', value: pet.hunger, color: 'text-orange-400', kind: 'hunger' },
+                                                { label: 'Happy', value: pet.happiness || 100, color: 'text-pink-400', kind: 'happy' },
+                                                { label: 'Clean', value: pet.hygiene || 100, color: 'text-blue-400', kind: 'hygiene' },
+                                            ].map(s => (
+                                                <div key={s.label}>
+                                                    <div className="flex justify-between mb-0.5 text-[9px] font-bold uppercase tracking-wider">
+                                                        <span className={s.color}>{s.label}</span>
+                                                        <span className={`font-pixel text-sm ${Math.floor(s.value) < 20 ? "text-red-500" : "text-gray-500"}`}>{Math.floor(s.value)}%</span>
+                                                    </div>
+                                                    <StatBar current={s.value} max={100} kind={s.kind} dangerBelow={20} height="h-1.5" celebrateAtMax={false} />
                                                 </div>
-                                                <StatBar current={pet.hunger} max={100} kind="hunger" dangerBelow={20} height="h-2" celebrateAtMax={false} />
-                                            </div>
-
-                                            <div className="relative group">
-                                                <div className="flex justify-between mb-1 text-[10px] font-bold uppercase tracking-wider">
-                                                    <span className="text-pink-400 flex items-center gap-1">Happy</span>
-                                                    <span className={(pet.happiness || 100) < 20 ? "text-red-500 animate-pulse" : "text-gray-400"}>{Math.floor(pet.happiness || 100)}%</span>
-                                                </div>
-                                                <StatBar current={pet.happiness || 100} max={100} kind="happy" dangerBelow={20} height="h-2" celebrateAtMax={false} />
-                                            </div>
-
-                                            <div className="relative group">
-                                                <div className="flex justify-between mb-1 text-[10px] font-bold uppercase tracking-wider">
-                                                    <span className="text-blue-400 flex items-center gap-1">Clean</span>
-                                                    <span className={(pet.hygiene || 100) < 20 ? "text-red-500 animate-pulse" : "text-gray-400"}>{Math.floor(pet.hygiene || 100)}%</span>
-                                                </div>
-                                                <StatBar current={pet.hygiene || 100} max={100} kind="hygiene" dangerBelow={20} height="h-2" celebrateAtMax={false} />
-                                            </div>
+                                            ))}
                                         </div>
                                     </div>
 
                                     {/* Interaction Buttons */}
-                                    <div className="grid grid-cols-2 gap-3 w-full mt-6">
-                                        <button
-                                            onClick={() => actions.playWithPet(pet.id)}
-                                            disabled={pet.inSanctuary}
-                                            className="flex items-center justify-center gap-2 py-2 rounded-xl border border-white/10 bg-white/5 text-gray-300 hover:bg-pink-500/10 hover:border-pink-500/30 hover:text-pink-400 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50"
-                                        >
-                                            <PixelIcon name="heart" size={14} color="#f472b6" />
-                                            Play
+                                    <div className="grid grid-cols-2 gap-2 w-full mt-4">
+                                        <button onClick={() => actions.playWithPet(pet.id)} disabled={pet.inSanctuary}
+                                            className="flex items-center justify-center gap-1.5 py-2 rounded-xl border border-white/10 bg-white/5 text-gray-300 hover:bg-pink-500/10 hover:border-pink-500/30 hover:text-pink-400 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50">
+                                            <PixelIcon name="heart" size={12} color="#f472b6" /> Play
                                         </button>
-                                        <button
-                                            onClick={() => actions.cleanPet(pet.id)}
-                                            disabled={pet.inSanctuary}
-                                            className="flex items-center justify-center gap-2 py-2 rounded-xl border border-white/10 bg-white/5 text-gray-300 hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50"
-                                        >
-                                            <PixelIcon name="zap" size={14} color="#60a5fa" />
-                                            Groom
+                                        <button onClick={() => actions.cleanPet(pet.id)} disabled={pet.inSanctuary}
+                                            className="flex items-center justify-center gap-1.5 py-2 rounded-xl border border-white/10 bg-white/5 text-gray-300 hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50">
+                                            <PixelIcon name="zap" size={12} color="#60a5fa" /> Groom
                                         </button>
                                     </div>
 
-                                    {/* PERKS + EVOLUTION */}
+                                    {/* Perks + Evolution */}
                                     {(SPECIES_PERKS[pet.type] || canEvolvePet(pet)) && (
                                         <div className="w-full mt-4 p-3 rounded-xl bg-gradient-to-br from-amber-500/5 via-transparent to-rose-500/5 border border-white/10">
                                             {SPECIES_PERKS[pet.type] && (
                                                 <>
-                                                    <h4 className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                                                        <PixelIcon name="star" size={10} color="#fbbf24" /> Active Perks
-                                                        {pet.inSanctuary && <span className="text-[9px] text-gray-500 normal-case font-normal italic">(disabled while resting)</span>}
-                                                        {!pet.showPet && !pet.inSanctuary && <span className="text-[9px] text-gray-500 normal-case font-normal italic">(disabled while hidden)</span>}
+                                                    <h4 className="text-[9px] font-bold text-amber-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                                        <PixelIcon name="star" size={9} color="#fbbf24" /> Active Perks
+                                                        {pet.inSanctuary && <span className="text-[8px] text-gray-500 normal-case font-normal italic">(disabled)</span>}
+                                                        {!pet.showPet && !pet.inSanctuary && <span className="text-[8px] text-gray-500 normal-case font-normal italic">(hidden)</span>}
                                                     </h4>
-                                                    <div className="flex flex-wrap gap-1.5">
+                                                    <div className="flex flex-wrap gap-1">
                                                         {Object.entries(SPECIES_PERKS[pet.type]).map(([key, value]) => {
-                                                            const label = {
-                                                                xpMult:      `+${Math.round(value * 100)}% XP`,
-                                                                goldMult:    `+${Math.round(value * 100)}% Gold`,
-                                                                dmgMult:     `+${Math.round(value * 100)}% DMG`,
-                                                                hardDmgMult: `+${Math.round(value * 100)}% DMG (hard)`,
-                                                            }[key] || `${key} ${value}`;
-                                                            const color = {
-                                                                xpMult: 'amber', goldMult: 'yellow', dmgMult: 'red', hardDmgMult: 'orange',
-                                                            }[key] || 'gray';
+                                                            const label = { xpMult: `+${Math.round(value * 100)}% XP`, goldMult: `+${Math.round(value * 100)}% Gold`, dmgMult: `+${Math.round(value * 100)}% DMG`, hardDmgMult: `+${Math.round(value * 100)}% DMG (hard)` }[key] || `${key} ${value}`;
                                                             return (
-                                                                <span key={key} className={`text-[10px] font-bold px-2 py-0.5 rounded border ${{
-                                                                    amber: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
-                                                                    yellow: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30',
-                                                                    red: 'bg-red-500/10 text-red-300 border-red-500/30',
-                                                                    orange: 'bg-orange-500/10 text-orange-300 border-orange-500/30',
-                                                                    gray: 'bg-gray-500/10 text-gray-300 border-gray-500/30',
-                                                                }[color] || 'bg-gray-500/10 text-gray-300 border-gray-500/30'}`}>
+                                                                <span key={key} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
                                                                     {label}
                                                                 </span>
                                                             );
                                                         })}
                                                     </div>
                                                     {(pet.bond || 0) >= 25 && (
-                                                        <p className="text-[9px] text-rose-300/70 mt-2 italic">
-                                                            Bond {pet.bond}/100 amplifies these perks ×{pet.bond >= 100 ? '1.5' : pet.bond >= 75 ? '1.3' : pet.bond >= 50 ? '1.15' : '1.05'}
+                                                        <p className="text-[8px] text-rose-300/60 mt-1.5 italic">
+                                                            Bond {pet.bond}/100 amplifies perks x{pet.bond >= 100 ? '1.5' : pet.bond >= 75 ? '1.3' : pet.bond >= 50 ? '1.15' : '1.05'}
                                                         </p>
                                                     )}
                                                 </>
                                             )}
-
-                                            {/* Evolution CTA — shows only once the pet hits the level threshold */}
                                             {canEvolvePet(pet) && (
-                                                <button
-                                                    onClick={() => actions.evolvePet(pet.id)}
-                                                    className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-rpg-gold to-amber-400 text-rpg-bg hover:brightness-110 font-heading font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(251,191,36,0.4)]"
-                                                >
+                                                <button onClick={() => actions.evolvePet(pet.id)}
+                                                    className="w-full mt-2.5 flex items-center justify-center gap-2 py-2 rounded-xl bg-gradient-to-r from-rpg-gold to-amber-400 text-rpg-bg hover:brightness-110 font-heading font-bold text-xs uppercase tracking-widest">
                                                     <PixelIcon name="zap" size={14} color="#1a102e" />
                                                     Evolve into {EVOLUTIONS[pet.type].label}
                                                 </button>
@@ -814,35 +819,33 @@ const CharacterSheet = ({ setActiveView }) => {
                                     )}
 
                                     {/* Feed Section */}
-                                    <div className="w-full mt-6">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-white/10 pb-2">Pantry (Pet Food)</h4>
-
+                                    <div className="w-full mt-4">
+                                        <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 border-b border-white/5 pb-1.5">Pantry</h4>
                                         {pet.inSanctuary ? (
-                                            <div className="bg-black/30 border border-emerald-500/20 rounded-xl p-4 text-center">
-                                                <p className="text-emerald-400/80 text-sm font-bold uppercase tracking-widest mb-1">Resting at Sanctuary</p>
-                                                <p className="text-gray-500 text-[10px]">Your pet is currently recovering happiness and fullness. Bring them back to resume feeding.</p>
+                                            <div className="bg-black/30 border border-emerald-500/15 rounded-xl p-3 text-center">
+                                                <p className="text-emerald-400/80 text-xs font-bold uppercase tracking-widest mb-0.5">Resting at Sanctuary</p>
+                                                <p className="text-gray-600 text-[9px]">Bring them back to resume feeding.</p>
                                             </div>
                                         ) : (
-                                            <div className="space-y-2">
+                                            <div className="space-y-1.5">
                                                 {character.inventory && character.inventory.filter(i => i.type === ITEM_TYPES.PET_FOOD).length > 0 ? (
                                                     character.inventory.filter(i => i.type === ITEM_TYPES.PET_FOOD).map((food, idx) => (
-                                                        <div key={idx} className="glass-card p-2 pr-4 flex justify-between items-center bg-black/20 group hover:border-rpg-gold/30 transition-all">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 bg-black/30 rounded border border-white/10 flex items-center justify-center">
-                                                                    <Sprite src={food.sprite.src} x={food.sprite.x} y={food.sprite.y} width={food.sprite.width} height={food.sprite.height} scale={1} />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-white font-bold text-xs">{food.name}</p>
-                                                                    <p className="text-gray-500 text-[10px]">{food.description}</p>
-                                                                </div>
+                                                        <div key={idx} className="flex items-center gap-3 p-2 rounded-xl bg-black/20 border border-white/5 group hover:border-rpg-gold/20 transition-all">
+                                                            <div className="w-8 h-8 bg-black/40 rounded-lg border border-white/10 flex items-center justify-center shrink-0">
+                                                                <Sprite src={food.sprite.src} x={food.sprite.x} y={food.sprite.y} width={food.sprite.width} height={food.sprite.height} scale={1} />
                                                             </div>
-                                                            <button onClick={() => actions.feedPet(pet.id, food)} className="px-3 py-1.5 rounded-lg bg-green-500/20 hover:bg-green-500 hover:text-white text-[10px] font-bold text-green-400 transition-all border border-green-500/30 whitespace-nowrap group-hover:shadow-[0_0_10px_rgba(34,197,94,0.3)]">
-                                                                FEED PET
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-white font-bold text-xs truncate">{food.name}</p>
+                                                                <p className="text-gray-600 text-[9px] truncate">{food.description}</p>
+                                                            </div>
+                                                            <button onClick={() => actions.feedPet(pet.id, food)}
+                                                                className="px-2.5 py-1 rounded-lg bg-green-500/15 hover:bg-green-500/30 text-[9px] font-bold text-green-400 transition-all border border-green-500/20 shrink-0">
+                                                                FEED
                                                             </button>
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <p className="text-center text-xs text-gray-500 italic py-4 bg-black/20 rounded-xl border border-white/5">No pet food in inventory. Visit the Market!</p>
+                                                    <p className="text-center text-[10px] text-gray-600 italic py-3 bg-black/20 rounded-xl border border-white/5">No pet food. Visit the Market!</p>
                                                 )}
                                             </div>
                                         )}
@@ -851,136 +854,127 @@ const CharacterSheet = ({ setActiveView }) => {
                             ))
                         ) : (
                             <div className="text-center py-12">
-                                <PixelIcon name="heart" size={48} className="mx-auto text-gray-700 mb-2" />
-                                <p className="text-gray-500 text-sm">You do not have a companion yet.</p>
+                                <PixelIcon name="heart" size={40} className="mx-auto text-gray-700 mb-2" />
+                                <p className="text-gray-500 text-sm">No companion yet.</p>
                             </div>
                         )}
                     </div>
                 )}
 
-                {activeTab === 'medals' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="mb-4">
-                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Lifetime Achievements</h3>
-                            <div className="flex gap-4 text-xs mt-2">
-                                <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">Quests: <span className="text-white font-bold">{character.achievements?.tasks || 0}</span></span>
-                                <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">Habits: <span className="text-white font-bold">{character.achievements?.habits || 0}</span></span>
-                                <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">Gold: <span className="text-rpg-gold font-bold">{character.achievements?.goldEarned || 0}</span></span>
+                {/* ─── JOURNAL TAB (Progress + Medals) ─── */}
+                {activeTab === 'journal' && (
+                    <div className="p-5 space-y-5 animate-tab-in">
+                        <DailyProgressChart />
+
+                        {/* Hero Title + Chronicle Narrative */}
+                        <div className="p-4 rounded-xl bg-black/20 border border-white/5">
+                            <div className="text-center mb-2">
+                                <span className="text-xs font-heading font-bold uppercase tracking-[0.2em]" style={{ color: theme.accent }}>
+                                    {getHeroTitle(character.level, character.achievements?.tasks || 0, character.class)}
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-gray-400 text-center italic leading-relaxed">
+                                "{getChronicleQuip(character.achievements?.tasks || 0, character.achievements?.habits || 0, character.achievements?.goldEarned || 0)}"
+                            </p>
+                        </div>
+
+                        {/* Lifetime Stats */}
+                        <div>
+                            <div className="mb-3">
+                                <SectionDivider label="Chronicle" icon="trophy" color="#94a3b8" />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { label: 'Quests Slain', value: character.achievements?.tasks || 0, color: 'text-white', icon: 'sword' },
+                                    { label: 'Habits Forged', value: character.achievements?.habits || 0, color: 'text-white', icon: 'checkSquare' },
+                                    { label: 'Gold Earned', value: character.achievements?.goldEarned || 0, color: 'text-rpg-gold', icon: 'coins' },
+                                ].map(a => (
+                                    <div key={a.label} className="bg-black/30 p-2.5 rounded-xl border border-white/5 text-center relative overflow-hidden">
+                                        <div className="absolute -bottom-1 -right-1 opacity-[0.04] pointer-events-none">
+                                            <PixelIcon name={a.icon} size={28} color="#fff" />
+                                        </div>
+                                        <div className={`text-xl font-pixel ${a.color} relative z-10`}><NumberTicker value={a.value} /></div>
+                                        <div className="text-[7px] font-bold text-gray-500 uppercase tracking-widest relative z-10">{a.label}</div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                            {BADGE_DEFS.map(badge => {
-                                const isUnlocked = character.unlockedBadges?.includes(badge.id);
-                                return (
-                                    <div key={badge.id} className={`glass-card p-4 flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-300 ${isUnlocked ? 'border-rpg-gold/30 bg-rpg-gold/5' : 'opacity-50 grayscale'}`}>
-                                        <div className="w-16 h-16 mb-3 relative">
-                                            {isUnlocked ? (
-                                                <>
-                                                    <div className="absolute inset-0 bg-rpg-gold blur-md opacity-20"></div>
-                                                    <div className="w-full h-full bg-gradient-to-br from-yellow-300 via-rpg-gold to-yellow-600 rounded-full flex items-center justify-center border-4 border-yellow-200 shadow-glow-gold relative z-10">
-                                                        <PixelIcon name="star" size={24} color="#000" />
+                        {/* Medals Grid */}
+                        <div>
+                            <div className="mb-3">
+                                <SectionDivider label="Honors" icon="trophy" color="#fbbf24" />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                {BADGE_DEFS.map(badge => {
+                                    const isUnlocked = character.unlockedBadges?.includes(badge.id);
+                                    const tier = TIER_COLORS[badge.tier] || TIER_COLORS.bronze;
+                                    return (
+                                        <div key={badge.id} className={`p-3 rounded-xl flex flex-col items-center text-center transition-all ${isUnlocked
+                                            ? `bg-black/20 ${tier.border}/20 border`
+                                            : 'bg-black/20 border border-white/5 opacity-40 grayscale'}`}
+                                            style={isUnlocked ? { borderColor: badge.tier === 'gold' ? '#fbbf2430' : badge.tier === 'silver' ? '#94a3b830' : '#b4541430' } : undefined}>
+                                            <div className="w-9 h-9 mb-1.5">
+                                                {isUnlocked ? (
+                                                    <div className={`w-full h-full bg-gradient-to-br ${tier.bg} rounded-full flex items-center justify-center border ${tier.border}`}>
+                                                        <PixelIcon name={badge.icon || 'star'} size={14} color="#000" />
                                                     </div>
-                                                </>
-                                            ) : (
-                                                <div className="w-full h-full bg-gray-800 rounded-full flex items-center justify-center border-4 border-gray-600 relative z-10">
-                                                    <PixelIcon name="lock" size={24} color="#6b7280" />
-                                                </div>
-                                            )}
+                                                ) : (
+                                                    <div className="w-full h-full bg-gray-800/80 rounded-full flex items-center justify-center border border-gray-700">
+                                                        <PixelIcon name="lock" size={12} color="#6b7280" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <h4 className={`text-[9px] font-bold uppercase tracking-wider mb-0.5 ${isUnlocked ? tier.text : 'text-gray-500'}`}>{badge.name}</h4>
+                                            <p className="text-[8px] text-gray-500 leading-tight">{badge.desc}</p>
                                         </div>
-                                        <h4 className={`text-sm font-bold uppercase tracking-wider mb-1 ${isUnlocked ? 'text-rpg-gold' : 'text-gray-400'}`}>{badge.name}</h4>
-                                        <p className="text-[10px] text-gray-400">{badge.desc}</p>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* Footer Currencies */}
-            <div className="p-4 bg-black/40 border-t border-white/5 flex grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 justify-center text-amber-400 bg-amber-500/10 py-2 rounded-xl border border-amber-500/20">
-                    <PixelIcon name="coins" size={16} color="#fbbf24" />
-                    <span className="font-bold font-mono">{character.gold}</span>
-                </div>
-                <div className="flex items-center gap-3 justify-center text-blue-400 bg-blue-500/10 py-2 rounded-xl border border-blue-500/20">
-                    <PixelIcon name="clock" size={16} color="#60a5fa" />
-                    <span className="font-bold font-mono">{character.timePoints}m</span>
-                </div>
-            </div>
-
-            {/* Sell Modal */}
-            {
-                isSellModalOpen && itemToSell && (
-                    <div className="absolute inset-0 z-50 rounded-2xl bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-                        <div className="glass-panel max-w-sm w-full p-6 border border-rpg-gold/50 shadow-[0_0_30px_rgba(255,215,0,0.1)]">
-                            <h3 className="text-xl font-heading font-bold text-rpg-gold text-center mb-1">Sell {itemToSell.name}</h3>
-                            <p className="text-gray-400 text-xs text-center mb-6">Choose how you want to part with this item.</p>
-
-                            <div className="space-y-4">
-                                {/* Quick Sell */}
-                                <div className="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-2">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm font-bold text-gray-300">Quick Sell (to the Void)</span>
-                                        <span className="text-amber-400 font-bold flex items-center gap-1"><PixelIcon name="coins" size={14} color="#fbbf24" /> +{Math.floor(itemToSell.cost * 0.5)}</span>
-                                    </div>
-                                    <p className="text-[10px] text-gray-500">Instantly sell this item back to the void for 50% of its base value.</p>
-                                    <button
-                                        onClick={confirmQuickSell}
-                                        className="w-full mt-2 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold transition-colors"
-                                    >
-                                        Quick Sell
-                                    </button>
+            {/* ═══════ SELL MODAL ═══════ */}
+            {isSellModalOpen && itemToSell && (
+                <div className="absolute inset-0 z-50 rounded-2xl bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="glass-panel max-w-sm w-full p-6 border border-rpg-gold/30">
+                        <h3 className="text-xl font-heading font-bold text-rpg-gold text-center mb-1">Sell {itemToSell.name}</h3>
+                        <p className="text-gray-400 text-xs text-center mb-6">Choose how to part with this item.</p>
+                        <div className="space-y-4">
+                            <div className="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-2">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-bold text-gray-300">Quick Sell</span>
+                                    <span className="text-amber-400 font-pixel text-lg flex items-center gap-1"><PixelIcon name="coins" size={14} color="#fbbf24" /> +{Math.floor(itemToSell.cost * 0.5)}</span>
                                 </div>
-
-                                <div className="text-center text-xs text-gray-600 font-bold uppercase">OR</div>
-
-                                {/* Market Listing */}
-                                <div className="bg-indigo-900/20 border border-indigo-500/30 rounded-xl p-4 flex flex-col gap-3">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm font-bold text-indigo-300">List on Community Market</span>
-                                    </div>
-                                    <p className="text-[10px] text-gray-400">Set a custom price and list it globally. You get the gold when a player buys it.</p>
-
-                                    <div>
-                                        <label className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider mb-1 block">Asking Price (Gold)</label>
-                                        <input
-                                            type="number"
-                                            value={sellPrice}
-                                            onChange={(e) => setSellPrice(e.target.value)}
-                                            className="w-full bg-black/60 border border-indigo-500/30 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-400"
-                                            min="1"
-                                        />
-                                    </div>
-
-                                    <button
-                                        onClick={confirmMarketListing}
-                                        disabled={isListing || !sellPrice}
-                                        className="w-full mt-1 py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/50 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
-                                    >
-                                        {isListing ? 'Listing...' : 'Publish to Market'}
-                                    </button>
-                                </div>
+                                <p className="text-[10px] text-gray-500">Instantly sell for 50% base value.</p>
+                                <button onClick={confirmQuickSell} className="w-full mt-2 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold transition-colors">Quick Sell</button>
                             </div>
-
-                            <button
-                                onClick={() => { setIsSellModalOpen(false); setItemToSell(null); }}
-                                className="w-full mt-6 py-2 text-gray-500 hover:text-white text-xs font-bold uppercase tracking-wider transition-colors"
-                            >
-                                Cancel
-                            </button>
+                            <div className="text-center text-xs text-gray-600 font-bold uppercase">OR</div>
+                            <div className="bg-indigo-900/20 border border-indigo-500/30 rounded-xl p-4 flex flex-col gap-3">
+                                <span className="text-sm font-bold text-indigo-300">List on Market</span>
+                                <p className="text-[10px] text-gray-400">Set a price. Gold arrives when someone buys.</p>
+                                <div>
+                                    <label className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider mb-1 block">Price (Gold)</label>
+                                    <input type="number" value={sellPrice} onChange={(e) => setSellPrice(e.target.value)}
+                                        className="w-full bg-black/60 border border-indigo-500/30 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-400" min="1" />
+                                </div>
+                                <button onClick={confirmMarketListing} disabled={isListing || !sellPrice}
+                                    className="w-full mt-1 py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/50 rounded-lg text-xs font-bold transition-all disabled:opacity-50">
+                                    {isListing ? 'Listing...' : 'Publish to Market'}
+                                </button>
+                            </div>
                         </div>
+                        <button onClick={() => { setIsSellModalOpen(false); setItemToSell(null); }}
+                            className="w-full mt-6 py-2 text-gray-500 hover:text-white text-xs font-bold uppercase tracking-wider transition-colors">Cancel</button>
                     </div>
-                )
-            }
+                </div>
+            )}
 
+            {/* ═══════ AVATAR EDIT MODAL ═══════ */}
             {isEditModalOpen && (
-                <AvatarEditModal
-                    character={character}
-                    onSave={handleSaveAvatar}
-                    onClose={() => setIsEditModalOpen(false)}
-                />
+                <AvatarEditModal character={character} onSave={handleSaveAvatar} onClose={() => setIsEditModalOpen(false)} />
             )}
         </div>
     );
@@ -988,96 +982,59 @@ const CharacterSheet = ({ setActiveView }) => {
 
 const AvatarEditModal = ({ character, onSave, onClose }) => {
     const [selectedCharId, setSelectedCharId] = useState(character.avatarId);
-    const [colors, setColors] = useState(character.avatarColors || {
-        skin: '#ffdbac',
-        hair: '#78350f',
-        primary: '#e2e8f0'
-    });
+    const [colors, setColors] = useState(character.avatarColors || { skin: '#ffdbac', hair: '#78350f', primary: '#e2e8f0' });
     const editCost = 500;
     const canAfford = character.gold >= editCost;
 
     const handleSave = () => {
-        if (canAfford) {
-            onSave(selectedCharId, colors, editCost);
-        }
+        if (canAfford) onSave(selectedCharId, colors, editCost);
     };
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
             <div className="glass-panel max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 border-rpg-gold/20 relative">
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
-                    <X size={24} />
-                </button>
-
-                <h2 className="text-3xl font-heading font-bold text-rpg-gold text-center mb-8 tracking-widest uppercase">
-                    HERO REDESIGN
-                </h2>
-
+                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"><X size={24} /></button>
+                <h2 className="text-3xl font-heading font-bold text-rpg-gold text-center mb-8 tracking-widest uppercase">HERO REDESIGN</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Left: Selection */}
                     <div className="grid grid-cols-3 gap-3 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
                         {CHARACTERS.map(c => (
-                            <div
-                                key={c.id}
-                                onClick={() => {
-                                    setSelectedCharId(c.id);
-                                    if (c.avatarType === 'mage') setColors({ ...colors, primary: '#818cf8' });
-                                    else if (c.avatarType === 'rogue') setColors({ ...colors, primary: '#94a3b8' });
-                                    else setColors({ ...colors, primary: '#e2e8f0' });
-                                }}
-                                className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${selectedCharId === c.id ? 'border-rpg-gold bg-white/5 shadow-glow-gold' : 'border-white/5 hover:border-white/20'}`}
-                            >
+                            <div key={c.id} onClick={() => {
+                                setSelectedCharId(c.id);
+                                if (c.avatarType === 'mage') setColors({ ...colors, primary: '#818cf8' });
+                                else if (c.avatarType === 'rogue') setColors({ ...colors, primary: '#94a3b8' });
+                                else setColors({ ...colors, primary: '#e2e8f0' });
+                            }}
+                                className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${selectedCharId === c.id ? 'border-rpg-gold bg-white/5 shadow-glow-gold' : 'border-white/5 hover:border-white/20'}`}>
                                 <div className="scale-125 pb-2">
-                                <ModernPixelAvatar type={c.avatarType} scale={2} headOnly={true} customColors={selectedCharId === c.id ? colors : undefined} />
+                                    <ModernPixelAvatar type={c.avatarType} scale={2} headOnly={true} customColors={selectedCharId === c.id ? colors : undefined} />
                                 </div>
                                 <span className={`text-[10px] font-bold uppercase transition-colors ${selectedCharId === c.id ? 'text-rpg-gold' : 'text-gray-400'}`}>{c.name}</span>
                             </div>
                         ))}
                     </div>
-
-                    {/* Right: Customization & Preview */}
                     <div className="space-y-6">
                         <div className="flex justify-center p-8 bg-black/40 rounded-2xl border border-white/5 relative group">
                             <ModernPixelAvatar type={CHARACTERS.find(c => c.id === selectedCharId)?.avatarType || 'warrior'} scale={4} customColors={colors} />
                         </div>
-
                         <div className="grid grid-cols-1 gap-4">
-                            {[
-                                { label: 'Skin', key: 'skin' },
-                                { label: 'Hair', key: 'hair' },
-                                { label: 'Outfit', key: 'primary' }
-                            ].map(item => (
+                            {[{ label: 'Skin', key: 'skin' }, { label: 'Hair', key: 'hair' }, { label: 'Outfit', key: 'primary' }].map(item => (
                                 <div key={item.key} className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-white/5">
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{item.label} Color</label>
-                                    <input
-                                        type="color"
-                                        value={colors[item.key]}
-                                        onChange={(e) => setColors({ ...colors, [item.key]: e.target.value })}
-                                        className="w-10 h-10 rounded cursor-pointer border-none bg-transparent"
-                                    />
+                                    <input type="color" value={colors[item.key]} onChange={(e) => setColors({ ...colors, [item.key]: e.target.value })} className="w-10 h-10 rounded cursor-pointer border-none bg-transparent" />
                                 </div>
                             ))}
                         </div>
-
                         <div className="pt-6 border-t border-white/10 flex flex-col gap-4">
                             <div className="flex justify-between items-center px-2">
                                 <span className="text-gray-400 text-sm">Transformation Fee:</span>
                                 <span className={`font-bold flex items-center gap-1 ${canAfford ? 'text-rpg-gold font-pixel text-xl' : 'text-red-500 font-pixel text-xl'}`}>
-                                    <div className="w-5 h-5 flex items-center justify-center">
-                                        <PixelIcon name="coins" size={14} color={canAfford ? "#fbbf24" : "#ef4444"} />
-                                    </div>
-                                    {editCost} Gold
+                                    <PixelIcon name="coins" size={14} color={canAfford ? "#fbbf24" : "#ef4444"} /> {editCost} Gold
                                 </span>
                             </div>
-
-                            <PressButton
-                                onClick={handleSave}
-                                disabled={!canAfford}
-                                className="w-full py-4 bg-rpg-gold text-rpg-bg rounded-xl font-bold uppercase tracking-widest shadow-glow-gold disabled:opacity-50"
-                            >
+                            <PressButton onClick={handleSave} disabled={!canAfford} className="w-full py-4 bg-rpg-gold text-rpg-bg rounded-xl font-bold uppercase tracking-widest shadow-glow-gold disabled:opacity-50">
                                 Mutate Appearance
                             </PressButton>
-                            {!canAfford && <p className="text-red-500 text-[10px] text-center font-bold italic">You lack the necessary gold for this transformation.</p>}
+                            {!canAfford && <p className="text-red-500 text-[10px] text-center font-bold italic">Not enough gold for this transformation.</p>}
                         </div>
                     </div>
                 </div>
@@ -1085,4 +1042,5 @@ const AvatarEditModal = ({ character, onSave, onClose }) => {
         </div>
     );
 };
+
 export default CharacterSheet;

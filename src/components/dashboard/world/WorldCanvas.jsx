@@ -38,6 +38,11 @@ export default function WorldCanvas({
     onCanvasClick,
     onCanvasMouseMove,
     onScaleChange,
+    pan = { x: 0, y: 0 },
+    onWheel,
+    onMouseDown,
+    onMouseUp,
+    onMouseLeave,
 }) {
     const wrapRef = useRef(null);
     const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
@@ -109,8 +114,8 @@ export default function WorldCanvas({
     // Center the scaled map inside the container by absolute positioning —
     // simpler and more accurate than translate(-50%) tricks when the map is
     // wider or taller than the container.
-    const offsetX = Math.max(0, (containerSize.w - mapW * totalScale) / 2);
-    const offsetY = Math.max(0, (containerSize.h - mapH * totalScale) / 2);
+    const offsetX = ((containerSize.w - mapW * totalScale) / 2) + pan.x;
+    const offsetY = ((containerSize.h - mapH * totalScale) / 2) + pan.y;
 
     // DOM click → map coords: subtract centering offset then invert scale.
     const toMapCoords = (clientX, clientY) => {
@@ -145,6 +150,10 @@ export default function WorldCanvas({
             className={className}
             onClick={handleClick}
             onMouseMove={handleMouseMove}
+            onWheel={onWheel}
+            onMouseDown={onMouseDown}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseLeave}
             style={{
                 backgroundColor: expandedMap.baseColor || '#0c0a14',
                 overflow: 'hidden',

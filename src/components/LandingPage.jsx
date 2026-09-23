@@ -164,7 +164,7 @@ const BlogCard = ({ post, onClick }) => (
     </button>
 );
 
-const BlogListView = ({ onSelectPost, onBack }) => (
+const BlogListView = ({ posts, onSelectPost, onBack }) => (
     <div className="min-h-screen bg-rpg-bg pt-24 pb-16">
         <div className="container mx-auto px-6">
             <button
@@ -180,7 +180,7 @@ const BlogListView = ({ onSelectPost, onBack }) => (
                 <div className="chronicle-divider mt-6">◆ ◆ ◆</div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                {BLOG_POSTS.map((post, i) => (
+                {posts.map((post, i) => (
                     <div key={post.slug} className="chronicle-enter" style={{ '--enter-delay': `${150 + i * 100}ms` }}>
                         <BlogCard post={post} onClick={onSelectPost} />
                     </div>
@@ -190,8 +190,8 @@ const BlogListView = ({ onSelectPost, onBack }) => (
     </div>
 );
 
-const BlogPostView = ({ slug, onBack, onBackToList }) => {
-    const post = BLOG_POSTS.find(p => p.slug === slug);
+const BlogPostView = ({ slug, posts, onBack, onBackToList }) => {
+    const post = posts.find(p => p.slug === slug);
     if (!post) return null;
 
     useEffect(() => { window.scrollTo(0, 0); }, [slug]);
@@ -225,18 +225,28 @@ const BlogPostView = ({ slug, onBack, onBackToList }) => {
                     <div className="chronicle-enter chronicle-divider mb-10" style={{ '--enter-delay': '250ms' }}>◆ ◆ ◆</div>
 
                     <div className="chronicle-enter-content space-y-5">
-                        {post.content.map((block, i) => {
-                            if (block.type === 'heading') {
-                                return <h2 key={i} className="chronicle-heading text-xl md:text-2xl font-heading font-bold text-rpg-gold mt-10 mb-3">{block.text}</h2>;
-                            }
-                            const isFirstAfterHeading = i === 0 || (i > 0 && post.content[i - 1].type === 'heading');
-                            return (
-                                <p key={i} className="text-gray-300 leading-relaxed text-[15px]">
-                                    {isFirstAfterHeading && <span className="chronicle-initial">{block.text.charAt(0)}</span>}
-                                    {isFirstAfterHeading ? block.text.slice(1) : block.text}
-                                </p>
-                            );
-                        })}
+                        {post.htmlContent ? (
+                            <div className="prose prose-invert prose-sm max-w-none 
+                                [&_h2]:text-xl [&_h2]:md:text-2xl [&_h2]:font-heading [&_h2]:font-bold [&_h2]:text-rpg-gold [&_h2]:mt-10 [&_h2]:mb-3
+                                [&_p]:text-gray-300 [&_p]:leading-relaxed [&_p]:text-[15px]
+                                [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-3
+                                [&_a]:text-rpg-gold [&_a]:underline" 
+                                dangerouslySetInnerHTML={{ __html: post.htmlContent }} 
+                            />
+                        ) : (
+                            post.content.map((block, i) => {
+                                if (block.type === 'heading') {
+                                    return <h2 key={i} className="chronicle-heading text-xl md:text-2xl font-heading font-bold text-rpg-gold mt-10 mb-3">{block.text}</h2>;
+                                }
+                                const isFirstAfterHeading = i === 0 || (i > 0 && post.content[i - 1].type === 'heading');
+                                return (
+                                    <p key={i} className="text-gray-300 leading-relaxed text-[15px]">
+                                        {isFirstAfterHeading && <span className="chronicle-initial">{block.text.charAt(0)}</span>}
+                                        {isFirstAfterHeading ? block.text.slice(1) : block.text}
+                                    </p>
+                                );
+                            })
+                        )}
                     </div>
 
                     <div className="chronicle-enter chronicle-divider mt-14 mb-8" style={{ '--enter-delay': '400ms' }}>❧</div>
@@ -516,7 +526,50 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
     const [message, setMessage] = useState('');
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [blogView, setBlogView] = useState(null);
+    const [posts, setPosts] = useState(BLOG_POSTS);
     const [councilIdx, setCouncilIdx] = useState(0);
+
+    useEffect(() => {
+        fetch('api/cms.php?action=public_posts')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && Array.isArray(data.posts)) {
+                    if (data.posts.length === 0) {
+                        setPosts([]);
+                    } else {
+                        const fetchedPosts = data.posts.map(p => {
+                            let content = [];
+                            let htmlContent = null;
+                        if (typeof p.body === 'string' && p.body.trim().startsWith('[')) {
+                            try {
+                                content = JSON.parse(p.body);
+                            } catch (e) {
+                                htmlContent = p.body;
+                            }
+                        } else {
+                            htmlContent = p.body;
+                        }
+                        
+                        return {
+                            slug: p.slug,
+                            title: p.title,
+                            date: p.published_at ? p.published_at.split(' ')[0] : '',
+                            readTime: '3 min', // fallback or calculate
+                            category: p.category,
+                            excerpt: p.excerpt,
+                            coverGradient: 'from-rpg-gold/20 to-purple-900/40',
+                            cover_image: p.cover_image,
+                            content,
+                            htmlContent
+                        };
+                    });
+                        setPosts(fetchedPosts);
+                    }
+                }
+            })
+            .catch(console.error);
+    }, []);
+
     const navRef = useRef(null);
     const waitlistRef = useRef(null);
     const heroRef = useRef(null);
@@ -650,11 +703,13 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     <div className="h-20" />
                     {blogView === 'list' ? (
                         <BlogListView
+                            posts={posts}
                             onSelectPost={(slug) => { setBlogView(slug); window.scrollTo(0, 0); }}
                             onBack={() => { setBlogView(null); window.scrollTo(0, 0); }}
                         />
                     ) : (
                         <BlogPostView
+                            posts={posts}
                             slug={blogView}
                             onBack={() => { setBlogView(null); window.scrollTo(0, 0); }}
                             onBackToList={() => { setBlogView('list'); window.scrollTo(0, 0); }}
@@ -942,13 +997,13 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     <div className="chronicle-divider mt-6">◆ ◆ ◆</div>
                 </Reveal>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                    {BLOG_POSTS.slice(0, 3).map((post, i) => (
+                    {posts.slice(0, 3).map((post, i) => (
                         <Reveal key={post.slug} delay={i * 120}>
                             <BlogCard post={post} onClick={(slug) => { setBlogView(slug); window.scrollTo(0, 0); }} />
                         </Reveal>
                     ))}
                 </div>
-                {BLOG_POSTS.length > 3 && (
+                {posts.length > 3 && (
                     <Reveal>
                         <div className="text-center mt-10">
                             <button

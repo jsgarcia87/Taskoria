@@ -66,23 +66,15 @@ const StatsRadarChart = ({ stats }) => {
     const dotOpacity = Math.max(0, (progress - 0.3) / 0.7);
 
     return (
-        <div className="flex flex-col items-center justify-center p-4 glass-card relative overflow-hidden group">
-            <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors"></div>
-
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 z-10 w-full text-center border-b border-white/10 pb-2">Hero Profile</h3>
-
-            <div className="w-full h-44 relative z-10 flex items-center justify-center">
-                <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+        <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-black/20 border border-white/5">
+            <div className="w-full h-44 flex items-center justify-center">
+                <svg viewBox="0 0 100 100" className="w-full h-full">
 
                     <defs>
                         <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
-                            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.4" />
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
+                            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.25" />
                         </linearGradient>
-                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                            <feGaussianBlur stdDeviation="2" result="blur" />
-                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                        </filter>
                     </defs>
 
                     <polygon points={outerPoints} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
@@ -98,9 +90,8 @@ const StatsRadarChart = ({ stats }) => {
                             points={valuePoints}
                             fill="url(#chartGradient)"
                             stroke="#60a5fa"
-                            strokeWidth="1.5"
+                            strokeWidth="1"
                             strokeLinejoin="round"
-                            filter="url(#glow)"
                         />
                     )}
 
@@ -112,7 +103,7 @@ const StatsRadarChart = ({ stats }) => {
                         const lx = getPointX(p.angle, 1.25);
                         const ly = getPointY(p.angle, 1.2) + 2;
                         return (
-                            <text key={`lbl-${i}`} x={lx} y={ly} fill={points[i].color} fontSize="5" fontWeight="bold" textAnchor="middle" className="uppercase drop-shadow-md">
+                            <text key={`lbl-${i}`} x={lx} y={ly} fill={points[i].color} fontSize="5" fontWeight="bold" textAnchor="middle" className="uppercase">
                                 {points[i].name}
                             </text>
                         );
@@ -120,7 +111,7 @@ const StatsRadarChart = ({ stats }) => {
                 </svg>
             </div>
 
-            <p className="text-[9px] text-gray-500 uppercase tracking-wider mt-0 text-center font-bold">Attribute Distribution</p>
+            <p className="text-[8px] text-gray-600 uppercase tracking-widest mt-1 text-center">Attributes</p>
         </div>
     );
 };
