@@ -268,11 +268,13 @@ if ($method === 'POST') {
             if (!$hasContent) { http_response_code(400); echo json_encode(['error' => 'Empty canvas']); exit; }
         }
 
+        $status = isAdmin($pdo, $userId) ? 'approved' : 'pending';
+
         $stmt = $pdo->prepare("
             INSERT INTO world_creations (user_id, name, category, payload_type, grid_size, pixels, params, price, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$userId, $name, $category, $payloadType, $gridSize, json_encode($pixels), $params ? json_encode($params) : null, $price]);
+        $stmt->execute([$userId, $name, $category, $payloadType, $gridSize, json_encode($pixels), $params ? json_encode($params) : null, $price, $status]);
         echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
         exit;
     }

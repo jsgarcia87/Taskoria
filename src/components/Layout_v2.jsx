@@ -340,7 +340,7 @@ const Layout_v2 = ({
 
                 {/* Content Container — crossfade + micro-slide entre vistas.
                     `initial={false}` evita animar en el primer mount de la sesión. */}
-                <div className="max-w-7xl mx-auto p-4 md:p-6 pb-28 lg:pb-8 relative z-10 w-full min-h-[calc(100vh-80px)] overflow-x-hidden">
+                <div className="max-w-7xl mx-auto p-4 md:p-6 pb-28 md:pb-8 relative z-10 w-full min-h-[calc(100vh-80px)] overflow-x-hidden">
                     <AnimatePresence mode="wait" initial={false}>
                         <motion.div
                             key={activeView}

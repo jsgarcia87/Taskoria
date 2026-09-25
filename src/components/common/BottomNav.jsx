@@ -59,12 +59,10 @@ const BottomNav = ({ activeView, setActiveView, currentUser }) => {
         { id: 'diary', label: 'Diary', icon: 'scroll' },
     ];
 
-    if (currentUser?.is_admin) {
-        mobileNavItems.push({ id: 'admin', label: 'Admin', icon: 'shield' });
-    }
+
 
     return (
-        <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-md">
+        <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-md">
             <nav className="flex items-center justify-between glass-panel px-3 py-3 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] bg-rpg-panel/90 backdrop-blur-xl border-t border-white/10 relative">
                 {/* Left Side Items (Home, Quests) */}
                 <div className="flex gap-1">

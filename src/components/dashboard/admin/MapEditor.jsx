@@ -10,6 +10,8 @@ import { MAP_DATA } from '../world/MapData';
 import { WORLD_PROPS, WorldSprite } from '../world/worldProps';
 import { SPRITES, pixelBufferToDataUrl } from '../world/sprites';
 import { PREFAB_NAMES } from '../world/prefabs';
+import { fetchCustomBlueprints } from '../../../utils/blueprints';
+import { firstFrame, frameToBuffer } from '../../../utils/pixelFormat';
 import { useToast } from '../../common/Toast';
 
 // Bounding-box defaults for each prefab type — used both for click hit-testing
@@ -54,7 +56,7 @@ const prefabDefaults = (name) => {
  * branch in DecorationsLayer (well → WorldSprite well, bench → WorldSprite bench
  * with sizing rules, and so on).
  */
-const PALETTE = {
+const BASE_PALETTE = {
     tiles: {
         label: 'Suelos',
         icon: Grid,
@@ -183,6 +185,63 @@ const emptyMap = () => ({
 
 export default function MapEditor({ currentUser, initialDesign, onClose, onSaved }) {
     const toast = useToast();
+    
+    const [customAssets, setCustomAssets] = useState([]);
+    
+    useEffect(() => {
+        fetchCustomBlueprints().then(cache => {
+            if (cache.objects) {
+                const items = [];
+                Object.keys(cache.objects).forEach(id => {
+                    const obj = cache.objects[id];
+                    items.push({
+                        id,
+                        label: obj.name || id,
+                        defaults: obj.type === 'pixelart' ? { scale: 1 } : { scale: 1 }
+                    });
+
+                    // Inject into WORLD_PROPS for rendering in MapEditor
+                    if (obj.type === 'pixelart') {
+                        const gs = obj.gridSize || 32;
+                        const frame = firstFrame(obj.pixels);
+                        const buf = frameToBuffer(frame, gs);
+                        WORLD_PROPS[id] = { w: gs, h: gs, buffer: buf };
+                    } else if (obj.type === 'house' && obj.payload?.previewImage) {
+                        const img = new Image();
+                        img.onload = () => {
+                            const c = document.createElement('canvas');
+                            c.width = img.width;
+                            c.height = img.height;
+                            const ctx = c.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            const data = ctx.getImageData(0, 0, img.width, img.height).data;
+                            const buf = new Array(img.width * img.height).fill('transparent');
+                            for (let i = 0; i < data.length; i += 4) {
+                                if (data[i+3] > 0) {
+                                    buf[i/4] = `rgba(${data[i]},${data[i+1]},${data[i+2]},${data[i+3]/255})`;
+                                }
+                            }
+                            WORLD_PROPS[id] = { w: img.width, h: img.height, buffer: buf };
+                        };
+                        img.src = obj.payload.previewImage;
+                    }
+                });
+                setCustomAssets(items);
+            }
+        });
+    }, []);
+
+    const PALETTE = useMemo(() => {
+        if (customAssets.length === 0) return BASE_PALETTE;
+        return {
+            ...BASE_PALETTE,
+            library: {
+                label: 'Creaciones',
+                icon: Sparkles,
+                items: customAssets,
+            }
+        };
+    }, [customAssets]);
     const [map, setMap] = useState(() => {
         if (initialDesign?.payload) {
             const p = typeof initialDesign.payload === 'string'

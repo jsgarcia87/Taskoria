@@ -52,7 +52,7 @@ try {
 
 if ($action === 'public_posts') {
     $category = $_GET['category'] ?? null;
-    $sql = "SELECT id, title, slug, excerpt, cover_image, category, published_at FROM cms_posts WHERE status = 'published'";
+    $sql = "SELECT id, title, slug, excerpt, body, cover_image, category, published_at FROM cms_posts WHERE status = 'published'";
     $params = [];
     if ($category) {
         $sql .= " AND category = ?";
