@@ -225,6 +225,17 @@ const Questbook = () => {
                         <div className="font-medium text-[14px]" style={{ color: INK }}>
                             Ledgar's pages lie blank.
                         </div>
+                        <button
+                            onClick={() => quickAddRef.current?.focus()}
+                            className="mt-1 px-4 py-2 rounded-lg font-bold text-[12px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            style={{
+                                backgroundColor: INK_MID,
+                                color: PARCHMENT,
+                                boxShadow: '0 2px 0 rgba(58,42,21,0.5)',
+                            }}
+                        >
+                            Write your first quest
+                        </button>
                     </div>
                 ) : (
                     <AnimatePresence mode="popLayout" initial={false}>

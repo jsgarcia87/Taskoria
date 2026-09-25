@@ -153,18 +153,18 @@ const Diary = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="flex gap-1 bg-black/40 p-1 rounded-xl border border-white/5 relative z-10">
-                            <button 
-                                onClick={() => setDiaryTab('notes')} 
-                                className={`px-4 py-1.5 text-[10px] md:text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${diaryTab === 'notes' ? 'bg-rpg-gold text-black shadow-glow-gold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                        <div className="flex gap-1 border-b border-white/5 relative z-10">
+                            <button
+                                onClick={() => setDiaryTab('notes')}
+                                className={`flex items-center justify-center gap-1.5 px-4 py-2.5 border-b-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${diaryTab === 'notes' ? 'border-rpg-gold/60 text-white' : 'border-transparent text-gray-600 hover:text-gray-400'}`}
                             >
                                 Journal
                             </button>
-                            <button 
-                                onClick={() => setDiaryTab('calendar')} 
-                                className={`px-4 py-1.5 text-[10px] md:text-xs font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1 ${diaryTab === 'calendar' ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                            <button
+                                onClick={() => setDiaryTab('calendar')}
+                                className={`flex items-center justify-center gap-1.5 px-4 py-2.5 border-b-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${diaryTab === 'calendar' ? 'border-rpg-gold/60 text-white' : 'border-transparent text-gray-600 hover:text-gray-400'}`}
                             >
-                                <Calendar size={12} className="md:w-3.5 md:h-3.5" /> Events
+                                <Calendar size={12} /> Events
                             </button>
                         </div>
 
@@ -282,6 +282,12 @@ const Diary = () => {
                             <Book size={48} className="text-gray-600 mb-4" />
                             <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">The Pages Lie Blank</div>
                             <div className="text-[10px] text-gray-500 mt-1">Ledgar awaits your first entry. Every journey deserves a record.</div>
+                            <button
+                                onClick={() => setIsWriting(true)}
+                                className="mt-4 glass-btn-primary px-4 py-2 flex items-center gap-1.5 text-xs uppercase tracking-wider font-bold shadow-glow"
+                            >
+                                <Plus size={14} /> Begin writing
+                            </button>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 items-start">

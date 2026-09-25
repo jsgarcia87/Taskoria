@@ -1,0 +1,134 @@
+- generic [ref=f4e20]:
+  - banner [ref=f4e21]:
+    - generic [ref=f4e22] [cursor=pointer]:
+      - img "Taskoria Icon" [ref=f4e25]
+      - generic [ref=f4e26]:
+        - generic [ref=f4e27]: TASKORIA BETA
+        - generic [ref=f4e28]: Gamified Productivity
+    - navigation [ref=f4e29]:
+      - button "Camp" [ref=f4e30] [cursor=pointer]
+      - button "Missions" [ref=f4e69] [cursor=pointer]
+      - button "Town" [ref=f4e110] [cursor=pointer]
+      - button "Diary" [ref=f4e141] [cursor=pointer]
+      - button "Hero" [ref=f4e172] [cursor=pointer]
+      - button "Studio" [ref=f4e205] [cursor=pointer]
+      - button "World" [ref=f4e224] [cursor=pointer]
+    - generic [ref=f4e263]:
+      - generic [ref=f4e264]:
+        - generic [ref=f4e265]: "738"
+        - generic [ref=f4e309]: "0"
+        - generic [ref=f4e345]: 1.015.344
+      - generic [ref=f4e368]: Sangar
+      - generic [ref=f4e371]:
+        - img "Offline - Saved Locally" [ref=f4e373]
+        - generic [ref=f4e378] [cursor=pointer]
+        - generic [ref=f4e383] [cursor=pointer]
+        - button [ref=f4e387] [cursor=pointer]
+  - main [ref=f4e389]:
+    - generic [ref=f4e394]:
+      - generic [ref=f4e420]:
+        - heading "Airlexus" [level=2] [ref=f4e421]
+        - generic [ref=f4e434]:
+          - generic [ref=f4e435]: Friday
+          - generic [ref=f4e436]: ·
+          - generic [ref=f4e437]: Lv. 107
+          - generic [ref=f4e438]: ·
+          - generic [ref=f4e439]: All clear
+      - generic [ref=f4e463]:
+        - generic [ref=f4e464]:
+          - generic [ref=f4e465]:
+            - generic [ref=f4e468]:
+              - generic [ref=f4e472]: The sun is high. Good questing weather.
+              - generic [ref=f4e477]:
+                - generic [ref=f4e478]: Today
+                - generic [ref=f4e479]: Friday, Sep 25
+              - generic [ref=f4e480]: Garden Lv. 1
+            - generic [ref=f4e481]:
+              - generic [ref=f4e482]:
+                - generic [ref=f4e483]:
+                  - heading "Today's Ledger" [level=3] [ref=f4e484]
+                  - button "View Sheet" [ref=f4e485] [cursor=pointer]
+                - generic [ref=f4e486]:
+                  - generic [ref=f4e487]:
+                    - generic [ref=f4e488]: 00:00
+                    - generic [ref=f4e489]: Focus Time
+                  - generic [ref=f4e490]:
+                    - generic [ref=f4e491]: "0"
+                    - generic [ref=f4e492]: Battles Fought
+                  - generic [ref=f4e493]:
+                    - generic [ref=f4e494]: "0"
+                    - generic [ref=f4e495]: Items Gathered
+              - generic [ref=f4e496]:
+                - generic [ref=f4e498]: POMODORO DUNGEON
+                - generic [ref=f4e501]:
+                  - button "Battle" [ref=f4e502] [cursor=pointer]
+                  - button [ref=f4e505] [cursor=pointer]
+                - button "Enter portal" [ref=f4e507] [cursor=pointer]:
+                  - generic [ref=f4e508]: Enter
+                - button "Select Quests (Optional)" [ref=f4e514] [cursor=pointer]
+                - generic [ref=f4e519]: 20m / 5m
+          - button "The Arena ▼" [ref=f4e525] [cursor=pointer]:
+            - generic [ref=f4e526]: The Arena
+            - generic [ref=f4e527]: ▼
+        - generic [ref=f4e528]:
+          - generic [ref=f4e533]:
+            - generic [ref=f4e534]:
+              - generic [ref=f4e535]:
+                - generic [ref=f4e536]: Friday
+                - heading "The Questbook" [level=3] [ref=f4e537]
+              - generic "0 open quests" [ref=f4e538]: "0"
+            - generic [ref=f4e539]: Ledgar's pages lie blank.
+            - generic [ref=f4e567]:
+              - generic [ref=f4e568]: +
+              - textbox "Quick-add a quest" [ref=f4e569]:
+                - /placeholder: Write a quest…
+              - button "more" [ref=f4e570] [cursor=pointer]
+          - generic [ref=f4e574]:
+            - generic [ref=f4e575]:
+              - heading "🧹 HOUSEHOLD CHORES" [level=3] [ref=f4e577]:
+                - generic [ref=f4e578]: 🧹
+                - text: HOUSEHOLD CHORES
+              - generic [ref=f4e579]:
+                - generic [ref=f4e602]: A Clean Tavern
+                - generic [ref=f4e603]: Every surface polished. The innkeeper nods with approval.
+            - generic [ref=f4e604]:
+              - generic [ref=f4e605]:
+                - heading "DAILY HABITS" [level=3] [ref=f4e606]
+                - button "+ NEW HABIT" [ref=f4e640] [cursor=pointer]:
+                  - generic [ref=f4e641]: +
+                  - text: NEW HABIT
+              - generic [ref=f4e643]:
+                - generic [ref=f4e670]: No Daily Rituals
+                - generic [ref=f4e671]: A hero without habits is a blade without an edge. Begin one.
+          - generic [ref=f4e673]:
+            - generic [ref=f4e674]:
+              - generic [ref=f4e681]:
+                - heading "Daily Missions" [level=3] [ref=f4e682]
+                - paragraph [ref=f4e683]: Resets at midnight
+              - generic [ref=f4e684]: 0/3 done
+            - generic [ref=f4e685]:
+              - generic [ref=f4e687]:
+                - generic [ref=f4e688]:
+                  - generic [ref=f4e689]: Run a Pomodoro session
+                  - generic [ref=f4e690]:
+                    - generic [ref=f4e691]: 0/1
+                    - generic [ref=f4e692]: +60 XP
+                    - generic [ref=f4e693]: +60 G
+                - generic [ref=f4e694]: 0%
+              - generic [ref=f4e696]:
+                - generic [ref=f4e697]:
+                  - generic [ref=f4e698]: Focus for 25 minutes
+                  - generic [ref=f4e699]:
+                    - generic [ref=f4e700]: 0/25
+                    - generic [ref=f4e701]: +80 XP
+                    - generic [ref=f4e702]: +80 G
+                - generic [ref=f4e703]: 0%
+              - generic [ref=f4e705]:
+                - generic [ref=f4e706]:
+                  - generic [ref=f4e707]: Complete 3 quests
+                  - generic [ref=f4e708]:
+                    - generic [ref=f4e709]: 0/3
+                    - generic [ref=f4e710]: +60 XP
+                    - generic [ref=f4e711]: +50 G
+                - generic [ref=f4e712]: 0%
+  - button "Send feedback" [ref=f4e713] [cursor=pointer]

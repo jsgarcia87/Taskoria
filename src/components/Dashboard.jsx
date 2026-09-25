@@ -287,8 +287,9 @@ const Dashboard = ({ setActiveView }) => {
                 {/* Main Content (Left/Center) — 8 cols from md+ so tablet portrait gets the sidebar */}
                 <div className="col-span-12 md:col-span-8 flex flex-col gap-6">
 
-                    {/* ── Mobile: DailyMissions + Habits inline (before garden) ── */}
+                    {/* ── Mobile: Questbook + DailyMissions (above garden for utility-first) ── */}
                     <motion.div {...stagger(0)} className="md:hidden order-1 space-y-4">
+                        <Questbook />
                         <DailyMissions />
                     </motion.div>
 

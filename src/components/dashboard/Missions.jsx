@@ -143,7 +143,7 @@ const MissionCard = memo(function MissionCard({ task, onStart, onPause, onComple
 });
 
 // ─── Column ──────────────────────────────────────────────────────────────────
-const Column = memo(function Column({ col, tasks, onStart, onPause, onComplete, onEdit, onDelete, onDrop }) {
+const Column = memo(function Column({ col, tasks, onStart, onPause, onComplete, onEdit, onDelete, onDrop, onCreate }) {
     const [dragOver, setDragOver] = useState(false);
     const dragCountRef = useRef(0);
 
@@ -197,8 +197,20 @@ const Column = memo(function Column({ col, tasks, onStart, onPause, onComplete, 
                     ))}
                 </AnimatePresence>
                 {tasks.length === 0 && (
-                    <div className={`flex items-center justify-center h-24 rounded-lg border border-dashed text-[11px] uppercase tracking-widest transition-colors ${dragOver ? 'border-rpg-gold/40 text-rpg-gold/60 bg-rpg-gold/5' : 'border-white/5 text-gray-600'}`}>
-                        {dragOver ? 'Drop here' : 'Nothing here'}
+                    <div className={`flex flex-col items-center justify-center h-24 rounded-lg border transition-colors ${dragOver ? 'border-rpg-gold/40 text-rpg-gold/60 bg-rpg-gold/5 border-dashed' : 'border-white/[0.04] bg-white/[0.015]'}`}>
+                        {dragOver ? (
+                            <span className="text-[11px] uppercase tracking-widest">Drop here</span>
+                        ) : (
+                            <>
+                                <span className="text-[11px] text-gray-500 uppercase tracking-wider">No missions yet</span>
+                                <button
+                                    onClick={onCreate}
+                                    className="mt-1.5 text-[10px] text-rpg-gold/80 hover:text-rpg-gold font-bold uppercase tracking-widest transition-colors"
+                                >
+                                    + Create one
+                                </button>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
@@ -401,6 +413,7 @@ const Missions = () => {
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onDrop={handleDrop}
+                        onCreate={() => { setEditingTask(null); setIsCreating(true); }}
                     />
                 ))}
             </div>

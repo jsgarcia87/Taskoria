@@ -49,7 +49,7 @@ const StatusBadge = ({ status }) => {
     return <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-amber-400"><Clock size={10}/> Pending</span>;
 };
 
-const CreationGallery = ({ currentUser }) => {
+const CreationGallery = ({ currentUser, setActiveView }) => {
     const confirm = useConfirm();
     const [tab, setTab] = useState('public'); // public | mine
     const [category, setCategory] = useState('all');
@@ -106,6 +106,9 @@ const CreationGallery = ({ currentUser }) => {
                     <button onClick={() => setTab('public')} className={`text-xs uppercase tracking-widest px-3 py-1.5 rounded border ${tab==='public' ? 'bg-rpg-gold/20 border-rpg-gold text-rpg-gold' : 'bg-white/5 hover:bg-white/10 border-white/10'}`}>Public Gallery</button>
                     {currentUser?.id && (
                         <button onClick={() => setTab('mine')} className={`text-xs uppercase tracking-widest px-3 py-1.5 rounded border ${tab==='mine' ? 'bg-rpg-gold/20 border-rpg-gold text-rpg-gold' : 'bg-white/5 hover:bg-white/10 border-white/10'}`}>My Creations</button>
+                    )}
+                    {setActiveView && (
+                        <button onClick={() => setActiveView('studio')} className="text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded border bg-blue-500/20 border-blue-400 text-blue-300 hover:bg-blue-500/40 ml-2">🎨 Pixel Studio</button>
                     )}
                 </div>
                 <div className="flex flex-wrap gap-1">

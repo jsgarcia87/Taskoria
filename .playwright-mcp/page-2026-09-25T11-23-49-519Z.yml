@@ -1,0 +1,13 @@
+- generic [ref=e369]:
+  - generic [ref=e373]:
+    - generic [ref=e383]:
+      - img "Taskoria Logo" [ref=e385]
+      - paragraph [ref=e386]: Enter the Realm
+    - generic [ref=e387]:
+      - generic [ref=e388]:
+        - textbox "Hero Name / Email" [ref=e390]
+        - textbox "Secret Key" [ref=e395]
+      - button "Enter World →" [ref=e398] [cursor=pointer]:
+        - text: Enter World
+        - generic [ref=e399]: →
+  - generic [ref=e400]: Taskoria v2.0

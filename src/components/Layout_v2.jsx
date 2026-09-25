@@ -46,7 +46,6 @@ const Layout_v2 = ({
         { id: 'party', label: 'Town', icon: 'users' },
         { id: 'diary', label: 'Diary', icon: 'book' },
         { id: 'profile', label: 'Hero', icon: 'user' },
-        { id: 'studio', label: 'Studio', icon: 'sword' },
         { id: 'creations', label: 'World', icon: 'trophy' },
     ];
 
@@ -82,7 +81,7 @@ const Layout_v2 = ({
                         <div className="text-xl font-heading font-bold tracking-tight text-white hidden md:block">
                             TASKORIA <span className="text-rpg-gold text-xs align-top">BETA</span>
                         </div>
-                        <div className="hidden lg:block text-[10px] text-gray-400 font-mono tracking-widest uppercase">Gamified Productivity</div>
+                        <div className="hidden lg:block text-[9px] text-gray-500/60 font-mono tracking-widest uppercase">Gamified Productivity</div>
                     </div>
                 </div>
 
@@ -133,17 +132,19 @@ const Layout_v2 = ({
                     {/* Persistent HUD — compact on tablet (no time stat), full on desktop */}
                     {character && (
                         <div className="hidden md:flex items-center gap-2 lg:gap-3 bg-black/40 border border-white/10 rounded-xl px-2.5 lg:px-4 py-1.5 shadow-glass backdrop-blur-md">
-                            <div className="flex items-center gap-1.5 min-w-[40px] lg:min-w-[50px]">
+                            <div className="flex items-center gap-1.5 min-w-[40px] lg:min-w-[50px]" title="Health Points">
                                 <PixelIcon name="heart" size={14} color="#f87171" className="fill-current drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]" />
                                 <NumberTicker value={character.hp?.current ?? 0} className="text-white text-xs font-bold font-mono" />
+                                <span className="hidden xl:inline text-[8px] text-gray-500 uppercase tracking-wider font-bold">HP</span>
                             </div>
                             <div className="hidden lg:block h-4 w-px bg-white/20"></div>
-                            <div className="hidden lg:flex items-center gap-1.5 min-w-[50px]">
+                            <div className="hidden lg:flex items-center gap-1.5 min-w-[50px]" title="Time Points">
                                 <PixelIcon name="clock" size={14} color="#60a5fa" className="fill-current drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]" />
                                 <NumberTicker value={character.timePoints ?? 0} className="text-white text-xs font-bold font-mono" />
+                                <span className="hidden xl:inline text-[8px] text-gray-500 uppercase tracking-wider font-bold">TP</span>
                             </div>
                             <div className="h-4 w-px bg-white/20"></div>
-                            <div className="flex items-center gap-1.5 min-w-[40px] lg:min-w-[50px]">
+                            <div className="flex items-center gap-1.5 min-w-[40px] lg:min-w-[50px]" title="Gold">
                                 <PixelIcon name="coins" size={14} color="#fbbf24" className="fill-current drop-shadow-[0_0_5px_rgba(251,191,36,0.8)]" />
                                 <NumberTicker value={character.gold ?? 0} className="text-white text-xs font-bold font-mono text-rpg-gold text-shadow-glow" />
                             </div>

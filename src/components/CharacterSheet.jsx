@@ -359,7 +359,7 @@ const CharacterSheet = ({ setActiveView }) => {
     const equippedCount = character.equipment ? Object.values(character.equipment).filter(Boolean).length : 0;
 
     return (
-        <div className="glass-panel h-full flex flex-col rounded-2xl overflow-hidden relative min-h-[600px] border border-white/10 shadow-2xl">
+        <div className="glass-panel h-full flex flex-col rounded-2xl overflow-hidden relative min-h-[600px] border border-white/[0.08]">
 
             {/* ═══════ HERO BANNER ═══════ */}
             <div className="px-5 pt-5 pb-4 border-b border-white/5">
@@ -426,7 +426,7 @@ const CharacterSheet = ({ setActiveView }) => {
             </div>
 
             {/* ═══════ TAB BAR ═══════ */}
-            <div className="px-3 flex gap-0.5 border-b border-white/5 bg-black/20">
+            <div className="px-4 flex gap-1 border-b border-white/5">
                 {[
                     { id: 'overview', label: 'Hero', icon: 'star' },
                     { id: 'gear', label: 'Gear', icon: 'sword' },
@@ -436,12 +436,12 @@ const CharacterSheet = ({ setActiveView }) => {
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex-1 flex flex-col items-center gap-1 py-2 border-b-2 transition-all ${activeTab === tab.id
-                            ? 'border-rpg-gold/60 text-white bg-white/5'
-                            : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'}`}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 border-b-2 transition-colors ${activeTab === tab.id
+                            ? 'border-rpg-gold/60 text-white'
+                            : 'border-transparent text-gray-600 hover:text-gray-400'}`}
                     >
-                        <PixelIcon name={tab.icon} size={14} />
-                        <span className="text-[9px] font-bold uppercase tracking-wide">{tab.label}</span>
+                        <PixelIcon name={tab.icon} size={11} color={activeTab === tab.id ? '#fbbf24' : undefined} />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
                     </button>
                 ))}
             </div>
@@ -471,23 +471,21 @@ const CharacterSheet = ({ setActiveView }) => {
                                 const bonus = totalValue - baseValue;
                                 const pct = Math.min(totalValue / 50, 1);
                                 return (
-                                    <div key={stat.key} className="relative p-3 pb-2 rounded-xl bg-black/30 border border-white/5 overflow-hidden"
+                                    <div key={stat.key} className="relative p-2.5 pb-2 rounded-lg bg-black/20 overflow-hidden"
                                         style={{ animation: `statTileIn 0.5s ease-out ${idx * 60}ms both` }}>
                                         <div className="flex flex-col items-center">
                                             <div className="flex items-center gap-1 mb-0.5">
-                                                <PixelIcon name={stat.icon} size={8} color={stat.color + '80'} />
-                                                <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: stat.color + '99' }}>{stat.label}</span>
+                                                <PixelIcon name={stat.icon} size={8} color={stat.color + '70'} />
+                                                <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: stat.color + '90' }}>{stat.label}</span>
                                             </div>
                                             <div className="flex items-baseline gap-0.5">
                                                 <NumberTicker value={totalValue} className="text-2xl font-pixel text-white leading-none" />
                                                 {bonus > 0 && <span className="text-[9px] font-bold text-green-400">+{bonus}</span>}
                                             </div>
-                                            <span className="text-[7px] font-bold uppercase tracking-widest mt-0.5 opacity-40" style={{ color: stat.color }}>{stat.full}</span>
                                         </div>
-                                        {/* Bottom progress track */}
-                                        <div className="mt-2 h-[3px] rounded-full bg-white/5 overflow-hidden">
+                                        <div className="mt-2 h-[2px] rounded-full bg-white/[0.04] overflow-hidden">
                                             <div className="h-full rounded-full transition-all duration-1000 ease-out"
-                                                style={{ width: `${pct * 100}%`, backgroundColor: stat.color, opacity: 0.6 }} />
+                                                style={{ width: `${pct * 100}%`, backgroundColor: stat.color, opacity: 0.5 }} />
                                         </div>
                                     </div>
                                 );
@@ -498,9 +496,6 @@ const CharacterSheet = ({ setActiveView }) => {
                         <div>
                             <div className="mb-3">
                                 <SectionDivider label={theme.gearLabel} icon="shield" color={theme.accent} />
-                                <div className="text-right mt-1">
-                                    <span className="text-xs font-pixel text-gray-500">{equippedCount}/5 equipped</span>
-                                </div>
                             </div>
                             <div className="grid grid-cols-5 gap-2">
                                 {[
@@ -513,14 +508,14 @@ const CharacterSheet = ({ setActiveView }) => {
                                     const equippedItem = character.equipment && character.equipment[slotInfo.slot];
                                     return (
                                         <div key={slotInfo.slot} className="flex flex-col items-center gap-1">
-                                            <div className={`w-full aspect-square rounded-xl border flex items-center justify-center transition-all ${equippedItem
-                                                ? 'bg-white/5 border-white/15 shadow-sm'
-                                                : 'bg-black/30 border-white/5'}`}
+                                            <div className={`w-full aspect-square rounded-lg flex items-center justify-center transition-all ${equippedItem
+                                                ? 'bg-white/[0.06] border border-white/15'
+                                                : 'bg-black/30 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] border border-white/[0.03]'}`}
                                                 title={equippedItem ? `${equippedItem.name} (${slotInfo.label})` : `${slotInfo.label} - Empty`}>
                                                 {equippedItem ? (
                                                     <Sprite src={equippedItem.sprite.src} x={equippedItem.sprite.x} y={equippedItem.sprite.y} width={equippedItem.sprite.width} height={equippedItem.sprite.height} scale={1} />
                                                 ) : (
-                                                    <PixelIcon name={slotInfo.icon} size={16} color="#4b5563" />
+                                                    <PixelIcon name={slotInfo.icon} size={16} color="#374151" />
                                                 )}
                                             </div>
                                             <span className="text-[8px] font-bold text-gray-600 uppercase tracking-wider">{slotInfo.label}</span>
@@ -568,16 +563,17 @@ const CharacterSheet = ({ setActiveView }) => {
                                 {getSkills(character.class).map((skill, idx) => {
                                     const isLocked = character.level < (idx * 3 + 1);
                                     return (
-                                        <div key={idx} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${isLocked
-                                            ? 'opacity-40 grayscale border-white/5 bg-black/20'
-                                            : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10'}`}>
-                                            <div className="w-9 h-9 flex items-center justify-center bg-black/40 rounded-lg border border-white/10 shrink-0">
-                                                <PixelIcon name={skill.icon} size={18} color={isLocked ? '#6b7280' : skill.color} />
+                                        <div key={idx} className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors ${isLocked
+                                            ? 'opacity-35'
+                                            : 'hover:bg-white/[0.03]'}`}>
+                                            <div className="w-8 h-8 flex items-center justify-center rounded-md shrink-0"
+                                                style={{ backgroundColor: isLocked ? 'rgba(255,255,255,0.03)' : skill.color + '12' }}>
+                                                <PixelIcon name={skill.icon} size={16} color={isLocked ? '#4b5563' : skill.color} />
                                             </div>
                                             <div className="flex-grow min-w-0">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-baseline gap-2">
                                                     <span className="font-bold text-white text-xs truncate">{skill.name}</span>
-                                                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400 border border-white/5 uppercase font-bold tracking-wider shrink-0">{skill.type}</span>
+                                                    <span className="text-[8px] uppercase font-bold tracking-wider text-gray-600 shrink-0">{skill.type}</span>
                                                 </div>
                                                 <p className="text-[10px] text-gray-500 mt-0.5">{isLocked ? `Unlocks at Level ${idx * 3 + 1}` : skill.desc}</p>
                                             </div>
@@ -607,8 +603,8 @@ const CharacterSheet = ({ setActiveView }) => {
                                 ].map((slotInfo) => {
                                     const equippedItem = character.equipment && character.equipment[slotInfo.slot];
                                     return (
-                                        <div key={slotInfo.slot} className="flex items-center gap-3 p-2.5 rounded-xl bg-black/20 border border-white/5 group hover:border-white/10 transition-all">
-                                            <div className="w-10 h-10 bg-black/40 rounded-lg border border-white/10 flex items-center justify-center shrink-0">
+                                        <div key={slotInfo.slot} className="flex items-center gap-3 p-2.5 rounded-lg bg-black/20 group hover:bg-white/[0.03] transition-colors">
+                                            <div className="w-10 h-10 bg-black/30 rounded-md shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] border border-white/[0.03] flex items-center justify-center shrink-0">
                                                 {equippedItem ? (
                                                     <Sprite src={equippedItem.sprite.src} x={equippedItem.sprite.x} y={equippedItem.sprite.y} width={equippedItem.sprite.width} height={equippedItem.sprite.height} scale={1} />
                                                 ) : (
@@ -637,13 +633,12 @@ const CharacterSheet = ({ setActiveView }) => {
                         <div>
                             <div className="mb-3">
                                 <SectionDivider label="Satchel" icon="box" color="#94a3b8" />
-                                {inventoryGroups.length > 0 && <div className="text-right mt-1"><span className="text-gray-600 font-pixel text-sm">{inventoryGroups.length} items</span></div>}
                             </div>
                             {inventoryGroups.length > 0 ? (
                                 <div className="space-y-1.5">
                                     {inventoryGroups.map((item, index) => (
-                                        <div key={index} className="flex items-center gap-3 p-2 rounded-xl bg-black/20 border border-white/5 group hover:bg-white/[0.03] transition-colors">
-                                            <div className="w-9 h-9 bg-black/40 rounded-lg flex items-center justify-center border border-white/10 relative shrink-0">
+                                        <div key={index} className="flex items-center gap-3 p-2 rounded-lg group hover:bg-white/[0.03] transition-colors">
+                                            <div className="w-9 h-9 bg-black/30 rounded-md shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] flex items-center justify-center border border-white/[0.03] relative shrink-0">
                                                 {item.sprite ? (
                                                     <Sprite src={item.sprite.src} x={item.sprite.x} y={item.sprite.y} width={item.sprite.width} height={item.sprite.height} scale={1} />
                                                 ) : (
@@ -681,8 +676,8 @@ const CharacterSheet = ({ setActiveView }) => {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-8 px-4 rounded-xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-2">
-                                    <PixelIcon name="box" size={32} className="text-gray-600" />
+                                <div className="text-center py-8 px-4 rounded-lg bg-black/15 flex flex-col items-center justify-center gap-2">
+                                    <PixelIcon name="box" size={28} className="text-gray-700" />
                                     <div>
                                         <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Empty Satchel</div>
                                         <div className="text-[10px] text-gray-600 mt-0.5">Complete quests to find loot.</div>
@@ -704,7 +699,7 @@ const CharacterSheet = ({ setActiveView }) => {
                     <div className="p-5 space-y-5 animate-tab-in">
                         {character.pets && character.pets.length > 0 ? (
                             character.pets.map((pet) => (
-                                <div key={pet.id} className="flex flex-col items-center bg-black/20 p-5 rounded-2xl border border-white/5 relative">
+                                <div key={pet.id} className="flex flex-col items-center bg-black/15 p-5 rounded-xl relative">
                                     <button onClick={() => confirmAdoption(pet)} disabled={isReleasing}
                                         className="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-wider text-red-400/60 hover:text-red-400 bg-red-500/5 hover:bg-red-500/15 px-2 py-1 rounded-lg border border-red-500/10 transition-all disabled:opacity-50">
                                         Give Away
@@ -772,18 +767,18 @@ const CharacterSheet = ({ setActiveView }) => {
                                     {/* Interaction Buttons */}
                                     <div className="grid grid-cols-2 gap-2 w-full mt-4">
                                         <button onClick={() => actions.playWithPet(pet.id)} disabled={pet.inSanctuary}
-                                            className="flex items-center justify-center gap-1.5 py-2 rounded-xl border border-white/10 bg-white/5 text-gray-300 hover:bg-pink-500/10 hover:border-pink-500/30 hover:text-pink-400 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50">
+                                            className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-white/[0.04] text-gray-300 hover:bg-pink-500/10 hover:text-pink-400 transition-colors font-bold text-[10px] uppercase tracking-wider disabled:opacity-50">
                                             <PixelIcon name="heart" size={12} color="#f472b6" /> Play
                                         </button>
                                         <button onClick={() => actions.cleanPet(pet.id)} disabled={pet.inSanctuary}
-                                            className="flex items-center justify-center gap-1.5 py-2 rounded-xl border border-white/10 bg-white/5 text-gray-300 hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50">
+                                            className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-white/[0.04] text-gray-300 hover:bg-blue-500/10 hover:text-blue-400 transition-colors font-bold text-[10px] uppercase tracking-wider disabled:opacity-50">
                                             <PixelIcon name="zap" size={12} color="#60a5fa" /> Groom
                                         </button>
                                     </div>
 
                                     {/* Perks + Evolution */}
                                     {(SPECIES_PERKS[pet.type] || canEvolvePet(pet)) && (
-                                        <div className="w-full mt-4 p-3 rounded-xl bg-gradient-to-br from-amber-500/5 via-transparent to-rose-500/5 border border-white/10">
+                                        <div className="w-full mt-4 p-3 rounded-lg bg-black/20 border border-white/[0.06]">
                                             {SPECIES_PERKS[pet.type] && (
                                                 <>
                                                     <h4 className="text-[9px] font-bold text-amber-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
@@ -867,14 +862,14 @@ const CharacterSheet = ({ setActiveView }) => {
                         <DailyProgressChart />
 
                         {/* Hero Title + Chronicle Narrative */}
-                        <div className="p-4 rounded-xl bg-black/20 border border-white/5">
-                            <div className="text-center mb-2">
+                        <div className="p-4 rounded-lg bg-black/15">
+                            <div className="text-center mb-1.5">
                                 <span className="text-xs font-heading font-bold uppercase tracking-[0.2em]" style={{ color: theme.accent }}>
                                     {getHeroTitle(character.level, character.achievements?.tasks || 0, character.class)}
                                 </span>
                             </div>
-                            <p className="text-[10px] text-gray-400 text-center italic leading-relaxed">
-                                "{getChronicleQuip(character.achievements?.tasks || 0, character.achievements?.habits || 0, character.achievements?.goldEarned || 0)}"
+                            <p className="text-[10px] text-gray-500 text-center leading-relaxed">
+                                {getChronicleQuip(character.achievements?.tasks || 0, character.achievements?.habits || 0, character.achievements?.goldEarned || 0)}
                             </p>
                         </div>
 
@@ -889,12 +884,9 @@ const CharacterSheet = ({ setActiveView }) => {
                                     { label: 'Habits Forged', value: character.achievements?.habits || 0, color: 'text-white', icon: 'checkSquare' },
                                     { label: 'Gold Earned', value: character.achievements?.goldEarned || 0, color: 'text-rpg-gold', icon: 'coins' },
                                 ].map(a => (
-                                    <div key={a.label} className="bg-black/30 p-2.5 rounded-xl border border-white/5 text-center relative overflow-hidden">
-                                        <div className="absolute -bottom-1 -right-1 opacity-[0.04] pointer-events-none">
-                                            <PixelIcon name={a.icon} size={28} color="#fff" />
-                                        </div>
-                                        <div className={`text-xl font-pixel ${a.color} relative z-10`}><NumberTicker value={a.value} /></div>
-                                        <div className="text-[7px] font-bold text-gray-500 uppercase tracking-widest relative z-10">{a.label}</div>
+                                    <div key={a.label} className="bg-black/20 p-2.5 rounded-lg text-center">
+                                        <div className={`text-xl font-pixel ${a.color}`}><NumberTicker value={a.value} /></div>
+                                        <div className="text-[8px] font-bold text-gray-600 uppercase tracking-wider">{a.label}</div>
                                     </div>
                                 ))}
                             </div>
@@ -910,10 +902,10 @@ const CharacterSheet = ({ setActiveView }) => {
                                     const isUnlocked = character.unlockedBadges?.includes(badge.id);
                                     const tier = TIER_COLORS[badge.tier] || TIER_COLORS.bronze;
                                     return (
-                                        <div key={badge.id} className={`p-3 rounded-xl flex flex-col items-center text-center transition-all ${isUnlocked
-                                            ? `bg-black/20 ${tier.border}/20 border`
-                                            : 'bg-black/20 border border-white/5 opacity-40 grayscale'}`}
-                                            style={isUnlocked ? { borderColor: badge.tier === 'gold' ? '#fbbf2430' : badge.tier === 'silver' ? '#94a3b830' : '#b4541430' } : undefined}>
+                                        <div key={badge.id} className={`p-3 rounded-lg flex flex-col items-center text-center transition-all ${isUnlocked
+                                            ? 'bg-black/20 border'
+                                            : 'bg-black/15 border border-white/[0.03] opacity-50'}`}
+                                            style={isUnlocked ? { borderColor: badge.tier === 'gold' ? '#fbbf2425' : badge.tier === 'silver' ? '#94a3b825' : '#b4541425' } : undefined}>
                                             <div className="w-9 h-9 mb-1.5">
                                                 {isUnlocked ? (
                                                     <div className={`w-full h-full bg-gradient-to-br ${tier.bg} rounded-full flex items-center justify-center border ${tier.border}`}>

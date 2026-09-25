@@ -1,0 +1,13 @@
+[      89ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[     124ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5174/:0
+[     125ms] [WARNING] Failed to fetch from server, falling back to local cache if available SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at handleLogin (http://localhost:5174/src/App.jsx:680:21) @ http://localhost:5174/src/App.jsx:681
+[     126ms] [WARNING] Failed to fetch from server, falling back to local cache if available SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at handleLogin (http://localhost:5174/src/App.jsx:680:21) @ http://localhost:5174/src/App.jsx:681
+[     134ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5174/src/utils/blueprints.js:20
+[   23391ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onOpenChat @ http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:2366

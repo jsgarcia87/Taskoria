@@ -298,42 +298,25 @@ const PartyView = ({ currentUser, onOpenChat }) => {
     return (
         <div className="space-y-6 h-full pb-20 relative">
             {/* TABS */}
-            <div className="flex gap-2 border-b border-white/10 pb-4 mb-4 overflow-x-auto overflow-y-hidden custom-scrollbar shrink-0 scroll-smooth pb-2">
-                <button
-                    onClick={() => setActiveTab('friends')}
-                    className={`flex-1 min-w-[120px] py-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs md:text-sm rounded-xl transition-all whitespace-nowrap px-4 ${activeTab === 'friends' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                >
-                    <PixelIcon name="users" size={14} className="inline mr-1 sm:mr-2" />
-                    Friends
-                </button>
-                <button
-                    onClick={() => setActiveTab('shop')}
-                    className={`flex-1 min-w-[120px] py-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs md:text-sm rounded-xl transition-all whitespace-nowrap px-4 ${activeTab === 'shop' ? 'bg-rpg-gold text-rpg-bg shadow-glow-gold' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                >
-                    <PixelIcon name="coins" size={14} className="inline mr-1 sm:mr-2" />
-                    Market
-                </button>
-                <button
-                    onClick={() => setActiveTab('guilds')}
-                    className={`flex-1 min-w-[120px] py-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs md:text-sm rounded-xl transition-all whitespace-nowrap px-4 ${activeTab === 'guilds' ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                >
-                    <PixelIcon name="shield" size={14} className="inline mr-1 sm:mr-2" />
-                    Guilds
-                </button>
-                <button
-                    onClick={() => setActiveTab('boss')}
-                    className={`flex-1 min-w-[120px] py-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs md:text-sm rounded-xl transition-all whitespace-nowrap px-4 ${activeTab === 'boss' ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                >
-                    <PixelIcon name="sword" size={14} className="inline mr-1 sm:mr-2" />
-                    Boss Arena
-                </button>
-                <button
-                    onClick={() => setActiveTab('sanctuary')}
-                    className={`flex-1 min-w-[120px] py-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs md:text-sm rounded-xl transition-all whitespace-nowrap px-4 ${activeTab === 'sanctuary' ? 'bg-emerald-500 text-black shadow-glow' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                >
-                    <PixelIcon name="heart" size={14} className="inline mr-1 sm:mr-2" />
-                    Sanctuary
-                </button>
+            <div className="flex gap-1 border-b border-white/5 overflow-x-auto custom-scrollbar shrink-0">
+                {[
+                    { id: 'friends', label: 'Friends', icon: 'users' },
+                    { id: 'shop', label: 'Market', icon: 'coins' },
+                    { id: 'guilds', label: 'Guilds', icon: 'shield' },
+                    { id: 'boss', label: 'Arena', icon: 'sword' },
+                    { id: 'sanctuary', label: 'Sanctuary', icon: 'heart' },
+                ].map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
+                            ? 'border-rpg-gold/60 text-white'
+                            : 'border-transparent text-gray-600 hover:text-gray-400'}`}
+                    >
+                        <PixelIcon name={tab.icon} size={11} color={activeTab === tab.id ? '#fbbf24' : undefined} />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
+                    </button>
+                ))}
             </div>
 
             <ChatModal

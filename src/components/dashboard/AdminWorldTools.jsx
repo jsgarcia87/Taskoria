@@ -398,10 +398,6 @@ const AdminWorldTools = ({ currentUser }) => {
                         <button
                             key={t.id}
                             onClick={() => {
-                                if (t.id === 'house') {
-                                    window.open(t.src, 'taskoria_editor');
-                                    return;
-                                }
                                 if (t.id === 'map') {
                                     setPendingEdit(null);
                                     setOpenTool('map');

@@ -256,6 +256,12 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
                         </div>
                         <div className="text-sm font-bold text-gray-300 uppercase tracking-widest">The Realm is Peaceful</div>
                         <div className="text-xs text-gray-500 mt-1">Ledgar's quill rests. Write a new quest to set it moving.</div>
+                        <button
+                            onClick={handleOpenTaskForm}
+                            className="mt-3 glass-btn-primary px-4 py-2 text-xs font-bold shadow-lg shadow-rpg-gold/20"
+                        >
+                            + Write a quest
+                        </button>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -344,7 +350,13 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
                                 <NoRituals size={80} />
                             </div>
                             <div className="text-sm font-bold text-gray-300 uppercase tracking-widest">No Daily Rituals</div>
-                            <div className="text-[10px] text-gray-500 mt-1">A hero without habits is a blade without an edge. Begin one.</div>
+                            <div className="text-[10px] text-gray-500 mt-1">A hero without habits is a blade without an edge.</div>
+                            <button
+                                onClick={handleOpenHabitForm}
+                                className="mt-3 px-4 py-2 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[11px] font-bold uppercase tracking-wider hover:bg-blue-500/30 hover:border-blue-400/40 transition-all"
+                            >
+                                Begin a ritual
+                            </button>
                         </div>
                     )}
 

@@ -287,7 +287,7 @@ const GameContent = ({ currentUser, onLogout }) => {
             {activeView === 'creations' && (
               <motion.div key="creations" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
                 <Suspense fallback={<ChunkLoader label="Loading gallery…" />}>
-                  <CreationGallery currentUser={currentUser} />
+                  <CreationGallery currentUser={currentUser} setActiveView={setActiveView} />
                 </Suspense>
               </motion.div>
             )}

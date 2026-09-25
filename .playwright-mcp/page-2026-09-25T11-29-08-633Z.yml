@@ -1,0 +1,11 @@
+- generic [ref=f1e3]:
+  - generic [ref=f1e4]:
+    - textbox [ref=f1e12]: Workflow sin título
+    - generic [ref=f1e13]:
+      - button "⛓ Editor" [ref=f1e14] [cursor=pointer]
+      - button "🛸 Modo OVNIs" [ref=f1e15] [cursor=pointer]
+      - button "◎ Agentic OS" [ref=f1e18] [cursor=pointer]
+    - button "Activo" [ref=f1e19] [cursor=pointer]
+    - button "Guardar" [ref=f1e23] [cursor=pointer]
+    - button "▶ Ejecutar" [ref=f1e24] [cursor=pointer]
+  - generic [ref=f1e25]: Cargando workflow…
