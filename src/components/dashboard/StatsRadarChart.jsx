@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
-const StatsRadarChart = ({ stats }) => {
+const StatsRadarChart = ({ stats, accentColor }) => {
     const [progress, setProgress] = useState(0);
+    const accent = accentColor || '#60a5fa';
 
     useEffect(() => {
         let start = null;
@@ -32,20 +33,20 @@ const StatsRadarChart = ({ stats }) => {
     const willRatio = normalize(stats?.will) * progress;
 
     const cx = 50;
-    const cy = 52;
-    const maxR = 32;
+    const cy = 50;
+    const maxR = 34;
     const d2r = Math.PI / 180;
 
     const getPointX = (angle, ratio) => cx + maxR * Math.cos(angle * d2r) * ratio;
     const getPointY = (angle, ratio) => cy + maxR * Math.sin(angle * d2r) * ratio;
 
     const points = [
-        { name: 'STR', angle: -90, ratio: strRatio, color: '#ef4444' },
-        { name: 'DEX', angle: -30, ratio: dexRatio, color: '#22c55e' },
-        { name: 'CON', angle: 30, ratio: conRatio, color: '#f97316' },
-        { name: 'INT', angle: 90, ratio: intRatio, color: '#3b82f6' },
-        { name: 'WILL', angle: 150, ratio: willRatio, color: '#a855f7' },
-        { name: 'CHA', angle: 210, ratio: chaRatio, color: '#eab308' },
+        { name: 'STR', value: stats?.str || 0, angle: -90, ratio: strRatio, color: '#ef4444' },
+        { name: 'DEX', value: stats?.dex || 0, angle: -30, ratio: dexRatio, color: '#22c55e' },
+        { name: 'CON', value: stats?.con || 0, angle: 30, ratio: conRatio, color: '#f97316' },
+        { name: 'INT', value: stats?.int || 0, angle: 90, ratio: intRatio, color: '#3b82f6' },
+        { name: 'WILL', value: stats?.will || 0, angle: 150, ratio: willRatio, color: '#a855f7' },
+        { name: 'CHA', value: stats?.cha || 0, angle: 210, ratio: chaRatio, color: '#eab308' },
     ];
 
     const staticPoints = [
@@ -66,52 +67,59 @@ const StatsRadarChart = ({ stats }) => {
     const dotOpacity = Math.max(0, (progress - 0.3) / 0.7);
 
     return (
-        <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-black/20 border border-white/5">
-            <div className="w-full h-44 flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-black/20 border border-white/5">
+            <div className="w-full max-w-[280px] aspect-square flex items-center justify-center">
                 <svg viewBox="0 0 100 100" className="w-full h-full">
-
                     <defs>
                         <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
-                            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.25" />
+                            <stop offset="0%" stopColor={accent} stopOpacity="0.5" />
+                            <stop offset="100%" stopColor={accent} stopOpacity="0.12" />
                         </linearGradient>
                     </defs>
 
-                    <polygon points={outerPoints} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
-                    <polygon points={midPoints} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="1,1" />
-                    <polygon points={innerPoints} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="1,1" />
+                    <polygon points={outerPoints} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.4" />
+                    <polygon points={midPoints} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.4" strokeDasharray="1,1" />
+                    <polygon points={innerPoints} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.4" strokeDasharray="1,1" />
 
                     {staticPoints.map((p, i) => (
-                        <line key={`axis-${i}`} x1={cx} y1={cy} x2={getPointX(p.angle, 1)} y2={getPointY(p.angle, 1)} stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                        <line key={`axis-${i}`} x1={cx} y1={cy} x2={getPointX(p.angle, 1)} y2={getPointY(p.angle, 1)} stroke="rgba(255,255,255,0.06)" strokeWidth="0.4" />
                     ))}
 
                     {progress > 0 && (
                         <polygon
                             points={valuePoints}
                             fill="url(#chartGradient)"
-                            stroke="#60a5fa"
-                            strokeWidth="1"
+                            stroke={accent}
+                            strokeWidth="0.8"
                             strokeLinejoin="round"
+                            strokeOpacity="0.7"
                         />
                     )}
 
                     {points.map((p, i) => (
-                        <circle key={`pt-${i}`} cx={getPointX(p.angle, p.ratio)} cy={getPointY(p.angle, p.ratio)} r="2" fill={p.color} stroke="#fff" strokeWidth="0.5" opacity={dotOpacity} />
+                        <circle key={`pt-${i}`} cx={getPointX(p.angle, p.ratio)} cy={getPointY(p.angle, p.ratio)} r="1.8" fill={p.color} stroke="#fff" strokeWidth="0.4" opacity={dotOpacity} />
                     ))}
 
                     {staticPoints.map((p, i) => {
-                        const lx = getPointX(p.angle, 1.25);
-                        const ly = getPointY(p.angle, 1.2) + 2;
+                        const labelDist = 1.28;
+                        const lx = getPointX(p.angle, labelDist);
+                        const ly = getPointY(p.angle, labelDist) + 1;
+                        const valueDist = 1.16;
+                        const vx = getPointX(p.angle, valueDist);
+                        const vy = getPointY(p.angle, valueDist) + 1;
                         return (
-                            <text key={`lbl-${i}`} x={lx} y={ly} fill={points[i].color} fontSize="5" fontWeight="bold" textAnchor="middle" className="uppercase">
-                                {points[i].name}
-                            </text>
+                            <g key={`lbl-${i}`}>
+                                <text x={lx} y={ly} fill={points[i].color} fontSize="4" fontWeight="bold" textAnchor="middle" className="uppercase">
+                                    {points[i].name}
+                                </text>
+                                <text x={vx} y={vy + 4.5} fill="rgba(255,255,255,0.5)" fontSize="3.5" fontWeight="bold" textAnchor="middle" fontFamily="VT323, monospace">
+                                    {Math.round(points[i].value * progress)}
+                                </text>
+                            </g>
                         );
                     })}
                 </svg>
             </div>
-
-            <p className="text-[8px] text-gray-600 uppercase tracking-widest mt-1 text-center">Attributes</p>
         </div>
     );
 };

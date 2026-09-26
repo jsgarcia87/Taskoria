@@ -25,7 +25,12 @@
 }
 
 @layer base {
+  html {
+    overflow-x: hidden;
+  }
+
   body {
+    overflow-x: hidden;
     background-color: var(--color-bg-secondary);
     color: #ffffff;
     -webkit-font-smoothing: antialiased;

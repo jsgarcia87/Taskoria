@@ -5,6 +5,7 @@ import { PeacefulRealm } from '../common/PixelEmpty';
 import TaskForm from './TaskForm';
 import Modal from '../common/Modal';
 import { useConfirm } from '../../context/ConfirmContext';
+import { getEffectiveStats, getStatBonus, getPetMoodBonus, getPetPerks } from '../../utils/gameUtils';
 
 // One display font stack (Outfit) for the wordmark, Inter for everything else,
 // VT323 pixel monospace kept only for numerals — matches the app's existing
@@ -36,8 +37,24 @@ const TornEdgeBottom = () => (
     </svg>
 );
 
-const QuestRow = ({ task, onComplete, onEdit, onDelete }) => {
+const estimateRewards = (task, character) => {
+    const effStats = getEffectiveStats(character);
+    const intBonus = getStatBonus(effStats.int);
+    const chaBonus = getStatBonus(effStats.cha);
+    const petBonus = getPetMoodBonus(character);
+    const perks = getPetPerks(character);
+    const xpBase = task.recurrence === 'daily' ? 20 : 15;
+    const streakMult = (task.recurrence && task.recurrence !== 'none' && task.streakCount > 0)
+        ? 1 + Math.min(task.streakCount, 30) * 0.02
+        : 1;
+    const xp = Math.floor(task.difficulty * xpBase * intBonus * petBonus * (1 + perks.xpMult) * streakMult);
+    const gold = Math.floor(task.difficulty * 5 * chaBonus * (1 + perks.goldMult) * streakMult);
+    return { xp, gold };
+};
+
+const QuestRow = ({ task, onComplete, onEdit, onDelete, character }) => {
     const [checked, setChecked] = React.useState(false);
+    const rewards = estimateRewards(task, character);
     const handleComplete = React.useCallback((e) => {
         setChecked(true);
         onComplete(task.id, e.clientX, e.clientY);
@@ -84,13 +101,13 @@ const QuestRow = ({ task, onComplete, onEdit, onDelete }) => {
                 className="text-right whitespace-nowrap font-bold leading-none"
                 style={{ ...PIXEL, fontSize: 15, color: INK_MID, letterSpacing: '0.03em' }}
             >
-                +{task.difficulty === 3 ? '40' : '20'} xp
+                +{rewards.xp} xp
             </span>
             <span
                 className="text-right whitespace-nowrap font-bold leading-none mt-0.5"
                 style={{ ...PIXEL, fontSize: 15, color: INK_MID, letterSpacing: '0.03em' }}
             >
-                +{task.difficulty === 3 ? '20' : '10'} g
+                +{rewards.gold} g
             </span>
             <button
                 onClick={() => onDelete(task.id)}
@@ -243,6 +260,7 @@ const Questbook = () => {
                             <QuestRow
                                 key={task.id}
                                 task={task}
+                                character={state.character}
                                 onComplete={handleComplete}
                                 onEdit={setEditingTask}
                                 onDelete={handleDelete}
@@ -251,8 +269,8 @@ const Questbook = () => {
                     </AnimatePresence>
                 )}
 
-                {/* Quick-add input — always visible */}
-                <div className={`${activeTasks.length > 0 ? 'mt-3 pt-3 border-t border-dashed border-[#3a2a15]/25' : 'mt-1'}`}>
+                {/* Quick-add input — desktop/tablet only (mobile has the big ADD QUEST button) */}
+                <div className={`hidden md:block ${activeTasks.length > 0 ? 'mt-3 pt-3 border-t border-dashed border-[#3a2a15]/25' : 'mt-1'}`}>
                     <div className="flex items-center gap-2">
                         <span style={{ color: INK_MID }} className="text-[15px] opacity-50 leading-none select-none">+</span>
                         <input
@@ -287,6 +305,14 @@ const Questbook = () => {
                         </div>
                     )}
                 </div>
+                {/* Mobile: just show open count */}
+                {activeTasks.length > 0 && (
+                    <div className="md:hidden mt-2 text-right">
+                        <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: INK_MID, opacity: 0.5 }}>
+                            {activeTasks.length} open
+                        </span>
+                    </div>
+                )}
             </div>
             <TornEdgeBottom />
 

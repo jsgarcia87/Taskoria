@@ -102,23 +102,7 @@ const Dashboard = ({ setActiveView }) => {
     const todayLocalDate = now.toLocaleDateString('en-CA');
     const weekDay = now.toLocaleDateString('en-US', { weekday: 'long' });
     const capitalizedDay = weekDay.charAt(0).toUpperCase() + weekDay.slice(1);
-    const greeting = getGreeting(
-        character?.name || 'Adventurer',
-        activeTasks.length,
-        character?.level || 1,
-        now.getDay(),
-    );
-
     const overdueTasks = activeTasks.filter(t => t.dueDate && t.dueDate < todayLocalDate);
-    const dueTodayTasks = activeTasks.filter(t => t.dueDate && t.dueDate === todayLocalDate);
-    const urgentTasks = [...overdueTasks, ...dueTodayTasks];
-    const upcomingSorted = [...activeTasks].sort((a, b) => {
-        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
-        if (a.dueDate) return -1;
-        if (b.dueDate) return 1;
-        return 0;
-    });
-    const peekTasks = upcomingSorted.slice(0, 3);
 
     const shouldReduce = useReducedMotion();
     const { scrollY } = useScroll();
@@ -248,40 +232,6 @@ const Dashboard = ({ setActiveView }) => {
                     <BannerHolderContent />
                 </motion.div>
             </motion.div>
-
-            {/* ── MOBILE: task peek — top urgent/active quests ─────────── */}
-            {peekTasks.length > 0 && (
-                <div className="md:hidden glass-card border-white/10 overflow-hidden">
-                    <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                        <h3 className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
-                            {urgentTasks.length > 0 ? 'Needs attention' : 'Active quests'}
-                        </h3>
-                        <button
-                            onClick={() => setActiveView('tasks')}
-                            className="text-[10px] text-rpg-gold font-bold uppercase tracking-wider hover:text-white transition-colors"
-                        >
-                            See all ({activeTasks.length})
-                        </button>
-                    </div>
-                    <div className="divide-y divide-white/5">
-                        {peekTasks.map(task => (
-                            <button
-                                key={task.id}
-                                onClick={() => setActiveView('tasks')}
-                                className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-white/5 transition-colors"
-                            >
-                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${task.dueDate && task.dueDate < todayLocalDate ? 'bg-red-400' : task.dueDate === todayLocalDate ? 'bg-amber-400' : 'bg-gray-500'}`} />
-                                <span className="text-sm text-gray-200 truncate flex-1">{task.title}</span>
-                                {task.dueDate && task.dueDate <= todayLocalDate && (
-                                    <span className={`text-[9px] font-bold uppercase tracking-wider shrink-0 ${task.dueDate < todayLocalDate ? 'text-red-400' : 'text-amber-400'}`}>
-                                        {task.dueDate < todayLocalDate ? 'Overdue' : 'Today'}
-                                    </span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 {/* Main Content (Left/Center) — 8 cols from md+ so tablet portrait gets the sidebar */}

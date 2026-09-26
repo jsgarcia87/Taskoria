@@ -326,7 +326,7 @@ export const taskReducer = (state, action) => {
                     newPets[activePetIdx] = updatedPet;
                     updatedChar = { ...updatedChar, pets: newPets };
                     if (petLeveledUp) {
-                        logMessage += ` Your companion reached level ${newXp._level}!`;
+                        logMessage += ` Your companion reached level ${pLevel}!`;
                     }
                 }
             }

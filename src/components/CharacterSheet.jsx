@@ -156,6 +156,7 @@ const CharacterSheet = ({ setActiveView }) => {
     const [isListing, setIsListing] = useState(false);
     const [isReleasing, setIsReleasing] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedPetId, setSelectedPetId] = useState(null);
 
     if (!character) {
         return <div className="p-8 text-center text-gray-400">Loading Profile...</div>;
@@ -363,18 +364,18 @@ const CharacterSheet = ({ setActiveView }) => {
 
             {/* ═══════ HERO BANNER ═══════ */}
             <div className="px-5 pt-5 pb-4 border-b border-white/5">
-                {/* Top row: currencies + actions */}
+                {/* Top row: actions only */}
                 <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2.5">
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-black/30">
-                            <PixelIcon name="coins" size={12} color="#fbbf24" />
-                            <span className="font-pixel text-base text-amber-400 leading-none">
+                    <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/20">
+                            <PixelIcon name="coins" size={10} color="#fbbf24" />
+                            <span className="font-pixel text-sm text-amber-400/80 leading-none">
                                 <NumberTicker value={character.gold} />
                             </span>
                         </div>
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-black/30">
-                            <PixelIcon name="clock" size={12} color="#60a5fa" />
-                            <span className="font-pixel text-base text-blue-400 leading-none">{character.timePoints}m</span>
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/20">
+                            <PixelIcon name="clock" size={10} color="#60a5fa" />
+                            <span className="font-pixel text-sm text-blue-400/80 leading-none">{character.timePoints}m</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -393,34 +394,38 @@ const CharacterSheet = ({ setActiveView }) => {
                     </div>
                 </div>
 
-                {/* Avatar + Identity */}
-                <div className="flex items-center gap-4">
+                {/* Avatar + Identity — larger, with hero title */}
+                <div className="flex items-center gap-5">
                     <div className="relative flex-shrink-0">
-                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-black/30 flex items-center justify-center"
-                            style={{ border: `2px solid ${theme.accent}25` }}>
+                        <div className="w-[120px] h-[120px] rounded-2xl overflow-hidden bg-black/30 flex items-center justify-center"
+                            style={{ border: `2px solid ${theme.accent}30`, boxShadow: `0 0 24px ${theme.accent}10` }}>
                             <AvatarSpeechBubble idleTimeMs={30000}>
                                 <ModernPixelAvatar
                                     type={charData.avatarType || charData.id}
                                     headOnly
-                                    scale={3.5}
+                                    scale={5}
                                     customColors={character?.avatarColors}
                                 />
                             </AvatarSpeechBubble>
                         </div>
-                        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-black/90 rounded px-1.5 py-0.5 flex items-center gap-0.5 whitespace-nowrap"
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/90 rounded-md px-2 py-0.5 flex items-center gap-1 whitespace-nowrap"
                             style={{ border: `1px solid ${theme.accent}40` }}>
                             <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500">Lv</span>
-                            <span className="font-pixel text-sm leading-none" style={{ color: theme.accent }}>
+                            <span className="font-pixel text-base leading-none" style={{ color: theme.accent }}>
                                 <NumberTicker value={character.level} />
                             </span>
                         </div>
                     </div>
 
                     <div className="flex-1 min-w-0">
-                        <h2 className="text-lg font-heading font-bold text-white tracking-tight truncate leading-tight">{character.name}</h2>
-                        <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: theme.accent }}>
-                            <PixelIcon name={theme.icon} size={9} color={theme.accent} /> {character.class}
-                        </span>
+                        <h2 className="text-xl font-heading font-bold text-white tracking-tight truncate leading-tight">{character.name}</h2>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            <PixelIcon name={theme.icon} size={10} color={theme.accent} />
+                            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: theme.accent }}>{character.class}</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed italic">
+                            {getHeroTitle(character.level, character.achievements?.tasks || 0, character.class)}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -451,83 +456,73 @@ const CharacterSheet = ({ setActiveView }) => {
 
                 {/* ─── OVERVIEW TAB ─── */}
                 {activeTab === 'overview' && (
-                    <div className="p-5 space-y-5 animate-tab-in">
+                    <div className="animate-tab-in">
 
-                        {/* Vitals + Radar side by side on desktop */}
-                        <div className="flex flex-col md:flex-row items-stretch gap-4">
-                            <div className="flex-1 flex items-center justify-center p-4 rounded-xl bg-black/20 border border-white/5">
-                                <VitalRings xp={character.xp} hp={character.hp} level={character.level || 1} />
+                        {/* XP + HP compact bars */}
+                        <div className="px-5 pt-5 pb-4 space-y-2.5">
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[9px] font-bold text-amber-400/80 uppercase tracking-wider">Experience</span>
+                                    <span className="text-[9px] font-bold text-gray-500">{character.xp.current.toLocaleString()} / {character.xp.max.toLocaleString()}</span>
+                                </div>
+                                <StatBar current={character.xp.current} max={character.xp.max} kind="xp" celebrateAtMax={false} height="h-2" />
+                                <p className="text-[8px] text-gray-600 mt-0.5 text-right">{(character.xp.max - character.xp.current).toLocaleString()} to next level</p>
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <StatsRadarChart stats={character.stats || { str: 10, int: 10, dex: 10 }} />
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[9px] font-bold text-red-400/80 uppercase tracking-wider">Health</span>
+                                    <span className="text-[9px] font-bold text-gray-500">{character.hp.current} / {character.hp.max}</span>
+                                </div>
+                                <StatBar current={character.hp.current} max={character.hp.max} kind="hp" celebrateAtMax={false} height="h-2" />
                             </div>
+                        </div>
+
+                        {/* Radar Chart — hero of the page */}
+                        <div className="px-5 pb-3">
+                            <StatsRadarChart stats={character.stats || { str: 10, int: 10, dex: 10 }} accentColor={theme.accent} />
                         </div>
 
                         {/* 6 Attribute Tiles */}
-                        <div className="grid grid-cols-3 gap-2.5">
-                            {STAT_CONFIG.map((stat, idx) => {
-                                const baseValue = character.baseStats?.[stat.key] || 10;
-                                const totalValue = character.stats?.[stat.key] || 10;
-                                const bonus = totalValue - baseValue;
-                                const pct = Math.min(totalValue / 50, 1);
-                                return (
-                                    <div key={stat.key} className="relative p-2.5 pb-2 rounded-lg bg-black/20 overflow-hidden"
-                                        style={{ animation: `statTileIn 0.5s ease-out ${idx * 60}ms both` }}>
-                                        <div className="flex flex-col items-center">
-                                            <div className="flex items-center gap-1 mb-0.5">
-                                                <PixelIcon name={stat.icon} size={8} color={stat.color + '70'} />
-                                                <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: stat.color + '90' }}>{stat.label}</span>
-                                            </div>
-                                            <div className="flex items-baseline gap-0.5">
-                                                <NumberTicker value={totalValue} className="text-2xl font-pixel text-white leading-none" />
-                                                {bonus > 0 && <span className="text-[9px] font-bold text-green-400">+{bonus}</span>}
-                                            </div>
-                                        </div>
-                                        <div className="mt-2 h-[2px] rounded-full bg-white/[0.04] overflow-hidden">
-                                            <div className="h-full rounded-full transition-all duration-1000 ease-out"
-                                                style={{ width: `${pct * 100}%`, backgroundColor: stat.color, opacity: 0.5 }} />
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Equipment Quick View */}
-                        <div>
-                            <div className="mb-3">
-                                <SectionDivider label={theme.gearLabel} icon="shield" color={theme.accent} />
-                            </div>
-                            <div className="grid grid-cols-5 gap-2">
-                                {[
-                                    { label: 'Head', slot: EQUIPMENT_SLOTS.HEAD, icon: 'shield' },
-                                    { label: 'Body', slot: EQUIPMENT_SLOTS.BODY, icon: 'shirt' },
-                                    { label: 'Main', slot: EQUIPMENT_SLOTS.MAIN_HAND, icon: 'sword' },
-                                    { label: 'Off', slot: EQUIPMENT_SLOTS.OFF_HAND, icon: 'shield' },
-                                    { label: 'Ring', slot: EQUIPMENT_SLOTS.RING, icon: 'zap' },
-                                ].map((slotInfo) => {
-                                    const equippedItem = character.equipment && character.equipment[slotInfo.slot];
+                        <div className="px-5 pb-4">
+                            <div className="grid grid-cols-3 gap-2.5">
+                                {STAT_CONFIG.map((stat, idx) => {
+                                    const baseValue = character.baseStats?.[stat.key] || 10;
+                                    const totalValue = character.stats?.[stat.key] || 10;
+                                    const bonus = totalValue - baseValue;
+                                    const pct = Math.min(totalValue / 50, 1);
                                     return (
-                                        <div key={slotInfo.slot} className="flex flex-col items-center gap-1">
-                                            <div className={`w-full aspect-square rounded-lg flex items-center justify-center transition-all ${equippedItem
-                                                ? 'bg-white/[0.06] border border-white/15'
-                                                : 'bg-black/30 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] border border-white/[0.03]'}`}
-                                                title={equippedItem ? `${equippedItem.name} (${slotInfo.label})` : `${slotInfo.label} - Empty`}>
-                                                {equippedItem ? (
-                                                    <Sprite src={equippedItem.sprite.src} x={equippedItem.sprite.x} y={equippedItem.sprite.y} width={equippedItem.sprite.width} height={equippedItem.sprite.height} scale={1} />
-                                                ) : (
-                                                    <PixelIcon name={slotInfo.icon} size={16} color="#374151" />
-                                                )}
+                                        <div key={stat.key} className="relative p-2.5 pb-2 rounded-lg bg-black/20 overflow-hidden"
+                                            style={{ animation: `statTileIn 0.5s ease-out ${idx * 60}ms both` }}>
+                                            <div className="flex flex-col items-center">
+                                                <div className="flex items-center gap-1 mb-0.5">
+                                                    <PixelIcon name={stat.icon} size={8} color={stat.color + '70'} />
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: stat.color + '90' }}>{stat.label}</span>
+                                                </div>
+                                                <div className="flex items-baseline gap-0.5">
+                                                    <NumberTicker value={totalValue} className="text-2xl font-pixel text-white leading-none" />
+                                                    {bonus > 0 && <span className="text-[9px] font-bold text-green-400">+{bonus}</span>}
+                                                </div>
                                             </div>
-                                            <span className="text-[8px] font-bold text-gray-600 uppercase tracking-wider">{slotInfo.label}</span>
+                                            <div className="mt-2 h-[3px] rounded-full bg-white/[0.04] overflow-hidden">
+                                                <div className="h-full rounded-full transition-all duration-1000 ease-out"
+                                                    style={{ width: `${pct * 100}%`, backgroundColor: stat.color, opacity: 0.5 }} />
+                                            </div>
                                         </div>
                                     );
                                 })}
                             </div>
                         </div>
 
+                        {/* Chronicle quip — personality */}
+                        <div className="mx-5 mb-4 p-3 rounded-lg bg-black/15 border border-white/[0.04]">
+                            <p className="text-[10px] text-gray-400 text-center leading-relaxed italic">
+                                "{getChronicleQuip(character.achievements?.tasks || 0, character.achievements?.habits || 0, character.achievements?.goldEarned || 0)}"
+                            </p>
+                        </div>
+
                         {/* Active Set Bonuses */}
                         {character.activeSets && Object.keys(character.activeSets).length > 0 && (
-                            <div>
+                            <div className="px-5 pb-4">
                                 <div className="mb-3">
                                     <SectionDivider label="Set Resonance" icon="star" color="#a78bfa" />
                                 </div>
@@ -554,8 +549,8 @@ const CharacterSheet = ({ setActiveView }) => {
                             </div>
                         )}
 
-                        {/* Skills */}
-                        <div>
+                        {/* Skills — with class accent border */}
+                        <div className="px-5 pb-5">
                             <div className="mb-3">
                                 <SectionDivider label={theme.skillsLabel} icon={theme.icon} color={theme.accent} />
                             </div>
@@ -565,7 +560,8 @@ const CharacterSheet = ({ setActiveView }) => {
                                     return (
                                         <div key={idx} className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors ${isLocked
                                             ? 'opacity-35'
-                                            : 'hover:bg-white/[0.03]'}`}>
+                                            : 'hover:bg-white/[0.03]'}`}
+                                            style={!isLocked ? { borderLeft: `2px solid ${skill.color}30` } : undefined}>
                                             <div className="w-8 h-8 flex items-center justify-center rounded-md shrink-0"
                                                 style={{ backgroundColor: isLocked ? 'rgba(255,255,255,0.03)' : skill.color + '12' }}>
                                                 <PixelIcon name={skill.icon} size={16} color={isLocked ? '#4b5563' : skill.color} />
@@ -696,161 +692,199 @@ const CharacterSheet = ({ setActiveView }) => {
 
                 {/* ─── COMPANION TAB ─── */}
                 {activeTab === 'companion' && (
-                    <div className="p-5 space-y-5 animate-tab-in">
+                    <div className="p-5 animate-tab-in">
                         {character.pets && character.pets.length > 0 ? (
-                            character.pets.map((pet) => (
-                                <div key={pet.id} className="flex flex-col items-center bg-black/15 p-5 rounded-xl relative">
-                                    <button onClick={() => confirmAdoption(pet)} disabled={isReleasing}
-                                        className="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-wider text-red-400/60 hover:text-red-400 bg-red-500/5 hover:bg-red-500/15 px-2 py-1 rounded-lg border border-red-500/10 transition-all disabled:opacity-50">
-                                        Give Away
-                                    </button>
-
-                                    {/* Pet Visual */}
-                                    <div className="w-28 h-28 bg-black/30 rounded-full border border-white/10 flex items-center justify-center relative mb-3 overflow-hidden">
-                                        <ModernPixelPet type={pet.type} size={110} />
-                                    </div>
-                                    <h3 className="text-lg font-display font-bold text-white capitalize">{petDisplayLabel(pet.type)}</h3>
-                                    <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 uppercase tracking-wide mt-1 mb-3 font-pixel text-base">
-                                        Lvl {pet.level}
-                                    </span>
-
-                                    {/* Toggle buttons row */}
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <button onClick={() => actions.togglePetVisibility(pet.id)}
-                                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${pet.showPet !== false
-                                                ? 'bg-green-500/15 border-green-500/30 text-green-400'
-                                                : 'bg-white/5 border-white/10 text-gray-500 hover:text-white'}`}>
-                                            {pet.showPet !== false ? <Eye size={12} /> : <EyeOff size={12} />}
-                                            {pet.showPet !== false ? 'Visible' : 'Hidden'}
-                                        </button>
-                                        <button onClick={() => toggleSanctuary(pet)} disabled={isReleasing}
-                                            className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all disabled:opacity-50 border ${pet.inSanctuary
-                                                ? 'text-amber-400 border-amber-500/30 hover:bg-amber-500/10'
-                                                : 'text-gray-400 border-white/10 hover:text-emerald-400 hover:border-emerald-500/20'}`}>
-                                            {isReleasing ? '...' : (pet.inSanctuary ? 'Retrieve' : 'To Sanctuary')}
-                                        </button>
-                                    </div>
-
-                                    {/* Pet Stats */}
-                                    <div className="w-full space-y-3">
-                                        <div>
-                                            <div className="flex justify-between mb-1 text-[10px] font-bold uppercase tracking-wider">
-                                                <span className="text-amber-400 flex items-center gap-1"><PixelIcon name="star" size={10} color="#fbbf24" /> Exp</span>
-                                                <span className="text-gray-500 font-pixel text-sm">{Math.floor(pet.xp.current)}/{pet.xp.max}</span>
-                                            </div>
-                                            <StatBar current={pet.xp.current} max={pet.xp.max} kind="xp" celebrateAtMax={false} />
-                                        </div>
-                                        <div>
-                                            <div className="flex justify-between mb-1 text-[10px] font-bold uppercase tracking-wider">
-                                                <span className="text-rose-400 flex items-center gap-1"><PixelIcon name="heart" size={10} color="#fb7185" /> Bond</span>
-                                                <span className="text-gray-500 font-pixel text-sm">{pet.bond || 0}/{PET_BOND_MAX}</span>
-                                            </div>
-                                            <StatBar current={pet.bond || 0} max={PET_BOND_MAX} kind="bond" height="h-1.5" />
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-3">
-                                            {[
-                                                { label: 'Hunger', value: pet.hunger, color: 'text-orange-400', kind: 'hunger' },
-                                                { label: 'Happy', value: pet.happiness || 100, color: 'text-pink-400', kind: 'happy' },
-                                                { label: 'Clean', value: pet.hygiene || 100, color: 'text-blue-400', kind: 'hygiene' },
-                                            ].map(s => (
-                                                <div key={s.label}>
-                                                    <div className="flex justify-between mb-0.5 text-[9px] font-bold uppercase tracking-wider">
-                                                        <span className={s.color}>{s.label}</span>
-                                                        <span className={`font-pixel text-sm ${Math.floor(s.value) < 20 ? "text-red-500" : "text-gray-500"}`}>{Math.floor(s.value)}%</span>
-                                                    </div>
-                                                    <StatBar current={s.value} max={100} kind={s.kind} dangerBelow={20} height="h-1.5" celebrateAtMax={false} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Interaction Buttons */}
-                                    <div className="grid grid-cols-2 gap-2 w-full mt-4">
-                                        <button onClick={() => actions.playWithPet(pet.id)} disabled={pet.inSanctuary}
-                                            className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-white/[0.04] text-gray-300 hover:bg-pink-500/10 hover:text-pink-400 transition-colors font-bold text-[10px] uppercase tracking-wider disabled:opacity-50">
-                                            <PixelIcon name="heart" size={12} color="#f472b6" /> Play
-                                        </button>
-                                        <button onClick={() => actions.cleanPet(pet.id)} disabled={pet.inSanctuary}
-                                            className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-white/[0.04] text-gray-300 hover:bg-blue-500/10 hover:text-blue-400 transition-colors font-bold text-[10px] uppercase tracking-wider disabled:opacity-50">
-                                            <PixelIcon name="zap" size={12} color="#60a5fa" /> Groom
-                                        </button>
-                                    </div>
-
-                                    {/* Perks + Evolution */}
-                                    {(SPECIES_PERKS[pet.type] || canEvolvePet(pet)) && (
-                                        <div className="w-full mt-4 p-3 rounded-lg bg-black/20 border border-white/[0.06]">
-                                            {SPECIES_PERKS[pet.type] && (
-                                                <>
-                                                    <h4 className="text-[9px] font-bold text-amber-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                                                        <PixelIcon name="star" size={9} color="#fbbf24" /> Active Perks
-                                                        {pet.inSanctuary && <span className="text-[8px] text-gray-500 normal-case font-normal italic">(disabled)</span>}
-                                                        {!pet.showPet && !pet.inSanctuary && <span className="text-[8px] text-gray-500 normal-case font-normal italic">(hidden)</span>}
-                                                    </h4>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {Object.entries(SPECIES_PERKS[pet.type]).map(([key, value]) => {
-                                                            const label = { xpMult: `+${Math.round(value * 100)}% XP`, goldMult: `+${Math.round(value * 100)}% Gold`, dmgMult: `+${Math.round(value * 100)}% DMG`, hardDmgMult: `+${Math.round(value * 100)}% DMG (hard)` }[key] || `${key} ${value}`;
-                                                            return (
-                                                                <span key={key} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                                                                    {label}
-                                                                </span>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                    {(pet.bond || 0) >= 25 && (
-                                                        <p className="text-[8px] text-rose-300/60 mt-1.5 italic">
-                                                            Bond {pet.bond}/100 amplifies perks x{pet.bond >= 100 ? '1.5' : pet.bond >= 75 ? '1.3' : pet.bond >= 50 ? '1.15' : '1.05'}
-                                                        </p>
-                                                    )}
-                                                </>
-                                            )}
-                                            {canEvolvePet(pet) && (
-                                                <button onClick={() => actions.evolvePet(pet.id)}
-                                                    className="w-full mt-2.5 flex items-center justify-center gap-2 py-2 rounded-xl bg-gradient-to-r from-rpg-gold to-amber-400 text-rpg-bg hover:brightness-110 font-heading font-bold text-xs uppercase tracking-widest">
-                                                    <PixelIcon name="zap" size={14} color="#1a102e" />
-                                                    Evolve into {EVOLUTIONS[pet.type].label}
+                            selectedPetId ? (
+                                (() => {
+                                    const pet = character.pets.find(p => p.id === selectedPetId);
+                                    if (!pet) return null;
+                                    return (
+                                        <div className="animate-fade-in bg-black/15 rounded-xl p-6 flex flex-col items-center relative border border-white/5">
+                                            {/* Header */}
+                                            <div className="w-full flex justify-between items-center mb-6">
+                                                <button onClick={() => setSelectedPetId(null)} className="text-gray-400 hover:text-white transition-colors bg-white/5 p-2.5 rounded-lg flex items-center gap-1.5">
+                                                    <PixelIcon name="arrow-left" size={14} color="currentColor" />
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider hidden sm:inline">Back</span>
                                                 </button>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Feed Section */}
-                                    <div className="w-full mt-4">
-                                        <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 border-b border-white/5 pb-1.5">Pantry</h4>
-                                        {pet.inSanctuary ? (
-                                            <div className="bg-black/30 border border-emerald-500/15 rounded-xl p-3 text-center">
-                                                <p className="text-emerald-400/80 text-xs font-bold uppercase tracking-widest mb-0.5">Resting at Sanctuary</p>
-                                                <p className="text-gray-600 text-[9px]">Bring them back to resume feeding.</p>
+                                                <div className="text-sm font-heading font-bold text-gray-400 uppercase tracking-widest text-center flex-1">
+                                                    <span className="text-white">{petDisplayLabel(pet.type)}</span>
+                                                </div>
+                                                <div className="w-16 sm:w-auto" />
                                             </div>
-                                        ) : (
-                                            <div className="space-y-1.5">
-                                                {character.inventory && character.inventory.filter(i => i.type === ITEM_TYPES.PET_FOOD).length > 0 ? (
-                                                    character.inventory.filter(i => i.type === ITEM_TYPES.PET_FOOD).map((food, idx) => (
-                                                        <div key={idx} className="flex items-center gap-3 p-2 rounded-xl bg-black/20 border border-white/5 group hover:border-rpg-gold/20 transition-all">
-                                                            <div className="w-8 h-8 bg-black/40 rounded-lg border border-white/10 flex items-center justify-center shrink-0">
-                                                                <Sprite src={food.sprite.src} x={food.sprite.x} y={food.sprite.y} width={food.sprite.width} height={food.sprite.height} scale={1} />
+
+                                            {/* Big Pet Render */}
+                                            <div className="w-48 h-48 sm:w-56 sm:h-56 mb-6 relative flex items-center justify-center bg-black/30 rounded-full border border-white/5">
+                                                <ModernPixelPet type={pet.type} size={180} />
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-3 mb-6 w-full max-w-sm">
+                                                <button onClick={() => actions.playWithPet(pet.id)} disabled={pet.inSanctuary} className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 transition-colors disabled:opacity-30 disabled:hover:bg-pink-500/10">
+                                                    <PixelIcon name="heart" size={18} color="#f472b6" />
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider text-pink-300">Play</span>
+                                                </button>
+                                                <button onClick={() => actions.cleanPet(pet.id)} disabled={pet.inSanctuary} className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors disabled:opacity-30 disabled:hover:bg-blue-500/10">
+                                                    <PixelIcon name="zap" size={18} color="#60a5fa" />
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider text-blue-300">Clean</span>
+                                                </button>
+                                                <button onClick={() => toggleSanctuary(pet)} disabled={isReleasing} className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-colors disabled:opacity-30 ${pet.inSanctuary ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20' : 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20'}`}>
+                                                    <PixelIcon name="home" size={18} color={pet.inSanctuary ? '#34d399' : '#fbbf24'} />
+                                                    <span className={`text-[9px] font-bold uppercase tracking-wider ${pet.inSanctuary ? 'text-emerald-300' : 'text-amber-300'}`}>{pet.inSanctuary ? 'Retrieve' : 'Rest'}</span>
+                                                </button>
+                                                <button onClick={() => actions.togglePetVisibility(pet.id)} className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
+                                                    {pet.showPet !== false ? <Eye size={18} color="#34d399" /> : <EyeOff size={18} color="#9ca3af" />}
+                                                    <span className={`text-[9px] font-bold uppercase tracking-wider ${pet.showPet !== false ? 'text-emerald-300' : 'text-gray-400'}`}>{pet.showPet !== false ? 'Visible' : 'Hidden'}</span>
+                                                </button>
+                                            </div>
+
+                                            {/* Give Away — danger action, visible right after actions */}
+                                            <button
+                                                onClick={() => confirmAdoption(pet)}
+                                                disabled={isReleasing}
+                                                className="w-full max-w-sm flex items-center justify-center gap-2 py-2 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/15 text-red-400 hover:text-red-300 transition-all disabled:opacity-30 text-[10px] font-bold uppercase tracking-widest mb-6"
+                                            >
+                                                <PixelIcon name="trash" size={12} color="currentColor" />
+                                                Give to Sanctuary
+                                            </button>
+
+                                            {/* Tags */}
+                                            <div className="flex gap-2 mb-6 w-full max-w-sm justify-start">
+                                                <span className="bg-white/10 px-3 py-1 text-[10px] font-bold text-white uppercase rounded-md tracking-wider">#{pet.id.toString().slice(-4)}</span>
+                                                <span className="bg-white/10 px-3 py-1 text-[10px] font-bold text-gray-300 uppercase rounded-md tracking-wider">COMPANION</span>
+                                                {pet.inSanctuary && <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-3 py-1 text-[10px] font-bold uppercase rounded-md tracking-wider">IN SANCTUARY</span>}
+                                            </div>
+
+                                            {/* Stats Box */}
+                                            <div className="bg-black/30 rounded-xl p-5 w-full max-w-sm border border-white/5 space-y-4">
+                                                <div className="flex justify-between items-end">
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">LV.</span>
+                                                        <span className="text-white font-pixel text-xl">{pet.level}</span>
+                                                        <span className="text-gray-600 font-pixel text-sm">/ 60</span>
+                                                    </div>
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-rose-400/80 font-bold uppercase tracking-widest text-[10px]">BOND</span>
+                                                        <span className="text-white font-pixel text-xl">{pet.bond || 0}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div>
+                                                    <div className="flex justify-between mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                                                        <span className="text-amber-400">EXP</span>
+                                                        <span>{Math.floor(pet.xp.current)} / {pet.xp.max}</span>
+                                                    </div>
+                                                    <StatBar current={pet.xp.current} max={pet.xp.max} kind="xp" celebrateAtMax={false} />
+                                                </div>
+
+                                                <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/5">
+                                                    {[
+                                                        { label: 'Hunger', value: pet.hunger, color: 'text-orange-400', kind: 'hunger' },
+                                                        { label: 'Happy', value: pet.happiness || 100, color: 'text-pink-400', kind: 'happy' },
+                                                        { label: 'Clean', value: pet.hygiene || 100, color: 'text-blue-400', kind: 'hygiene' },
+                                                    ].map(s => (
+                                                        <div key={s.label}>
+                                                            <div className="flex justify-between mb-1 text-[9px] font-bold uppercase tracking-wider">
+                                                                <span className={s.color}>{s.label}</span>
                                                             </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-white font-bold text-xs truncate">{food.name}</p>
-                                                                <p className="text-gray-600 text-[9px] truncate">{food.description}</p>
-                                                            </div>
-                                                            <button onClick={() => actions.feedPet(pet.id, food)}
-                                                                className="px-2.5 py-1 rounded-lg bg-green-500/15 hover:bg-green-500/30 text-[9px] font-bold text-green-400 transition-all border border-green-500/20 shrink-0">
-                                                                FEED
-                                                            </button>
+                                                            <StatBar current={s.value} max={100} kind={s.kind} dangerBelow={30} height="h-1.5" celebrateAtMax={false} />
                                                         </div>
-                                                    ))
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Pantry / Feed equivalent */}
+                                            <div className="w-full max-w-sm mt-4 bg-black/20 rounded-xl p-4 border border-white/5 flex flex-col">
+                                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-white/10 pb-2">Feed / Pantry</h4>
+                                                {pet.inSanctuary ? (
+                                                    <div className="bg-black/30 rounded-xl p-3 text-center border border-emerald-500/15">
+                                                        <p className="text-emerald-400/80 text-xs font-bold uppercase tracking-widest mb-0.5">Resting at Sanctuary</p>
+                                                    </div>
                                                 ) : (
-                                                    <p className="text-center text-[10px] text-gray-600 italic py-3 bg-black/20 rounded-xl border border-white/5">No pet food. Visit the Market!</p>
+                                                    <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                                                        {character.inventory && character.inventory.filter(i => i.type === ITEM_TYPES.PET_FOOD).length > 0 ? (
+                                                            character.inventory.filter(i => i.type === ITEM_TYPES.PET_FOOD).map((food, idx) => (
+                                                                <div key={idx} className="flex items-center gap-3 p-2 rounded-xl bg-black/20 group hover:border-rpg-gold/20 transition-all border border-white/5">
+                                                                    <div className="w-8 h-8 bg-black/40 rounded flex items-center justify-center shrink-0 border border-white/5">
+                                                                        <Sprite src={food.sprite.src} x={food.sprite.x} y={food.sprite.y} width={food.sprite.width} height={food.sprite.height} scale={1} />
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="text-white font-bold text-[10px] truncate uppercase">{food.name}</p>
+                                                                    </div>
+                                                                    <button onClick={() => actions.feedPet(pet.id, food)}
+                                                                        className="px-2.5 py-1.5 rounded-lg bg-green-500/15 hover:bg-green-500/30 text-[9px] font-bold text-green-400 transition-all border border-green-500/20 shadow-sm">
+                                                                        FEED
+                                                                    </button>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <p className="text-center text-[10px] text-white/50 py-3 uppercase tracking-wider font-bold italic">No pet food. Visit the Market!</p>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
-                                        )}
-                                    </div>
+
+                                            {/* Perks + Evolution */}
+                                            {(SPECIES_PERKS[pet.type] || canEvolvePet(pet)) && (
+                                                <div className="w-full max-w-sm mt-4 p-4 rounded-xl bg-black/20 border border-white/5">
+                                                    {SPECIES_PERKS[pet.type] && (
+                                                        <>
+                                                            <h4 className="text-[10px] font-bold uppercase tracking-widest mb-2 text-amber-400/80">
+                                                                Active Perks
+                                                            </h4>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {Object.entries(SPECIES_PERKS[pet.type]).map(([key, value]) => {
+                                                                    const label = { xpMult: `+${Math.round(value * 100)}% XP`, goldMult: `+${Math.round(value * 100)}% Gold`, dmgMult: `+${Math.round(value * 100)}% DMG`, hardDmgMult: `+${Math.round(value * 100)}% DMG (hard)` }[key] || `${key} ${value}`;
+                                                                    return (
+                                                                        <span key={key} className="text-[9px] font-bold px-2 py-1 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                                                                            {label}
+                                                                        </span>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                    {canEvolvePet(pet) && (
+                                                        <button onClick={() => actions.evolvePet(pet.id)}
+                                                            className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-rpg-gold to-amber-400 text-rpg-bg hover:brightness-110 font-heading font-bold text-xs uppercase tracking-widest transition-all">
+                                                            <PixelIcon name="zap" size={14} color="#1a102e" />
+                                                            Evolve into {EVOLUTIONS[pet.type].label}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()
+                            ) : (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                    {character.pets.map((pet) => {
+                                        const needsAttention = !pet.inSanctuary && (pet.hunger < 30 || pet.happiness < 30 || pet.hygiene < 30);
+                                        return (
+                                            <div key={pet.id} 
+                                                 onClick={() => setSelectedPetId(pet.id)}
+                                                 className="cursor-pointer bg-black/15 hover:bg-black/30 rounded-2xl p-4 flex flex-col items-center relative border border-white/5 hover:border-white/20 transition-all group shadow-lg">
+                                                {needsAttention && (
+                                                    <div className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)] border border-red-900/50" title="Needs attention (Feed, Play, or Clean)" />
+                                                )}
+                                                {pet.inSanctuary && (
+                                                    <div className="absolute top-3 left-3 bg-black/40 p-1 rounded border border-white/10" title="In Sanctuary">
+                                                        <PixelIcon name="home" size={12} color="#9ca3af" />
+                                                    </div>
+                                                )}
+                                                <div className="w-20 h-20 bg-black/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                                    <ModernPixelPet type={pet.type} size={70} />
+                                                </div>
+                                                <h4 className="text-[10px] sm:text-xs font-bold text-white uppercase truncate w-full text-center font-heading tracking-widest">{petDisplayLabel(pet.type)}</h4>
+                                                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Lv. {pet.level}</div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            ))
+                            )
                         ) : (
                             <div className="text-center py-12">
-                                <PixelIcon name="heart" size={40} className="mx-auto text-gray-700 mb-2" />
-                                <p className="text-gray-500 text-sm">No companion yet.</p>
+                                <PixelIcon name="heart" size={40} className="mx-auto text-gray-700 mb-4" />
+                                <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">No companion yet.</p>
                             </div>
                         )}
                     </div>

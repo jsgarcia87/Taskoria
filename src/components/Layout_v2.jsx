@@ -67,9 +67,9 @@ const Layout_v2 = ({
     const slideX = shouldReduce ? 0 : 12 * directionRef.current;
 
     return (
-        <div className="min-h-screen text-white flex flex-col font-sans selection:bg-rpg-gold/30 bg-rpg-bg">
+        <div className="min-h-screen text-white flex flex-col font-sans selection:bg-rpg-gold/30 bg-rpg-bg overflow-x-hidden">
             {/* --- TOP HUD HEADER --- */}
-            <header className="h-20 px-6 flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl bg-rpg-panelDark/80 border-b border-white/5 transition-all duration-300">
+            <header className="h-20 px-4 md:px-6 flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl bg-rpg-panelDark/80 border-b border-white/5 transition-all duration-300">
 
                 {/* Logo Section */}
                 <div className="flex items-center gap-4 group cursor-pointer hover:opacity-80 transition-opacity">
@@ -86,7 +86,7 @@ const Layout_v2 = ({
                 </div>
 
                 {/* --- DESKTOP / TABLET NAVIGATION — compact on tablet, generous on desktop --- */}
-                <nav className="hidden md:flex items-center gap-1 lg:gap-2 bg-white/5 p-1 lg:p-1.5 rounded-2xl border border-white/5 backdrop-blur-md shadow-glass">
+                <nav className="hidden md:flex items-center gap-1 lg:gap-2 bg-white/5 p-1 lg:p-1.5 rounded-2xl border border-white/5 backdrop-blur-md shadow-glass overflow-x-auto scrollbar-hide shrink min-w-0">
                     {desktopNavItems.map(item => {
                         const isActive = activeView === item.id;
                         return (
@@ -95,7 +95,7 @@ const Layout_v2 = ({
                                 onClick={() => setActiveView(item.id)}
                                 whileTap={{ scale: 0.97 }}
                                 transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-                                className={`flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-5 py-2 lg:py-2.5 rounded-xl relative overflow-hidden transition-colors duration-200
+                                className={`flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-5 py-2 lg:py-2.5 rounded-xl relative overflow-hidden transition-colors duration-200 shrink-0
                 ${isActive
                                     ? 'text-rpg-gold'
                                     : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -330,7 +330,7 @@ const Layout_v2 = ({
             </header>
 
             {/* --- MAIN CONTENT & GRADIENT OVERLAY --- */}
-            <main className="flex-1 relative transition-colors duration-1000 overflow-x-hidden w-full max-w-[100vw]">
+            <main className="flex-1 relative transition-colors duration-1000 overflow-x-hidden overflow-y-auto w-full">
                 {/* Mesh Gradient Ambient Background */}
                 <div className={`absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b ${getAtmosphereGlow()} blur-[100px] pointer-events-none mix-blend-screen opacity-70 user-select-none transition-all duration-1000`} />
 
