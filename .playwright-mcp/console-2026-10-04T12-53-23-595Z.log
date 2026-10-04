@@ -1,0 +1,187 @@
+[     212ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[     618ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[     688ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[     693ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[     778ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[     780ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[     839ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[     840ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[     841ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[   17161ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[   17373ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[   17501ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[   17505ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[   17554ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[   17556ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[   17624ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[   17624ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[   17626ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[   49079ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[   49364ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[   49414ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[   49424ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[   49803ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[   49804ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[   49804ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[  102573ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[  102828ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[  102910ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[  102922ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[  102986ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[  102987ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[  102987ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 1962194ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:864
+[ 2709226ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/main.jsx?t=1791118379374:0
+[ 2709226ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@react-refresh:0
+[ 2709227ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:0
+[ 2709227ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite-plugin-pwa/pwa-entry-point-loaded:0
+[ 2709227ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/manifest.webmanifest:0
+[ 2709625ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/manifest.webmanifest:0
+[ 2762623ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[ 2762780ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[ 2762968ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 2762973ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 2763039ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 2763041ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 2763106ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[ 2763106ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 2763108ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 4610857ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:864
+[ 5966942ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:0
+[ 5966942ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/main.jsx:0
+[ 5966942ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@react-refresh:0
+[ 5966942ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite-plugin-pwa/pwa-entry-point-loaded:0
+[ 5966943ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/manifest.webmanifest:0
+[ 5967425ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/manifest.webmanifest:0
+[ 6018643ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[ 6018858ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[ 6019075ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6019101ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6019177ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6019179ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6019258ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[ 6019259ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 6019262ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 6112867ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 6112891ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6112893ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6112936ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6112938ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6112963ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 6112963ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 6136550ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[ 6136700ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[ 6136893ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6136898ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6136961ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6136963ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6137026ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[ 6137026ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 6137027ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 6213902ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[ 6214196ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[ 6214236ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6214240ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6214283ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6214285ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6214355ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[ 6214355ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 6214356ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 6272469ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[ 6272732ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[ 6272802ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6272805ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6272850ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6272853ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 6272925ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[ 6272925ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 6272926ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 7154028ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[ 7154217ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[ 7154391ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 7154398ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 7154447ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 7154449ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[ 7154519ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[ 7154519ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 7154520ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[ 8999149ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:864
+[10572491ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/manifest.webmanifest:0
+[10572491ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:0
+[10572491ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/main.jsx:0
+[10572493ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@react-refresh:0
+[10572493ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite-plugin-pwa/pwa-entry-point-loaded:0
+[10572928ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/manifest.webmanifest:0
+[10580626ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/main.jsx:0
+[10580626ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:0
+[10580626ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@react-refresh:0
+[10580626ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite-plugin-pwa/pwa-entry-point-loaded:0
+[10580626ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/manifest.webmanifest:0
+[10581033ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/manifest.webmanifest:0
+[10608102ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[10608274ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[10609957ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10609975ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10612680ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10612684ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10614304ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[10614305ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[10614309ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[10626885ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[10627014ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[10628845ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10628849ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10631842ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10631846ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10633379ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[10633380ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[10633811ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[10633919ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[10635371ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10635376ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10637911ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10637917ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ http://localhost:5173/node_modules/.vite/deps/chunk-2BUXAFR3.js?v=eb52eb8c:296
+[10639446ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
+[10639446ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[10639452ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0

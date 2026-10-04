@@ -57,7 +57,7 @@ try {
 }
 
 $ALLOWED_CATEGORIES = ['characters','pets','houses','castles','mounts','trees','decoration','props','monsters','maps',
-    'casas','castillos','monturas','arboles','decoracion','monstruos'];
+    'casas','castillos','monturas','arboles','decoracion','monstruos', 'cosmetics'];
 
 function isAdmin($pdo, $userId) {
     if (!$userId) return false;

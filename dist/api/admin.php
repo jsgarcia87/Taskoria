@@ -212,6 +212,7 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
     ");
     $pdo->exec("INSERT IGNORE INTO settings (setting_key, setting_value) VALUES ('allow_registration', 'true')");
+    $pdo->exec("INSERT IGNORE INTO settings (setting_key, setting_value) VALUES ('allow_guest_mode', 'false')");
 } catch (PDOException $e) {
     // Ignore
 }
@@ -316,12 +317,13 @@ if ($action === 'delete_user') {
 
 if ($action === 'get_settings') {
     try {
-        $stmt = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'allow_registration'");
-        $setting = $stmt->fetch();
-        $allow = $setting && $setting['setting_value'] === 'true';
-        echo json_encode(['success' => true, 'allow_registration' => $allow]);
+        $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('allow_registration', 'allow_guest_mode')");
+        $rows = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        $allow = isset($rows['allow_registration']) && $rows['allow_registration'] === 'true';
+        $guest = isset($rows['allow_guest_mode']) && $rows['allow_guest_mode'] === 'true';
+        echo json_encode(['success' => true, 'allow_registration' => $allow, 'allow_guest_mode' => $guest]);
     } catch (PDOException $e) {
-        echo json_encode(['success' => true, 'allow_registration' => false]);
+        echo json_encode(['success' => true, 'allow_registration' => false, 'allow_guest_mode' => false]);
     }
     exit;
 }
@@ -330,6 +332,18 @@ if ($action === 'toggle_registration') {
     $newStatus = $data['allow_registration'] ? 'true' : 'false';
     try {
         $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('allow_registration', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+        $stmt->execute([$newStatus, $newStatus]);
+        echo json_encode(['success' => true]);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => 'Failed to update settings']);
+    }
+    exit;
+}
+
+if ($action === 'toggle_guest_mode') {
+    $newStatus = $data['allow_guest_mode'] ? 'true' : 'false';
+    try {
+        $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('allow_guest_mode', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
         $stmt->execute([$newStatus, $newStatus]);
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {

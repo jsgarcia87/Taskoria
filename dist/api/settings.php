@@ -10,23 +10,25 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
     ");
     $pdo->exec("INSERT IGNORE INTO settings (setting_key, setting_value) VALUES ('allow_registration', 'true')");
+    $pdo->exec("INSERT IGNORE INTO settings (setting_key, setting_value) VALUES ('allow_guest_mode', 'false')");
 } catch (PDOException $e) {
     // Ignore
 }
 
 // Endpoint super sencillo para conocer el estado público de cara al cliente
 try {
-    $stmt = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'allow_registration'");
-    $setting = $stmt->fetch();
-    
-    $allow_registration = false; // default if missing
-    if ($setting && $setting['setting_value'] === 'true') {
-        $allow_registration = true;
-    }
+    $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('allow_registration', 'allow_guest_mode')");
+    $rows = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-    echo json_encode(['success' => true, 'allow_registration' => $allow_registration]);
+    $allow_registration = isset($rows['allow_registration']) && $rows['allow_registration'] === 'true';
+    $allow_guest_mode = isset($rows['allow_guest_mode']) && $rows['allow_guest_mode'] === 'true';
+
+    echo json_encode([
+        'success' => true,
+        'allow_registration' => $allow_registration,
+        'allow_guest_mode' => $allow_guest_mode,
+    ]);
 } catch (PDOException $e) {
-    // Si la tabla no existe aún, asumimos cerrado por seguridad
-    echo json_encode(['success' => true, 'allow_registration' => false]);
+    echo json_encode(['success' => true, 'allow_registration' => false, 'allow_guest_mode' => false]);
 }
 ?>
