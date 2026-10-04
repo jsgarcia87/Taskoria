@@ -22,8 +22,10 @@ const StatsRadarChart = ({ stats, accentColor }) => {
         return () => cancelAnimationFrame(raf);
     }, []);
 
-    const MAX_VISUAL_STAT = 50;
-    const normalize = (val) => Math.min(Math.max((val || 0) / MAX_VISUAL_STAT, 0.15), 1);
+    // Scale to the hero's own range so the shape reads; outer ring = top stat + 25%, rounded to 5.
+    const highest = Math.max(...['str', 'int', 'dex', 'con', 'cha', 'will'].map(k => stats?.[k] || 0), 1);
+    const scaleMax = Math.max(20, Math.ceil((highest * 1.25) / 5) * 5);
+    const normalize = (val) => Math.min((val || 0) / scaleMax, 1);
 
     const strRatio = normalize(stats?.str) * progress;
     const intRatio = normalize(stats?.int) * progress;
@@ -68,7 +70,7 @@ const StatsRadarChart = ({ stats, accentColor }) => {
 
     return (
         <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-black/20 border border-white/5">
-            <div className="w-full max-w-[280px] aspect-square flex items-center justify-center">
+            <div className="w-full max-w-[240px] aspect-square flex items-center justify-center">
                 <svg viewBox="0 0 100 100" className="w-full h-full">
                     <defs>
                         <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -101,19 +103,13 @@ const StatsRadarChart = ({ stats, accentColor }) => {
                     ))}
 
                     {staticPoints.map((p, i) => {
-                        const labelDist = 1.28;
+                        const labelDist = 1.22;
                         const lx = getPointX(p.angle, labelDist);
                         const ly = getPointY(p.angle, labelDist) + 1;
-                        const valueDist = 1.16;
-                        const vx = getPointX(p.angle, valueDist);
-                        const vy = getPointY(p.angle, valueDist) + 1;
                         return (
                             <g key={`lbl-${i}`}>
                                 <text x={lx} y={ly} fill={points[i].color} fontSize="4" fontWeight="bold" textAnchor="middle" className="uppercase">
                                     {points[i].name}
-                                </text>
-                                <text x={vx} y={vy + 4.5} fill="rgba(255,255,255,0.5)" fontSize="3.5" fontWeight="bold" textAnchor="middle" fontFamily="VT323, monospace">
-                                    {Math.round(points[i].value * progress)}
                                 </text>
                             </g>
                         );

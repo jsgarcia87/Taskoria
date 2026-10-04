@@ -8,6 +8,7 @@ import CharacterSheet from './components/CharacterSheet';
 const Shop = React.lazy(() => import('./components/Shop'));
 import Dashboard from './components/Dashboard';
 import Missions from './components/dashboard/Missions';
+import { fetchPendingCount } from './utils/friendsApi';
 import Auth from './components/Auth';
 // Heavy / rarely-used routes are lazy-loaded so the initial bundle stays small.
 // Each becomes its own chunk via vite.config manualChunks. Suspense boundary
@@ -102,21 +103,28 @@ const CreationStudio = React.lazy(() => import('./components/dashboard/CreationS
 const StudioAccessGate = React.lazy(() => import('./components/dashboard/StudioAccessGate'));
 const CreationGallery = React.lazy(() => import('./components/dashboard/CreationGallery'));
 import LevelUpModal from './components/common/LevelUpModal';
+import CardReveal from './components/cards/CardReveal';
 import DailyRewardModal from './components/dashboard/DailyRewardModal';
 import Tutorial from './components/Tutorial';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
-import DailyMissions from './components/dashboard/DailyMissions';
 import { usePetWarnings } from './utils/usePetWarnings';
 import Settings from './components/Settings';
 import Screensaver from './components/common/Screensaver';
 
-const GameContent = ({ currentUser, onLogout }) => {
+const GameContent = ({ currentUser, onLogout, onGuestRegister }) => {
   const { state, actions, dispatch, activeProfileId } = useGame();
   const toast = useToast();
   // Edge-triggered toast warnings when a pet stat dips below 25%
   usePetWarnings(state.character?.pets);
   const { character, tasks } = state;
-  const [activeView, setActiveView] = useState('home'); // home | profile | shop | party | tasks (mobile)
+  const [activeView, setActiveView] = useState('home'); // home | tasks | party | creations | diary | profile …
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 768px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const onChange = (e) => setIsDesktop(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   // Beta welcome — fires once per profile, 3.5s after the tutorial dismisses,
   // pointing testers at the feedback button. Keeps the tone quiet: single toast,
@@ -171,7 +179,7 @@ const GameContent = ({ currentUser, onLogout }) => {
   // Calculate notifications
   const todayLocalDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
   const overdueOrDueTodayTasks = tasks.filter(t => !t.completed && t.dueDate && t.dueDate <= todayLocalDate);
-  const notificationCount = overdueOrDueTodayTasks.length + (currentUser.unreadMessages || 0);
+  const notificationCount = overdueOrDueTodayTasks.length + (currentUser.unreadMessages || 0) + (currentUser.friendRequests || 0);
 
   // If no character is set inside this profile, force creation first
   if (!character) {
@@ -194,8 +202,23 @@ const GameContent = ({ currentUser, onLogout }) => {
         onLogout={onLogout}
         notificationCount={notificationCount}
         unreadMessageCount={currentUser.unreadMessages || 0}
+        friendRequestCount={currentUser.friendRequests || 0}
         overdueTasks={overdueOrDueTodayTasks}
       >
+        {currentUser.is_guest && onGuestRegister && (
+          <div className="mb-4 px-4 py-3 rounded-xl bg-rpg-gold/10 border border-rpg-gold/20 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
+            <p className="text-xs text-rpg-gold/90">
+              <span className="font-bold">Guest Mode</span> — Your progress won't be saved. Register to keep your adventure!
+            </p>
+            <button
+              onClick={onGuestRegister}
+              className="shrink-0 px-4 py-1.5 rounded-lg bg-rpg-gold/20 text-rpg-gold text-[11px] font-bold uppercase tracking-wider hover:bg-rpg-gold/30 transition-colors"
+            >
+              Register
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
           <AnimatePresence>
@@ -213,6 +236,9 @@ const GameContent = ({ currentUser, onLogout }) => {
             data={state.dailyRewardData}
             onClose={() => actions.closeDailyReward()}
           />
+
+          {/* A boss card just earned — waits for the level-up / daily-reward moments to finish */}
+          {!state.showLevelUpModal && !state.showDailyRewardModal && (state.character?.hasSeenTutorial !== false) && <CardReveal />}
 
           {/* First-time tutorial — runs once per character */}
           {state.character && state.character.hasSeenTutorial === false && !state.showDailyRewardModal && !state.showLevelUpModal && (
@@ -233,12 +259,6 @@ const GameContent = ({ currentUser, onLogout }) => {
             {activeView === 'profile' && (
               <motion.div key="profile" {...VIEW_MOTION} className="col-span-12 lg:col-span-10 lg:col-start-2">
                 <CharacterSheet setActiveView={setActiveView} />
-              </motion.div>
-            )}
-
-            {activeView === 'missions' && (
-              <motion.div key="missions" {...VIEW_MOTION} className="col-span-12">
-                <Missions />
               </motion.div>
             )}
 
@@ -306,10 +326,15 @@ const GameContent = ({ currentUser, onLogout }) => {
               </motion.div>
             )}
 
-            {/* Mobile Tasks View */}
-            {activeView === 'tasks' && (
+            {/* Quests — card board on desktop, list on mobile */}
+            {activeView === 'tasks' && isDesktop && (
+              <motion.div key="tasks-board" {...VIEW_MOTION} className="col-span-12">
+                <Missions />
+              </motion.div>
+            )}
+            {activeView === 'tasks' && !isDesktop && (
               <motion.div key="tasks" {...VIEW_MOTION} className="col-span-12 space-y-4">
-                <h2 className="text-2xl font-heading font-bold text-rpg-gold mb-2 text-center text-shadow-glow md:hidden">QUEST LOG</h2>
+                <h2 className="font-herald text-3xl text-rpg-gold mb-1 text-center leading-none md:hidden">Quest Log</h2>
 
                 {/* Today's glance — compact quest summary strip */}
                 {activeTasks.length > 0 && (
@@ -325,17 +350,24 @@ const GameContent = ({ currentUser, onLogout }) => {
                       </span>
                       <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Chores</span>
                     </div>
-                    {overdueOrDueTodayTasks.length > 0 && (
-                      <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 rounded-lg px-2.5 py-1 shrink-0">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                        <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">{overdueOrDueTodayTasks.length} due</span>
-                      </div>
-                    )}
+                    {overdueOrDueTodayTasks.length > 0 && (() => {
+                      const overdueCount = overdueOrDueTodayTasks.filter(t => t.dueDate < todayLocalDate).length;
+                      const todayCount = overdueOrDueTodayTasks.length - overdueCount;
+                      return (
+                        <div className="flex items-center gap-2 shrink-0 text-[11px] font-semibold">
+                          {overdueCount > 0 && (
+                            <span className="px-2 py-0.5 rounded-md text-red-200 bg-red-500/15 ring-1 ring-red-400/30">{overdueCount} overdue</span>
+                          )}
+                          {todayCount > 0 && (
+                            <span className="px-2 py-0.5 rounded-md text-amber-200 bg-amber-500/10 ring-1 ring-amber-400/25">{todayCount} today</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
                 <TaskList isSidebar={false} setActiveView={setActiveView} />
-                <DailyMissions />
               </motion.div>
             )}
 
@@ -404,6 +436,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true); // Start true to check session
   const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'auth' | 'terms' | 'legal'
   const [globalUnreadMsgCount, setGlobalUnreadMsgCount] = useState(0);
+  const [globalFriendRequests, setGlobalFriendRequests] = useState(0);
 
   // Request Notification Permissions for PWA Push
   React.useEffect(() => {
@@ -429,6 +462,12 @@ function App() {
           setGlobalUnreadMsgCount(data.total);
         }
       } catch (e) { }
+      if (!currentUser.is_guest && currentUser.id !== 'guest') {
+        try {
+          const pending = await fetchPendingCount(currentUser.id);
+          setGlobalFriendRequests(pending.incoming);
+        } catch (e) { }
+      }
     };
 
     fetchUnread();
@@ -452,11 +491,15 @@ function App() {
     }
   }, []);
 
-  // When user logs in with email/pass
+  // When user logs in with email/pass (or as guest)
   const handleLogin = async (user) => {
+    if (user.is_guest) {
+      setCurrentUser(user);
+      setFamilyData({ profiles: [] });
+      setIsLoading(false);
+      return;
+    }
     setCurrentUser(user);
-    // Persist only the identity; the role is re-verified from the backend below
-    // so it's never served stale from cache.
     localStorage.setItem('taskoria_session', JSON.stringify({ id: user.id, username: user.username }));
     setIsLoading(true);
     // Verify the authoritative account record (admin role) on EVERY session load
@@ -518,12 +561,21 @@ function App() {
   };
 
   const handleLogout = () => {
-    // Clear session and state
     localStorage.removeItem('taskoria_session');
     setCurrentUser(null);
     setFamilyData(null);
     setActiveProfileId(null);
     window.location.reload();
+  };
+
+  const [showRegisterFirst, setShowRegisterFirst] = useState(false);
+
+  const handleGuestRegister = () => {
+    setCurrentUser(null);
+    setFamilyData(null);
+    setActiveProfileId(null);
+    setShowRegisterFirst(true);
+    setCurrentView('auth');
   };
 
   const handleCreateProfile = (name) => {
@@ -556,11 +608,11 @@ function App() {
   if (!currentUser) {
     if (currentView === 'landing') return (
       <Suspense fallback={<ChunkLoader label="Loading…" />}>
-        <LandingPage onGoToLogin={() => setCurrentView('auth')} onGoToTerms={() => setCurrentView('terms')} onGoToLegal={() => setCurrentView('legal')} />
+        <LandingPage onGoToLogin={() => setCurrentView('auth')} onTryAsGuest={() => handleLogin({ id: 'guest', username: 'Adventurer', is_guest: true })} onGoToTerms={() => setCurrentView('terms')} onGoToLegal={() => setCurrentView('legal')} />
         <CookieBanner />
       </Suspense>
     );
-    if (currentView === 'auth') return <Auth onLogin={handleLogin} onBackToLanding={() => setCurrentView('landing')} />;
+    if (currentView === 'auth') return <Auth onLogin={handleLogin} onBackToLanding={() => setCurrentView('landing')} defaultRegister={showRegisterFirst} />;
     if (currentView === 'terms') return <TermsAndConditions onBack={() => setCurrentView('landing')} />;
     if (currentView === 'legal') return <LegalNotice onBack={() => setCurrentView('landing')} />;
   }
@@ -602,7 +654,7 @@ function App() {
       activeProfileId={activeProfileId}
       setFamilyData={setFamilyData}
     >
-      <GameContent currentUser={{ ...currentUser, unreadMessages: globalUnreadMsgCount }} onLogout={onGameLogout} />
+      <GameContent currentUser={{ ...currentUser, unreadMessages: globalUnreadMsgCount, friendRequests: globalFriendRequests }} onLogout={onGameLogout} onGuestRegister={handleGuestRegister} />
       <CookieBanner />
     </GameProvider>
   );

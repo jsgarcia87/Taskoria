@@ -14,6 +14,7 @@ import {
     PET_BOND_MAX
 } from '../../utils/gameUtils';
 import { generateLoot } from '../../utils/lootUtils';
+import { addCardToCollection, epicCardBase, resolveWeeklyDefeat } from '../../utils/bossCards';
 
 // Random suffix to avoid Date.now() id collisions when multiple things happen in the same tick.
 const uid = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -275,28 +276,37 @@ export const taskReducer = (state, action) => {
                     const completedRatio = allProjectTasks.length > 0 ? (allProjectTasks.filter(t => t.completed).length / allProjectTasks.length) : 1;
                     const newBossHp = Math.max(0, Math.floor(boss.maxHp - (boss.maxHp * completedRatio)));
                     if (newBossHp === 0 && boss.currentHp > 0) {
-                        bossLogs.push({ id: uid('log'), message: `🐉 Project Boss Defeated: ${boss.title}! +${boss.rewardXp} XP, +${boss.rewardGold} Gold`, type: 'reward' });
+                        bossLogs.push({ id: uid('log'), message: `🐉 Project Boss Defeated: ${boss.title}! +${boss.rewardXp} XP, +${boss.rewardGold} Gold. A boss card joins your album.`, type: 'reward' });
                         const bossRes = processRewardsAndLevelUp(updatedChar, boss.rewardXp, boss.rewardGold, 0);
                         if (bossRes) {
                             updatedChar = bossRes.newChar;
                             if (bossRes.levelUp) anyLevelUp = true;
                         }
+                        updatedChar = addCardToCollection(updatedChar, epicCardBase(boss)).character;
                     }
                     return { ...boss, currentHp: newBossHp };
                 } else if (!task.projectId && boss.currentHp > 0) {
                     const newBossHp = Math.max(0, boss.currentHp - damage);
                     if (newBossHp === 0 && boss.currentHp > 0) {
-                        bossLogs.push({ id: uid('log'), message: `🐉 Epic Boss Defeated: ${boss.title}! +${boss.rewardXp} XP, +${boss.rewardGold} Gold`, type: 'reward' });
+                        bossLogs.push({ id: uid('log'), message: `🐉 Epic Boss Defeated: ${boss.title}! +${boss.rewardXp} XP, +${boss.rewardGold} Gold. A boss card joins your album.`, type: 'reward' });
                         const bossRes = processRewardsAndLevelUp(updatedChar, boss.rewardXp, boss.rewardGold, 0);
                         if (bossRes) {
                             updatedChar = bossRes.newChar;
                             if (bossRes.levelUp) anyLevelUp = true;
                         }
+                        updatedChar = addCardToCollection(updatedChar, epicCardBase(boss)).character;
                     }
                     return { ...boss, currentHp: newBossHp };
                 }
                 return boss;
             }).filter(boss => boss.currentHp > 0);
+
+            // Weekly boss: the hit may be the one that brings it down (reward + card).
+            const hitDungeon = { ...state.activeDungeon, hp: Math.max(0, state.activeDungeon.hp - damage) };
+            const weekly = resolveWeeklyDefeat({ prevDungeon: state.activeDungeon, nextDungeon: hitDungeon, character: updatedChar });
+            updatedChar = weekly.character;
+            if (weekly.levelUp) anyLevelUp = true;
+            bossLogs.push(...weekly.logs);
 
             if (x !== null && y !== null) {
                 newFloatingTexts.push({ id: uid('ft'), text: `+${actualXpGain} XP`, x, y, color: '#fbbf24' });
@@ -339,7 +349,7 @@ export const taskReducer = (state, action) => {
                 completedTasks: newCompletedTasks,
                 epicQuests: newEpicQuests,
                 log: [...bossLogs, { id: uid('log'), message: logMessage, type: 'info' }, ...badgeCheck.newBadges.map(b => ({ id: uid('badge'), message: `[BADGE] Unlocked: ${b.name}!`, type: 'reward' })), ...state.log],
-                activeDungeon: { ...state.activeDungeon, hp: Math.max(0, state.activeDungeon.hp - damage) },
+                activeDungeon: weekly.dungeon,
                 ...(anyLevelUp && updatedChar.level > initialLevel ? { showLevelUpModal: true, newLevelData: { level: updatedChar.level, stats: updatedChar.stats, class: updatedChar.class } } : {})
             };
         }

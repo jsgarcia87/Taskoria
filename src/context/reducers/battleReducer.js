@@ -1,5 +1,6 @@
 import { processRewardsAndLevelUp, recordActivity, bumpDailyMissions, getPetMoodBonus, getPetPerks } from '../../utils/gameUtils';
 import { generateLoot } from '../../utils/lootUtils';
+import { addCardToCollection, epicCardBase, worldCardBase, resolveWeeklyDefeat } from '../../utils/bossCards';
 
 const uid = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -23,6 +24,7 @@ export const battleReducer = (state, action) => {
                     updatedChar = rewardRes.newChar;
                     showLevelUp = rewardRes.levelUp;
                 }
+                updatedChar = addCardToCollection(updatedChar, worldCardBase(state.activeWorldBoss)).character;
             }
 
             return {
@@ -99,12 +101,13 @@ export const battleReducer = (state, action) => {
                     if (boss.currentHp > 0) {
                         const newBossHp = Math.max(0, boss.currentHp - damage);
                         if (newBossHp === 0 && boss.currentHp > 0) {
-                            bossLogs.push({ id: uid('log'), message: `🐉 Slayed Epic Boss: ${boss.title}! +${boss.rewardXp} XP, +${boss.rewardGold} Gold`, type: 'reward' });
+                            bossLogs.push({ id: uid('log'), message: `🐉 Slayed Epic Boss: ${boss.title}! +${boss.rewardXp} XP, +${boss.rewardGold} Gold. A boss card joins your album.`, type: 'reward' });
                             const bossRes = processRewardsAndLevelUp(updatedChar, boss.rewardXp, boss.rewardGold, 0);
                             if (bossRes) {
                                 updatedChar = bossRes.newChar;
                                 if (bossRes.levelUp) anyLevelUp = true;
                             }
+                            updatedChar = addCardToCollection(updatedChar, epicCardBase(boss)).character;
                         }
                         return { ...boss, currentHp: newBossHp };
                     }
@@ -112,13 +115,20 @@ export const battleReducer = (state, action) => {
                 }).filter(boss => boss.currentHp > 0);
             }
 
+            // Weekly boss: the session may be the one that brings it down (reward + card).
+            const hitDungeon = { ...state.activeDungeon, hp: newDungeonHp };
+            const weekly = resolveWeeklyDefeat({ prevDungeon: state.activeDungeon, nextDungeon: hitDungeon, character: updatedChar });
+            updatedChar = weekly.character;
+            if (weekly.levelUp) anyLevelUp = true;
+            bossLogs.push(...weekly.logs);
+
             const actualXpGain = rewardRes?.xpGained ?? xpGain;
             const lootMsg = droppedItem ? ` [LOOT] Found a ${droppedItem.name}!` : '';
 
             return {
                 ...state,
                 character: updatedChar,
-                activeDungeon: { ...state.activeDungeon, hp: newDungeonHp },
+                activeDungeon: weekly.dungeon,
                 epicQuests: newEpicQuests,
                 log: [{ id: uid('log'), message: `FOCUS CONCLUDED! (${totalMinutesWorked} mins). +${goldGain} G, +${timeGain} TP, +${actualXpGain} XP.${lootMsg}`, type: 'reward' }, ...bossLogs, ...state.log],
                 ...(anyLevelUp && updatedChar.level > initialLevel ? { showLevelUpModal: true, newLevelData: { level: updatedChar.level, stats: updatedChar.stats, class: updatedChar.class } } : {})

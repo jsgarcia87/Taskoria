@@ -371,6 +371,15 @@ export const characterReducer = (state, action) => {
             };
         }
 
+        case 'MARK_CARD_SEEN':
+            return {
+                ...state,
+                character: {
+                    ...state.character,
+                    bossCards: (state.character?.bossCards || []).map(card => card.id === action.payload ? { ...card, seen: true } : card),
+                },
+            };
+
         case 'CLOSE_LEVEL_UP_MODAL':
             return { ...state, showLevelUpModal: false, newLevelData: null };
 

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useGame } from '../../../context/GameContext';
 import { WorldSprite, WORLD_PROPS } from './worldProps';
+import PixelIcon from '../../common/PixelIcon';
 
 const BUILDING_TEMPLATES = [
     { id: 'shop_building', name: 'Cottage', cost: 100, desc: 'A cozy thatched cottage' },
@@ -8,6 +10,47 @@ const BUILDING_TEMPLATES = [
     { id: 'tavern', name: 'Tavern', cost: 350, desc: 'A welcoming tavern' },
     { id: 'smithy', name: 'Smithy', cost: 400, desc: 'A working forge' },
 ];
+
+// Only offer buildings the world can actually draw — never charge for an invisible one.
+const AVAILABLE_TEMPLATES = BUILDING_TEMPLATES.filter(t => WORLD_PROPS[t.id]);
+
+const resolveBuildingSprite = (buildingId) => {
+    if (WORLD_PROPS[buildingId]) return buildingId;
+    if (import.meta.env.DEV) console.warn(`[PlotSystem] no sprite for building "${buildingId}", drawing the cottage instead`);
+    return 'shop_building';
+};
+
+// Where a building sits on its plot — shared by the renderer and the collision layer.
+const buildingPlacement = (plot) => {
+    const scale = Math.min(plot.w / 80, 2.5);
+    return { x: plot.x + plot.w / 2, y: plot.y + plot.h - 10, scale, w: 80 * scale, h: 60 * scale };
+};
+
+// Solid ground floor (facade + foundation); the roof stays walk-behind.
+export const buildingFootprint = (plot) => {
+    const b = buildingPlacement(plot);
+    const wallH = (28 / 60) * b.h;
+    return { x: b.x - b.w / 2 + 4, y: b.y - wallH, width: b.w - 8, height: wallH - 4, type: 'building' };
+};
+
+const BuildingPreview = ({ id, size = 56 }) => {
+    const ref = useRef(null);
+    useEffect(() => {
+        const prop = WORLD_PROPS[id];
+        const c = ref.current;
+        if (!prop || !c) return;
+        c.width = prop.w;
+        c.height = prop.h;
+        const ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, prop.w, prop.h);
+        prop.buffer.forEach((color, i) => {
+            if (!color || color === 'transparent') return;
+            ctx.fillStyle = color;
+            ctx.fillRect(i % prop.w, Math.floor(i / prop.w), 1, 1);
+        });
+    }, [id]);
+    return <canvas ref={ref} style={{ width: size, height: size * 0.75, imageRendering: 'pixelated' }} aria-hidden="true" />;
+};
 
 const PlotOverlay = ({ plot, ownedData, onBuy, onBuild }) => {
     const [hovered, setHovered] = useState(false);
@@ -155,14 +198,15 @@ const PlotSystem = ({ plots }) => {
             {/* Building sprites for owned+built plots */}
             {plots.map(plot => {
                 const data = getOwnedData(plot.id);
-                if (!data?.buildingId || !WORLD_PROPS[data.buildingId]) return null;
+                if (!data?.buildingId) return null;
+                const b = buildingPlacement(plot);
                 return (
                     <WorldSprite
                         key={`bld_${plot.id}`}
-                        name={data.buildingId}
-                        x={plot.x + plot.w / 2}
-                        y={plot.y + plot.h - 10}
-                        scale={Math.min(plot.w / 80, 2.5)}
+                        name={resolveBuildingSprite(data.buildingId)}
+                        x={b.x}
+                        y={b.y}
+                        scale={b.scale}
                     />
                 );
             })}
@@ -177,8 +221,10 @@ const PlotSystem = ({ plots }) => {
                 />
             ))}
 
+            {/* Dialogs render at the page root: the map layer is transformed, which would
+                trap `position: fixed` inside the moving camera. */}
             {/* Buy Plot Dialog */}
-            {confirmPlot && (
+            {confirmPlot && createPortal(
                 <div
                     className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60"
                     onClick={() => setConfirmPlot(null)}
@@ -217,11 +263,12 @@ const PlotSystem = ({ plots }) => {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Build on Plot Dialog */}
-            {buildPlot && (
+            {buildPlot && createPortal(
                 <div
                     className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60"
                     onClick={() => setBuildPlot(null)}
@@ -233,22 +280,22 @@ const PlotSystem = ({ plots }) => {
                         <h3 className="text-green-400 font-bold text-lg mb-1">Build on Your Plot</h3>
                         <p className="text-gray-400 text-xs mb-4">Choose a building to construct:</p>
                         <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {BUILDING_TEMPLATES.map(t => (
+                            {AVAILABLE_TEMPLATES.map(t => (
                                 <button
                                     key={t.id}
                                     onClick={() => confirmBuild(t)}
                                     disabled={gold < t.cost}
                                     className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-700 hover:border-green-500/50 hover:bg-green-900/10 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
-                                    <div className="w-10 h-10 rounded bg-gray-800 flex items-center justify-center text-lg" style={{ imageRendering: 'pixelated' }}>
-                                        🏠
+                                    <div className="w-16 h-12 rounded-md bg-black/30 flex items-center justify-center shrink-0">
+                                        <BuildingPreview id={t.id} size={56} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="text-white text-sm font-bold">{t.name}</div>
                                         <div className="text-gray-400 text-xs">{t.desc}</div>
                                     </div>
-                                    <div className="text-rpg-gold text-sm font-bold whitespace-nowrap">
-                                        {t.cost} 🪙
+                                    <div className="text-rpg-gold text-sm font-bold whitespace-nowrap flex items-center gap-1">
+                                        <PixelIcon name="coins" size={12} color="#fbbf24" /> {t.cost}
                                     </div>
                                 </button>
                             ))}
@@ -264,7 +311,8 @@ const PlotSystem = ({ plots }) => {
                             Cancel
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );

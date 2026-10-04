@@ -1,113 +1,81 @@
 import React from 'react';
 import PixelIcon from './PixelIcon';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { NAV_DESTINATIONS, isDestinationActive } from './navDestinations';
 
-// Spring compartido para los elementos con layoutId — todos morfan al mismo ritmo.
 const PILL_SPRING = { type: 'spring', stiffness: 320, damping: 34 };
 
-export const NavItem = ({ icon: Icon, iconName, label, active, onClick }) => (
+// Views where "add quest" is the natural next action; elsewhere the screen
+// has its own primary control (world joystick, diary entry, studio tools).
+const FAB_VIEWS = ['home', 'tasks'];
+
+export const NavItem = ({ iconName, label, active, onClick, badge = 0 }) => (
     <motion.button
         onClick={onClick}
         whileTap={{ scale: 0.94 }}
-        animate={{ y: active ? -8 : 0 }}
         transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-        className="relative flex flex-col items-center justify-center p-2 min-w-[64px] rounded-xl"
+        aria-label={label}
+        aria-current={active ? 'page' : undefined}
+        className="relative flex flex-col items-center justify-center gap-1 py-2 rounded-xl"
     >
-        {/* Píldora activa — layoutId hace morph entre tabs */}
         {active && (
             <motion.div
                 layoutId="active-mobile-nav-pill"
-                className="absolute inset-x-2 inset-y-2 bg-gradient-to-br from-rpg-gold/20 to-orange-500/20 ring-1 ring-rpg-gold/50 rounded-xl"
+                className="absolute inset-x-1 inset-y-0 bg-rpg-gold/10 ring-1 ring-rpg-gold/30 rounded-xl"
                 transition={PILL_SPRING}
             />
         )}
-
-        {/* Dot superior — también morfa entre tabs */}
-        {active && (
-            <motion.div
-                layoutId="active-mobile-nav-dot"
-                className="absolute -top-1 w-1 h-1 bg-rpg-gold rounded-full shadow-glow-gold"
-                transition={PILL_SPRING}
-            />
-        )}
-
-        <div className={`relative z-10 p-2 rounded-full ${active ? 'text-rpg-gold' : 'text-gray-400 hover:text-white'}`}>
-            <Icon name={iconName} size={active ? 24 : 20} className={active ? 'drop-shadow-glow' : ''} />
-        </div>
-
-        {/* Label — fade simple (no layoutId porque el texto cambia por tab) */}
-        {active && (
-            <motion.span
-                key={label}
-                initial={{ opacity: 0, y: -2 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.18 }}
-                className="absolute -bottom-4 text-[10px] font-bold tracking-wider text-rpg-gold z-10 whitespace-nowrap"
-            >
-                {label}
-            </motion.span>
-        )}
+        <span className="relative z-10 flex">
+            <PixelIcon name={iconName} size={20} color={active ? '#fbbf24' : '#9ca3af'} />
+            {badge > 0 && (
+                <span className="absolute -top-1.5 -right-2.5 min-w-[15px] h-[15px] px-[3px] rounded-full bg-rpg-gold text-rpg-bg text-[10px] font-bold flex items-center justify-center leading-none ring-2 ring-rpg-panel" aria-label={`${badge} new`}>{badge}</span>
+            )}
+        </span>
+        <span className={`relative z-10 text-[10px] font-bold tracking-wide leading-none ${active ? 'text-rpg-gold' : 'text-gray-400'}`}>
+            {label}
+        </span>
     </motion.button>
 );
 
-const BottomNav = ({ activeView, setActiveView, currentUser }) => {
-    const mobileNavItems = [
-        { id: 'home', label: 'Camp', icon: 'home' },
-        { id: 'tasks', label: 'Quests', icon: 'checkSquare' },
-        { id: 'party', label: 'Town', icon: 'users' },
-        { id: 'diary', label: 'Diary', icon: 'scroll' },
-    ];
+const BottomNav = ({ activeView, setActiveView, badges = {} }) => (
+    <>
+        <AnimatePresence>
+            {FAB_VIEWS.includes(activeView) && (
+                <motion.button
+                    key="add-quest-fab"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    whileTap={{ scale: 0.92 }}
+                    transition={{ type: 'spring', stiffness: 340, damping: 26 }}
+                    onClick={() => setActiveView('createTask')}
+                    aria-label="Add quest"
+                    title="Add quest"
+                    className="md:hidden fixed z-50 right-4 bottom-[96px] w-14 h-14 rounded-full bg-rpg-gold shadow-[0_8px_24px_rgba(0,0,0,0.45)] ring-4 ring-rpg-bg/70 flex items-center justify-center"
+                >
+                    <PixelIcon name="plus" size={22} color="#1c1622" />
+                </motion.button>
+            )}
+        </AnimatePresence>
 
-
-
-    return (
-        <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-md">
-            <nav className="flex items-center justify-between glass-panel px-3 py-3 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] bg-rpg-panel/90 backdrop-blur-xl border-t border-white/10 relative">
-                {/* Left Side Items (Home, Quests) */}
-                <div className="flex gap-1">
-                    {mobileNavItems.slice(0, 2).map((item) => (
-                        <NavItem
-                            key={item.id}
-                            icon={PixelIcon}
-                            iconName={item.icon}
-                            label={item.label}
-                            active={activeView === item.id}
-                            onClick={() => setActiveView(item.id)}
-                        />
-                    ))}
-                </div>
-
-                {/* Central Add Button */}
-                <div className="absolute left-1/2 -translate-x-1/2 -top-8 group">
-                    <motion.button
-                        onClick={() => setActiveView('createTask')}
-                        whileHover={{ scale: 1.04 }}
-                        whileTap={{ scale: 0.94 }}
-                        transition={{ type: 'spring', stiffness: 340, damping: 26 }}
-                        className="w-16 h-16 bg-rpg-gold text-black rounded-full shadow-[0_0_20px_rgba(251,191,36,0.6)] border-4 border-rpg-panel flex items-center justify-center group-hover:shadow-[0_0_30px_rgba(251,191,36,0.8)] transition-shadow duration-300"
-                    >
-                        <PixelIcon name="checkSquare" size={32} color="black" />
-                    </motion.button>
-                    <div className="mt-1 text-[10px] font-bold text-rpg-gold text-center uppercase tracking-widest drop-shadow-glow">Add Quest</div>
-                </div>
-
-                {/* Right Side Items (Town, Diary, [Admin]) */}
-                <div className="flex gap-1">
-                    {mobileNavItems.slice(2).map((item) => (
-                        <NavItem
-                            key={item.id}
-                            icon={PixelIcon}
-                            iconName={item.icon}
-                            label={item.label}
-                            active={activeView === item.id}
-                            onClick={() => setActiveView(item.id)}
-                        />
-                    ))}
-                </div>
+        <div className="md:hidden fixed bottom-4 inset-x-3 z-50 max-w-md mx-auto">
+            <nav
+                aria-label="Main"
+                className="grid grid-cols-5 gap-0.5 glass-panel px-1.5 py-1.5 bg-rpg-panel/90 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)]"
+            >
+                {NAV_DESTINATIONS.map(item => (
+                    <NavItem
+                        key={item.id}
+                        iconName={item.icon}
+                        label={item.label}
+                        active={isDestinationActive(item, activeView)}
+                        badge={badges[item.id] || 0}
+                        onClick={() => setActiveView(item.id)}
+                    />
+                ))}
             </nav>
         </div>
-    );
-};
+    </>
+);
 
 export default BottomNav;

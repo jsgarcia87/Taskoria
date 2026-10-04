@@ -1,18 +1,31 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Loader2, CheckCircle2, Clock, XCircle, Trash2 } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Trash2 } from 'lucide-react';
 import { useConfirm } from '../../context/ConfirmContext';
+import PixelIcon from '../common/PixelIcon';
 
 const CATEGORIES = [
     { id: 'all', label: 'All' },
-    { id: 'casas', label: 'Houses' },
-    { id: 'castillos', label: 'Castles' },
-    { id: 'monturas', label: 'Mounts' },
-    { id: 'arboles', label: 'Trees' },
-    { id: 'decoracion', label: 'Decoration' },
+    { id: 'houses', label: 'Houses' },
+    { id: 'castles', label: 'Castles' },
+    { id: 'mounts', label: 'Mounts' },
+    { id: 'trees', label: 'Trees' },
+    { id: 'decoration', label: 'Decoration' },
     { id: 'props', label: 'Props' },
 ];
 
-const PreviewCanvas = ({ pixels, gridSize, size = 128 }) => {
+// Older creations were saved with Spanish ids; the Studio now saves English ones.
+const LEGACY_CATEGORY = {
+    casas: 'houses', edificios: 'houses', castillos: 'castles', monturas: 'mounts',
+    arboles: 'trees', decoracion: 'decoration', monstruos: 'monsters', mascotas: 'pets', personajes: 'characters',
+};
+const normalizeCategory = (c) => {
+    const key = String(c || '').toLowerCase();
+    return LEGACY_CATEGORY[key] || key;
+};
+
+const CATEGORY_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.id, c.label]));
+
+const PreviewCanvas = ({ pixels, gridSize }) => {
     const ref = useRef(null);
     useEffect(() => {
         const c = ref.current;
@@ -37,16 +50,15 @@ const PreviewCanvas = ({ pixels, gridSize, size = 128 }) => {
             ref={ref}
             width={gridSize}
             height={gridSize}
-            style={{ width: size, height: size, imageRendering: 'pixelated' }}
-            className="bg-[#0f0a1f] border border-white/10 rounded"
+            style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }}
         />
     );
 };
 
 const StatusBadge = ({ status }) => {
-    if (status === 'approved') return <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-green-400"><CheckCircle2 size={10}/> Approved</span>;
-    if (status === 'rejected') return <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-red-400"><XCircle size={10}/> Rejected</span>;
-    return <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-amber-400"><Clock size={10}/> Pending</span>;
+    if (status === 'approved') return <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-400"><CheckCircle2 size={11}/> Approved</span>;
+    if (status === 'rejected') return <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-400"><XCircle size={11}/> Rejected</span>;
+    return <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400"><Clock size={11}/> In review</span>;
 };
 
 const CreationGallery = ({ currentUser, setActiveView }) => {
@@ -61,7 +73,7 @@ const CreationGallery = ({ currentUser, setActiveView }) => {
         try {
             let url;
             if (tab === 'public') {
-                url = `api/creations.php?action=list_approved${category !== 'all' ? `&category=${category}` : ''}`;
+                url = 'api/creations.php?action=list_approved';
             } else {
                 if (!currentUser?.id) { setItems([]); setLoading(false); return; }
                 url = `api/creations.php?action=list_mine&user_id=${currentUser.id}`;
@@ -70,7 +82,7 @@ const CreationGallery = ({ currentUser, setActiveView }) => {
             const data = await res.json();
             if (data.success) {
                 let list = data.items || [];
-                if (tab === 'mine' && category !== 'all') list = list.filter(i => i.category === category);
+                if (category !== 'all') list = list.filter(i => normalizeCategory(i.category) === category);
                 setItems(list);
             } else {
                 setItems([]);
@@ -94,61 +106,105 @@ const CreationGallery = ({ currentUser, setActiveView }) => {
         load();
     };
 
+    const chip = (active) => `shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${active
+        ? 'bg-rpg-gold/15 text-rpg-gold ring-1 ring-rpg-gold/40'
+        : 'bg-white/[0.05] text-gray-300 hover:text-white hover:bg-white/10'}`;
+
     return (
-        <div className="text-white">
-            <header className="mb-6 text-center">
-                <h1 className="text-3xl font-display font-bold tracking-wide text-rpg-gold">Taskoria Creations</h1>
-                <p className="text-sm text-gray-400">What the community is building for the world.</p>
+        <div className="text-white max-w-5xl mx-auto">
+            <header className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <div>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 font-bold mb-1.5">Community</p>
+                    <h1 className="font-herald text-4xl leading-none text-rpg-gold">World</h1>
+                    <p className="mt-2 text-sm text-gray-400 max-w-[46ch]">Houses, castles, mounts and props forged by heroes for the realm.</p>
+                </div>
+                {setActiveView && (
+                    <button
+                        onClick={() => setActiveView('studio')}
+                        className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rpg-gold text-rpg-bg text-sm font-bold whitespace-nowrap hover:brightness-105 transition-[filter]"
+                    >
+                        <PixelIcon name="hammer" size={14} color="#1c1622" />
+                        Open Pixel Studio
+                    </button>
+                )}
             </header>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <div className="flex gap-2">
-                    <button onClick={() => setTab('public')} className={`text-xs uppercase tracking-widest px-3 py-1.5 rounded border ${tab==='public' ? 'bg-rpg-gold/20 border-rpg-gold text-rpg-gold' : 'bg-white/5 hover:bg-white/10 border-white/10'}`}>Public Gallery</button>
-                    {currentUser?.id && (
-                        <button onClick={() => setTab('mine')} className={`text-xs uppercase tracking-widest px-3 py-1.5 rounded border ${tab==='mine' ? 'bg-rpg-gold/20 border-rpg-gold text-rpg-gold' : 'bg-white/5 hover:bg-white/10 border-white/10'}`}>My Creations</button>
-                    )}
-                    {setActiveView && (
-                        <button onClick={() => setActiveView('studio')} className="text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded border bg-blue-500/20 border-blue-400 text-blue-300 hover:bg-blue-500/40 ml-2">🎨 Pixel Studio</button>
-                    )}
-                </div>
-                <div className="flex flex-wrap gap-1">
-                    {CATEGORIES.map(c => (
+            {currentUser?.id && (
+                <div role="tablist" aria-label="Creations" className="inline-flex p-1 mb-3 rounded-xl bg-white/[0.05] ring-1 ring-white/10">
+                    {[{ id: 'public', label: 'Gallery' }, { id: 'mine', label: 'My creations' }].map(t => (
                         <button
-                            key={c.id}
-                            onClick={() => setCategory(c.id)}
-                            className={`text-[10px] uppercase tracking-widest px-2 py-1 rounded border ${category===c.id ? 'bg-rpg-gold/20 border-rpg-gold text-rpg-gold' : 'bg-white/5 hover:bg-white/10 border-white/10'}`}
-                        >{c.label}</button>
+                            key={t.id}
+                            role="tab"
+                            aria-selected={tab === t.id}
+                            onClick={() => setTab(t.id)}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === t.id ? 'bg-rpg-panelLight text-white' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            {t.label}
+                        </button>
                     ))}
                 </div>
+            )}
+
+            <div className="-mx-4 px-4 mb-5 flex gap-2 overflow-x-auto scrollbar-hide">
+                {CATEGORIES.map(c => (
+                    <button key={c.id} onClick={() => setCategory(c.id)} aria-pressed={category === c.id} className={chip(category === c.id)}>
+                        {c.label}
+                    </button>
+                ))}
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center py-20 text-gray-400"><Loader2 className="animate-spin mr-2" size={18}/> The Archive is gathering creations...</div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3" aria-busy="true" aria-label="Loading creations">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="rounded-2xl bg-black/20 ring-1 ring-white/[0.06] p-2.5">
+                            <div className="aspect-square rounded-xl bg-white/[0.04]" />
+                            <div className="mt-3 h-3 w-2/3 rounded bg-white/[0.06]" />
+                            <div className="mt-2 h-2.5 w-1/3 rounded bg-white/[0.04]" />
+                        </div>
+                    ))}
+                </div>
             ) : items.length === 0 ? (
-                <div className="text-center py-20 text-gray-500 text-sm">
-                    {tab === 'public' ? 'No works have been forged in this category yet.' : 'Your workshop awaits its first creation.'}
+                <div className="rounded-2xl bg-black/15 ring-1 ring-white/[0.06] py-14 px-6 flex flex-col items-center text-center">
+                    <PixelIcon name="hammer" size={28} color="#6b7280" />
+                    <p className="mt-4 text-sm font-semibold text-gray-200">
+                        {tab === 'public' ? 'Nothing forged here yet' : 'Your workshop is empty'}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-400 max-w-[36ch]">
+                        {tab === 'public'
+                            ? 'Be the first to add a creation to this category.'
+                            : 'Design a house, a mount or a prop and send it to the realm.'}
+                    </p>
+                    {setActiveView && (
+                        <button onClick={() => setActiveView('studio')} className="mt-5 px-4 py-2 rounded-xl bg-rpg-gold/15 text-rpg-gold ring-1 ring-rpg-gold/40 text-sm font-semibold hover:bg-rpg-gold/25 transition-colors">
+                            Create something
+                        </button>
+                    )}
                 </div>
             ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                     {items.map(item => (
-                        <div key={item.id} className="glass-panel rounded-xl p-3 flex flex-col items-center text-center">
-                            <PreviewCanvas pixels={item.pixels} gridSize={item.grid_size || 64} size={140}/>
-                            <div className="mt-2 font-bold text-sm text-white truncate w-full" title={item.name}>{item.name}</div>
-                            <div className="text-[10px] uppercase tracking-widest text-rpg-gold">{item.category}</div>
-                            {item.username && tab === 'public' && (
-                                <div className="text-[10px] text-gray-400 mt-1">by {item.username}</div>
-                            )}
-                            {tab === 'mine' && (
-                                <div className="mt-2 flex flex-col items-center gap-1 w-full">
-                                    <StatusBadge status={item.status}/>
-                                    {item.status === 'rejected' && item.reject_reason && (
-                                        <div className="text-[10px] text-red-300/80 italic">"{item.reject_reason}"</div>
-                                    )}
-                                    <button onClick={() => deleteMine(item.id)} className="mt-1 text-[10px] text-red-300 hover:text-red-200 inline-flex items-center gap-1">
-                                        <Trash2 size={10}/> Delete
-                                    </button>
-                                </div>
-                            )}
+                        <div key={item.id} className="rounded-2xl bg-black/20 ring-1 ring-white/[0.06] p-2.5 flex flex-col">
+                            <div className="aspect-square w-full rounded-xl bg-[#0f0a1f] overflow-hidden">
+                                <PreviewCanvas pixels={item.pixels} gridSize={item.grid_size || 64} />
+                            </div>
+                            <div className="mt-2.5 px-0.5 min-w-0">
+                                <p className="text-sm font-semibold text-white truncate" title={item.name}>{item.name}</p>
+                                <p className="text-xs text-gray-400 truncate">
+                                    {CATEGORY_LABEL[normalizeCategory(item.category)] || normalizeCategory(item.category)}
+                                    {item.username && tab === 'public' ? ` · by ${item.username}` : ''}
+                                </p>
+                                {tab === 'mine' && (
+                                    <div className="mt-2 flex items-center justify-between gap-2">
+                                        <StatusBadge status={item.status} />
+                                        <button onClick={() => deleteMine(item.id)} aria-label={`Delete ${item.name}`} className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-300 hover:bg-red-500/10 transition-colors">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                )}
+                                {tab === 'mine' && item.status === 'rejected' && item.reject_reason && (
+                                    <p className="mt-1 text-xs text-red-300/80">{item.reject_reason}</p>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>

@@ -103,6 +103,8 @@ const Dashboard = ({ setActiveView }) => {
     const weekDay = now.toLocaleDateString('en-US', { weekday: 'long' });
     const capitalizedDay = weekDay.charAt(0).toUpperCase() + weekDay.slice(1);
     const overdueTasks = activeTasks.filter(t => t.dueDate && t.dueDate < todayLocalDate);
+    // Same rule as the Questbook seal: chores and project steps are counted elsewhere.
+    const openQuestCount = activeTasks.filter(t => t.category !== 'chore' && !t.projectId).length;
 
     const shouldReduce = useReducedMotion();
     const { scrollY } = useScroll();
@@ -182,7 +184,7 @@ const Dashboard = ({ setActiveView }) => {
                         className="relative flex flex-col items-center justify-center"
                     >
                         <h2
-                            className="relative font-heading font-extrabold text-[#111] my-0 leading-[0.9] whitespace-nowrap"
+                            className="relative font-herald text-[#111] my-0 leading-[0.9] whitespace-nowrap"
                             style={{
                                 fontSize: 'clamp(24px, 6vw, 52px)',
                                 letterSpacing: '-0.03em',
@@ -206,12 +208,12 @@ const Dashboard = ({ setActiveView }) => {
                             <rect x="19" y="4" width="2" height="1" fill="#8B7355" />
                         </svg>
                         <div className="relative flex items-center justify-center gap-2 mt-0.5 flex-nowrap whitespace-nowrap">
-                            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#6B5B3E' }}>{capitalizedDay}</span>
-                            <span style={{ color: '#6B5B3E', opacity: 0.4 }}>·</span>
+                            <span className="hidden sm:inline text-[11px] font-bold uppercase tracking-wider" style={{ color: '#6B5B3E' }}>{capitalizedDay}</span>
+                            <span className="hidden sm:inline" style={{ color: '#6B5B3E', opacity: 0.4 }}>·</span>
                             <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#6B5B3E' }}>Lv. {character?.level || 1}</span>
                             <span style={{ color: '#6B5B3E', opacity: 0.4 }}>·</span>
-                            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: activeTasks.length === 0 ? '#166534' : '#92400e' }}>
-                                {activeTasks.length === 0 ? 'All clear' : `${activeTasks.length} quest${activeTasks.length !== 1 ? 's' : ''}`}
+                            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: openQuestCount === 0 ? '#166534' : '#92400e' }}>
+                                {openQuestCount === 0 ? 'All clear' : `${openQuestCount} quest${openQuestCount !== 1 ? 's' : ''}`}
                             </span>
                             {overdueTasks.length > 0 && (
                                 <>
@@ -237,81 +239,56 @@ const Dashboard = ({ setActiveView }) => {
                 {/* Main Content (Left/Center) — 8 cols from md+ so tablet portrait gets the sidebar */}
                 <div className="col-span-12 md:col-span-8 flex flex-col gap-6">
 
-                    {/* ── Mobile: Questbook + DailyMissions (above garden for utility-first) ── */}
-                    <motion.div {...stagger(0)} className="md:hidden order-1 space-y-4">
+                    {/* ── Mobile: Questbook first (utility before scenery) ── */}
+                    <motion.div {...stagger(0)} className="md:hidden order-1">
                         <Questbook />
+                    </motion.div>
+
+                    {/* Camp scene + the day's numbers, then Focus */}
+                    <motion.div {...stagger(0)} className="order-2 flex flex-col gap-6">
+                        <div className="glass-card p-3 sm:p-4 border-white/10">
+                            <GardenView setActiveView={setActiveView} />
+                            {(() => {
+                                const battles = (state.log || []).filter(l => l.type === 'damage').length;
+                                const items = character?.inventory?.length || 0;
+                                const focusMins = Math.max(
+                                    0,
+                                    ...((character?.dailyMissions || [])
+                                        .filter(m => m.kind === 'focus_minutes')
+                                        .map(m => m.progress || 0)),
+                                    0
+                                );
+                                const focusLabel = focusMins >= 60
+                                    ? `${Math.floor(focusMins / 60)}h ${String(focusMins % 60).padStart(2, '0')}m`
+                                    : `${focusMins}m`;
+                                const stats = [
+                                    { label: 'Focus today', value: focusLabel },
+                                    { label: 'Battles', value: battles },
+                                    { label: 'In satchel', value: items },
+                                ];
+                                return (
+                                    <div className="mt-3 grid grid-cols-3 divide-x divide-white/10">
+                                        {stats.map(stat => (
+                                            <div key={stat.label} className="flex flex-col items-center py-1.5">
+                                                <span className="font-pixel text-2xl text-white leading-none tabular-nums">{stat.value}</span>
+                                                <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">{stat.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        <FocusHero />
+                    </motion.div>
+
+                    {/* Mobile: today's missions after the focus block */}
+                    <motion.div {...stagger(1)} className="md:hidden order-3">
                         <DailyMissions />
                     </motion.div>
 
-                    {/* Upper Row: Garden + Stats — on mobile, pushed after tasks */}
-                    <motion.div {...stagger(0)} className="grid grid-cols-1 xl:grid-cols-2 gap-6 order-2">
-                        <div className="grid grid-cols-1 gap-6">
-                            <div
-                                className="glass-card p-6 overflow-hidden relative group border-white/10 hover:border-white/20 transition-all min-h-[300px] flex flex-col justify-center"
-                            >
-                                <GardenView setActiveView={setActiveView} />
-                            </div>
-                        </div>
-
-                        <div className="space-y-6">
-                            {/* Today's Ledger */}
-                            <div className="glass-card p-6 relative overflow-hidden">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-gray-400 font-bold uppercase text-xs tracking-wider">Today's Ledger</h3>
-                                    <button className="text-xs text-rpg-gold hover:text-white transition-colors font-bold" onClick={() => setActiveView('profile')}>View Sheet</button>
-                                </div>
-
-                                {(() => {
-                                    const battles = (state.log || []).filter(l => l.type === 'damage').length;
-                                    const items = character?.inventory?.length || 0;
-                                    const focusMins = Math.max(
-                                        0,
-                                        ...((character?.dailyMissions || [])
-                                            .filter(m => m.kind === 'focus_minutes')
-                                            .map(m => m.progress || 0)),
-                                        0
-                                    );
-                                    const focusTime = `${String(Math.floor(focusMins / 60)).padStart(2, '0')}:${String(focusMins % 60).padStart(2, '0')}`;
-                                    return (
-                                        <div className="grid grid-cols-3 gap-2 mt-1">
-                                            <div className="flex flex-col items-center justify-center text-center rounded-xl py-3 px-1 bg-rpg-blue/10">
-                                                <span
-                                                    className="font-bold text-rpg-blue text-shadow-glow block"
-                                                    style={{ fontFamily: "'VT323', monospace", fontSize: '2rem', lineHeight: 1.15 }}
-                                                >
-                                                    {focusTime}
-                                                </span>
-                                                <span className="text-gray-400 font-bold uppercase tracking-wider mt-1" style={{ fontSize: 10, letterSpacing: '0.05em' }}>Focus Time</span>
-                                            </div>
-                                            <div className="flex flex-col items-center justify-center text-center rounded-xl py-3 px-1 bg-rpg-red/10">
-                                                <span
-                                                    className="font-bold text-rpg-red text-shadow-glow block"
-                                                    style={{ fontFamily: "'VT323', monospace", fontSize: '2rem', lineHeight: 1.15 }}
-                                                >
-                                                    {battles}
-                                                </span>
-                                                <span className="text-gray-400 font-bold uppercase tracking-wider mt-1" style={{ fontSize: 10, letterSpacing: '0.05em' }}>Battles Fought</span>
-                                            </div>
-                                            <div className="flex flex-col items-center justify-center text-center rounded-xl py-3 px-1 bg-rpg-green/10">
-                                                <span
-                                                    className="font-bold text-rpg-green text-shadow-glow block"
-                                                    style={{ fontFamily: "'VT323', monospace", fontSize: '2rem', lineHeight: 1.15 }}
-                                                >
-                                                    {items}
-                                                </span>
-                                                <span className="text-gray-400 font-bold uppercase tracking-wider mt-1" style={{ fontSize: 10, letterSpacing: '0.05em' }}>Items Gathered</span>
-                                            </div>
-                                        </div>
-                                    );
-                                })()}
-                            </div>
-
-                            <FocusHero />
-                        </div>
-                    </motion.div>
-
                     {/* ARENA — combat & analytics, collapsed by default */}
-                    <motion.div {...stagger(1)} className="order-3">
+                    <motion.div {...stagger(1)} className="order-4">
                         <button
                             onClick={() => setArenaOpen(prev => !prev)}
                             className="w-full flex items-center justify-between px-1 py-2 group cursor-pointer"

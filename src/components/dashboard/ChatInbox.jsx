@@ -103,7 +103,7 @@ const ChatInbox = ({ isOpen, onClose, currentUser, onOpenChat }) => {
                     <div className="text-center p-6 text-gray-500 flex flex-col items-center gap-2">
                         <Users size={32} className="opacity-20 mb-2" />
                         <p className="text-sm">No carrier pigeons have arrived.</p>
-                        <p className="text-xs">Visit the Town to find companions worth writing to.</p>
+                        <p className="text-xs">Open Party to find companions worth writing to.</p>
                     </div>
                 ) : (
                     recentChats.map(friend => {

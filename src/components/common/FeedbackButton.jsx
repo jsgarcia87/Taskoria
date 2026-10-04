@@ -161,7 +161,7 @@ const FeedbackButton = ({ currentUser, activeProfileId }) => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.94 }}
         transition={{ type: 'spring', stiffness: 340, damping: 26 }}
-        className="fixed z-40 bottom-28 right-4 lg:bottom-6 lg:right-6 w-11 h-11 rounded-full bg-rpg-panel/80 border border-white/15 backdrop-blur-md shadow-lg text-gray-300 hover:text-rpg-gold hover:border-rpg-gold/50 flex items-center justify-center transition-colors"
+        className="hidden lg:flex fixed z-40 bottom-6 right-6 w-11 h-11 rounded-full bg-rpg-panel/80 border border-white/15 backdrop-blur-md shadow-lg text-gray-300 hover:text-rpg-gold hover:border-rpg-gold/50 items-center justify-center transition-colors"
         aria-label="Send feedback"
         title="Send feedback"
       >

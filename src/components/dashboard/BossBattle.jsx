@@ -3,10 +3,13 @@ import { useGame } from '../../context/GameContext';
 import EnemySprite from '../common/EnemySprite';
 import PixelIcon from '../common/PixelIcon';
 import { bosses } from '../../data/bestiary';
+import CardViewer from '../cards/CardViewer';
+import { weeklyCardBase, resolveCard } from '../../utils/bossCards';
 
 const BossBattle = () => {
     const { state } = useGame();
     const { activeDungeon } = state;
+    const [cardOpen, setCardOpen] = useState(false);
 
     const prevHpRef = useRef(activeDungeon?.hp);
     const [popups, setPopups] = useState([]);
@@ -32,6 +35,10 @@ const BossBattle = () => {
     const bossTitle = bossData?.title;
     const dangerLabel = activeDungeon.dangerLabel || bossData?.dangerLabel || 'HIGH DANGER';
     const reward = bossData?.reward;
+    const storedCard = (state.character?.bossCards || []).find(c => c.id === `boss:${activeDungeon.bossId}`);
+    const card = storedCard ? resolveCard(storedCard) : (bossData ? weeklyCardBase(bossData) : null);
+    const defeated = activeDungeon.hp <= 0;
+    const daysLeft = activeDungeon.lastReset ? Math.max(0, Math.ceil(7 - (Date.now() - activeDungeon.lastReset) / 86400000)) : null;
 
     return (
         <div
@@ -79,7 +86,14 @@ const BossBattle = () => {
                                 transform: 'scale(2)',
                             }}
                         />
-                        <div style={{ filter: 'drop-shadow(0 0 10px rgba(239,68,68,0.2))' }}>
+                        <button
+                            type="button"
+                            onClick={() => card && setCardOpen(true)}
+                            disabled={!card}
+                            aria-label={`View the ${bossName} card`}
+                            className="block rounded-xl transition-transform duration-200 hover:scale-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-rpg-gold"
+                            style={{ filter: 'drop-shadow(0 0 10px rgba(239,68,68,0.2))' }}
+                        >
                             {spriteRef ? (
                                 <EnemySprite blueprintKey={spriteRef} scale={2.5} />
                             ) : (
@@ -87,7 +101,7 @@ const BossBattle = () => {
                                     <PixelIcon name="skull" size={40} className="text-red-400/60" />
                                 </div>
                             )}
-                        </div>
+                        </button>
                         {/* Floating damage popups */}
                         {popups.map(p => (
                             <div
@@ -135,8 +149,12 @@ const BossBattle = () => {
                         </div>
 
                         {/* Footer: hint + rewards */}
-                        <div className="flex items-center justify-between mt-3">
-                            <span className="text-[10px] text-white/30">Complete quests to deal damage</span>
+                        <div className="flex flex-col items-start gap-1.5 mt-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                            <span className="text-[11px] text-white/45">
+                                {defeated
+                                    ? `Defeated${daysLeft != null ? ` · the next boss arrives in ${daysLeft} day${daysLeft === 1 ? '' : 's'}` : ''}`
+                                    : 'Complete quests to deal damage'}
+                            </span>
                             {reward && (
                                 <div className="flex gap-2.5 text-[10px] font-bold tracking-wide">
                                     <span className="text-amber-400/70">{reward.xp} XP</span>
@@ -147,6 +165,23 @@ const BossBattle = () => {
                     </div>
                 </div>
             </div>
+            {card && (
+                <button
+                    type="button"
+                    onClick={() => setCardOpen(true)}
+                    className="relative z-10 mx-5 sm:mx-6 mb-4 sm:mb-5 px-3.5 py-2 rounded-lg text-xs font-semibold text-gray-200 hover:text-white bg-white/[0.06] hover:bg-white/10 ring-1 ring-white/10 transition-colors"
+                >
+                    {storedCard ? 'View your card' : 'View boss card'}
+                </button>
+            )}
+            {cardOpen && card && (
+                <CardViewer
+                    card={card}
+                    locked={!storedCard}
+                    progress={!storedCard ? { hp: activeDungeon.hp, maxHp: activeDungeon.maxHp } : null}
+                    onClose={() => setCardOpen(false)}
+                />
+            )}
         </div>
     );
 };

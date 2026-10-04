@@ -2,7 +2,7 @@ import React, { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Edit2, Trash2, Clock, Play } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
-import { TASK_DIFFICULTY } from '../../utils/gameUtils';
+import { estimateTaskRewards, getDueInfo, taskAttributeGain } from '../../utils/gameUtils';
 import TaskForm from './TaskForm';
 import HabitForm from './HabitForm';
 import PixelIcon from '../common/PixelIcon';
@@ -30,90 +30,93 @@ const CHECK_SPRING = { type: 'spring', stiffness: 340, damping: 26 };
  * Only re-renders when its own `task` reference changes, or when one of the
  * memoized callbacks identity changes (they're stable via useCallback below).
  */
-const TaskRow = memo(function TaskRow({ task, assignerName, onComplete, onToggleStatus, onEdit, onDelete }) {
+const DUE_STYLE = {
+    overdue: 'text-red-200 bg-red-500/15 ring-1 ring-red-400/30',
+    today: 'text-amber-200 bg-amber-500/10 ring-1 ring-amber-400/25',
+    soon: 'text-gray-300 bg-white/[0.06]',
+    later: 'text-gray-400 bg-white/[0.04]',
+};
+
+const ROW_ACTION = 'w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 transition-colors';
+
+const TaskRow = memo(function TaskRow({ task, xp, gold, assignerName, onComplete, onToggleStatus, onEdit, onDelete }) {
     const isInProgress = task.status === 'in_progress';
     const [checked, setChecked] = useState(false);
+    const due = getDueInfo(task.dueDate);
     const handleComplete = useCallback((e) => {
         setChecked(true);
         onComplete(task.id, e.clientX, e.clientY);
     }, [task.id, onComplete]);
+    const accent = due?.tone === 'overdue' ? 'border-l-red-400/70' : isInProgress ? 'border-l-blue-400 bg-blue-900/10' : 'border-l-transparent';
     return (
-        <div className={`glass-card p-4 group transition-all duration-300 hover:bg-white/5 border-l-2 ${isInProgress ? 'border-l-blue-500 bg-blue-900/10' : 'border-l-transparent hover:border-l-rpg-gold'}`}>
-            <div className="flex justify-between items-start gap-4">
-                <div className="flex items-start gap-3 w-full">
-                    <motion.button
-                        onClick={handleComplete}
-                        whileHover={{ scale: 1.04 }}
-                        whileTap={{ scale: 0.92 }}
-                        transition={CHECK_SPRING}
-                        className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors duration-150 ${checked ? 'border-rpg-green bg-rpg-green/20' : 'border-gray-500 hover:border-rpg-green hover:bg-rpg-green/20'}`}
-                        title="Complete Quest"
+        <div className={`glass-card px-4 pt-3.5 pb-2.5 group transition-colors duration-200 hover:bg-white/[0.04] border-l-2 ${accent}`}>
+            <div className="flex items-start gap-3">
+                <motion.button
+                    onClick={handleComplete}
+                    whileTap={{ scale: 0.92 }}
+                    transition={CHECK_SPRING}
+                    className={`mt-0.5 w-6 h-6 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors duration-150 ${checked ? 'border-rpg-green bg-rpg-green/20' : 'border-gray-500 hover:border-rpg-green hover:bg-rpg-green/15'}`}
+                    aria-label={`Complete quest: ${task.title}`}
+                >
+                    {checked && (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M2.5 6.5L5 9L9.5 3.5" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" pathLength="1" className="check-draw" />
+                        </svg>
+                    )}
+                </motion.button>
+                <div className="flex-1 min-w-0">
+                    <button
+                        onClick={() => onEdit(task)}
+                        className={`block w-full text-left text-[15px] leading-snug font-medium transition-colors ${isInProgress ? 'text-blue-200' : 'text-gray-100 hover:text-white'}`}
+                        title="Edit quest"
                     >
-                        {checked ? (
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                <path d="M2.5 6.5L5 9L9.5 3.5" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" pathLength="1" className="check-draw" />
-                            </svg>
-                        ) : (
-                            <div className="w-2.5 h-2.5 rounded-sm bg-transparent group-hover:bg-rpg-green transition-colors" />
-                        )}
-                    </motion.button>
-                    <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                            <span className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors flex items-center gap-2 mb-1">
-                                {task.assignerId
-                                    ? <PixelIcon name="book" size={14} color="#fbbf24" />
-                                    : task.category === 'chore'
-                                        ? <PixelIcon name="box" size={14} color="#f97316" />
-                                        : <PixelIcon name="sword" size={14} className="text-gray-400 group-hover:text-white" />}
-                                <span className={isInProgress ? 'text-blue-300' : ''}>{task.title}</span>
-                                {task.assignerId && <span className="ml-1 text-[9px] bg-red-900/40 text-red-400 px-2 py-0.5 rounded-full border border-red-500/30 uppercase tracking-wider font-bold shadow-[0_0_10px_rgba(239,68,68,0.3)]">Assigned by: {assignerName}</span>}
-                                {isInProgress && <span className="ml-1 text-[9px] bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 uppercase tracking-wider font-bold">In Progress</span>}
-                            </span>
-                            <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 bg-black/40 p-1 md:bg-black/40 md:p-1 rounded-lg backdrop-blur-sm border md:border-white/5 border-white/20">
-                                <button
-                                    onClick={() => onToggleStatus(task.id, task.status)}
-                                    className={`p-2 md:p-1.5 rounded-md transition-colors ${isInProgress ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' : 'text-gray-400 hover:text-blue-400 hover:bg-blue-500/10'}`}
-                                    title={isInProgress ? "Pause work" : "Start working"}
-                                >
-                                    {isInProgress ? <Clock size={16} className="md:w-3 md:h-3" /> : <Play size={16} className="md:w-3 md:h-3" />}
-                                </button>
-                                <button
-                                    onClick={() => onEdit(task)}
-                                    className="p-2 md:p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-colors"
-                                    title="Edit Quest"
-                                >
-                                    <Edit2 size={16} className="md:w-3 md:h-3" />
-                                </button>
-                                <button
-                                    onClick={() => onDelete(task.id)}
-                                    className="p-2 md:p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
-                                    title="Delete Quest"
-                                >
-                                    <Trash2 size={16} className="md:w-3 md:h-3" />
-                                </button>
-                            </div>
+                        {task.title}
+                    </button>
+                    {(task.assignerId || isInProgress) && (
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                            {task.assignerId && <span className="text-[11px] font-semibold text-amber-300">Assigned by {assignerName}</span>}
+                            {isInProgress && <span className="text-[11px] font-semibold text-blue-300">In progress</span>}
                         </div>
-                        {task.extraInfo && (
-                            <p className="text-xs text-gray-400 mb-2 truncate max-w-xs">{task.extraInfo}</p>
+                    )}
+                    {task.extraInfo && (
+                        <p className="text-xs text-gray-400 mt-1 truncate">{task.extraInfo}</p>
+                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                        {due && (
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${DUE_STYLE[due.tone]}`}>{due.label}</span>
                         )}
-                        <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${task.difficulty === 3 ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
-                                {task.difficulty === 3 ? 'HARD' : 'NORMAL'}
-                            </span>
-                            <span className="text-[10px] text-rpg-gold flex items-center gap-1">
-                                <span>+{task.difficulty === 3 ? '40' : '20'} XP</span>
-                                <span>+{task.difficulty === 3 ? '20' : '10'} G</span>
-                            </span>
-                            {task.attribute && task.attribute !== 'none' && (
-                                <span className="text-[10px] text-blue-300 font-bold bg-blue-900/40 px-2 py-0.5 rounded-full border border-blue-500/30">
-                                    +1 {task.attribute.toUpperCase()}
-                                </span>
-                            )}
-                            {task.dueDate && (
-                                <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                                    <PixelIcon name="clock" size={10} color="#9ca3af" /> <span>{task.dueDate}</span>
-                                </span>
-                            )}
+                        {task.difficulty === 3 && (
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-red-300">Hard</span>
+                        )}
+                        <span className="text-[11px] text-rpg-gold/90 tabular-nums">+{xp} XP · {gold} g</span>
+                        {task.attribute && task.attribute !== 'none' && (
+                            <span className="text-[11px] font-semibold text-blue-300">+{taskAttributeGain(task)} {task.attribute.toUpperCase()}</span>
+                        )}
+                        <div className="ml-auto -mr-1.5 flex items-center [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                            <button
+                                onClick={() => onToggleStatus(task.id, task.status)}
+                                className={`${ROW_ACTION} ${isInProgress ? 'text-blue-300 bg-blue-500/15' : 'hover:text-blue-300 hover:bg-blue-500/10'}`}
+                                aria-label={isInProgress ? 'Pause quest' : 'Mark as in progress'}
+                                title={isInProgress ? 'Pause' : 'Start working'}
+                            >
+                                {isInProgress ? <Clock size={15} /> : <Play size={15} />}
+                            </button>
+                            <button
+                                onClick={() => onEdit(task)}
+                                className={`${ROW_ACTION} hover:text-white hover:bg-white/10`}
+                                aria-label="Edit quest"
+                                title="Edit"
+                            >
+                                <Edit2 size={15} />
+                            </button>
+                            <button
+                                onClick={() => onDelete(task.id)}
+                                className={`${ROW_ACTION} hover:text-red-300 hover:bg-red-500/10`}
+                                aria-label="Delete quest"
+                                title="Delete"
+                            >
+                                <Trash2 size={15} />
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -194,10 +197,14 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
     // motion.div envuelve TaskRow (fuera del memo) — el memo sigue evitando
     // re-renders internos por ticks de stats; el wrapper solo se ocupa de la
     // orquestación de layout/enter/exit.
-    const renderTask = (task) => (
+    const renderTask = (task) => {
+        const { xp, gold } = estimateTaskRewards(task, state.character);
+        return (
         <motion.div key={task.id} {...TASK_MOTION}>
             <TaskRow
                 task={task}
+                xp={xp}
+                gold={gold}
                 assignerName={task.assignerId ? getAssignerName(task.assignerId) : ''}
                 onComplete={handleCompleteTask}
                 onToggleStatus={handleToggleStatus}
@@ -205,7 +212,8 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
                 onDelete={handleDeleteTask}
             />
         </motion.div>
-    );
+        );
+    };
 
     return (
         <div className={`space-y-4 ${!isSidebar ? 'max-w-2xl mx-auto' : ''}`}>
@@ -276,7 +284,7 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
             <div className="mb-8">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="font-bold text-gray-300 text-sm tracking-wider font-heading flex items-center gap-2">
-                        <span className="text-orange-500">🧹</span> HOUSEHOLD CHORES
+                        <PixelIcon name="broom" size={16} color="#f97316" /> HOUSEHOLD CHORES
                     </h3>
                 </div>
 
@@ -322,9 +330,7 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
                                             Completed: {new Date(task.lastCompleted).toLocaleDateString()}
                                         </span>
                                     </div>
-                                    <span className="text-xs text-rpg-gold">
-                                        +{task.difficulty === 3 ? '40' : '20'} XP
-                                    </span>
+
                                 </div>
                             ))}
                         </div>
@@ -336,7 +342,7 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
             <div className="mt-8 pt-6 border-t border-white/10">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-gray-300 text-sm tracking-wider font-heading flex items-center gap-2">
-                        <PixelIcon name="clock" size={16} color="#60a5fa" /> DAILY HABITS
+                        <PixelIcon name="checkSquare" size={16} color="#60a5fa" /> DAILY HABITS
                     </h3>
                     <button onClick={handleOpenHabitForm} className="glass-btn-primary px-3 py-1.5 text-xs font-bold shadow-lg flex items-center gap-2 border border-white/20 hover:border-rpg-gold transition-colors">
                         <span>+</span> NEW HABIT
@@ -361,53 +367,43 @@ const TaskList = ({ isSidebar = false, setActiveView, hideQuests = false }) => {
                     )}
 
                     {state.habits.map(habit => (
-                        <div key={habit.id} className="glass-btn p-3 flex justify-between items-center group rounded-xl hover:bg-white/5 border border-white/5 relative overflow-hidden">
-                            <div className="flex items-center gap-3 relative z-10 w-full pr-20">
-                                <div className={`w-1.5 h-8 rounded-full shrink-0 ${habit.completed ? 'bg-rpg-green shadow-[0_0_10px_rgba(45,204,112,0.4)]' : 'bg-gray-700'}`}></div>
-                                <div className="min-w-0 pr-4">
-                                    <span className={`text-sm block truncate ${habit.completed ? 'text-gray-500 line-through' : 'text-gray-200 font-medium'}`}>{habit.title}</span>
-                                    <div className="flex items-center gap-2 mt-0.5">
+                        <div key={habit.id} className="glass-btn px-3 py-2.5 flex items-center gap-3 group rounded-xl hover:bg-white/5 border border-white/5">
+                            <div className={`w-1.5 h-8 rounded-full shrink-0 ${habit.completed ? 'bg-rpg-green' : 'bg-gray-700'}`} />
+                            <button onClick={() => handleEditHabit(habit)} className="flex-1 min-w-0 text-left" title="Edit habit">
+                                <span className={`text-sm block truncate ${habit.completed ? 'text-gray-500 line-through' : 'text-gray-100 font-medium'}`}>{habit.title}</span>
+                                {((habit.attribute && habit.attribute !== 'none') || habit.extraInfo) && (
+                                    <span className="flex items-center gap-2 mt-0.5 min-w-0">
                                         {habit.attribute && habit.attribute !== 'none' && (
-                                            <span className="text-[9px] text-blue-300 font-bold bg-blue-900/40 px-1.5 py-0 rounded border border-blue-500/30">
-                                                +1 {habit.attribute.toUpperCase()}
-                                            </span>
+                                            <span className="text-[11px] font-semibold text-blue-300 shrink-0">+1 {habit.attribute.toUpperCase()}</span>
                                         )}
-                                        {habit.extraInfo && <span className="text-xs text-gray-500 truncate block">{habit.extraInfo}</span>}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Hover Actions specific to Habits */}
-                            <div className="absolute right-12 top-1/2 -translate-y-1/2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-black/60 p-1 rounded-lg backdrop-blur-md border border-white/20 md:border-white/10 z-20">
-                                <button
-                                    onClick={() => handleEditHabit(habit)}
-                                    className="p-2 md:p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-colors"
-                                    title="Edit Habit"
-                                >
-                                    <Edit2 size={16} className="md:w-3 md:h-3" />
-                                </button>
+                                        {habit.extraInfo && <span className="text-xs text-gray-500 truncate">{habit.extraInfo}</span>}
+                                    </span>
+                                )}
+                            </button>
+                            <div className="flex items-center shrink-0 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                                 <button
                                     onClick={async () => { if (await confirm({ title: 'Break Ritual?', message: 'This daily ritual will be removed forever.', variant: 'danger', confirmText: 'Break It' })) actions.deleteHabit(habit.id); }}
-                                    className="p-2 md:p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
-                                    title="Delete Habit"
+                                    className={`${ROW_ACTION} hover:text-red-300 hover:bg-red-500/10`}
+                                    aria-label={`Delete habit: ${habit.title}`}
+                                    title="Delete"
                                 >
-                                    <Trash2 size={16} className="md:w-3 md:h-3" />
+                                    <Trash2 size={15} />
                                 </button>
                             </div>
-
-                            <div className="flex items-center gap-2 relative z-10 shrink-0">
-                                <span className="text-xs text-gray-500 font-bold mr-2"><span className="text-white">{habit.count}</span><span className="mx-0.5">/</span>{habit.target}</span>
-                                <button
-                                    onClick={(e) => actions.tickHabit(habit.id, e.clientX, e.clientY)}
-                                    disabled={habit.completed}
-                                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${habit.completed
-                                        ? 'bg-white/5 text-gray-600 cursor-not-allowed'
-                                        : 'bg-rpg-green text-black font-bold hover:scale-110 shadow-[0_0_10px_rgba(45,204,112,0.3)]'
-                                        }`}
-                                >
-                                    +
-                                </button>
-                            </div>
+                            <span className="text-xs font-bold tabular-nums shrink-0 text-gray-500">
+                                <span className="text-white">{habit.count}</span>/{habit.target}
+                            </span>
+                            <button
+                                onClick={(e) => actions.tickHabit(habit.id, e.clientX, e.clientY)}
+                                disabled={habit.completed}
+                                aria-label={`Log habit: ${habit.title}`}
+                                className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-lg font-bold transition-colors ${habit.completed
+                                    ? 'bg-white/5 text-gray-600 cursor-not-allowed'
+                                    : 'bg-rpg-green/90 text-black hover:bg-rpg-green'
+                                    }`}
+                            >
+                                +
+                            </button>
                         </div>
                     ))}
                 </div>

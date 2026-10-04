@@ -669,8 +669,10 @@ function buildStudio(scene) {
 
 // ─── Main component ─────────────────────────────────────────────────
 
-const CastleScene = () => {
+const CastleScene = ({ onReady }) => {
     const containerRef = useRef(null);
+    const onReadyRef = useRef(onReady);
+    onReadyRef.current = onReady;
 
     useEffect(() => {
         const container = containerRef.current;
@@ -845,6 +847,7 @@ const CastleScene = () => {
         const lookTarget = new THREE.Vector3();
         let animId;
         let frameCount = 0;
+        let signalledReady = false;
         const frameSkip = isLowEnd ? 2 : 1;
 
         const animate = () => {
@@ -938,6 +941,11 @@ const CastleScene = () => {
             }
 
             renderer.render(scene, camera);
+            if (!signalledReady) {
+                signalledReady = true;
+                // One more frame so the first image is really on screen before the loader leaves.
+                requestAnimationFrame(() => onReadyRef.current?.());
+            }
         };
 
         // Recalc max scroll once layout settles

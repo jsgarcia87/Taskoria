@@ -99,7 +99,7 @@ export const GameProvider = ({ children, currentUser, familyData, activeProfileI
     }, [activeProfileId]);
 
     useEffect(() => {
-        if (!activeProfileId || !currentUser || !state.character) return;
+        if (!activeProfileId || !currentUser || !state.character || currentUser.is_guest) return;
 
         // Schedule the heavy JSON.stringify + localStorage write inside
         // `requestIdleCallback` so it never blocks a frame. The 1s debounce
@@ -214,6 +214,7 @@ export const GameProvider = ({ children, currentUser, familyData, activeProfileI
         deleteHabit: (id) => dispatch({ type: 'DELETE_HABIT', payload: id }),
         editHabit: (id, updates) => dispatch({ type: 'EDIT_HABIT', payload: { id, updates } }),
         closeLevelUpModal: () => dispatch({ type: 'CLOSE_LEVEL_UP_MODAL' }),
+        markCardSeen: (cardId) => dispatch({ type: 'MARK_CARD_SEEN', payload: cardId }),
         closeDailyReward: () => dispatch({ type: 'CLOSE_DAILY_REWARD' }),
         toggleResting: () => dispatch({ type: 'TOGGLE_RESTING' }),
         tickHabit: (id, x = null, y = null) => { playCoinSound(); dispatch({ type: 'TICK_HABIT', payload: { id, x, y } }); },

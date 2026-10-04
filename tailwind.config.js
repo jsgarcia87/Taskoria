@@ -28,10 +28,11 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['"Inter"', 'sans-serif'], // Default to Inter
-        heading: ['"Outfit"', 'sans-serif'], // Headings
-        landing: ['"Handjet"', 'sans-serif'], // Landing page headlines
-        pixel: ['"VT323"', 'monospace'], // Keep for retro flavor
+        sans: ['"Inter"', 'sans-serif'],
+        heading: ['"Outfit"', 'sans-serif'],
+        landing: ['"Handjet"', 'sans-serif'],
+        pixel: ['"VT323"', 'monospace'],
+        herald: ['"Taskoria Herald"', '"Outfit"', 'sans-serif'],
       },
       boxShadow: {
         'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',

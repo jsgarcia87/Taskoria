@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
 import ModernPixelAvatar from '../common/ModernPixelAvatar';
 import PixelIcon from '../common/PixelIcon';
 import CoFocusingArea from './CoFocusingArea';
@@ -14,6 +14,11 @@ const Shop = React.lazy(() => import('../Shop'));
 const PlayableWorld = React.lazy(() => import('./world/PlayableWorld'));
 import { useGame } from '../../context/GameContext';
 import { useToast } from '../common/Toast';
+import {
+    fetchFriends, sendFriendRequest, respondToRequest, removeFriend, importLegacyFriends,
+} from '../../utils/friendsApi';
+
+const sameIds = (a = [], b = []) => a.length === b.length && a.every(x => b.some(y => String(y.id) === String(x.id)));
 
 const PartyView = ({ currentUser, onOpenChat }) => {
     const { state, dispatch, actions, activeProfileId, familyData, setFamilyData } = useGame();
@@ -31,7 +36,49 @@ const PartyView = ({ currentUser, onOpenChat }) => {
     // UI State
     const [loading, setLoading] = useState(true);
     const [battleResult, setBattleResult] = useState(null);
+
+    // Friendships live on the server and only count once both sides agreed.
+    // `familyData.friends` mirrors the accepted list so chat and the world keep working offline.
+    const [requests, setRequests] = useState({ incoming: [], outgoing: [] });
+    const [busyIds, setBusyIds] = useState([]);
+    const canUseServer = !!currentUser?.id && !currentUser?.is_guest && currentUser.id !== 'guest';
+    const familyDataRef = useRef(familyData);
+    useEffect(() => { familyDataRef.current = familyData; }, [familyData]);
+    const migrationRef = useRef(null);
+
+    // One path for the first load and the polling: wait for the one-time move of the
+    // old local lists, read the server, then mirror it into familyData in a single write.
+    const loadFriends = async () => {
+        if (!canUseServer) return;
+        try {
+            const first = familyDataRef.current;
+            if (!migrationRef.current && first && !first.friendsMigrated) {
+                const legacyIds = (first.friends || []).map(f => f.id);
+                migrationRef.current = (legacyIds.length ? importLegacyFriends(currentUser.id, legacyIds) : Promise.resolve())
+                    .catch(e => { migrationRef.current = null; throw e; });
+            }
+            if (migrationRef.current) await migrationRef.current;
+
+            const data = await fetchFriends(currentUser.id);
+            setRequests({ incoming: data.incoming, outgoing: data.outgoing });
+            const current = familyDataRef.current;
+            if (current && typeof setFamilyData === 'function'
+                && (!current.friendsMigrated || !sameIds(current.friends || [], data.friends))) {
+                setFamilyData({ ...current, friendsMigrated: true, friends: data.friends });
+            }
+        } catch (e) {
+            console.error('Could not load friends', e);
+        }
+    };
+
+    useEffect(() => {
+        if (!canUseServer) return;
+        loadFriends();
+        const timer = setInterval(loadFriends, 30000);
+        return () => clearInterval(timer);
+    }, [currentUser?.id]);
     const [activeChatFriend, setActiveChatFriend] = useState(null);
+    const [areaName, setAreaName] = useState('Town Square');
 
     const fetchUsers = () => {
         if (familyData) {
@@ -62,8 +109,8 @@ const PartyView = ({ currentUser, onOpenChat }) => {
             const data = await res.json();
             if (data.users) {
                 // Filter out existing friends to prevent re-adding
-                const existingFriendIds = (familyData?.friends || []).map(f => f.id);
-                setSearchResults(data.users.filter(u => !existingFriendIds.includes(u.id)));
+                const existingFriendIds = (familyData?.friends || []).map(f => String(f.id));
+                setSearchResults(data.users.filter(u => !existingFriendIds.includes(String(u.id))));
             }
         } catch (error) {
             console.error("Search failed", error);
@@ -72,34 +119,62 @@ const PartyView = ({ currentUser, onOpenChat }) => {
         }
     };
 
-    const handleAddFriend = (user) => {
-        const newFriendsList = [...(familyData?.friends || []), user];
-
-        const updatedFamilyData = {
-            ...familyData,
-            friends: newFriendsList
-        };
-
-        if (typeof setFamilyData === 'function') {
-            setFamilyData(updatedFamilyData);
-        }
-
-        setSearchResults(searchResults.filter(u => u.id !== user.id));
-        setSearchQuery('');
-        toast.success(`${user.character?.name || user.username} has joined your party.`);
+    const withBusy = async (id, fn) => {
+        setBusyIds(ids => [...ids, id]);
+        try { await fn(); } finally { setBusyIds(ids => ids.filter(x => x !== id)); }
     };
 
-    const handleRemoveFriend = async (friendId) => {
-        if (!await confirm({ title: 'Dismiss Ally?', message: 'This hero will leave your party.', variant: 'warning', confirmText: 'Dismiss' })) return;
-        const friend = (familyData?.friends || []).find(f => f.id === friendId);
-        const newFriendsList = (familyData?.friends || []).filter(f => f.id !== friendId);
-        if (typeof setFamilyData === 'function') {
-            setFamilyData({
-                ...familyData,
-                friends: newFriendsList
-            });
+    const relationOf = (userId) => {
+        if (requests.outgoing.some(r => String(r.id) === String(userId))) return 'outgoing';
+        if (requests.incoming.some(r => String(r.id) === String(userId))) return 'incoming';
+        return null;
+    };
+
+    const handleAddFriend = (user) => withBusy(user.id, async () => {
+        const name = user.character?.name || user.username;
+        try {
+            const res = await sendFriendRequest(currentUser.id, user.id);
+            toast.success(res.status === 'accepted' ? `${name} has joined your party.` : `Request sent to ${name}. They need to accept it.`);
+            await loadFriends();
+        } catch (e) {
+            toast.error(e.message);
         }
-        toast.info(`${friend?.character?.name || friend?.username || 'Hero'} has left the party.`);
+    });
+
+    const handleRespond = (request, accept) => withBusy(request.id, async () => {
+        const name = request.character?.name || request.username;
+        try {
+            await respondToRequest(currentUser.id, request.request_id, accept);
+            toast[accept ? 'success' : 'info'](accept ? `${name} has joined your party.` : `Request from ${name} declined.`);
+            await loadFriends();
+        } catch (e) {
+            toast.error(e.message);
+        }
+    });
+
+    const handleCancelRequest = (request) => withBusy(request.id, async () => {
+        try {
+            await removeFriend(currentUser.id, request.id);
+            await loadFriends();
+        } catch (e) {
+            toast.error(e.message);
+        }
+    });
+
+    const handleRemoveFriend = async (friendId) => {
+        if (!await confirm({ title: 'Dismiss Ally?', message: 'This hero will leave your party, and you will leave theirs.', variant: 'warning', confirmText: 'Dismiss' })) return;
+        const friend = (familyData?.friends || []).find(f => f.id === friendId);
+        try {
+            await removeFriend(currentUser.id, friendId);
+            // Drop it locally right away; the next sync confirms it.
+            if (typeof setFamilyData === 'function') {
+                setFamilyData({ ...familyDataRef.current, friends: (familyDataRef.current.friends || []).filter(f => f.id !== friendId) });
+            }
+            toast.info(`${friend?.character?.name || friend?.username || 'Hero'} has left the party.`);
+            await loadFriends();
+        } catch (e) {
+            toast.error(e.message);
+        }
     };
 
     const handleShareInvite = async () => {
@@ -239,16 +314,14 @@ const PartyView = ({ currentUser, onOpenChat }) => {
 
                 {/* Avatar */}
                 <div className="flex justify-center mb-3 sm:mb-6">
-                    <div className="p-2 sm:p-4 bg-black/30 rounded-2xl border border-white/10 shadow-inner group-hover:shadow-[0_0_20px_rgba(255,215,0,0.1)] transition-all">
+                    <div className="relative w-16 h-16 sm:w-24 sm:h-24 bg-black/30 rounded-2xl border border-white/10 shadow-inner overflow-hidden flex items-center justify-center group-hover:shadow-[0_0_20px_rgba(255,215,0,0.1)] transition-all">
                         {charData ? (
-                            <div className="relative flex justify-center items-center transform scale-75 sm:scale-100 origin-center mt-[-10px] sm:mt-0">
-                                <ModernPixelAvatar type={displayAvatar} scale={3} customColors={customColors} />
-                                {!isLocal && (
-                                    <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-rpg-panel ${u.is_online ? 'bg-green-500' : 'bg-gray-500'}`} title={u.is_online ? "Online" : "Offline"}></div>
-                                )}
-                            </div>
+                            <ModernPixelAvatar type={displayAvatar} scale={2} headOnly={true} customColors={customColors} />
                         ) : (
-                            <div className="w-[48px] h-[48px] bg-gray-800 rounded-full flex items-center justify-center text-gray-600">?</div>
+                            <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-600 text-sm">?</div>
+                        )}
+                        {!isLocal && charData && (
+                            <div className={`absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full border-2 border-rpg-panel z-10 ${u.is_online ? 'bg-green-500' : 'bg-gray-500'}`} title={u.is_online ? "Online" : "Offline"}></div>
                         )}
                     </div>
                 </div>
@@ -315,6 +388,11 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                     >
                         <PixelIcon name={tab.icon} size={11} color={activeTab === tab.id ? '#fbbf24' : undefined} />
                         <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
+                        {tab.id === 'friends' && requests.incoming.length > 0 && (
+                            <span className="min-w-[16px] h-4 px-1 rounded-full bg-rpg-gold text-rpg-bg text-[10px] font-bold flex items-center justify-center leading-none" aria-label={`${requests.incoming.length} party requests`}>
+                                {requests.incoming.length}
+                            </span>
+                        )}
                     </button>
                 ))}
             </div>
@@ -328,6 +406,74 @@ const PartyView = ({ currentUser, onOpenChat }) => {
 
             {activeTab === 'friends' && (
                 <>
+                        {/* Requests waiting for you */}
+                        {requests.incoming.length > 0 && (
+                            <div className="mb-6">
+                                <h3 className="text-sm font-heading font-bold text-gray-300 mb-3 border-b border-white/10 pb-2 flex items-center gap-2 uppercase tracking-wider">
+                                    <PixelIcon name="scroll" size={16} className="text-rpg-gold" /> Party requests
+                                    <span className="text-[11px] text-rpg-gold ml-auto font-sans">{requests.incoming.length}</span>
+                                </h3>
+                                <div className="flex flex-col gap-2">
+                                    {requests.incoming.map(r => (
+                                        <div key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-2.5 p-3 rounded-xl bg-rpg-gold/[0.06] ring-1 ring-rpg-gold/25">
+                                            <div className="w-11 h-11 rounded-xl bg-black/30 overflow-hidden flex items-center justify-center shrink-0">
+                                                {r.character ? <ModernPixelAvatar type={r.character.avatarId} scale={1.6} headOnly customColors={r.character.avatarColors} /> : <PixelIcon name="user" size={16} color="#6b7280" />}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-semibold text-white truncate">{r.character?.name || r.username}</p>
+                                                <p className="text-xs text-gray-400 truncate">wants to join your party{r.character ? ` · Lv ${r.character.level} ${r.character.class}` : ''}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                                <button onClick={() => handleRespond(r, false)} disabled={busyIds.includes(r.id)} className="px-3.5 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50">Decline</button>
+                                                <button onClick={() => handleRespond(r, true)} disabled={busyIds.includes(r.id)} className="px-4 py-2 rounded-lg text-xs font-bold bg-rpg-gold text-rpg-bg hover:brightness-105 transition-[filter] disabled:opacity-50">Accept</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                    {/* ── Playable World: explore zone (below party list) ── */}
+                    <div className="mb-10 relative">
+                        <h3 className="text-sm font-heading font-bold text-gray-300 mb-3 border-b border-white/10 pb-2 flex items-center gap-2 uppercase tracking-wider">
+                            <PixelIcon name="home" size={16} className="text-orange-400" /> {areaName}
+                            <span className="text-[10px] text-gray-500 ml-auto font-sans">{1 + friends.filter(f => f.is_online).length} online</span>
+                        </h3>
+
+                        <Suspense fallback={
+                            <div className="relative w-full h-[500px] sm:h-[600px] bg-black border-4 border-rpg-panel rounded-t-xl flex items-center justify-center text-rpg-gold animate-pulse">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="w-8 h-8 border-2 border-rpg-gold border-t-transparent rounded-full animate-spin" />
+                                    <div className="text-[10px] uppercase tracking-widest font-bold">Loading world…</div>
+                                </div>
+                            </div>
+                        }>
+                            <PlayableWorld
+                                className="relative w-full h-[500px] sm:h-[600px] bg-black border-4 border-rpg-panel rounded-t-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                                currentUser={currentUser}
+                                activeProfile={familyData?.profiles?.find(p => p.id === activeProfileId)}
+                                familyMembers={familyMembers}
+                                friends={friends}
+                                onAreaChange={setAreaName}
+                                onInteract={(target) => {
+                                    if (target.target === 'ledgar') {
+                                        window.dispatchEvent(new CustomEvent('taskoria:open-feedback'));
+                                        return;
+                                    }
+                                    setActiveTab(target.target);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                            />
+                        </Suspense>
+
+                        <div className="bg-[#2b254a] p-3 border-x-4 border-b-4 border-rpg-panel rounded-b-lg flex justify-between items-center text-xs text-gray-400 font-bold uppercase tracking-widest mt-[-2px]">
+                            <div className="flex items-center gap-4">
+                                <span className="flex text-[10px] items-center gap-1"><span className="text-white">WASD</span> to walk</span>
+                                <span className="flex text-[10px] items-center gap-1"><div className="w-2 h-2 rounded-full border border-dashed border-white"></div> Portals</span>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* ── Search + Invite: always visible at the top ── */}
                     <div className="bg-rpg-panel/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-4 sm:p-5 mb-6">
                         <div className="flex items-center justify-between mb-3">
@@ -384,12 +530,17 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => handleAddFriend(u)}
-                                                className="text-xs bg-rpg-gold/10 hover:bg-rpg-gold/20 text-rpg-gold px-3 py-1.5 rounded-lg font-bold transition-all border border-rpg-gold/30 hover:border-rpg-gold/60 flex items-center gap-1"
-                                            >
-                                                + Add
-                                            </button>
+                                            {relationOf(u.id) === 'outgoing' ? (
+                                                <span className="text-xs text-gray-400 font-semibold px-3 py-1.5">Request sent</span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleAddFriend(u)}
+                                                    disabled={busyIds.includes(u.id)}
+                                                    className="text-xs bg-rpg-gold/10 hover:bg-rpg-gold/20 text-rpg-gold px-3 py-1.5 rounded-lg font-bold transition-all border border-rpg-gold/30 hover:border-rpg-gold/60 flex items-center gap-1 disabled:opacity-50"
+                                                >
+                                                    {relationOf(u.id) === 'incoming' ? 'Accept' : 'Send request'}
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -419,6 +570,21 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                         </div>
                     ) : (
                         <div className="space-y-8 mb-8">
+                            {/* Requests you sent */}
+                            {requests.outgoing.length > 0 && (
+                                <div>
+                                    <h3 className="text-[11px] font-bold text-gray-400 mb-2 uppercase tracking-widest">Waiting for a reply</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {requests.outgoing.map(r => (
+                                            <span key={r.id} className="inline-flex items-center gap-2 pl-3 pr-1 py-1 rounded-full bg-white/[0.05] text-xs text-gray-300">
+                                                {r.character?.name || r.username}
+                                                <button onClick={() => handleCancelRequest(r)} disabled={busyIds.includes(r.id)} aria-label={`Cancel request to ${r.username}`} className="w-5 h-5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center disabled:opacity-50">×</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* External Friends */}
                             {friends.length > 0 && (
                                 <div>
@@ -449,51 +615,11 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                                 <div className="text-center py-10 glass-panel rounded-2xl">
                                     <PixelIcon name="users" size={32} className="text-gray-600 mx-auto mb-3" />
                                     <p className="text-gray-400 font-bold text-sm">The town square is quiet today.</p>
-                                    <p className="text-xs text-gray-600 mt-1.5 max-w-[260px] mx-auto">Search for heroes above or share an invite link to build your party.</p>
+                                    <p className="text-xs text-gray-600 mt-1.5 max-w-[260px] mx-auto">Search for heroes above or share an invite link. A hero joins your party once they accept.</p>
                                 </div>
                             )}
                         </div>
                     )}
-
-                    {/* ── Playable World: explore zone (below party list) ── */}
-                    <div className="mb-10 relative">
-                        <h3 className="text-sm font-heading font-bold text-gray-300 mb-3 border-b border-white/10 pb-2 flex items-center gap-2 uppercase tracking-wider">
-                            <PixelIcon name="home" size={16} className="text-orange-400" /> Village Square
-                            <span className="text-[10px] text-gray-500 ml-auto font-sans">{familyMembers.length + friends.length + 1} online</span>
-                        </h3>
-
-                        <Suspense fallback={
-                            <div className="relative w-full h-[500px] sm:h-[600px] bg-black border-4 border-rpg-panel rounded-t-xl flex items-center justify-center text-rpg-gold animate-pulse">
-                                <div className="flex flex-col items-center gap-3">
-                                    <div className="w-8 h-8 border-2 border-rpg-gold border-t-transparent rounded-full animate-spin" />
-                                    <div className="text-[10px] uppercase tracking-widest font-bold">Loading world…</div>
-                                </div>
-                            </div>
-                        }>
-                            <PlayableWorld
-                                className="relative w-full h-[500px] sm:h-[600px] bg-black border-4 border-rpg-panel rounded-t-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
-                                currentUser={currentUser}
-                                activeProfile={familyData?.profiles?.find(p => p.id === activeProfileId)}
-                                familyMembers={familyMembers}
-                                friends={friends}
-                                onInteract={(target) => {
-                                    if (target.target === 'ledgar') {
-                                        window.dispatchEvent(new CustomEvent('taskoria:open-feedback'));
-                                        return;
-                                    }
-                                    setActiveTab(target.target);
-                                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }}
-                            />
-                        </Suspense>
-
-                        <div className="bg-[#2b254a] p-3 border-x-4 border-b-4 border-rpg-panel rounded-b-lg flex justify-between items-center text-xs text-gray-400 font-bold uppercase tracking-widest mt-[-2px]">
-                            <div className="flex items-center gap-4">
-                                <span className="flex text-[10px] items-center gap-1"><span className="text-white">WASD</span> to walk</span>
-                                <span className="flex text-[10px] items-center gap-1"><div className="w-2 h-2 rounded-full border border-dashed border-white"></div> Portals</span>
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Battle Result Modal */}
                     {battleResult && (

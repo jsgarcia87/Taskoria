@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, useScroll, useTransform, useSpring, useReducedMotion } from 'motion/react';
 import { useGame } from '../context/GameContext';
 import {
     BADGE_DEFS,
+    getBadgeProgress,
     SPECIES_PERKS,
     EVOLUTIONS,
     canEvolvePet,
     PET_BOND_MAX,
 } from '../utils/gameUtils';
-import { Edit2, Eye, EyeOff, X } from 'lucide-react';
+import { Edit2, Eye, EyeOff, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { PressButton } from './common/PressButton';
 import { StatBar } from './common/StatBar';
 import { useConfirm } from '../context/ConfirmContext';
@@ -22,32 +24,33 @@ import Sprite from './common/Sprite';
 import AvatarSpeechBubble from './common/AvatarSpeechBubble';
 import DailyProgressChart from './dashboard/DailyProgressChart';
 import StatsRadarChart from './dashboard/StatsRadarChart';
+import CardAlbum from './cards/CardAlbum';
 import { useToast } from './common/Toast';
 
 const CLASS_THEME = {
-    Fighter:     { accent: '#ef4444', icon: 'sword',  skillsLabel: 'Battle Stances',  gearLabel: 'Armory' },
-    Wizard:      { accent: '#818cf8', icon: 'book',   skillsLabel: 'Arcane Arts',     gearLabel: 'Arcanum' },
-    Rogue:       { accent: '#10b981', icon: 'skull',  skillsLabel: 'Shadow Tricks',   gearLabel: 'Stash' },
-    Cleric:      { accent: '#fbbf24', icon: 'zap',    skillsLabel: 'Divine Rites',    gearLabel: 'Vestments' },
-    Paladin:     { accent: '#f59e0b', icon: 'shield', skillsLabel: 'Sacred Oaths',    gearLabel: 'Arsenal' },
-    Ranger:      { accent: '#22c55e', icon: 'star',   skillsLabel: 'Wild Craft',      gearLabel: 'Kit' },
-    Barbarian:   { accent: '#dc2626', icon: 'sword',  skillsLabel: 'Primal Fury',     gearLabel: 'War Spoils' },
-    Bard:        { accent: '#a78bfa', icon: 'bell',   skillsLabel: 'Performances',    gearLabel: 'Repertoire' },
-    Druid:       { accent: '#4ade80', icon: 'heart',  skillsLabel: 'Nature Bonds',    gearLabel: 'Grove Cache' },
-    Monk:        { accent: '#f97316', icon: 'zap',    skillsLabel: 'Inner Forms',     gearLabel: 'Wrappings' },
+    Fighter:     { accent: '#ef4444', icon: 'swords', skillsLabel: 'Battle Stances',  gearLabel: 'Armory' },
+    Wizard:      { accent: '#818cf8', icon: 'hat',    skillsLabel: 'Arcane Arts',     gearLabel: 'Arcanum' },
+    Rogue:       { accent: '#10b981', icon: 'dagger', skillsLabel: 'Shadow Tricks',   gearLabel: 'Stash' },
+    Cleric:      { accent: '#fbbf24', icon: 'chalice', skillsLabel: 'Divine Rites',    gearLabel: 'Vestments' },
+    Paladin:     { accent: '#f59e0b', icon: 'cross',  skillsLabel: 'Sacred Oaths',    gearLabel: 'Arsenal' },
+    Ranger:      { accent: '#22c55e', icon: 'bow',    skillsLabel: 'Wild Craft',      gearLabel: 'Kit' },
+    Barbarian:   { accent: '#dc2626', icon: 'axe',    skillsLabel: 'Primal Fury',     gearLabel: 'War Spoils' },
+    Bard:        { accent: '#a78bfa', icon: 'note',   skillsLabel: 'Performances',    gearLabel: 'Repertoire' },
+    Druid:       { accent: '#4ade80', icon: 'leaf',   skillsLabel: 'Nature Bonds',    gearLabel: 'Grove Cache' },
+    Monk:        { accent: '#f97316', icon: 'lotus',  skillsLabel: 'Inner Forms',     gearLabel: 'Wrappings' },
     Necromancer: { accent: '#7c3aed', icon: 'skull',  skillsLabel: 'Dark Pacts',      gearLabel: 'Reliquary' },
-    Antipaladin: { accent: '#991b1b', icon: 'shield', skillsLabel: 'Dread Vows',      gearLabel: 'Blight Forge' },
-    Sorcerer:    { accent: '#c084fc', icon: 'zap',    skillsLabel: 'Raw Channeling',  gearLabel: 'Focus Array' },
-    Scout:       { accent: '#06b6d4', icon: 'star',   skillsLabel: 'Recon Tactics',   gearLabel: 'Field Pack' },
+    Antipaladin: { accent: '#991b1b', icon: 'horns',  skillsLabel: 'Dread Vows',      gearLabel: 'Blight Forge' },
+    Sorcerer:    { accent: '#c084fc', icon: 'orb',    skillsLabel: 'Raw Channeling',  gearLabel: 'Focus Array' },
+    Scout:       { accent: '#06b6d4', icon: 'eye',    skillsLabel: 'Recon Tactics',   gearLabel: 'Field Pack' },
 };
 
 const STAT_CONFIG = [
-    { key: 'str', label: 'STR', full: 'Strength',     color: '#ef4444', bg: 'bg-red-500',    icon: 'sword'  },
+    { key: 'str', label: 'STR', full: 'Strength',     color: '#ef4444', bg: 'bg-red-500',    icon: 'dumbbell'  },
     { key: 'int', label: 'INT', full: 'Intelligence',  color: '#3b82f6', bg: 'bg-blue-500',   icon: 'book'   },
-    { key: 'dex', label: 'DEX', full: 'Dexterity',     color: '#22c55e', bg: 'bg-green-500',  icon: 'zap'    },
-    { key: 'con', label: 'CON', full: 'Constitution',  color: '#f97316', bg: 'bg-orange-500', icon: 'shield' },
-    { key: 'cha', label: 'CHA', full: 'Charisma',      color: '#eab308', bg: 'bg-yellow-500', icon: 'bell'   },
-    { key: 'will', label: 'WILL', full: 'Willpower',   color: '#a855f7', bg: 'bg-purple-500', icon: 'star'   },
+    { key: 'dex', label: 'DEX', full: 'Dexterity',     color: '#22c55e', bg: 'bg-green-500',  icon: 'boot'    },
+    { key: 'con', label: 'CON', full: 'Constitution',  color: '#f97316', bg: 'bg-orange-500', icon: 'heart' },
+    { key: 'cha', label: 'CHA', full: 'Charisma',      color: '#eab308', bg: 'bg-yellow-500', icon: 'chat'   },
+    { key: 'will', label: 'WILL', full: 'Willpower',   color: '#a855f7', bg: 'bg-purple-500', icon: 'flame'   },
 ];
 
 const TIER_COLORS = {
@@ -55,6 +58,7 @@ const TIER_COLORS = {
     silver: { bg: 'from-slate-400 via-slate-300 to-slate-500', border: 'border-slate-400', text: 'text-slate-400' },
     gold:   { bg: 'from-yellow-300 via-rpg-gold to-yellow-600', border: 'border-yellow-200', text: 'text-rpg-gold' },
 };
+const TIER_HEX = { bronze: '#d97706', silver: '#94a3b8', gold: '#fbbf24' };
 
 const VitalRings = ({ xp, hp, level }) => {
     const size = 160;
@@ -109,11 +113,28 @@ const VitalRings = ({ xp, hp, level }) => {
     );
 };
 
+const WIDE_QUERY = '(min-width: 640px)';
+const AVATAR_S_BASE = 1.8; // ModernPixelAvatar px per grid cell at scale 1
+
+const PixelSparkle = ({ px = 3, color = '#fedf8c', delay = 0, style }) => (
+    <svg
+        width={px * 5} height={px * 5} viewBox="0 0 5 5" shapeRendering="crispEdges"
+        className="absolute pointer-events-none hero-twinkle"
+        style={{ ...style, imageRendering: 'pixelated', animationDelay: `${delay}s` }}
+    >
+        <rect x="2" y="0" width="1" height="5" fill={color} />
+        <rect x="0" y="2" width="5" height="1" fill={color} />
+        <rect x="2" y="2" width="1" height="1" fill="#ffffff" />
+    </svg>
+);
+
+const SKILL_TYPE_ICON = { Physical: 'sword', Magic: 'zap', Defense: 'shield', Buff: 'sun', Passive: 'star', Utility: 'gear' };
+
 const SectionDivider = ({ label, icon, color }) => (
     <div className="flex items-center gap-2">
-        <PixelIcon name={icon} size={10} color={color + '70'} />
-        <span className="text-[10px] font-heading font-bold uppercase tracking-[0.15em]" style={{ color: color + '80' }}>{label}</span>
-        <div className="h-px flex-1" style={{ backgroundColor: color + '15' }} />
+        <PixelIcon name={icon} size={11} color={color + 'b3'} />
+        <span className="text-[11px] font-heading font-bold uppercase tracking-[0.15em]" style={{ color: color + 'cc' }}>{label}</span>
+        <div className="h-px flex-1" style={{ backgroundColor: color + '1f' }} />
     </div>
 );
 
@@ -157,6 +178,79 @@ const CharacterSheet = ({ setActiveView }) => {
     const [isReleasing, setIsReleasing] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedPetId, setSelectedPetId] = useState(null);
+    const [ownedCosmetics, setOwnedCosmetics] = useState([]);
+    const [bustScale, setBustScale] = useState(() => (window.matchMedia(WIDE_QUERY).matches ? 5.5 : 4));
+
+    // Parallax: the stage lags behind the page and fades as the content slides over it.
+    const reduceMotion = useReducedMotion();
+    const { scrollY } = useScroll();
+    const smoothY = useSpring(scrollY, { stiffness: 220, damping: 32, mass: 0.4 });
+    const avatarY = useTransform(smoothY, [0, 360], [0, 130]);
+    const avatarOpacity = useTransform(smoothY, [0, 300], [1, 0]);
+    const avatarScale = useTransform(smoothY, [0, 360], [1, 0.94]);
+    const backdropY = useTransform(smoothY, [0, 360], [0, 70]);
+    const backdropOpacity = useTransform(smoothY, [0, 360], [1, 0.25]);
+    const stageMotion = reduceMotion ? undefined : { y: avatarY, opacity: avatarOpacity, scale: avatarScale };
+    const backdropMotion = reduceMotion ? undefined : { y: backdropY, opacity: backdropOpacity };
+
+    // Sections fade up as they enter the viewport (re-armed when the tab changes).
+    const contentRef = useRef(null);
+    useEffect(() => {
+        const root = contentRef.current;
+        if (!root) return;
+        const items = root.querySelectorAll('[data-reveal]:not(.is-revealed)');
+        if (!('IntersectionObserver' in window)) {
+            items.forEach(el => el.classList.add('is-revealed'));
+            return;
+        }
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-revealed');
+                    io.unobserve(entry.target);
+                }
+            });
+        }, { rootMargin: '0px 0px -40px 0px' });
+        items.forEach(el => io.observe(el));
+        return () => io.disconnect();
+    }, [activeTab, character]);
+
+    useEffect(() => {
+        const mq = window.matchMedia(WIDE_QUERY);
+        const onChange = (e) => setBustScale(e.matches ? 5.5 : 4);
+        mq.addEventListener("change", onChange);
+        return () => mq.removeEventListener("change", onChange);
+    }, []);
+
+    useEffect(() => {
+        const session = JSON.parse(localStorage.getItem('taskoria_session') || '{}');
+        if (session.id) {
+            fetch(`api/creations.php?action=list_owned&user_id=${session.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const cosmetics = data.items.filter(i => i.category === 'cosmetics').map(c => {
+                            let params = {};
+                            try { params = typeof c.params === 'string' ? JSON.parse(c.params) : c.params; } catch(e){}
+
+                            return {
+                                id: `cosmetic_${c.id}`,
+                                name: c.name,
+                                type: ITEM_TYPES.GEAR,
+                                slot: params?.cosmeticSlot || 'head',
+                                cosmeticClass: params?.cosmeticClass || 'warrior',
+                                description: `A custom cosmetic designed by ${c.username}.`,
+                                cost: c.price,
+                                isCosmetic: true,
+                                count: 1
+                            };
+                        });
+                        setOwnedCosmetics(cosmetics);
+                    }
+                })
+                .catch(console.error);
+        }
+    }, []);
 
     if (!character) {
         return <div className="p-8 text-center text-gray-400">Loading Profile...</div>;
@@ -169,6 +263,9 @@ const CharacterSheet = ({ setActiveView }) => {
         return acc;
     }, []) || [];
 
+    // Append cosmetics to inventory
+    inventoryGroups.push(...ownedCosmetics);
+
     const charData =
         CHARACTERS.find(c => c.id === character.avatarId) ||
         CHARACTERS.find(c => c.class === character.class) ||
@@ -176,6 +273,7 @@ const CharacterSheet = ({ setActiveView }) => {
         CHARACTERS[0];
 
     const theme = CLASS_THEME[character.class] || CLASS_THEME.Fighter;
+    const stageLight = character.isResting ? '#818cf8' : theme.accent;
 
     const startEditing = () => setIsEditModalOpen(true);
 
@@ -184,7 +282,13 @@ const CharacterSheet = ({ setActiveView }) => {
         setIsEditModalOpen(false);
     };
 
-    const handleEquip = (item) => actions.equipItem(item, item.slot);
+    const handleEquip = (item) => {
+        if (item.isCosmetic && item.cosmeticClass && item.cosmeticClass.toLowerCase() !== character.class.toLowerCase()) {
+            toast.error(`Solo los personajes de clase ${item.cosmeticClass} pueden equiparse este cosmético.`);
+            return;
+        }
+        actions.equipItem(item, item.slot);
+    };
 
     const handleSellClick = (item) => {
         setItemToSell(item);
@@ -357,174 +461,354 @@ const CharacterSheet = ({ setActiveView }) => {
     };
 
     const xpToNext = character.xp.max - character.xp.current;
+
+    // Honors with real progress, closest to completion first.
+    const honors = BADGE_DEFS.map(badge => {
+        const unlocked = character.unlockedBadges?.includes(badge.id);
+        const progress = getBadgeProgress(badge.id, character);
+        const pct = unlocked ? 1 : progress ? progress.current / progress.target : 0;
+        return { badge, unlocked, progress, pct };
+    });
+    const nextHonor = honors
+        .filter(h => !h.unlocked && h.progress && h.pct < 1)
+        .sort((a, b) => b.pct - a.pct)[0];
+    const unlockedHonorCount = honors.filter(h => h.unlocked).length;
+    const sortedHonors = [...honors].sort((a, b) => (b.unlocked - a.unlocked) || (b.pct - a.pct));
+
+    const nextOath = getSkills(character.class)
+        .map((skill, idx) => ({ skill, level: idx * 3 + 1 }))
+        .find(o => character.level < o.level);
     const equippedCount = character.equipment ? Object.values(character.equipment).filter(Boolean).length : 0;
 
     return (
-        <div className="glass-panel h-full flex flex-col rounded-2xl overflow-hidden relative min-h-[600px] border border-white/[0.08]">
+        <div className="glass-panel h-full flex flex-col rounded-2xl overflow-clip relative min-h-[600px] border border-white/[0.08]">
 
-            {/* ═══════ HERO BANNER ═══════ */}
-            <div className="px-5 pt-5 pb-4 border-b border-white/5">
-                {/* Top row: actions only */}
-                <div className="flex items-center justify-between mb-4">
+            {/* ═══════ HERO STAGE ═══════ */}
+            <div className="relative border-b border-white/5 overflow-hidden">
+                {/* Spotlight + light streaks — the stage dims to night while resting */}
+                <motion.div className="absolute inset-0 pointer-events-none" style={backdropMotion}>
+                <div className="absolute inset-0 pointer-events-none transition-opacity duration-700" style={{
+                    background: `radial-gradient(ellipse 60% 42% at 50% 30%, ${stageLight}2e 0%, ${stageLight}0a 50%, transparent 78%)`
+                }} />
+                {character.isResting && (
+                    <div className="absolute inset-0 pointer-events-none bg-[#0b0a1f]/40" />
+                )}
+                <div className="absolute pointer-events-none h-px w-[160%] -left-[30%] top-[18%] -rotate-[16deg] opacity-60"
+                    style={{ background: `linear-gradient(90deg, transparent 20%, ${stageLight}90 55%, transparent 80%)` }} />
+                <div className="absolute pointer-events-none h-px w-[160%] -left-[30%] top-[40%] -rotate-[16deg] opacity-40"
+                    style={{ background: 'linear-gradient(90deg, transparent 10%, #fedf8c 30%, transparent 48%)' }} />
+                </motion.div>
+
+                {/* Top bar: resources + actions */}
+                <div className="relative flex items-center justify-between gap-2 px-5 pt-4 pb-2 z-10">
                     <div className="flex items-center gap-1.5">
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/20">
-                            <PixelIcon name="coins" size={10} color="#fbbf24" />
-                            <span className="font-pixel text-sm text-amber-400/80 leading-none">
+                        <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-black/25" title="Gold">
+                            <PixelIcon name="coins" size={11} color="#fbbf24" />
+                            <span className="font-pixel text-base text-amber-300 leading-none">
                                 <NumberTicker value={character.gold} />
                             </span>
                         </div>
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/20">
-                            <PixelIcon name="clock" size={10} color="#60a5fa" />
-                            <span className="font-pixel text-sm text-blue-400/80 leading-none">{character.timePoints}m</span>
+                        <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-black/25" title="Focus time banked">
+                            <PixelIcon name="clock" size={11} color="#60a5fa" />
+                            <span className="font-pixel text-base text-blue-300 leading-none">{character.timePoints}m</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                         <button
                             onClick={() => actions.toggleResting()}
-                            className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${character.isResting
-                                ? 'bg-indigo-500/15 text-indigo-300'
-                                : 'text-gray-500 hover:text-gray-300'}`}
-                            title={character.isResting ? "Leave the Inn" : "Rest at the Inn"}
+                            aria-pressed={!!character.isResting}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors ${character.isResting
+                                ? 'bg-indigo-500/20 text-indigo-200 ring-1 ring-indigo-400/30'
+                                : 'bg-black/25 text-gray-300 hover:text-white hover:bg-black/40'}`}
+                            title={character.isResting ? 'Leave the Inn — penalties resume' : 'Rest at the Inn — pauses penalties for missed dailies'}
                         >
-                            {character.isResting ? 'Resting' : 'Inn'}
+                            <PixelIcon name="moon" size={11} color={character.isResting ? '#c7d2fe' : '#9ca3af'} />
+                            {character.isResting ? 'Leave Inn' : 'Rest'}
                         </button>
-                        <button onClick={startEditing} className="p-1.5 text-gray-500 hover:text-white transition-colors">
-                            <Edit2 size={12} />
+                        <button
+                            onClick={startEditing}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-black/25 text-[11px] font-bold uppercase tracking-wider text-gray-300 hover:text-white hover:bg-black/40 transition-colors"
+                            title="Change your hero's look"
+                        >
+                            <Edit2 size={11} />
+                            Look
                         </button>
                     </div>
                 </div>
 
-                {/* Avatar + Identity — larger, with hero title */}
-                <div className="flex items-center gap-5">
-                    <div className="relative flex-shrink-0">
-                        <div className="w-[120px] h-[120px] rounded-2xl overflow-hidden bg-black/30 flex items-center justify-center"
-                            style={{ border: `2px solid ${theme.accent}30`, boxShadow: `0 0 24px ${theme.accent}10` }}>
-                            <AvatarSpeechBubble idleTimeMs={30000}>
-                                <ModernPixelAvatar
-                                    type={charData.avatarType || charData.id}
-                                    headOnly
-                                    scale={5}
-                                    customColors={character?.avatarColors}
-                                />
+                {character.isResting && (
+                    <div className="relative z-10 flex justify-center -mb-2">
+                        <span className="px-3 py-1 rounded-full bg-indigo-500/15 ring-1 ring-indigo-400/25 text-[11px] font-medium text-indigo-200">
+                            Resting at the Inn · penalties paused
+                        </span>
+                    </div>
+                )}
+
+                <div className="relative z-10">
+                    {/* Avatar bust — the protagonist, dissolving into shadow */}
+                    <motion.div className="relative z-0 max-w-2xl mx-auto" style={{ ...stageMotion, transformOrigin: '50% 100%' }}>
+                    <div className="relative hero-rise">
+                        <PixelSparkle style={{ left: '18%', top: '12%' }} px={3} delay={0} />
+                        <PixelSparkle style={{ right: '17%', top: '40%' }} px={4} delay={1.2} />
+                        <PixelSparkle style={{ left: '24%', top: '52%' }} px={2} delay={2.1} color="#ffffff" />
+                        <PixelSparkle style={{ right: '26%', top: '8%' }} px={2} delay={0.7} color={theme.accent} />
+
+                        <div className="flex justify-center">
+                            <AvatarSpeechBubble
+                                idleTimeMs={30000}
+                                bubbleStyle={{ left: 28 * AVATAR_S_BASE * bustScale, top: 6 * AVATAR_S_BASE * bustScale }}
+                            >
+                                {/* Sprites share a 64-grid: head starts at row 9. Clip rows 5–40 (head to waist). */}
+                                <div
+                                    className="relative overflow-hidden flex justify-center max-w-[90vw]"
+                                    style={{
+                                        width: 42 * AVATAR_S_BASE * bustScale,
+                                        height: 35 * AVATAR_S_BASE * bustScale,
+                                        maskImage: 'linear-gradient(to bottom, #000 52%, transparent 97%)',
+                                        WebkitMaskImage: 'linear-gradient(to bottom, #000 52%, transparent 97%)',
+                                    }}
+                                >
+                                    <div style={{ marginTop: 3 * AVATAR_S_BASE * bustScale }}>
+                                        <ModernPixelAvatar
+                                            type={charData.avatarType || charData.id}
+                                            scale={bustScale}
+                                            customColors={character?.avatarColors}
+                                        />
+                                    </div>
+                                </div>
                             </AvatarSpeechBubble>
                         </div>
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/90 rounded-md px-2 py-0.5 flex items-center gap-1 whitespace-nowrap"
-                            style={{ border: `1px solid ${theme.accent}40` }}>
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500">Lv</span>
-                            <span className="font-pixel text-base leading-none" style={{ color: theme.accent }}>
+                    </div>
+                    </motion.div>
+
+                    {/* Shadow band — the divider the bust fades into */}
+                    <div className="h-12 -mt-12 relative z-10 pointer-events-none"
+                        style={{ background: 'linear-gradient(to bottom, transparent, rgba(14,9,20,0.6))' }} />
+                    <div className="relative z-10" style={{ background: 'linear-gradient(to bottom, rgba(14,9,20,0.6), rgba(14,9,20,0.14) 75%)' }}>
+                    <div className="max-w-2xl mx-auto">
+
+                    {/* Identity — nick, level, class */}
+                    <div className="px-6 pt-3 flex items-end justify-between gap-4">
+                        <div className="min-w-0">
+                            <h2 className="font-herald text-[40px] sm:text-5xl text-white truncate leading-none tracking-wide">{character.name}</h2>
+                            <div className="flex items-center gap-1.5 mt-2">
+                                <PixelIcon name={theme.icon} size={12} color={theme.accent} />
+                                <span className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: theme.accent }}>{character.class}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {getHeroTitle(character.level, character.achievements?.tasks || 0, character.class)}
+                            </p>
+                        </div>
+                        <div className="flex-shrink-0 text-right" title={`${xpToNext.toLocaleString()} XP to next level`}>
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Level</span>
+                            <div className="font-herald text-5xl sm:text-6xl leading-none" style={{ color: theme.accent }}>
                                 <NumberTicker value={character.level} />
-                            </span>
+                            </div>
+                            <div className="mt-1.5 ml-auto w-14 h-[3px] rounded-full bg-white/[0.06] overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-1000 ease-out"
+                                    style={{ width: `${Math.min(character.xp.current / Math.max(character.xp.max, 1), 1) * 100}%`, backgroundColor: theme.accent }} />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                        <h2 className="text-xl font-heading font-bold text-white tracking-tight truncate leading-tight">{character.name}</h2>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                            <PixelIcon name={theme.icon} size={10} color={theme.accent} />
-                            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: theme.accent }}>{character.class}</span>
-                        </div>
-                        <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed italic">
-                            {getHeroTitle(character.level, character.achievements?.tasks || 0, character.class)}
-                        </p>
+                    {/* Record — four figures */}
+                    <div className="grid grid-cols-4 px-6 pt-6 pb-5">
+                        {[
+                            { label: 'Quests', value: character.achievements?.tasks || 0 },
+                            { label: 'Habits', value: character.achievements?.habits || 0 },
+                            { label: 'Day streak', value: character.loginStreak || 0 },
+                            { label: 'Honors', value: unlockedHonorCount },
+                        ].map(fig => (
+                            <div key={fig.label} className="text-center">
+                                <NumberTicker value={fig.value} className="block font-pixel text-[32px] text-white leading-none tabular-nums" />
+                                <span className="block mt-1 text-[9px] font-bold uppercase tracking-[0.15em] text-gray-400">{fig.label}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Companion crest */}
+                    {(() => {
+                        const companion = character.pets?.find(p => p.showPet !== false && !p.inSanctuary);
+                        return (
+                            <button
+                                onClick={() => setActiveTab('companion')}
+                                className="w-full flex items-center gap-4 px-6 pt-1 pb-6 text-left group"
+                            >
+                                <div className="relative w-[60px] h-[70px] flex-shrink-0 flex items-center justify-center">
+                                    <svg viewBox="0 0 48 56" className="absolute inset-0 w-full h-full" fill="none">
+                                        <path d="M3 3 H45 V29 Q45 45 24 53 Q3 45 3 29 Z" stroke={theme.accent} strokeOpacity="0.45" strokeWidth="1.5" fill="rgba(0,0,0,0.25)" />
+                                    </svg>
+                                    {companion ? (
+                                        <div className="relative -mt-1"><ModernPixelPet type={companion.type} size={44} /></div>
+                                    ) : (
+                                        <PixelIcon name="paw" size={18} color={theme.accent + '80'} />
+                                    )}
+                                </div>
+                                {companion ? (() => {
+                                    const need = [
+                                        { value: companion.hunger ?? 100, text: 'Hungry' },
+                                        { value: companion.happiness ?? 100, text: 'Lonely' },
+                                        { value: companion.hygiene ?? 100, text: 'Needs a wash' },
+                                    ].sort((a, b) => a.value - b.value)[0];
+                                    const urgent = need.value < 30;
+                                    return (
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-lg text-white leading-tight truncate group-hover:text-rpg-gold transition-colors">{companion.name || petDisplayLabel(companion.type)}</p>
+                                            <p className="text-sm text-gray-400 leading-tight capitalize">{petDisplayLabel(companion.type)} · Lv {companion.level || 1} · Bond {companion.bond || 0}/{PET_BOND_MAX}</p>
+                                            {urgent ? (
+                                                <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-amber-300">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                                    {need.text} — tend to them before they leave
+                                                </p>
+                                            ) : (
+                                                <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-gray-500">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70" />
+                                                    Content
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })() : (
+                                    <div className="min-w-0">
+                                        <p className="text-lg text-white leading-tight">No companion yet</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">Three focus sessions hatch a Mystic Egg.</p>
+                                    </div>
+                                )}
+                                <ChevronRight size={16} className="ml-auto flex-shrink-0 text-gray-600 group-hover:text-gray-300 transition-colors" />
+                            </button>
+                        );
+                    })()}
+                    </div>
                     </div>
                 </div>
             </div>
 
             {/* ═══════ TAB BAR ═══════ */}
-            <div className="px-4 flex gap-1 border-b border-white/5">
+            <div className="relative z-10 border-b border-white/5 bg-black/10">
+            <div className="max-w-2xl mx-auto px-4 flex gap-1">
                 {[
-                    { id: 'overview', label: 'Hero', icon: 'star' },
-                    { id: 'gear', label: 'Gear', icon: 'sword' },
-                    { id: 'companion', label: 'Bond', icon: 'heart' },
-                    { id: 'journal', label: 'Ledger', icon: 'book' },
+                    { id: 'overview', label: 'Hero', icon: 'user' },
+                    { id: 'gear', label: 'Gear', icon: 'helmet' },
+                    { id: 'companion', label: 'Bond', icon: 'paw' },
+                    { id: 'cards', label: 'Cards', icon: 'cards' },
+                    { id: 'journal', label: 'Ledger', icon: 'scroll' },
                 ].map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 border-b-2 transition-colors ${activeTab === tab.id
-                            ? 'border-rpg-gold/60 text-white'
-                            : 'border-transparent text-gray-600 hover:text-gray-400'}`}
+                        aria-pressed={activeTab === tab.id}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-3 border-b-2 transition-colors ${activeTab === tab.id
+                            ? 'border-rpg-gold text-white'
+                            : 'border-transparent text-gray-400 hover:text-gray-200'}`}
                     >
-                        <PixelIcon name={tab.icon} size={11} color={activeTab === tab.id ? '#fbbf24' : undefined} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
+                        <PixelIcon name={tab.icon} size={12} color={activeTab === tab.id ? '#fbbf24' : '#9ca3af'} />
+                        <span className="text-[11px] font-bold uppercase tracking-wider">{tab.label}</span>
+                        {tab.id === 'cards' && (character.bossCards || []).some(c => c.seen === false) && (
+                            <span className="w-2 h-2 rounded-full bg-rpg-gold" aria-label="New card" />
+                        )}
                     </button>
                 ))}
             </div>
+            </div>
 
             {/* ═══════ TAB CONTENT ═══════ */}
-            <div className="flex-grow overflow-y-auto custom-scrollbar">
+            <div ref={contentRef} className="relative z-10 w-full max-w-2xl mx-auto">
 
                 {/* ─── OVERVIEW TAB ─── */}
                 {activeTab === 'overview' && (
                     <div className="animate-tab-in">
 
-                        {/* XP + HP compact bars */}
-                        <div className="px-5 pt-5 pb-4 space-y-2.5">
-                            <div>
-                                <div className="flex items-center justify-between mb-1">
-                                    <span className="text-[9px] font-bold text-amber-400/80 uppercase tracking-wider">Experience</span>
-                                    <span className="text-[9px] font-bold text-gray-500">{character.xp.current.toLocaleString()} / {character.xp.max.toLocaleString()}</span>
-                                </div>
-                                <StatBar current={character.xp.current} max={character.xp.max} kind="xp" celebrateAtMax={false} height="h-2" />
-                                <p className="text-[8px] text-gray-600 mt-0.5 text-right">{(character.xp.max - character.xp.current).toLocaleString()} to next level</p>
+                        {/* Next on your path — what the hero is working toward */}
+                        <div data-reveal className="px-5 pt-5 pb-6">
+                            <div className="mb-4">
+                                <SectionDivider label="Next on your path" icon="flag" color="#fedf8c" />
                             </div>
-                            <div>
-                                <div className="flex items-center justify-between mb-1">
-                                    <span className="text-[9px] font-bold text-red-400/80 uppercase tracking-wider">Health</span>
-                                    <span className="text-[9px] font-bold text-gray-500">{character.hp.current} / {character.hp.max}</span>
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                                        <span className="text-sm font-semibold text-white">Level {character.level + 1}</span>
+                                        <span className="text-xs text-gray-400 tabular-nums">{xpToNext.toLocaleString()} XP to go</span>
+                                    </div>
+                                    <StatBar current={character.xp.current} max={character.xp.max} kind="xp" celebrateAtMax={false} height="h-2" />
                                 </div>
-                                <StatBar current={character.hp.current} max={character.hp.max} kind="hp" celebrateAtMax={false} height="h-2" />
+                                <div>
+                                    <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                                        <span className="text-sm font-semibold text-white">Health</span>
+                                        <span className="text-xs text-gray-400 tabular-nums">{character.hp.current} / {character.hp.max}</span>
+                                    </div>
+                                    <StatBar current={character.hp.current} max={character.hp.max} kind="hp" celebrateAtMax={false} height="h-2" />
+                                </div>
+                                {nextHonor && (
+                                    <div>
+                                        <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                                            <span className="text-sm font-semibold text-white truncate">
+                                                <span className="text-gray-400 font-normal">Honor · </span>{nextHonor.badge.name}
+                                            </span>
+                                            <span className="text-xs text-gray-400 tabular-nums shrink-0">
+                                                {nextHonor.progress.current.toLocaleString()} / {nextHonor.progress.target.toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                                            <div className="h-full rounded-full transition-[width] duration-1000 ease-out"
+                                                style={{ width: `${nextHonor.pct * 100}%`, backgroundColor: TIER_HEX[nextHonor.badge.tier] || '#fbbf24' }} />
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">{nextHonor.badge.desc}</p>
+                                    </div>
+                                )}
+                                {nextOath && (
+                                    <div className="flex items-center gap-3 pt-1">
+                                        <div className="w-8 h-8 flex items-center justify-center rounded-md shrink-0 bg-white/[0.04]">
+                                            <PixelIcon name={SKILL_TYPE_ICON[nextOath.skill.type] || nextOath.skill.icon} size={14} color={nextOath.skill.color} />
+                                        </div>
+                                        <p className="text-sm text-gray-300">
+                                            <span className="font-semibold text-white">{nextOath.skill.name}</span> unlocks at Level {nextOath.level}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Radar Chart — hero of the page */}
-                        <div className="px-5 pb-3">
-                            <StatsRadarChart stats={character.stats || { str: 10, int: 10, dex: 10 }} accentColor={theme.accent} />
-                        </div>
-
-                        {/* 6 Attribute Tiles */}
-                        <div className="px-5 pb-4">
-                            <div className="grid grid-cols-3 gap-2.5">
-                                {STAT_CONFIG.map((stat, idx) => {
-                                    const baseValue = character.baseStats?.[stat.key] || 10;
-                                    const totalValue = character.stats?.[stat.key] || 10;
-                                    const bonus = totalValue - baseValue;
-                                    const pct = Math.min(totalValue / 50, 1);
-                                    return (
-                                        <div key={stat.key} className="relative p-2.5 pb-2 rounded-lg bg-black/20 overflow-hidden"
-                                            style={{ animation: `statTileIn 0.5s ease-out ${idx * 60}ms both` }}>
-                                            <div className="flex flex-col items-center">
-                                                <div className="flex items-center gap-1 mb-0.5">
-                                                    <PixelIcon name={stat.icon} size={8} color={stat.color + '70'} />
-                                                    <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: stat.color + '90' }}>{stat.label}</span>
+                        {/* Attributes — shape (radar) + numbers (tiles) */}
+                        <div data-reveal className="px-5 pb-6">
+                            <div className="mb-4">
+                                <SectionDivider label="Attributes" icon="radar" color={theme.accent} />
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                                <div className="sm:w-[44%] shrink-0">
+                                    <StatsRadarChart stats={character.stats || { str: 10, int: 10, dex: 10 }} accentColor={theme.accent} />
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 flex-1">
+                                    {STAT_CONFIG.map((stat, idx) => {
+                                        const baseValue = character.baseStats?.[stat.key] || 10;
+                                        const totalValue = character.stats?.[stat.key] || 10;
+                                        const bonus = totalValue - baseValue;
+                                        return (
+                                            <div key={stat.key} className="py-2.5 px-2 rounded-lg bg-black/20 flex flex-col items-center"
+                                                title={stat.full}
+                                                style={{ animation: `statTileIn 0.5s ease-out ${idx * 60}ms both` }}>
+                                                <div className="flex items-center gap-1 mb-1">
+                                                    <PixelIcon name={stat.icon} size={9} color={stat.color} />
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: stat.color }}>{stat.label}</span>
                                                 </div>
                                                 <div className="flex items-baseline gap-0.5">
                                                     <NumberTicker value={totalValue} className="text-2xl font-pixel text-white leading-none" />
-                                                    {bonus > 0 && <span className="text-[9px] font-bold text-green-400">+{bonus}</span>}
+                                                    {bonus > 0 && <span className="text-[10px] font-bold text-green-400" title="From gear">+{bonus}</span>}
                                                 </div>
                                             </div>
-                                            <div className="mt-2 h-[3px] rounded-full bg-white/[0.04] overflow-hidden">
-                                                <div className="h-full rounded-full transition-all duration-1000 ease-out"
-                                                    style={{ width: `${pct * 100}%`, backgroundColor: stat.color, opacity: 0.5 }} />
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-
-                        {/* Chronicle quip — personality */}
-                        <div className="mx-5 mb-4 p-3 rounded-lg bg-black/15 border border-white/[0.04]">
-                            <p className="text-[10px] text-gray-400 text-center leading-relaxed italic">
-                                "{getChronicleQuip(character.achievements?.tasks || 0, character.achievements?.habits || 0, character.achievements?.goldEarned || 0)}"
+                            <p className="mt-3 text-xs text-gray-500 leading-relaxed">
+                                Tag a quest or habit with an attribute to train it: +1 per completion, +2 for hard quests.
                             </p>
                         </div>
 
                         {/* Active Set Bonuses */}
                         {character.activeSets && Object.keys(character.activeSets).length > 0 && (
-                            <div className="px-5 pb-4">
+                            <div data-reveal className="px-5 pb-4">
                                 <div className="mb-3">
-                                    <SectionDivider label="Set Resonance" icon="star" color="#a78bfa" />
+                                    <SectionDivider label="Set Resonance" icon="diamond" color="#a78bfa" />
                                 </div>
                                 <div className="space-y-1.5">
                                     {Object.entries(character.activeSets).map(([setId, count]) => {
@@ -550,7 +834,7 @@ const CharacterSheet = ({ setActiveView }) => {
                         )}
 
                         {/* Skills — with class accent border */}
-                        <div className="px-5 pb-5">
+                        <div data-reveal className="px-5 pb-5">
                             <div className="mb-3">
                                 <SectionDivider label={theme.skillsLabel} icon={theme.icon} color={theme.accent} />
                             </div>
@@ -559,19 +843,19 @@ const CharacterSheet = ({ setActiveView }) => {
                                     const isLocked = character.level < (idx * 3 + 1);
                                     return (
                                         <div key={idx} className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors ${isLocked
-                                            ? 'opacity-35'
+                                            ? 'opacity-50'
                                             : 'hover:bg-white/[0.03]'}`}
                                             style={!isLocked ? { borderLeft: `2px solid ${skill.color}30` } : undefined}>
                                             <div className="w-8 h-8 flex items-center justify-center rounded-md shrink-0"
                                                 style={{ backgroundColor: isLocked ? 'rgba(255,255,255,0.03)' : skill.color + '12' }}>
-                                                <PixelIcon name={skill.icon} size={16} color={isLocked ? '#4b5563' : skill.color} />
+                                                <PixelIcon name={SKILL_TYPE_ICON[skill.type] || skill.icon} size={16} color={isLocked ? '#4b5563' : skill.color} />
                                             </div>
                                             <div className="flex-grow min-w-0">
                                                 <div className="flex items-baseline gap-2">
-                                                    <span className="font-bold text-white text-xs truncate">{skill.name}</span>
-                                                    <span className="text-[8px] uppercase font-bold tracking-wider text-gray-600 shrink-0">{skill.type}</span>
+                                                    <span className="font-semibold text-white text-sm truncate">{skill.name}</span>
+                                                    <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 shrink-0">{skill.type}</span>
                                                 </div>
-                                                <p className="text-[10px] text-gray-500 mt-0.5">{isLocked ? `Unlocks at Level ${idx * 3 + 1}` : skill.desc}</p>
+                                                <p className="text-xs text-gray-400 mt-0.5">{isLocked ? `Unlocks at Level ${idx * 3 + 1}` : skill.desc}</p>
                                             </div>
                                         </div>
                                     );
@@ -585,31 +869,35 @@ const CharacterSheet = ({ setActiveView }) => {
                 {activeTab === 'gear' && (
                     <div className="p-5 space-y-5 animate-tab-in">
                         {/* Equipment Slots (detailed) */}
-                        <div>
+                        <div data-reveal>
                             <div className="mb-3">
-                                <SectionDivider label={theme.gearLabel} icon="shield" color={theme.accent} />
+                                <SectionDivider label={theme.gearLabel} icon="helmet" color={theme.accent} />
                             </div>
                             <div className="space-y-2">
                                 {[
-                                    { label: 'Head', slot: EQUIPMENT_SLOTS.HEAD, icon: 'shield', color: '#64748b' },
+                                    { label: 'Head', slot: EQUIPMENT_SLOTS.HEAD, icon: 'helmet', color: '#64748b' },
                                     { label: 'Armor', slot: EQUIPMENT_SLOTS.BODY, icon: 'shirt', color: '#94a3b8' },
                                     { label: 'Main Hand', slot: EQUIPMENT_SLOTS.MAIN_HAND, icon: 'sword', color: '#fbbf24' },
                                     { label: 'Off Hand', slot: EQUIPMENT_SLOTS.OFF_HAND, icon: 'shield', color: '#cbd5e1' },
-                                    { label: 'Ring', slot: EQUIPMENT_SLOTS.RING, icon: 'zap', color: '#fbbf24' },
+                                    { label: 'Ring', slot: EQUIPMENT_SLOTS.RING, icon: 'ring', color: '#fbbf24' },
                                 ].map((slotInfo) => {
                                     const equippedItem = character.equipment && character.equipment[slotInfo.slot];
                                     return (
                                         <div key={slotInfo.slot} className="flex items-center gap-3 p-2.5 rounded-lg bg-black/20 group hover:bg-white/[0.03] transition-colors">
                                             <div className="w-10 h-10 bg-black/30 rounded-md shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] border border-white/[0.03] flex items-center justify-center shrink-0">
                                                 {equippedItem ? (
-                                                    <Sprite src={equippedItem.sprite.src} x={equippedItem.sprite.x} y={equippedItem.sprite.y} width={equippedItem.sprite.width} height={equippedItem.sprite.height} scale={1} />
+                                                    equippedItem.sprite ? (
+                                                        <Sprite src={equippedItem.sprite.src} x={equippedItem.sprite.x} y={equippedItem.sprite.y} width={equippedItem.sprite.width} height={equippedItem.sprite.height} scale={1} />
+                                                    ) : (
+                                                        <PixelIcon name="star" size={18} className="text-rpg-gold" />
+                                                    )
                                                 ) : (
                                                     <PixelIcon name={slotInfo.icon} size={16} color={slotInfo.color} className="opacity-30" />
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">{slotInfo.label}</p>
-                                                <p className={`text-xs font-bold truncate ${equippedItem ? 'text-white' : 'text-gray-600 italic'}`}>
+                                                <p className={`text-xs font-bold truncate ${equippedItem ? 'text-white' : 'text-gray-500'}`}>
                                                     {equippedItem ? equippedItem.name : 'Empty'}
                                                 </p>
                                             </div>
@@ -626,7 +914,7 @@ const CharacterSheet = ({ setActiveView }) => {
                         </div>
 
                         {/* Inventory */}
-                        <div>
+                        <div data-reveal>
                             <div className="mb-3">
                                 <SectionDivider label="Satchel" icon="box" color="#94a3b8" />
                             </div>
@@ -703,7 +991,7 @@ const CharacterSheet = ({ setActiveView }) => {
                                             {/* Header */}
                                             <div className="w-full flex justify-between items-center mb-6">
                                                 <button onClick={() => setSelectedPetId(null)} className="text-gray-400 hover:text-white transition-colors bg-white/5 p-2.5 rounded-lg flex items-center gap-1.5">
-                                                    <PixelIcon name="arrow-left" size={14} color="currentColor" />
+                                                    <ChevronLeft size={14} />
                                                     <span className="text-[9px] font-bold uppercase tracking-wider hidden sm:inline">Back</span>
                                                 </button>
                                                 <div className="text-sm font-heading font-bold text-gray-400 uppercase tracking-widest text-center flex-1">
@@ -720,11 +1008,11 @@ const CharacterSheet = ({ setActiveView }) => {
                                             {/* Action Buttons */}
                                             <div className="flex gap-3 mb-6 w-full max-w-sm">
                                                 <button onClick={() => actions.playWithPet(pet.id)} disabled={pet.inSanctuary} className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 transition-colors disabled:opacity-30 disabled:hover:bg-pink-500/10">
-                                                    <PixelIcon name="heart" size={18} color="#f472b6" />
+                                                    <PixelIcon name="ball" size={18} color="#f472b6" />
                                                     <span className="text-[9px] font-bold uppercase tracking-wider text-pink-300">Play</span>
                                                 </button>
                                                 <button onClick={() => actions.cleanPet(pet.id)} disabled={pet.inSanctuary} className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors disabled:opacity-30 disabled:hover:bg-blue-500/10">
-                                                    <PixelIcon name="zap" size={18} color="#60a5fa" />
+                                                    <PixelIcon name="droplet" size={18} color="#60a5fa" />
                                                     <span className="text-[9px] font-bold uppercase tracking-wider text-blue-300">Clean</span>
                                                 </button>
                                                 <button onClick={() => toggleSanctuary(pet)} disabled={isReleasing} className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-colors disabled:opacity-30 ${pet.inSanctuary ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20' : 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20'}`}>
@@ -817,7 +1105,7 @@ const CharacterSheet = ({ setActiveView }) => {
                                                                 </div>
                                                             ))
                                                         ) : (
-                                                            <p className="text-center text-[10px] text-white/50 py-3 uppercase tracking-wider font-bold italic">No pet food. Visit the Market!</p>
+                                                            <p className="text-center text-[10px] text-white/50 py-3 uppercase tracking-wider font-bold">No pet food. Visit the Market!</p>
                                                         )}
                                                     </div>
                                                 )}
@@ -883,12 +1171,15 @@ const CharacterSheet = ({ setActiveView }) => {
                             )
                         ) : (
                             <div className="text-center py-12">
-                                <PixelIcon name="heart" size={40} className="mx-auto text-gray-700 mb-4" />
+                                <PixelIcon name="paw" size={40} color="#374151" className="mx-auto mb-4" />
                                 <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">No companion yet.</p>
                             </div>
                         )}
                     </div>
                 )}
+
+                {/* ─── CARDS TAB (collected boss cards) ─── */}
+                {activeTab === 'cards' && <CardAlbum character={character} />}
 
                 {/* ─── JOURNAL TAB (Progress + Medals) ─── */}
                 {activeTab === 'journal' && (
@@ -896,63 +1187,69 @@ const CharacterSheet = ({ setActiveView }) => {
                         <DailyProgressChart />
 
                         {/* Hero Title + Chronicle Narrative */}
-                        <div className="p-4 rounded-lg bg-black/15">
-                            <div className="text-center mb-1.5">
-                                <span className="text-xs font-heading font-bold uppercase tracking-[0.2em]" style={{ color: theme.accent }}>
-                                    {getHeroTitle(character.level, character.achievements?.tasks || 0, character.class)}
-                                </span>
-                            </div>
-                            <p className="text-[10px] text-gray-500 text-center leading-relaxed">
+                        <div data-reveal className="py-5 px-4 rounded-lg bg-black/15 text-center">
+                            <p className="font-herald text-2xl leading-none" style={{ color: theme.accent }}>
+                                {getHeroTitle(character.level, character.achievements?.tasks || 0, character.class)}
+                            </p>
+                            <p className="mt-2 text-sm text-gray-300 leading-relaxed max-w-[42ch] mx-auto">
                                 {getChronicleQuip(character.achievements?.tasks || 0, character.achievements?.habits || 0, character.achievements?.goldEarned || 0)}
                             </p>
                         </div>
 
-                        {/* Lifetime Stats */}
-                        <div>
+                        {/* Lifetime record not shown in the hero */}
+                        <div data-reveal>
                             <div className="mb-3">
-                                <SectionDivider label="Chronicle" icon="trophy" color="#94a3b8" />
+                                <SectionDivider label="Chronicle" icon="scroll" color="#94a3b8" />
                             </div>
                             <div className="grid grid-cols-3 gap-2">
                                 {[
-                                    { label: 'Quests Slain', value: character.achievements?.tasks || 0, color: 'text-white', icon: 'sword' },
-                                    { label: 'Habits Forged', value: character.achievements?.habits || 0, color: 'text-white', icon: 'checkSquare' },
-                                    { label: 'Gold Earned', value: character.achievements?.goldEarned || 0, color: 'text-rpg-gold', icon: 'coins' },
+                                    { label: 'Gold earned', value: character.achievements?.goldEarned || 0, color: 'text-rpg-gold' },
+                                    { label: 'Focus sessions', value: character.achievements?.pomodoros || 0, color: 'text-white' },
+                                    { label: 'Focus minutes', value: character.achievements?.focusMinutes || 0, color: 'text-white' },
                                 ].map(a => (
-                                    <div key={a.label} className="bg-black/20 p-2.5 rounded-lg text-center">
-                                        <div className={`text-xl font-pixel ${a.color}`}><NumberTicker value={a.value} /></div>
-                                        <div className="text-[8px] font-bold text-gray-600 uppercase tracking-wider">{a.label}</div>
+                                    <div key={a.label} className="bg-black/20 py-3 px-2 rounded-lg text-center">
+                                        <div className={`text-2xl font-pixel leading-none ${a.color}`}><NumberTicker value={a.value} /></div>
+                                        <div className="mt-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{a.label}</div>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Medals Grid */}
-                        <div>
-                            <div className="mb-3">
-                                <SectionDivider label="Honors" icon="trophy" color="#fbbf24" />
+                        {/* Honors — earned first, then closest to completion */}
+                        <div data-reveal>
+                            <div className="mb-3 flex items-center gap-3">
+                                <div className="flex-1"><SectionDivider label="Honors" icon="trophy" color="#fbbf24" /></div>
+                                <span className="text-xs text-gray-400 tabular-nums">{unlockedHonorCount} / {BADGE_DEFS.length}</span>
                             </div>
-                            <div className="grid grid-cols-3 gap-2">
-                                {BADGE_DEFS.map(badge => {
-                                    const isUnlocked = character.unlockedBadges?.includes(badge.id);
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {sortedHonors.map(({ badge, unlocked: isUnlocked, progress, pct }) => {
                                     const tier = TIER_COLORS[badge.tier] || TIER_COLORS.bronze;
                                     return (
-                                        <div key={badge.id} className={`p-3 rounded-lg flex flex-col items-center text-center transition-all ${isUnlocked
+                                        <div key={badge.id} className={`p-3 rounded-lg flex flex-col items-center text-center ${isUnlocked
                                             ? 'bg-black/20 border'
-                                            : 'bg-black/15 border border-white/[0.03] opacity-50'}`}
-                                            style={isUnlocked ? { borderColor: badge.tier === 'gold' ? '#fbbf2425' : badge.tier === 'silver' ? '#94a3b825' : '#b4541425' } : undefined}>
-                                            <div className="w-9 h-9 mb-1.5">
+                                            : 'bg-black/10 border border-white/[0.04]'}`}
+                                            style={isUnlocked ? { borderColor: (TIER_HEX[badge.tier] || '#fbbf24') + '40' } : undefined}>
+                                            <div className="w-9 h-9 mb-2">
                                                 {isUnlocked ? (
                                                     <div className={`w-full h-full bg-gradient-to-br ${tier.bg} rounded-full flex items-center justify-center border ${tier.border}`}>
                                                         <PixelIcon name={badge.icon || 'star'} size={14} color="#000" />
                                                     </div>
                                                 ) : (
-                                                    <div className="w-full h-full bg-gray-800/80 rounded-full flex items-center justify-center border border-gray-700">
-                                                        <PixelIcon name="lock" size={12} color="#6b7280" />
+                                                    <div className="w-full h-full bg-white/[0.04] rounded-full flex items-center justify-center border border-white/10">
+                                                        <PixelIcon name={badge.icon || 'lock'} size={13} color="#6b7280" />
                                                     </div>
                                                 )}
                                             </div>
-                                            <h4 className={`text-[9px] font-bold uppercase tracking-wider mb-0.5 ${isUnlocked ? tier.text : 'text-gray-500'}`}>{badge.name}</h4>
-                                            <p className="text-[8px] text-gray-500 leading-tight">{badge.desc}</p>
+                                            <h4 className={`text-[11px] font-bold uppercase tracking-wider leading-tight ${isUnlocked ? tier.text : 'text-gray-300'}`}>{badge.name}</h4>
+                                            <p className="mt-0.5 text-[11px] text-gray-500 leading-tight">{badge.desc}</p>
+                                            {!isUnlocked && progress && (
+                                                <div className="w-full mt-2">
+                                                    <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                                                        <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, backgroundColor: TIER_HEX[badge.tier] || '#fbbf24' }} />
+                                                    </div>
+                                                    <p className="mt-1 text-[10px] text-gray-500 tabular-nums">{progress.current.toLocaleString()} / {progress.target.toLocaleString()}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -1060,7 +1357,7 @@ const AvatarEditModal = ({ character, onSave, onClose }) => {
                             <PressButton onClick={handleSave} disabled={!canAfford} className="w-full py-4 bg-rpg-gold text-rpg-bg rounded-xl font-bold uppercase tracking-widest shadow-glow-gold disabled:opacity-50">
                                 Mutate Appearance
                             </PressButton>
-                            {!canAfford && <p className="text-red-500 text-[10px] text-center font-bold italic">Not enough gold for this transformation.</p>}
+                            {!canAfford && <p className="text-red-400 text-xs text-center font-bold">Not enough gold for this transformation.</p>}
                         </div>
                     </div>
                 </div>

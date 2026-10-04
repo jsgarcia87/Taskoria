@@ -1,17 +1,21 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Trash2, Image as ImageIcon, X, Upload, Save, Eraser, Pipette, PaintBucket, Undo2, Redo2, Play, Square, Plus, Copy, FileJson } from 'lucide-react';
+import { Trash2, Image as ImageIcon, X, Upload, Save, Eraser, Pipette, PaintBucket, Undo2, Redo2, Play, Square, Plus, Copy, FileJson, FlipHorizontal } from 'lucide-react';
 import { frameToBuffer } from '../../utils/pixelFormat';
 import { useConfirm } from '../../context/ConfirmContext';
+import ModernPixelAvatar from '../common/ModernPixelAvatar';
 
 const GRID_SIZE = 64;
 const TOTAL = GRID_SIZE * GRID_SIZE;
 const EMPTY = 'transparent';
 
-const PALETTE = [
-    '#000000','#ffdbac','#567194','#3a4e69','#253347',
-    '#bdc3c7','#7f8c8d','#ffffff','#5d4037','#f1c40f',
-    '#2e8b57','#8b0000','#8a2be2','#f59e0b','#3b82f6',
-];
+const OFFICIAL_PALETTES = {
+    'Basic Colors': ['#000000', '#ffffff', '#ffdbac', '#5d4037', '#bdc3c7', '#7f8c8d'],
+    'Warrior Iron': ['#253347', '#3a4e69', '#567194', '#94a3b8'],
+    'Mage Royal': ['#8a2be2', '#3b82f6', '#1e3a8a', '#d8b4fe'],
+    'Ranger Forest': ['#2e8b57', '#064e3b', '#65a30d', '#14532d'],
+    'Paladin Gold': ['#f1c40f', '#f59e0b', '#b45309', '#fef3c7'],
+    'Dragon Crimson (Locked)': ['#8b0000', '#ef4444', '#7f1d1d', '#fca5a5']
+};
 
 const CATEGORIES = [
     { id: 'characters', label: 'Characters' },
@@ -23,6 +27,7 @@ const CATEGORIES = [
     { id: 'decoration', label: 'Decoration' },
     { id: 'props', label: 'Props' },
     { id: 'monsters', label: 'Monsters' },
+    { id: 'cosmetics', label: 'Cosmetics / Gear' },
 ];
 
 const LEGACY_CAT_MAP = {
@@ -55,15 +60,30 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
     const [activeFrame, setActiveFrame] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     
-    const [color, setColor] = useState(PALETTE[0]);
+    const [color, setColor] = useState(OFFICIAL_PALETTES['Basic Colors'][0]);
     const [tool, setTool] = useState('pencil'); // pencil | eraser | fill | picker
+    const [symmetryMode, setSymmetryMode] = useState(false);
     const [customColor, setCustomColor] = useState('#ff0000');
+    const [activePalette, setActivePalette] = useState('Basic Colors');
     const [name, setName] = useState(initialAsset ? initialAsset.name : '');
     const [category, setCategory] = useState(() => {
         const raw = initialAsset ? initialAsset.category : CATEGORIES[0].id;
         return LEGACY_CAT_MAP[raw] || (CATEGORIES.some(c => c.id === raw) ? raw : CATEGORIES[0].id);
     });
-    const [price, setPrice] = useState(initialAsset ? initialAsset.price || 100 : 100); 
+    const [price, setPrice] = useState(initialAsset ? initialAsset.price || 100 : 100);
+    const [cosmeticClass, setCosmeticClass] = useState(() => {
+        if (initialAsset && initialAsset.params) {
+            try { const p = typeof initialAsset.params === 'string' ? JSON.parse(initialAsset.params) : initialAsset.params; return p.cosmeticClass || 'warrior'; } catch (e) {}
+        }
+        return 'warrior';
+    });
+    const [cosmeticSlot, setCosmeticSlot] = useState(() => {
+        if (initialAsset && initialAsset.params) {
+            try { const p = typeof initialAsset.params === 'string' ? JSON.parse(initialAsset.params) : initialAsset.params; return p.cosmeticSlot || 'head'; } catch (e) {}
+        }
+        return 'head';
+    });
+    const [showCosmeticGuide, setShowCosmeticGuide] = useState(true);
     const [refImage, setRefImage] = useState(null);
     const [refOpacity, setRefOpacity] = useState(0.5);
     const [refScale, setRefScale] = useState(100);
@@ -88,6 +108,50 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
     isPlayingRef.current = isPlaying;
 
     const lastPaintedRef = useRef(-1);
+
+    const [ownedCreations, setOwnedCreations] = useState([]);
+    const [showRemixMenu, setShowRemixMenu] = useState(false);
+
+    useEffect(() => {
+        const session = JSON.parse(localStorage.getItem('taskoria_session') || '{}');
+        if (session.id) {
+            fetch(`api/creations.php?action=list_owned&user_id=${session.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setOwnedCreations(data.items);
+                    }
+                })
+                .catch(console.error);
+        }
+    }, []);
+
+    const importFromBazaar = (item) => {
+        pushUndo(framesRef.current, activeFrame);
+        let px;
+        try { px = typeof item.pixels === 'string' ? JSON.parse(item.pixels) : item.pixels; } catch (e) { px = []; }
+        
+        let newFrames;
+        if (Array.isArray(px) && px.length > 0) {
+            if (Array.isArray(px[0])) {
+                newFrames = px.map(f => frameToBuffer(f, GRID_SIZE));
+            } else if (typeof px[0] === 'string' && px[0].startsWith('#')) {
+                // Flat palette buffer? Unlikely from DB, but just in case
+                newFrames = [px];
+            } else {
+                newFrames = [frameToBuffer(px, GRID_SIZE)];
+            }
+        } else {
+            newFrames = [emptyBuffer()];
+        }
+        
+        setFrames(newFrames);
+        setActiveFrame(0);
+        setIsPlaying(false);
+        setName(`${item.name} Remix`);
+        setCategory(item.category);
+        setShowRemixMenu(false);
+    };
 
     // Playback loop
     useEffect(() => {
@@ -194,10 +258,21 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
             const af = activeFrameRef.current;
             const currentBuf = prev[af];
             const value = tool === 'eraser' ? EMPTY : color;
-            if (currentBuf[idx] === value) return prev;
+            
+            let mirrorIdx = -1;
+            if (symmetryMode) {
+                const x = idx % GRID_SIZE;
+                const y = Math.floor(idx / GRID_SIZE);
+                const mirrorX = GRID_SIZE - 1 - x;
+                mirrorIdx = y * GRID_SIZE + mirrorX;
+            }
+
+            if (currentBuf[idx] === value && (mirrorIdx === -1 || currentBuf[mirrorIdx] === value)) return prev;
             
             const nextBuf = [...currentBuf];
             nextBuf[idx] = value;
+            if (mirrorIdx !== -1) nextBuf[mirrorIdx] = value;
+
             const nextFrames = [...prev];
             nextFrames[af] = nextBuf;
             return nextFrames;
@@ -221,8 +296,20 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
         if (tool === 'fill') {
             pushUndo(framesRef.current, activeFrame);
             const replacement = color;
+            
+            let mirrorIdx = -1;
+            if (symmetryMode) {
+                const x = idx % GRID_SIZE;
+                const y = Math.floor(idx / GRID_SIZE);
+                const mirrorX = GRID_SIZE - 1 - x;
+                mirrorIdx = y * GRID_SIZE + mirrorX;
+            }
+
             setFrames(prev => {
-                const nextBuf = floodFill(currentBuf, idx, currentBuf[idx], replacement);
+                let nextBuf = floodFill(currentBuf, idx, currentBuf[idx], replacement);
+                if (mirrorIdx !== -1) {
+                    nextBuf = floodFill(nextBuf, mirrorIdx, nextBuf[mirrorIdx], replacement);
+                }
                 const nextFrames = [...prev];
                 nextFrames[activeFrame] = nextBuf;
                 return nextFrames;
@@ -482,13 +569,16 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
         const exportPixels = framesRef.current.length === 1 ? formatBuffer(framesRef.current[0]) : framesRef.current.map(formatBuffer);
         const finalPrice = Math.max(10, Math.min(500, parseInt(price, 10) || 100));
 
+        const payloadParams = category === 'cosmetics' ? { cosmeticClass, cosmeticSlot } : undefined;
+
         if (onSave) {
             onSave({
                 name: trimmed,
                 category,
                 price: finalPrice,
                 pixels: exportPixels,
-                gridSize: GRID_SIZE
+                gridSize: GRID_SIZE,
+                params: payloadParams
             });
             return;
         }
@@ -504,6 +594,7 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                     grid_size: GRID_SIZE,
                     pixels: exportPixels,
                     price: finalPrice,
+                    params: payloadParams
                 }),
             });
             const data = await res.json();
@@ -540,11 +631,14 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                 <aside className="lg:col-span-3 glass-panel p-4 rounded-2xl space-y-4">
                     <div>
                         <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2">Tools</div>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-5 gap-2">
                             <ToolBtn active={tool==='pencil'} onClick={() => setTool('pencil')} title="Pencil">✏️</ToolBtn>
                             <ToolBtn active={tool==='eraser'} onClick={() => setTool('eraser')} title="Eraser"><Eraser size={16}/></ToolBtn>
                             <ToolBtn active={tool==='fill'} onClick={() => setTool('fill')} title="Bucket"><PaintBucket size={16}/></ToolBtn>
                             <ToolBtn active={tool==='picker'} onClick={() => setTool('picker')} title="Eyedropper"><Pipette size={16}/></ToolBtn>
+                            <ToolBtn active={symmetryMode} onClick={() => setSymmetryMode(s => !s)} title="Symmetry (Mirror)">
+                                <FlipHorizontal size={16} className={symmetryMode ? 'text-rpg-gold' : ''} />
+                            </ToolBtn>
                         </div>
                         <div className="grid grid-cols-2 gap-2 mt-2">
                             <button onClick={undo} disabled={undoStack.length===0} className="flex items-center justify-center gap-1 text-xs bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed border border-white/10 rounded px-2 py-1.5"><Undo2 size={14}/> Undo</button>
@@ -553,26 +647,43 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                     </div>
 
                     <div>
-                        <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2">Palette</div>
-                        <div className="grid grid-cols-5 gap-2">
-                            {PALETTE.map(c => (
-                                <button
-                                    key={c}
-                                    onClick={() => { setColor(c); setTool(t => t === 'eraser' || t === 'picker' ? 'pencil' : t); }}
-                                    className={`aspect-square rounded border-2 transition-transform ${color===c ? 'border-rpg-gold scale-110 shadow-[0_0_8px_rgba(240,192,64,0.5)]' : 'border-white/10 hover:scale-105'}`}
-                                    style={{ backgroundColor: c }}
-                                    title={c}
-                                />
-                            ))}
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs uppercase tracking-widest text-rpg-gold">Palette</span>
+                            <select 
+                                value={activePalette}
+                                onChange={(e) => setActivePalette(e.target.value)}
+                                className="bg-black/40 border border-white/10 text-[10px] rounded px-1 py-0.5 text-gray-300 focus:outline-none"
+                            >
+                                {Object.keys(OFFICIAL_PALETTES).map(p => (
+                                    <option key={p} value={p}>{p}</option>
+                                ))}
+                            </select>
                         </div>
-                        <div className="flex items-center gap-2 mt-2">
+                        {activePalette.includes('Locked') ? (
+                            <div className="w-full text-center py-4 bg-black/40 border border-red-900/30 rounded text-red-500/50 text-[10px] font-bold tracking-widest">
+                                🔒 Lote Premium / Loot
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-6 gap-2">
+                                {OFFICIAL_PALETTES[activePalette].map(c => (
+                                    <button
+                                        key={c}
+                                        onClick={() => { setColor(c); setTool(t => t === 'eraser' || t === 'picker' ? 'pencil' : t); }}
+                                        className={`aspect-square rounded border-2 transition-transform ${color===c ? 'border-rpg-gold scale-110 shadow-[0_0_8px_rgba(240,192,64,0.5)]' : 'border-white/10 hover:scale-105'}`}
+                                        style={{ backgroundColor: c }}
+                                        title={c}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                        <div className="flex items-center gap-2 mt-2 opacity-50 hover:opacity-100 transition-opacity">
                             <input
                                 type="color"
                                 value={customColor}
                                 onChange={(e) => { setCustomColor(e.target.value); setColor(e.target.value); setTool(t => t === 'eraser' || t === 'picker' ? 'pencil' : t); }}
-                                className="w-9 h-9 rounded cursor-pointer bg-transparent border border-white/10"
+                                className="w-7 h-7 rounded cursor-pointer bg-transparent border border-white/10"
                             />
-                            <span className="text-xs text-gray-400">Custom color</span>
+                            <span className="text-[10px] text-gray-400">Custom (Non-canon)</span>
                         </div>
                     </div>
 
@@ -613,6 +724,52 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                         <p className="text-[10px] text-gray-500 mt-1">Import/export blueprint JSON (paleta + rows).</p>
                     </div>
 
+                    <div>
+                        <div className="text-xs uppercase tracking-widest text-rpg-gold mb-2 flex items-center justify-between">
+                            <span className="flex items-center gap-1"><Save size={14}/> Local Drafts</span>
+                            <button onClick={saveToSession} className="text-[10px] bg-rpg-gold/20 hover:bg-rpg-gold/30 text-rpg-gold px-2 py-0.5 rounded border border-rpg-gold/30 transition-colors">Save</button>
+                        </div>
+                        {sessionKeys.length === 0 ? (
+                            <p className="text-[10px] text-gray-500 italic">No saved drafts yet.</p>
+                        ) : (
+                            <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                                {sessionKeys.map(key => (
+                                    <div key={key} className="flex items-center justify-between bg-black/40 border border-white/5 rounded px-2 py-1.5 hover:bg-white/[0.03] transition-colors group">
+                                        <button onClick={() => loadFromSession(key)} className="flex-1 text-left text-xs text-gray-300 truncate hover:text-white transition-colors">{key}</button>
+                                        <button onClick={() => deleteFromSession(key)} className="text-red-500/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all px-1"><Trash2 size={12}/></button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div>
+                        <button 
+                            onClick={() => setShowRemixMenu(!showRemixMenu)}
+                            className="w-full text-xs bg-indigo-900/20 hover:bg-indigo-900/30 border border-indigo-700/40 text-indigo-300 rounded px-2 py-2 flex items-center justify-center gap-1 transition-colors"
+                        >
+                            Remix from Bazaar
+                        </button>
+                        {showRemixMenu && (
+                            <div className="mt-2 space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                                {ownedCreations.length === 0 ? (
+                                    <p className="text-[10px] text-gray-500 italic">No creations owned yet. Buy some at the Bazaar!</p>
+                                ) : (
+                                    ownedCreations.map(item => (
+                                        <button 
+                                            key={item.id}
+                                            onClick={() => importFromBazaar(item)} 
+                                            className="w-full text-left bg-black/40 border border-white/5 rounded px-2 py-1.5 hover:bg-white/[0.03] transition-colors text-xs text-gray-300 hover:text-white truncate flex items-center gap-2"
+                                        >
+                                            <span className="text-[10px] bg-white/10 px-1 rounded">{item.category}</span>
+                                            <span className="truncate">{item.name}</span>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </div>
+
                     <button onClick={clearCanvas} className="w-full flex items-center justify-center gap-2 text-xs bg-red-900/20 hover:bg-red-900/30 border border-red-700/40 text-red-300 rounded px-3 py-2">
                         <Trash2 size={14}/> Clear canvas
                     </button>
@@ -627,6 +784,13 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                         onPointerMove={handlePointerMove}
                     >
                         {!refOnion && <div className="absolute inset-0 pointer-events-none" style={refStyle}></div>}
+                        
+                        {category === 'cosmetics' && showCosmeticGuide && (
+                            <div className="absolute inset-0 pointer-events-none opacity-[0.25] [&>div]:!w-full [&>div]:!h-full [&_canvas]:!w-full [&_canvas]:!h-full">
+                                <ModernPixelAvatar type={cosmeticClass} scale={1} />
+                            </div>
+                        )}
+
                         <canvas
                             ref={canvasRef}
                             width={GRID_SIZE}
@@ -695,6 +859,47 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                         >
                             {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                         </select>
+
+                        {category === 'cosmetics' && (
+                            <div className="mt-3 space-y-2 p-3 bg-black/40 border border-white/10 rounded-xl">
+                                <div>
+                                    <label className="block text-xs text-rpg-gold mb-1">Target Class</label>
+                                    <select
+                                        value={cosmeticClass}
+                                        onChange={(e) => setCosmeticClass(e.target.value)}
+                                        className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm focus:border-rpg-gold focus:outline-none"
+                                    >
+                                        <option value="warrior">Warrior</option>
+                                        <option value="mage">Mage</option>
+                                        <option value="rogue">Rogue</option>
+                                        <option value="ranger">Ranger</option>
+                                        <option value="cleric">Cleric</option>
+                                        <option value="paladin">Paladin</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-rpg-gold mb-1">Equipment Slot</label>
+                                    <select
+                                        value={cosmeticSlot}
+                                        onChange={(e) => setCosmeticSlot(e.target.value)}
+                                        className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm focus:border-rpg-gold focus:outline-none"
+                                    >
+                                        <option value="head">Cabeza (Cascos, sombreros)</option>
+                                        <option value="torso">Torso (Armaduras, camisas)</option>
+                                        <option value="legs">Piernas (Pantalones, botas)</option>
+                                        <option value="weapon">Arma principal</option>
+                                        <option value="shield">Escudo / Secundario</option>
+                                        <option value="accessory">Accesorio</option>
+                                    </select>
+                                </div>
+                                <button 
+                                    onClick={() => setShowCosmeticGuide(p => !p)} 
+                                    className={`w-full text-xs border rounded px-2 py-1.5 flex items-center justify-center transition-colors ${showCosmeticGuide ? 'bg-rpg-gold/20 border-rpg-gold/40 text-rpg-gold' : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'}`}
+                                >
+                                    {showCosmeticGuide ? 'Ocultar guía del personaje' : 'Mostrar guía del personaje'}
+                                </button>
+                            </div>
+                        )}
 
                         <label className="block text-xs text-gray-400 mb-1 mt-3">Bazaar price</label>
                         <div className="flex items-center gap-2">

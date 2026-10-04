@@ -90,7 +90,7 @@ const MobileJoystick = ({ onMove, onStop }) => {
 
     return (
         <div 
-            className="fixed bottom-24 left-10 md:hidden z-50 select-none"
+            className="absolute bottom-5 left-5 md:hidden z-50 select-none"
             style={{ touchAction: 'none' }}
         >
             <div 

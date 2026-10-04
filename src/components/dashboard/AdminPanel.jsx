@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, UserPlus, Shield, ShieldOff, Search, Loader, Users as UsersIcon, Settings as SettingsIcon, Hammer, Palette, Lightbulb, Check, Library, FileText, Eye, Clock, Mail, Save, Send, ChevronDown, ChevronUp, BarChart3, Swords } from 'lucide-react';
+import { Trash2, UserPlus, Shield, ShieldOff, Search, Loader, Users as UsersIcon, Settings as SettingsIcon, Hammer, Palette, Lightbulb, Check, Library, FileText, Eye, EyeOff, Clock, Mail, Save, Send, ChevronDown, ChevronUp, BarChart3, Swords } from 'lucide-react';
 import PixelIcon from '../common/PixelIcon';
 import AdminWorldTools from './AdminWorldTools';
 import AssetManager from './AssetManager';
@@ -28,6 +28,7 @@ const AdminPanel = ({ currentUser }) => {
 
     // Settings & Waitlist
     const [allowRegistration, setAllowRegistration] = useState(false);
+    const [allowGuestMode, setAllowGuestMode] = useState(false);
     const [waitlist, setWaitlist] = useState([]);
     const [loadingWaitlist, setLoadingWaitlist] = useState(true);
 
@@ -46,7 +47,10 @@ const AdminPanel = ({ currentUser }) => {
         try {
             const res = await fetch(`api/admin.php?action=get_settings`, { method: 'POST', body: JSON.stringify({ admin_id: currentUser.id }) });
             const data = await res.json();
-            if (data.success) setAllowRegistration(data.allow_registration);
+            if (data.success) {
+                setAllowRegistration(data.allow_registration);
+                setAllowGuestMode(!!data.allow_guest_mode);
+            }
         } catch (e) { console.error("Error fetching settings"); }
     };
 
@@ -187,6 +191,27 @@ const AdminPanel = ({ currentUser }) => {
             if (data.success) setAllowRegistration(newStatus);
         } catch (e) {
             toast.error("Error toggling registration");
+        }
+    };
+
+    const toggleGuestMode = async () => {
+        const confirmMsg = allowGuestMode
+            ? "Disable guest mode? Visitors will need an account to enter."
+            : "Enable guest mode? Visitors can explore without registering.";
+
+        if (!await confirm({ title: allowGuestMode ? 'Disable Guest Mode?' : 'Enable Guest Mode?', message: confirmMsg, variant: 'warning', confirmText: allowGuestMode ? 'Disable' : 'Enable' })) return;
+
+        const newStatus = !allowGuestMode;
+        try {
+            const res = await fetch(`api/admin.php?action=toggle_guest_mode`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ admin_id: currentUser.id, allow_guest_mode: newStatus })
+            });
+            const data = await res.json();
+            if (data.success) setAllowGuestMode(newStatus);
+        } catch (e) {
+            toast.error("Error toggling guest mode");
         }
     };
 
@@ -644,6 +669,21 @@ const AdminPanel = ({ currentUser }) => {
                         >
                             {allowRegistration ? <ShieldOff size={18} /> : <Shield size={18} />}
                             {allowRegistration ? 'Close Registration' : 'Open Registration'}
+                        </button>
+                    </div>
+
+                    {/* Guest Mode */}
+                    <div className="glass-card p-6 border border-white/10 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h3 className="text-xl font-bold text-white mb-1">Guest Mode</h3>
+                            <p className="text-gray-400 text-sm">Let visitors explore without registering. They'll be prompted to sign up when saving progress.</p>
+                        </div>
+                        <button
+                            onClick={toggleGuestMode}
+                            className={`px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-sm transition-all flex items-center gap-2 ${allowGuestMode ? 'bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/50 hover:bg-green-500/30'}`}
+                        >
+                            {allowGuestMode ? <EyeOff size={18} /> : <Eye size={18} />}
+                            {allowGuestMode ? 'Disable Guest' : 'Enable Guest'}
                         </button>
                     </div>
 

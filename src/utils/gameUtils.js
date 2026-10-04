@@ -43,8 +43,8 @@ export const BADGE_DEFS = [
     { id: 'login_streak_100', name: 'Devoted',       desc: '100-day login streak', tier: 'gold',  icon: 'bell' },
 
     // ─── Collection ───
-    { id: 'pets_1',  name: 'Pet Friend',           desc: 'Adopt your first pet', tier: 'bronze', icon: 'heart' },
-    { id: 'pets_5',  name: 'Beast Master',          desc: 'Adopt 5 pets',        tier: 'silver', icon: 'heart' },
+    { id: 'pets_1',  name: 'Pet Friend',           desc: 'Adopt your first pet', tier: 'bronze', icon: 'paw' },
+    { id: 'pets_5',  name: 'Beast Master',          desc: 'Adopt 5 pets',        tier: 'silver', icon: 'paw' },
     { id: 'items_25', name: 'Collector',            desc: 'Own 25 items at once', tier: 'silver', icon: 'box' },
     { id: 'items_50', name: 'Vault Keeper',         desc: 'Own 50 items at once', tier: 'gold',   icon: 'box' },
 
@@ -389,6 +389,31 @@ export const processRewardsAndLevelUp = (character, xpGain, goldGain, timeGain =
     return { newChar, levelUp, xpGained: adjustedXpGain, levelsGained: newLevel - startingLevel };
 };
 
+// Progress toward a badge, read from the same counters checkBadges uses.
+// Returns { current, target } or null for badges without a numeric target.
+const BADGE_COUNTERS = {
+    tasks: (c) => c.achievements?.tasks || 0,
+    hard_tasks: (c) => c.achievements?.hardTasks || 0,
+    habits: (c) => c.achievements?.habits || 0,
+    gold: (c) => c.achievements?.goldEarned || 0,
+    level: (c) => c.level || 1,
+    pomodoro: (c) => c.achievements?.pomodoros || 0,
+    focus_minutes: (c) => c.achievements?.focusMinutes || 0,
+    login_streak: (c) => c.loginStreak || 0,
+    pets: (c) => c.pets?.length || 0,
+    items: (c) => (c.inventory?.length || 0) + Object.values(c.equipment || {}).filter(Boolean).length,
+    missions_all: (c) => c.achievements?.dailyMissionsCompletedDays || 0,
+};
+
+export const getBadgeProgress = (badgeId, character) => {
+    const match = /^(.*)_(\d+)$/.exec(badgeId);
+    if (!match || !character) return null;
+    const counter = BADGE_COUNTERS[match[1]];
+    if (!counter) return null;
+    const target = Number(match[2]);
+    return { current: Math.min(counter(character), target), target };
+};
+
 export const checkBadges = (character) => {
     if (!character || !character.achievements) return { newChar: character, newBadges: [] };
 
@@ -448,4 +473,41 @@ export const checkBadges = (character) => {
         newChar: { ...character, unlockedBadges: unlocked },
         newBadges
     };
+};
+
+// Reward preview for a quest — mirrors the COMPLETE_TASK formula in taskReducer.
+export const estimateTaskRewards = (task, character) => {
+    if (!task || !character) return { xp: 0, gold: 0 };
+    const effStats = getEffectiveStats(character);
+    const intBonus = getStatBonus(effStats.int);
+    const chaBonus = getStatBonus(effStats.cha);
+    const petBonus = getPetMoodBonus(character);
+    const perks = getPetPerks(character);
+    const xpBase = task.recurrence === 'daily' ? 20 : 15;
+    const streakMult = (task.recurrence && task.recurrence !== 'none' && task.streakCount > 0)
+        ? 1 + Math.min(task.streakCount, 30) * 0.02
+        : 1;
+    const xp = Math.floor(task.difficulty * xpBase * intBonus * petBonus * (1 + perks.xpMult) * streakMult);
+    const gold = Math.floor(task.difficulty * 5 * chaBonus * (1 + perks.goldMult) * streakMult);
+    return { xp, gold };
+};
+
+// Attribute points a quest grants (applyAttributeGain: hard quests give +2).
+export const taskAttributeGain = (task) => (task?.difficulty >= 3 ? 2 : 1);
+
+const DAY_MS = 86400000;
+const localDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+// Human due-date label. `tone`: 'overdue' | 'today' | 'soon' | 'later'.
+export const getDueInfo = (dueDate, now = new Date()) => {
+    if (!dueDate) return null;
+    const [y, m, d] = dueDate.split('-').map(Number);
+    if (!y || !m || !d) return null;
+    const diff = Math.round((localDay(new Date(y, m - 1, d)) - localDay(now)) / DAY_MS);
+    if (diff < 0) return { tone: 'overdue', label: diff === -1 ? 'Overdue · yesterday' : `Overdue · ${-diff} days` };
+    if (diff === 0) return { tone: 'today', label: 'Today' };
+    if (diff === 1) return { tone: 'soon', label: 'Tomorrow' };
+    const date = new Date(y, m - 1, d);
+    if (diff < 7) return { tone: 'soon', label: date.toLocaleDateString('en-US', { weekday: 'long' }) };
+    return { tone: 'later', label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) };
 };

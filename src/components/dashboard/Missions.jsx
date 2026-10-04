@@ -6,6 +6,7 @@ import TaskForm from './TaskForm';
 import PixelIcon from '../common/PixelIcon';
 import { Modal } from '../common/Modal';
 import { useConfirm } from '../../context/ConfirmContext';
+import { estimateTaskRewards, taskAttributeGain } from '../../utils/gameUtils';
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 const startOfDay = (d) => {
@@ -47,8 +48,8 @@ const COLUMNS = [
 // ─── Mission card ────────────────────────────────────────────────────────────
 const MissionCard = memo(function MissionCard({ task, onStart, onPause, onComplete, onEdit, onDelete }) {
     const isInProgress = task.status === 'in_progress';
-    const xpReward = task.difficulty === 3 ? 40 : 20;
-    const goldReward = task.difficulty === 3 ? 20 : 10;
+    const { state } = useGame();
+    const { xp: xpReward, gold: goldReward } = estimateTaskRewards(task, state.character);
     const overdue = isPast(task.dueDate);
     const isHard = task.difficulty === 3;
 
@@ -96,7 +97,7 @@ const MissionCard = memo(function MissionCard({ task, onStart, onPause, onComple
                 <span className="font-pixel text-rpg-gold leading-none">+{xpReward} XP</span>
                 <span className="font-pixel text-yellow-600/70 leading-none">+{goldReward} G</span>
                 {task.attribute && task.attribute !== 'none' && (
-                    <span className="uppercase tracking-widest text-blue-400 font-bold text-[9px]">+{task.attribute}</span>
+                    <span className="uppercase tracking-widest text-blue-400 font-bold text-[10px]">+{taskAttributeGain(task)} {task.attribute}</span>
                 )}
                 {isHard && (
                     <span className="uppercase tracking-widest text-red-400/80 font-bold text-[9px] ml-auto">Hard</span>
@@ -202,7 +203,7 @@ const Column = memo(function Column({ col, tasks, onStart, onPause, onComplete, 
                             <span className="text-[11px] uppercase tracking-widest">Drop here</span>
                         ) : (
                             <>
-                                <span className="text-[11px] text-gray-500 uppercase tracking-wider">No missions yet</span>
+                                <span className="text-[11px] text-gray-500 uppercase tracking-wider">No quests yet</span>
                                 <button
                                     onClick={onCreate}
                                     className="mt-1.5 text-[10px] text-rpg-gold/80 hover:text-rpg-gold font-bold uppercase tracking-widest transition-colors"
@@ -240,7 +241,7 @@ const DoneDrawer = ({ open, onClose, doneTasks }) => (
                     <div className="p-6 border-b border-white/5 flex items-center justify-between">
                         <div>
                             <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">Archive</div>
-                            <h2 className="font-heading font-bold text-xl text-white">Completed missions</h2>
+                            <h2 className="font-heading font-bold text-xl text-white">Completed quests</h2>
                         </div>
                         <button
                             onClick={onClose}
@@ -251,7 +252,7 @@ const DoneDrawer = ({ open, onClose, doneTasks }) => (
                     </div>
                     <div className="flex-1 overflow-y-auto p-6 space-y-2">
                         {doneTasks.length === 0 ? (
-                            <div className="text-center text-sm text-gray-500 py-12">No completed missions yet.</div>
+                            <div className="text-center text-sm text-gray-500 py-12">No completed quests yet.</div>
                         ) : (
                             doneTasks.map((task, idx) => (
                                 <div key={`${task.id}-${idx}`} className="bg-rpg-panel/50 border border-white/5 rounded-lg p-3 opacity-70 hover:opacity-100 transition-opacity">
@@ -352,8 +353,8 @@ const Missions = () => {
             {/* Header */}
             <header className="flex items-center gap-6 pb-6 flex-wrap">
                 <div>
-                    <div className="text-[10px] uppercase tracking-[0.3em] text-rpg-gold font-heading font-bold mb-1">— Board</div>
-                    <h1 className="font-heading font-bold text-2xl md:text-3xl text-white">Missions</h1>
+                    <div className="text-[10px] uppercase tracking-[0.3em] text-gray-400 font-bold mb-1.5">Board</div>
+                    <h1 className="font-herald text-3xl md:text-4xl leading-none text-rpg-gold">Quests</h1>
                 </div>
 
                 {/* Filter pills */}
@@ -395,7 +396,7 @@ const Missions = () => {
                         onClick={() => { setEditingTask(null); setIsCreating(true); }}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rpg-gold text-rpg-panel hover:bg-yellow-400 text-[11px] font-heading font-bold uppercase tracking-widest transition-colors cursor-pointer shadow-[0_4px_0_rgba(139,92,15,0.6)] active:translate-y-[2px] active:shadow-[0_2px_0_rgba(139,92,15,0.6)]"
                     >
-                        <Plus size={14} strokeWidth={3} /> New mission
+                        <Plus size={14} strokeWidth={3} /> New quest
                     </button>
                 </div>
             </header>

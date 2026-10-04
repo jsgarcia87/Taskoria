@@ -1,227 +1,13 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useGame } from '../../context/GameContext';
 import EnemySprite from '../common/EnemySprite';
 import PixelIcon from '../common/PixelIcon';
 import ProjectModal from './ProjectModal';
 import { NoThreats } from '../common/PixelEmpty';
 import { useConfirm } from '../../context/ConfirmContext';
-import { bosses, DUNGEON_ZONES } from '../../data/bestiary';
-
-const ZONE_FRAME = {
-    crypt:         { bg: '#1e1228', accent: '#8050a0', glow: 'rgba(128,80,160,0.25)' },
-    cavern:        { bg: '#181510', accent: '#8a7860', glow: 'rgba(138,120,96,0.25)' },
-    elvenRuins:    { bg: '#0c180c', accent: '#40c870', glow: 'rgba(64,200,112,0.20)' },
-    dwarfFortress: { bg: '#181410', accent: '#c0a040', glow: 'rgba(192,160,64,0.25)' },
-    chaosTemple:   { bg: '#180808', accent: '#d03020', glow: 'rgba(208,48,32,0.30)' },
-    dragonLair:    { bg: '#1a0a04', accent: '#e06000', glow: 'rgba(224,96,0,0.30)' },
-    sewer:         { bg: '#101408', accent: '#506830', glow: 'rgba(80,104,48,0.20)' },
-};
-const GOLD = '#c9a84c';
-const GOLD_DIM = '#8a7030';
-
-const DangerPips = ({ label }) => {
-    const count = label === 'CATACLYSMIC' ? 4 : label === 'ABERRANT' ? 3 : 2;
-    return (
-        <div className="flex items-center gap-0.5">
-            {Array.from({ length: count }).map((_, i) => (
-                <div
-                    key={i}
-                    className="w-[18px] h-[18px] rounded-full border flex items-center justify-center text-[10px]"
-                    style={{ borderColor: GOLD_DIM, background: 'rgba(0,0,0,0.5)', color: GOLD }}
-                >
-                    ☠
-                </div>
-            ))}
-        </div>
-    );
-};
-
-const Pinline = () => (
-    <div className="w-full h-[1px] flex-shrink-0" style={{ background: `linear-gradient(90deg, transparent 0%, ${GOLD_DIM} 15%, ${GOLD} 50%, ${GOLD_DIM} 85%, transparent 100%)` }} />
-);
-
-const CardFront = ({ creatureData, zf, tierLabel }) => (
-    <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden' }}>
-        {/* Outer black border */}
-        <div className="absolute inset-0 rounded-[14px] bg-black" />
-
-        {/* Zone-colored frame */}
-        <div
-            className="absolute rounded-[10px]"
-            style={{
-                inset: '5px',
-                background: `linear-gradient(160deg, ${zf.accent}40 0%, ${zf.bg} 30%, ${zf.bg} 70%, ${zf.accent}30 100%)`,
-            }}
-        />
-
-        {/* Inner card content */}
-        <div className="absolute rounded-[7px] flex flex-col overflow-hidden" style={{ inset: '9px' }}>
-            {/* NAME BAR */}
-            <div
-                className="flex items-center justify-between px-3 py-1.5 flex-shrink-0"
-                style={{ background: 'linear-gradient(180deg, #2a2218 0%, #1a1610 100%)', borderBottom: `1px solid ${GOLD_DIM}` }}
-            >
-                <h3 className="font-heading font-black text-sm tracking-wide leading-tight truncate mr-2" style={{ color: '#e8dcc8' }}>
-                    {creatureData.name}
-                </h3>
-                <DangerPips label={creatureData.dangerLabel} />
-            </div>
-
-            <Pinline />
-
-            {/* ART BOX */}
-            <div
-                className="relative flex-[5] flex items-center justify-center overflow-hidden"
-                style={{ background: `radial-gradient(ellipse at center, ${zf.accent}18 0%, ${zf.bg} 70%, #000 100%)` }}
-            >
-                <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 55%, ${zf.glow} 0%, transparent 60%)` }} />
-                <div className="absolute bottom-[8%] left-1/2 -translate-x-1/2 w-3/5 h-[6%] rounded-full pointer-events-none" style={{ background: 'radial-gradient(ellipse, rgba(0,0,0,0.5) 0%, transparent 70%)' }} />
-                <div className="relative z-10" style={{ filter: `drop-shadow(0 4px 20px ${zf.glow})` }}>
-                    <EnemySprite blueprintKey={creatureData.spriteRef} scale={4} />
-                </div>
-                <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: 'inset 0 0 40px rgba(0,0,0,0.6)' }} />
-            </div>
-
-            <Pinline />
-
-            {/* TYPE LINE */}
-            <div
-                className="flex items-center justify-between px-3 py-1 flex-shrink-0"
-                style={{ background: 'linear-gradient(180deg, #221e14 0%, #181510 100%)', borderTop: `1px solid ${GOLD_DIM}40`, borderBottom: `1px solid ${GOLD_DIM}40` }}
-            >
-                <span className="text-[11px] font-bold tracking-wide" style={{ color: '#c0b490' }}>{tierLabel}</span>
-                <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: zf.accent }}>{creatureData.dangerLabel}</span>
-            </div>
-
-            <Pinline />
-
-            {/* TEXT BOX */}
-            <div className="flex-[3] flex flex-col px-3 py-2 overflow-y-auto custom-scrollbar gap-2" style={{ background: 'linear-gradient(180deg, #14120e 0%, #0e0c0a 100%)' }}>
-                {creatureData.mechanic && (
-                    <p className="text-[12px] leading-relaxed" style={{ color: '#c0b898' }}>{creatureData.mechanic}</p>
-                )}
-                {creatureData.mechanic && creatureData.lore && (
-                    <div className="w-full flex items-center gap-2 py-0.5">
-                        <div className="flex-1 h-[1px]" style={{ background: `${GOLD_DIM}40` }} />
-                    </div>
-                )}
-                {creatureData.lore && (
-                    <p className="text-[11px] leading-relaxed italic" style={{ color: '#908870' }}>"{creatureData.lore}"</p>
-                )}
-                {creatureData.title && (
-                    <p className="text-[10px] text-right" style={{ color: '#605840' }}>— {creatureData.title}</p>
-                )}
-            </div>
-
-            <Pinline />
-
-            {/* BOTTOM BAR */}
-            <div
-                className="flex items-center justify-between px-3 py-1.5 flex-shrink-0"
-                style={{ background: 'linear-gradient(180deg, #1a1610 0%, #0e0c08 100%)', borderTop: `1px solid ${GOLD_DIM}40` }}
-            >
-                <div className="flex items-center gap-3 text-[10px] font-bold tracking-wider">
-                    {creatureData.reward && (
-                        <>
-                            <span style={{ color: '#a08040' }}>
-                                <span className="uppercase" style={{ color: '#706040' }}>Bounty </span>
-                                {creatureData.reward.xp} XP
-                            </span>
-                            <span style={{ color: GOLD }}>{creatureData.reward.gold} Gold</span>
-                        </>
-                    )}
-                </div>
-                <div
-                    className="flex items-center justify-center px-3 py-1 rounded-sm font-pixel text-sm font-bold"
-                    style={{ background: 'linear-gradient(135deg, #2a2218 0%, #1a1610 100%)', border: `1.5px solid ${GOLD_DIM}`, color: '#e8dcc8', minWidth: '52px' }}
-                >
-                    {creatureData.hp.toLocaleString()}
-                </div>
-            </div>
-        </div>
-    </div>
-);
-
-const CardBack = () => (
-    <div
-        className="absolute inset-0 rounded-[14px] flex items-center justify-center overflow-hidden"
-        style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: '#342c3e' }}
-    >
-        {/* Gold border inset */}
-        <div
-            className="absolute rounded-[10px] pointer-events-none"
-            style={{ inset: '5px', border: `2px solid ${GOLD_DIM}`, background: 'transparent' }}
-        />
-
-        {/* Inner decorative border */}
-        <div className="absolute pointer-events-none" style={{ inset: '14px', border: `1px solid ${GOLD_DIM}40`, borderRadius: '6px' }} />
-
-        {/* Shield logo in gold */}
-        <img
-            src="/icono_taskoria_white.png"
-            alt=""
-            className="w-2/5"
-            style={{
-                imageRendering: 'pixelated',
-                filter: `drop-shadow(0 0 40px ${GOLD}40) sepia(1) saturate(3) hue-rotate(10deg) brightness(1.1)`,
-            }}
-        />
-    </div>
-);
-
-const BossInfoSheet = ({ creatureData, onClose }) => {
-    const [flipped, setFlipped] = useState(false);
-    const zone = creatureData.zone ? DUNGEON_ZONES[creatureData.zone] : null;
-    const zf = ZONE_FRAME[creatureData.zone] || ZONE_FRAME.chaosTemple;
-    const tierLabel = zone ? `Legendary Boss — ${zone.name}` : 'Legendary Boss';
-
-    return createPortal(
-        <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-3"
-            onClick={onClose}
-        >
-            <div className="absolute inset-0 bg-black/92 backdrop-blur-md" />
-
-            {/* 3D scene */}
-            <div
-                className="relative flex-shrink-0"
-                style={{ height: '88vh', aspectRatio: '3/4', maxWidth: '92vw', maxHeight: '780px', perspective: '1200px' }}
-                onClick={e => e.stopPropagation()}
-            >
-                {/* Flipper container */}
-                <div
-                    className="relative w-full h-full cursor-pointer"
-                    style={{
-                        transformStyle: 'preserve-3d',
-                        transition: 'transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
-                        transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-                    }}
-                    onClick={() => setFlipped(f => !f)}
-                >
-                    <CardFront creatureData={creatureData} zf={zf} tierLabel={tierLabel} />
-                    <CardBack />
-                </div>
-
-                {/* Close button — always visible, outside flip */}
-                <button
-                    onClick={e => { e.stopPropagation(); onClose(); }}
-                    className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-black border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-white/40 transition-colors z-20"
-                >
-                    ✕
-                </button>
-
-                {/* Flip hint on front */}
-                {!flipped && (
-                    <p className="absolute -bottom-6 left-0 right-0 text-center text-[10px] text-white/25 tracking-widest uppercase pointer-events-none">
-                        Tap card to flip
-                    </p>
-                )}
-            </div>
-        </div>,
-        document.body
-    );
-};
+import { bosses } from '../../data/bestiary';
+import CardViewer from '../cards/CardViewer';
+import { epicCardBase } from '../../utils/bossCards';
 
 const EpicBossCard = () => {
     const { state, actions } = useGame();
@@ -266,7 +52,6 @@ const EpicBossCard = () => {
         ? boss.spriteType
         : bosses[0]?.spriteRef;
     const hpPercent = (boss.currentHp / boss.maxHp) * 100;
-    const creatureData = bosses.find(b => b.spriteRef === epicSpriteRef);
 
     return (
         <div className="glass-panel rounded-3xl p-6 border-2 border-red-900/50 shadow-[0_0_30px_rgba(220,38,38,0.15)] relative overflow-hidden bg-[#130b14]/90 backdrop-blur-xl">
@@ -311,17 +96,19 @@ const EpicBossCard = () => {
                 <div className="flex-shrink-0 flex justify-center items-center">
                     <div
                         className="w-28 h-28 bg-black/60 rounded-2xl border-2 border-red-900/40 shadow-inner flex items-center justify-center relative group overflow-hidden cursor-pointer active:scale-95 transition-transform"
-                        onClick={() => creatureData && setShowBossInfo(true)}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`View the ${boss.title} card`}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowBossInfo(true); } }}
+                        onClick={() => setShowBossInfo(true)}
                     >
                         <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
                         <div style={{ filter: 'drop-shadow(0 0 8px rgba(239,68,68,0.2))' }}>
                             <EnemySprite blueprintKey={epicSpriteRef} scale={1.5} />
                         </div>
-                        {creatureData && (
-                            <div className="absolute bottom-1 right-1 text-white/20 group-hover:text-white/40 transition-colors">
-                                <PixelIcon name="book" size={10} />
-                            </div>
-                        )}
+                        <div className="absolute bottom-1 right-1 text-white/30 group-hover:text-white/60 transition-colors">
+                            <PixelIcon name="cards" size={11} />
+                        </div>
                     </div>
                 </div>
 
@@ -397,8 +184,13 @@ const EpicBossCard = () => {
             )}
 
             {/* Boss Info Sheet Modal */}
-            {showBossInfo && creatureData && (
-                <BossInfoSheet creatureData={creatureData} onClose={() => setShowBossInfo(false)} />
+            {showBossInfo && (
+                <CardViewer
+                    card={epicCardBase(boss)}
+                    locked
+                    progress={{ hp: boss.currentHp, maxHp: boss.maxHp }}
+                    onClose={() => setShowBossInfo(false)}
+                />
             )}
         </div>
     );

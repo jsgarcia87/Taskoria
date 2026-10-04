@@ -1,15 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Sword, User, Loader2 } from 'lucide-react';
+import { Shield, Sword, User, Loader2, Mail, Lock, UserCheck, Eye } from 'lucide-react';
 
 const API_BASE = 'api'; // Relative path assuming dist is at root along with api folder
 
-const Auth = ({ onLogin }) => {
-    const [isLogin, setIsLogin] = useState(true);
+const TRUST_SEALS = [
+    {
+        icon: Mail,
+        title: 'Cero Spam',
+        desc: 'Tu email solo se usa para guardar tu partida e hitos.',
+    },
+    {
+        icon: Lock,
+        title: 'Datos Seguros',
+        desc: 'No compartimos tu info con terceros. Nunca.',
+    },
+    {
+        icon: UserCheck,
+        title: 'Control Total',
+        desc: 'Borra tu cuenta y todos tus datos con 1 clic.',
+    },
+];
+
+const Auth = ({ onLogin, defaultRegister }) => {
+    const [isLogin, setIsLogin] = useState(!defaultRegister);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [allowRegistration, setAllowRegistration] = useState(true);
+    const [allowGuestMode, setAllowGuestMode] = useState(false);
 
     useEffect(() => {
         const checkSettings = async () => {
@@ -18,6 +37,7 @@ const Auth = ({ onLogin }) => {
                 const data = await res.json();
                 if (data && data.success) {
                     setAllowRegistration(data.allow_registration);
+                    setAllowGuestMode(!!data.allow_guest_mode);
                 }
             } catch (err) {
                 console.error("Failed to check settings", err);
@@ -63,6 +83,14 @@ const Auth = ({ onLogin }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleGuestLogin = () => {
+        onLogin({
+            id: 'guest',
+            username: 'Adventurer',
+            is_guest: true,
+        });
     };
 
     return (
@@ -142,14 +170,51 @@ const Auth = ({ onLogin }) => {
                     </button>
                 </form>
 
+                {/* Trust Seals — visible on register view */}
+                {!isLogin && (
+                    <div className="mt-6 space-y-2.5 animate-in fade-in slide-in-from-bottom-3 duration-500 relative z-10">
+                        {TRUST_SEALS.map(({ icon: Icon, title, desc }) => (
+                            <div key={title} className="flex items-start gap-3 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.04]">
+                                <div className="mt-0.5 shrink-0 w-7 h-7 rounded-md bg-rpg-gold/10 flex items-center justify-center">
+                                    <Icon size={14} className="text-rpg-gold/70" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-bold text-white/80 uppercase tracking-wider leading-tight">{title}</p>
+                                    <p className="text-[10px] text-gray-500 leading-snug mt-0.5">{desc}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Login / Register toggle */}
                 {allowRegistration && (
-                    <div className="mt-8 text-center relative z-10">
+                    <div className="mt-6 text-center relative z-10">
                         <button
                             onClick={() => { setIsLogin(!isLogin); setError(''); }}
                             className="text-gray-400 text-xs hover:text-white transition-colors uppercase tracking-wider font-bold"
                         >
                             {isLogin ? "Need a character? Register" : "Already have a hero? Login"}
                         </button>
+                    </div>
+                )}
+
+                {/* Guest Mode — admin-controlled */}
+                {allowGuestMode && isLogin && (
+                    <div className="mt-4 text-center relative z-10 animate-in fade-in duration-300">
+                        <div className="flex items-center gap-3 my-3">
+                            <div className="flex-1 h-px bg-white/10"></div>
+                            <span className="text-[10px] text-gray-600 uppercase tracking-widest">or</span>
+                            <div className="flex-1 h-px bg-white/10"></div>
+                        </div>
+                        <button
+                            onClick={handleGuestLogin}
+                            className="w-full py-3 px-4 rounded-xl bg-white/[0.04] border border-white/10 text-gray-400 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all flex items-center justify-center gap-2 group"
+                        >
+                            <Eye size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+                            Explore as Guest
+                        </button>
+                        <p className="text-[9px] text-gray-600 mt-2">Try the realm first — register anytime to save progress.</p>
                     </div>
                 )}
             </div>

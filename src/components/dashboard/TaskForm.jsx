@@ -63,11 +63,11 @@ const TaskForm = ({ onClose, initialData = null }) => {
     return (
         <div className="w-full max-w-md mx-auto glass-panel p-6 shadow-2xl ring-1 ring-white/10 animate-in fade-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-heading font-bold text-rpg-gold flex items-center gap-2">
-                    {initialData ? 'EDIT QUEST' : 'CREATE QUEST'}
+                <h3 className="font-herald text-2xl leading-none text-rpg-gold">
+                    {initialData ? 'Edit quest' : 'New quest'}
                 </h3>
                 {onClose && (
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+                    <button onClick={onClose} aria-label="Close" className="w-9 h-9 -mr-2 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
                         ✕
                     </button>
                 )}
@@ -75,7 +75,7 @@ const TaskForm = ({ onClose, initialData = null }) => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Quest Title</label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Quest</label>
                     <input
                         type="text"
                         value={title}
@@ -107,14 +107,14 @@ const TaskForm = ({ onClose, initialData = null }) => {
                             className="w-full bg-black/40 border border-white/10 rounded-xl text-white px-4 py-3 text-sm focus:border-rpg-gold/50 outline-none font-sans cursor-pointer hover:bg-white/5 transition-colors appearance-none"
                         >
                             <option value={TASK_DIFFICULTY.NORMAL}>Normal</option>
-                            <option value={TASK_DIFFICULTY.HARD}>Hard (x2 XP)</option>
+                            <option value={TASK_DIFFICULTY.HARD}>Hard (×3 rewards)</option>
                         </select>
                     </div>
                 </div>
 
                 {!initialData && familyData && familyData.profiles && familyData.profiles.length > 1 && (
                     <div>
-                        <label className="block text-xs font-bold text-rpg-gold uppercase tracking-wider mb-2 flex items-center gap-1">📜 Assign Bounty To (Optional)</label>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Assign to</label>
                         <select
                             value={assigneeId}
                             onChange={(e) => setAssigneeId(e.target.value)}
@@ -130,7 +130,7 @@ const TaskForm = ({ onClose, initialData = null }) => {
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Deadline (Optional)</label>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Due date</label>
                         <input
                             type="date"
                             value={dueDate}
@@ -139,29 +139,32 @@ const TaskForm = ({ onClose, initialData = null }) => {
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">✨ Linked Stat</label>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Trains</label>
                         <select
                             value={attribute}
                             onChange={(e) => setAttribute(e.target.value)}
-                            className="w-full bg-black/40 border border-rpg-gold/30 rounded-xl text-yellow-300 px-4 py-3 text-sm focus:border-rpg-gold hover:bg-white/5 outline-none font-sans cursor-pointer transition-colors appearance-none"
+                            className="w-full bg-black/40 border border-white/10 rounded-xl text-white px-4 py-3 text-sm focus:border-rpg-gold/50 hover:bg-white/5 outline-none font-sans cursor-pointer transition-colors appearance-none"
                         >
-                            <option value="none">None</option>
-                            <option value="str">+1 STR (Strength)</option>
-                            <option value="int">+1 INT (Intelligence)</option>
-                            <option value="dex">+1 DEX (Dexterity)</option>
-                            <option value="con">+1 CON (Constitution)</option>
-                            <option value="cha">+1 CHA (Charisma)</option>
-                            <option value="will">+1 WILL (Willpower)</option>
+                            <option value="none">No attribute</option>
+                            <option value="str">Strength</option>
+                            <option value="int">Intelligence</option>
+                            <option value="dex">Dexterity</option>
+                            <option value="con">Constitution</option>
+                            <option value="cha">Charisma</option>
+                            <option value="will">Willpower</option>
                         </select>
+                        {attribute !== 'none' && (
+                            <p className="mt-1.5 text-[11px] text-gray-500">+{difficulty === TASK_DIFFICULTY.HARD ? 2 : 1} {attribute.toUpperCase()} when completed</p>
+                        )}
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Extra Info / Checklist</label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Notes</label>
                     <textarea
                         value={extraInfo}
                         onChange={(e) => setExtraInfo(e.target.value)}
-                        placeholder="Add sub-tasks, notes, or a checklist here..."
+                        placeholder="Sub-tasks, links or details (optional)"
                         className="w-full bg-black/40 border border-white/10 rounded-xl text-white px-4 py-3 text-sm focus:border-rpg-gold/50 focus:ring-1 focus:ring-rpg-gold/50 outline-none font-sans placeholder:text-gray-600 transition-all min-h-[100px] resize-y"
                     />
                 </div>
@@ -171,16 +174,16 @@ const TaskForm = ({ onClose, initialData = null }) => {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 px-4 py-3 text-sm text-gray-400 hover:text-white font-bold transition-colors bg-white/5 hover:bg-white/10 rounded-xl"
+                            className="px-5 py-3 text-sm text-gray-300 hover:text-white font-semibold transition-colors rounded-xl hover:bg-white/5"
                         >
-                            CANCEL
+                            Cancel
                         </button>
                     )}
                     <PressButton
                         type="submit"
-                        className="flex-1 px-4 py-3 text-sm bg-rpg-green text-black font-bold rounded-xl hover:bg-green-400 shadow-[0_0_15px_rgba(45,204,112,0.4)] transition-colors uppercase tracking-wider"
+                        className="flex-1 px-4 py-3 text-sm bg-rpg-gold text-rpg-bg font-bold rounded-xl hover:brightness-105 transition-[filter] whitespace-nowrap"
                     >
-                        {initialData ? 'SAVE CHANGES' : 'ACCEPT QUEST'}
+                        {initialData ? 'Save changes' : 'Add quest'}
                     </PressButton>
                 </div>
             </form>

@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useRef } from 'react';
 
 const IDLE_QUOTES = [
     "What are you waiting for?",
     "I'm falling asleep...",
     "Let's do some quests!",
     "I'm bored...",
-    "My sword needs action.",
     "Shall we keep working?"
 ];
 
@@ -18,80 +16,78 @@ const GREETING_QUOTES = [
     "Welcome back!"
 ];
 
-const AvatarSpeechBubble = ({ children, customQuotes = [], idleTimeMs = 30000 }) => {
+const POKE_QUOTES = ["Hey!", "What's up?", "Leave me alone...", "Equip me well!"];
+
+const GREETED_KEY = 'taskoria_avatar_greeted';
+
+const INK = '#342c3e';
+const GOLD = '#fedf8c';
+
+// Stepped pixel border: four 2px offsets leave the corners notched.
+const PIXEL_FRAME = `0 -2px 0 0 ${GOLD}, 0 2px 0 0 ${GOLD}, -2px 0 0 0 ${GOLD}, 2px 0 0 0 ${GOLD}, 4px 4px 0 0 rgba(0,0,0,0.35)`;
+
+const PixelTail = () => (
+    <svg
+        width="8" height="12" viewBox="0 0 4 6" shapeRendering="crispEdges"
+        className="absolute -left-[8px] top-[10px]" style={{ imageRendering: 'pixelated' }}
+        aria-hidden="true"
+    >
+        <rect x="3" y="0" width="1" height="1" fill={GOLD} />
+        <rect x="2" y="1" width="1" height="1" fill={GOLD} />
+        <rect x="3" y="1" width="1" height="1" fill={INK} />
+        <rect x="1" y="2" width="1" height="2" fill={GOLD} />
+        <rect x="2" y="2" width="2" height="2" fill={INK} />
+        <rect x="2" y="4" width="1" height="1" fill={GOLD} />
+        <rect x="3" y="4" width="1" height="1" fill={INK} />
+        <rect x="3" y="5" width="1" height="1" fill={GOLD} />
+    </svg>
+);
+
+/**
+ * Dialog box beside the hero's head. Rendered inside the anchor (no portal),
+ * so it moves, fades and clips with the stage. `bubbleStyle` places it.
+ */
+const AvatarSpeechBubble = ({ children, customQuotes = [], idleTimeMs = 30000, bubbleStyle }) => {
     const [currentQuote, setCurrentQuote] = useState('');
     const [isVisible, setIsVisible] = useState(false);
-    const [anchorRect, setAnchorRect] = useState(null);
     const idleTimerRef = useRef(null);
     const hideTimerRef = useRef(null);
-    const anchorRef = useRef(null);
 
     const idlePool = customQuotes.length > 0 ? customQuotes : IDLE_QUOTES;
 
-    const updateAnchorRect = () => {
-        if (anchorRef.current) {
-            const rect = anchorRef.current.getBoundingClientRect();
-            if (rect.width > 0 || rect.height > 0) {
-                setAnchorRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
-            }
-        }
-    };
-
     const showQuote = (quoteText, duration = 4000) => {
-        updateAnchorRect();
         setCurrentQuote(quoteText);
         setIsVisible(true);
-
         if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-        hideTimerRef.current = setTimeout(() => {
-            setIsVisible(false);
-        }, duration);
+        hideTimerRef.current = setTimeout(() => setIsVisible(false), duration);
     };
 
     const resetIdleTimer = () => {
         if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
         idleTimerRef.current = setTimeout(() => {
-            const randomQuote = idlePool[Math.floor(Math.random() * idlePool.length)];
-            showQuote(randomQuote, 5000);
+            showQuote(idlePool[Math.floor(Math.random() * idlePool.length)], 5000);
         }, idleTimeMs);
     };
 
-    // Measure as soon as the DOM is committed
-    useLayoutEffect(() => {
-        updateAnchorRect();
-        // Re-measure after fonts/sprites settle
-        const t1 = setTimeout(updateAnchorRect, 100);
-        const t2 = setTimeout(updateAnchorRect, 500);
-        return () => { clearTimeout(t1); clearTimeout(t2); };
-    }, []);
-
     useEffect(() => {
-        // Initial greeting
-        const greetTimer = setTimeout(() => {
-            const randomGreeting = GREETING_QUOTES[Math.floor(Math.random() * GREETING_QUOTES.length)];
-            showQuote(randomGreeting, 3000);
-        }, 800);
-
-        const events = ['mousemove', 'keydown', 'click'];
-        events.forEach(event => window.addEventListener(event, resetIdleTimer));
-        window.addEventListener('resize', updateAnchorRect);
-        window.addEventListener('scroll', updateAnchorRect, true);
-
-        // Observe anchor size changes (sprite finishes loading, layout shifts)
-        let ro;
-        if (anchorRef.current && typeof ResizeObserver !== 'undefined') {
-            ro = new ResizeObserver(updateAnchorRect);
-            ro.observe(anchorRef.current);
+        // Greet once per browser session, not on every visit to the profile.
+        let greetTimer;
+        let alreadyGreeted = false;
+        try { alreadyGreeted = sessionStorage.getItem(GREETED_KEY) === '1'; } catch (e) { /* storage blocked */ }
+        if (!alreadyGreeted) {
+            greetTimer = setTimeout(() => {
+                showQuote(GREETING_QUOTES[Math.floor(Math.random() * GREETING_QUOTES.length)], 3000);
+                try { sessionStorage.setItem(GREETED_KEY, '1'); } catch (e) { /* storage blocked */ }
+            }, 900);
         }
 
+        const events = ['mousemove', 'keydown', 'click', 'touchstart'];
+        events.forEach(event => window.addEventListener(event, resetIdleTimer, { passive: true }));
         resetIdleTimer();
 
         return () => {
             clearTimeout(greetTimer);
             events.forEach(event => window.removeEventListener(event, resetIdleTimer));
-            window.removeEventListener('resize', updateAnchorRect);
-            window.removeEventListener('scroll', updateAnchorRect, true);
-            if (ro) ro.disconnect();
             if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
             if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
         };
@@ -99,37 +95,28 @@ const AvatarSpeechBubble = ({ children, customQuotes = [], idleTimeMs = 30000 })
 
     const handleManualPoke = (e) => {
         e?.stopPropagation?.();
-        const pokeQuotes = ["Hey!", "What's up?", "Leave me alone...", "Equip me well!"];
-        showQuote(pokeQuotes[Math.floor(Math.random() * pokeQuotes.length)]);
-    };
-
-    const bubbleStyle = {
-        position: 'fixed',
-        top: anchorRect ? anchorRect.top - 12 : -9999,
-        left: anchorRect ? anchorRect.left + anchorRect.width / 2 : -9999,
-        transform: 'translate(-50%, -100%)',
-        zIndex: 9999,
-        pointerEvents: 'none',
-        visibility: anchorRect ? 'visible' : 'hidden',
+        showQuote(POKE_QUOTES[Math.floor(Math.random() * POKE_QUOTES.length)]);
     };
 
     return (
-        <div ref={anchorRef} className="relative inline-block cursor-help" onClick={handleManualPoke}>
+        <div className="relative inline-block cursor-pointer" onClick={handleManualPoke}>
             {children}
-
-            {createPortal(
+            <div
+                role="status"
+                aria-live="polite"
+                className={`absolute z-20 pointer-events-none w-max max-w-[9.5rem] sm:max-w-[12rem] transition-[opacity,transform] duration-200 ease-out ${isVisible
+                    ? 'opacity-100 translate-y-0'
+                    : 'opacity-0 translate-y-1'}`}
+                style={bubbleStyle}
+            >
                 <div
-                    style={bubbleStyle}
-                    className={`w-max max-w-[200px] transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+                    className="relative px-3 py-2 text-xs font-medium leading-snug"
+                    style={{ backgroundColor: INK, color: '#f6eedb', boxShadow: PIXEL_FRAME }}
                 >
-                    <div className="relative bg-white text-black font-pixel text-[10px] sm:text-xs px-3 py-2 border-4 border-black border-dashed rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-center leading-snug">
-                        {currentQuote || ' '}
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-black"></div>
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-white -mt-[2px]"></div>
-                    </div>
-                </div>,
-                document.body
-            )}
+                    {currentQuote || ' '}
+                    <PixelTail />
+                </div>
+            </div>
         </div>
     );
 };

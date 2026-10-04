@@ -5,7 +5,7 @@ import { PeacefulRealm } from '../common/PixelEmpty';
 import TaskForm from './TaskForm';
 import Modal from '../common/Modal';
 import { useConfirm } from '../../context/ConfirmContext';
-import { getEffectiveStats, getStatBonus, getPetMoodBonus, getPetPerks } from '../../utils/gameUtils';
+import { estimateTaskRewards, getDueInfo } from '../../utils/gameUtils';
 
 // One display font stack (Outfit) for the wordmark, Inter for everything else,
 // VT323 pixel monospace kept only for numerals — matches the app's existing
@@ -17,6 +17,7 @@ const PARCHMENT = '#FDF6E3';
 const INK = '#3a2a15';
 const INK_MID = '#78350f';
 const INK_SEAL = '#b91c1c';
+const DUE_TONE = { overdue: INK_SEAL, today: '#b45309', soon: INK_MID, later: INK_MID };
 
 // Jagged SVG top/bottom edges so the panel reads as torn parchment
 const TornEdgeTop = () => (
@@ -37,24 +38,10 @@ const TornEdgeBottom = () => (
     </svg>
 );
 
-const estimateRewards = (task, character) => {
-    const effStats = getEffectiveStats(character);
-    const intBonus = getStatBonus(effStats.int);
-    const chaBonus = getStatBonus(effStats.cha);
-    const petBonus = getPetMoodBonus(character);
-    const perks = getPetPerks(character);
-    const xpBase = task.recurrence === 'daily' ? 20 : 15;
-    const streakMult = (task.recurrence && task.recurrence !== 'none' && task.streakCount > 0)
-        ? 1 + Math.min(task.streakCount, 30) * 0.02
-        : 1;
-    const xp = Math.floor(task.difficulty * xpBase * intBonus * petBonus * (1 + perks.xpMult) * streakMult);
-    const gold = Math.floor(task.difficulty * 5 * chaBonus * (1 + perks.goldMult) * streakMult);
-    return { xp, gold };
-};
-
 const QuestRow = ({ task, onComplete, onEdit, onDelete, character }) => {
     const [checked, setChecked] = React.useState(false);
-    const rewards = estimateRewards(task, character);
+    const rewards = estimateTaskRewards(task, character);
+    const due = getDueInfo(task.dueDate);
     const handleComplete = React.useCallback((e) => {
         setChecked(true);
         onComplete(task.id, e.clientX, e.clientY);
@@ -95,6 +82,14 @@ const QuestRow = ({ task, onComplete, onEdit, onDelete, character }) => {
                     HARD
                 </span>
             )}
+            {due && (
+                <span
+                    className="block mt-0.5 text-[11px] font-semibold"
+                    style={{ color: DUE_TONE[due.tone], opacity: due.tone === 'later' ? 0.6 : 1 }}
+                >
+                    {due.label}
+                </span>
+            )}
         </button>
         <div className="flex flex-col items-end">
             <span
@@ -111,7 +106,7 @@ const QuestRow = ({ task, onComplete, onEdit, onDelete, character }) => {
             </span>
             <button
                 onClick={() => onDelete(task.id)}
-                className="opacity-0 group-hover:opacity-70 hover:!opacity-100 text-[10px] font-bold uppercase tracking-wider text-[#b91c1c] mt-1 transition-opacity"
+                className="hidden [@media(hover:hover)]:block opacity-0 group-hover:opacity-70 focus-visible:opacity-100 hover:!opacity-100 text-[10px] font-bold uppercase tracking-wider text-[#b91c1c] mt-1 transition-opacity"
                 title="Delete quest"
             >
                 strike
@@ -213,8 +208,8 @@ const Questbook = () => {
                             {dayLabel}
                         </div>
                         <h3
-                            className="mt-1 font-heading font-extrabold uppercase leading-none"
-                            style={{ color: INK, fontSize: 20, letterSpacing: '-0.01em' }}
+                            className="mt-1 font-herald leading-none"
+                            style={{ color: INK, fontSize: 22, letterSpacing: '0.02em' }}
                         >
                             The Questbook
                         </h3>

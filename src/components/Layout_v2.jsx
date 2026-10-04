@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Menu, Bell, LogOut, Settings, HelpCircle, Shield, Cloud, CloudOff, RefreshCw, MessageSquare } from 'lucide-react'; // Retaining some small UI icons as vector for readability if needed, or we can replace all
 import PixelIcon from './common/PixelIcon';
+import ModernPixelAvatar from './common/ModernPixelAvatar';
+import { NAV_DESTINATIONS, isDestinationActive } from './common/navDestinations';
+import { CHARACTERS } from '../data/characters';
 import { NumberTicker } from './common/NumberTicker';
 import FeedbackButton from './common/FeedbackButton';
 import BottomNav from './common/BottomNav';
@@ -20,6 +23,7 @@ const Layout_v2 = ({
     onLogout,
     notificationCount = 0,
     unreadMessageCount = 0,
+    friendRequestCount = 0,
     overdueTasks = []
 }) => {
     const { state, syncStatus, activeProfileId } = useGame();
@@ -40,14 +44,7 @@ const Layout_v2 = ({
         return 'from-purple-900/40 via-indigo-900/10 to-transparent'; // Night
     };
 
-    const desktopNavItems = [
-        { id: 'home', label: 'Camp', icon: 'home' },
-        { id: 'missions', label: 'Missions', icon: 'scroll' },
-        { id: 'party', label: 'Town', icon: 'users' },
-        { id: 'diary', label: 'Diary', icon: 'book' },
-        { id: 'profile', label: 'Hero', icon: 'user' },
-        { id: 'creations', label: 'World', icon: 'trophy' },
-    ];
+    const desktopNavItems = [...NAV_DESTINATIONS];
 
     if (currentUser?.is_admin) {
         desktopNavItems.push({ id: 'admin', label: 'Admin', icon: 'shield' });
@@ -55,7 +52,7 @@ const Layout_v2 = ({
 
     // Spatial direction for view transitions — views have a conceptual
     // left-to-right order; navigating "right" slides content left and vice versa.
-    const VIEW_ORDER = { home: 0, tasks: 0, createTask: 0, missions: 0.5, party: 1, diary: 2, profile: 3, studio: 4, creations: 5, admin: 6 };
+    const VIEW_ORDER = { home: 0, tasks: 1, createTask: 1, createHabit: 1, party: 2, creations: 3, studio: 3, diary: 4, calendar: 4, profile: 5, admin: 6 };
     const prevViewRef = useRef(activeView);
     const directionRef = useRef(1);
     if (prevViewRef.current !== activeView) {
@@ -88,18 +85,21 @@ const Layout_v2 = ({
                 {/* --- DESKTOP / TABLET NAVIGATION — compact on tablet, generous on desktop --- */}
                 <nav className="hidden md:flex items-center gap-1 lg:gap-2 bg-white/5 p-1 lg:p-1.5 rounded-2xl border border-white/5 backdrop-blur-md shadow-glass overflow-x-auto scrollbar-hide shrink min-w-0">
                     {desktopNavItems.map(item => {
-                        const isActive = activeView === item.id;
+                        const isActive = isDestinationActive(item, activeView);
                         return (
                             <motion.button
                                 key={item.id}
                                 onClick={() => setActiveView(item.id)}
                                 whileTap={{ scale: 0.97 }}
                                 transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-                                className={`flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-5 py-2 lg:py-2.5 rounded-xl relative overflow-hidden transition-colors duration-200 shrink-0
+                                className={`flex items-center gap-1.5 lg:gap-2 px-2.5 2xl:px-4 py-2 2xl:py-2.5 rounded-xl relative overflow-hidden transition-colors duration-200 shrink-0
                 ${isActive
                                     ? 'text-rpg-gold'
                                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                                 }`}
+                                aria-label={item.label}
+                                aria-current={isActive ? 'page' : undefined}
+                                title={item.label}
                             >
                                 {/* Fondo activo — morfa entre tabs con layoutId */}
                                 {isActive && (
@@ -109,8 +109,13 @@ const Layout_v2 = ({
                                         transition={{ type: 'spring', stiffness: 320, damping: 34 }}
                                     />
                                 )}
-                                <PixelIcon name={item.icon} size={16} className={`relative z-10 ${isActive ? 'drop-shadow-glow' : ''}`} />
-                                <span className={`relative z-10 hidden lg:inline font-bold text-xs uppercase tracking-wider ${isActive ? 'text-rpg-gold' : ''}`}>
+                                <span className="relative z-10 flex">
+                                    <PixelIcon name={item.icon} size={16} className={isActive ? 'drop-shadow-glow' : ''} />
+                                    {item.id === 'party' && friendRequestCount > 0 && (
+                                        <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-[3px] rounded-full bg-rpg-gold text-rpg-bg text-[9px] font-bold flex items-center justify-center leading-none ring-2 ring-rpg-panelDark" aria-label={`${friendRequestCount} party requests`}>{friendRequestCount}</span>
+                                    )}
+                                </span>
+                                <span className={`relative z-10 hidden 2xl:inline font-bold text-xs uppercase tracking-wider ${isActive ? 'text-rpg-gold' : ''}`}>
                                     {item.label}
                                 </span>
                                 {/* Barrita inferior activa — también morfa */}
@@ -127,7 +132,7 @@ const Layout_v2 = ({
                 </nav>
 
                 {/* User / Actions Section */}
-                <div className="flex items-center gap-4 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-4 shrink-0">
 
                     {/* Persistent HUD — compact on tablet (no time stat), full on desktop */}
                     {character && (
@@ -151,20 +156,33 @@ const Layout_v2 = ({
                         </div>
                     )}
 
-                    {/* Level/XP Pill (Desktop) */}
-                    <div className="hidden lg:flex items-center gap-3 px-4 py-2 bg-black/20 rounded-xl border border-white/10 hover:border-rpg-gold/30 transition-colors cursor-default">
-                        {character?.isResting ? (
-                            <span className="text-[14px] leading-none select-none drop-shadow-glow" title="Resting at the Inn">🌙</span>
-                        ) : (
-                            <div className="w-2.5 h-2.5 rounded-full bg-rpg-green shadow-[0_0_10px_rgba(45,204,112,0.6)] animate-pulse"></div>
-                        )}
-                        <span className="text-sm font-medium text-gray-300">
-                            <span className="text-rpg-gold font-bold mr-1">{currentUser?.username}</span>
-                            <span className="text-xs text-gray-500 hidden xl:inline">LVL {currentUser?.level || 1}</span>
-                        </span>
-                    </div>
+                    {/* Hero — avatar opens the profile on every screen size */}
+                    {character && (() => {
+                        const heroData = CHARACTERS.find(c => c.id === character.avatarId) || CHARACTERS.find(c => c.class === character.class) || CHARACTERS[0];
+                        const onProfile = activeView === 'profile';
+                        return (
+                            <button
+                                onClick={() => setActiveView('profile')}
+                                aria-label={`Hero profile: ${character.name}, level ${character.level}`}
+                                aria-current={onProfile ? 'page' : undefined}
+                                title="Hero profile"
+                                className={`flex items-center gap-2.5 rounded-full p-0.5 2xl:pr-4 transition-colors ${onProfile ? 'bg-rpg-gold/15 ring-2 ring-rpg-gold/60' : 'bg-black/25 ring-1 ring-white/15 hover:ring-rpg-gold/50'}`}
+                            >
+                                <span className="relative w-9 h-9 rounded-full overflow-hidden bg-rpg-panelDark flex items-center justify-center">
+                                    <ModernPixelAvatar type={heroData.avatarType || heroData.id} headOnly scale={1.4} customColors={character.avatarColors} />
+                                </span>
+                                <span className="hidden 2xl:flex flex-col items-start leading-none">
+                                    <span className="text-sm font-bold text-rpg-gold">{character.name}</span>
+                                    <span className="mt-1 text-[11px] text-gray-400 flex items-center gap-1">
+                                        {character.isResting && <PixelIcon name="moon" size={10} color="#c7d2fe" />}
+                                        Lv {character.level}
+                                    </span>
+                                </span>
+                            </button>
+                        );
+                    })()}
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 sm:gap-3">
                         {/* Sync Status Badge */}
                         <div className="hidden sm:flex items-center justify-center p-2 rounded-xl transition-all h-10 w-10">
                             {syncStatus === SYNC_STATUS.SAVING && (
@@ -183,8 +201,11 @@ const Layout_v2 = ({
 
                         {/* Notification Bell */}
                         <div className="relative">
-                            <div 
-                                className="group cursor-pointer p-2 rounded-xl hover:bg-white/5 transition-colors"
+                            <button
+                                type="button"
+                                aria-label={notificationCount > 0 ? `Notifications (${notificationCount})` : 'Notifications'}
+                                aria-expanded={isNotificationsOpen}
+                                className="group relative p-2 rounded-xl hover:bg-white/5 transition-colors"
                                 onClick={() => {
                                     setIsNotificationsOpen(!isNotificationsOpen);
                                     if (isMenuOpen) setIsMenuOpen(false);
@@ -193,12 +214,11 @@ const Layout_v2 = ({
                             >
                                 <Bell size={22} className={`transition-colors ${isNotificationsOpen ? 'text-rpg-gold' : 'text-gray-400 group-hover:text-rpg-gold'}`} />
                                 {notificationCount > 0 && (
-                                    <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rpg-red opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-4 w-4 bg-rpg-red items-center justify-center text-[8px] font-bold text-white">{notificationCount}</span>
+                                    <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-rpg-red ring-2 ring-rpg-panelDark flex items-center justify-center text-[10px] font-bold text-white leading-none">
+                                        {notificationCount}
                                     </span>
                                 )}
-                            </div>
+                            </button>
 
                             {isNotificationsOpen && (
                                 <>
@@ -208,6 +228,7 @@ const Layout_v2 = ({
                                             isOpen={isNotificationsOpen}
                                             onClose={() => setIsNotificationsOpen(false)}
                                             overdueTasks={overdueTasks}
+                                            friendRequests={friendRequestCount}
                                             setActiveView={setActiveView}
                                         />
                                     </div>
@@ -217,8 +238,11 @@ const Layout_v2 = ({
 
                         {/* Messages Inbox */}
                         <div className="relative">
-                            <div
-                                className={`group cursor-pointer p-2 rounded-xl transition-colors ${isInboxOpen ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400 hover:text-indigo-400'}`}
+                            <button
+                                type="button"
+                                aria-label={unreadMessageCount > 0 ? `Messages (${unreadMessageCount} unread)` : 'Messages'}
+                                aria-expanded={isInboxOpen}
+                                className={`group relative p-2 rounded-xl transition-colors ${isInboxOpen ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-gray-400 hover:text-indigo-400'}`}
                                 onClick={() => {
                                     setIsInboxOpen(!isInboxOpen);
                                     if (isMenuOpen) setIsMenuOpen(false);
@@ -227,12 +251,11 @@ const Layout_v2 = ({
                             >
                                 <MessageSquare size={22} className="transition-colors" />
                                 {unreadMessageCount > 0 && (
-                                    <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-500 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-500 items-center justify-center text-[8px] font-bold text-white">{unreadMessageCount}</span>
+                                    <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-indigo-500 ring-2 ring-rpg-panelDark flex items-center justify-center text-[10px] font-bold text-white leading-none">
+                                        {unreadMessageCount}
                                     </span>
                                 )}
-                            </div>
+                            </button>
                         </div>
 
                         {/* User Menu */}
@@ -240,6 +263,8 @@ const Layout_v2 = ({
                             <button
                                 className={`p-2 rounded-xl transition-all duration-200 ${isMenuOpen ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                                 onClick={() => { setIsMenuOpen(!isMenuOpen); setConfirmLogout(false); }}
+                                aria-label="Menu"
+                                aria-expanded={isMenuOpen}
                             >
                                 <Menu size={24} />
                             </button>
@@ -253,7 +278,7 @@ const Layout_v2 = ({
                                     <div className="absolute right-0 top-full mt-4 w-60 bg-rpg-panel/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 p-2 z-50 shadow-2xl ring-1 ring-white/10">
                                         <div className="px-4 py-3 border-b border-white/5 mb-2">
                                             <p className="text-sm font-bold text-white">{currentUser.username}</p>
-                                            <p className="text-xs text-gray-400">Hero Level {currentUser.level || 1}</p>
+                                            <p className="text-xs text-gray-400">{character ? `${character.name} · Level ${character.level}` : 'No hero yet'}</p>
                                         </div>
 
                                         <button
@@ -261,7 +286,7 @@ const Layout_v2 = ({
                                             className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-xl transition-all flex items-center gap-3 group"
                                         >
                                             <PixelIcon name="user" size={16} className="group-hover:text-rpg-blue" />
-                                            Profile Settings
+                                            Hero profile
                                         </button>
 
                                         {currentUser?.is_admin && (
@@ -279,7 +304,15 @@ const Layout_v2 = ({
                                             className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-xl transition-all flex items-center gap-3 group"
                                         >
                                             <HelpCircle size={16} className="group-hover:text-rpg-gold" />
-                                            How to Play (FAQ)
+                                            How to play
+                                        </button>
+
+                                        <button
+                                            onClick={() => { window.dispatchEvent(new Event('taskoria:open-feedback')); setIsMenuOpen(false); }}
+                                            className="lg:hidden w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-xl transition-all flex items-center gap-3 group"
+                                        >
+                                            <MessageSquare size={16} className="group-hover:text-rpg-gold" />
+                                            Send feedback
                                         </button>
 
                                         <button
@@ -287,17 +320,17 @@ const Layout_v2 = ({
                                             className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-xl transition-all flex items-center gap-3 group"
                                         >
                                             <Settings size={16} className="group-hover:text-gray-100" />
-                                            App Settings
+                                            Settings
                                         </button>
 
                                         <div className="h-px bg-white/5 my-2 mx-2"></div>
 
                                         <button
                                             onClick={onLogout}
-                                            className="w-full text-left px-4 py-3 text-sm text-rpg-gold hover:bg-white/5 hover:text-yellow-300 rounded-xl transition-colors flex items-center gap-3 group font-bold tracking-widest border border-transparent hover:border-rpg-gold/20"
+                                            className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-xl transition-colors flex items-center gap-3 group"
                                         >
-                                            <PixelIcon name="users" size={16} className="group-hover:text-yellow-400" />
-                                            SWITCH HERO
+                                            <PixelIcon name="users" size={16} />
+                                            Switch hero
                                         </button>
 
                                         {confirmLogout ? (
@@ -307,10 +340,10 @@ const Layout_v2 = ({
                                                     window.location.reload();
                                                 }}
                                                 onMouseLeave={() => setConfirmLogout(false)}
-                                                className="w-full text-center px-4 py-3 text-[10px] text-red-100 bg-red-900/40 hover:bg-red-900 hover:text-white rounded-xl transition-colors flex items-center justify-center gap-2 group font-bold font-pixel tracking-widest border border-red-500/50 mt-1 shadow-[0_0_10px_rgba(220,38,38,0.3)]"
+                                                className="w-full text-center px-4 py-3 text-sm text-red-100 bg-red-900/40 hover:bg-red-900 hover:text-white rounded-xl transition-colors flex items-center justify-center gap-2 group font-bold border border-red-500/50 mt-1"
                                             >
                                                 <LogOut size={16} className="text-white" />
-                                                SURE TO QUIT?
+                                                Confirm log out
                                             </button>
                                         ) : (
                                             <button
@@ -318,7 +351,7 @@ const Layout_v2 = ({
                                                 className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-xl transition-colors flex items-center gap-3 group border border-transparent"
                                             >
                                                 <LogOut size={16} className="group-hover:text-red-400" />
-                                                Logout Domain
+                                                Log out
                                             </button>
                                         )}
                                     </div>
@@ -341,7 +374,7 @@ const Layout_v2 = ({
 
                 {/* Content Container — crossfade + micro-slide entre vistas.
                     `initial={false}` evita animar en el primer mount de la sesión. */}
-                <div className="max-w-7xl mx-auto p-4 md:p-6 pb-28 md:pb-8 relative z-10 w-full min-h-[calc(100vh-80px)] overflow-x-hidden">
+                <div className="max-w-7xl mx-auto p-4 md:p-6 pb-40 md:pb-8 relative z-10 w-full min-h-[calc(100vh-80px)] overflow-x-hidden">
                     <AnimatePresence mode="wait" initial={false}>
                         <motion.div
                             key={activeView}
@@ -362,7 +395,7 @@ const Layout_v2 = ({
             </main>
 
             {/* --- MOBILE BOTTOM NAVIGATION --- */}
-            <BottomNav activeView={activeView} setActiveView={setActiveView} currentUser={currentUser} />
+            <BottomNav activeView={activeView} setActiveView={setActiveView} badges={{ party: friendRequestCount }} />
 
             {/* --- BETA FEEDBACK BUTTON (floating, all views) --- */}
             <FeedbackButton currentUser={currentUser} activeProfileId={activeProfileId} />

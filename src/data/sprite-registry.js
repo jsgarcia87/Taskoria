@@ -13,6 +13,8 @@
 //  Stardew-flavored palette (warm earth, saturated foliage)
 // -----------------------------------------------------------------------------
 
+import { makeCritter } from './critter-sprites.js';
+
 export const PAL = {
     woodDark:  '#3a2412',
     woodBase:  '#5a3a1a',
@@ -630,6 +632,146 @@ function shopBuilding() {
     return { w, h, buffer: buf };
 }
 
+// ---- Plot buildings (Free District) — same 80×60 tilted anatomy as the cottage ----
+
+function roofPlane(buf, w, h, dark, base, hi, rowGap = 4) {
+    const set = setter(buf, w, h);
+    rect(buf, w, h, 0, 2, w, 28, base);
+    for (let y = 4; y < 30; y += rowGap) {
+        rect(buf, w, h, 0, y, w, 1, dark);
+        for (let x = ((y / rowGap) % 2) * 4; x < w; x += 8) set(x, y + 2, dark);
+    }
+    rect(buf, w, h, 0, 2, w, 2, dark);
+    rect(buf, w, h, 0, 4, w, 2, hi);
+    rect(buf, w, h, w - 2, 2, 2, 28, dark);
+    rect(buf, w, h, 0, 2, 1, 28, hi);
+}
+
+function chimney(buf, w, h, x, ember = false) {
+    rect(buf, w, h, x, 0, 8, 8, PAL.stoneBase);
+    rect(buf, w, h, x - 1, 0, 10, 2, PAL.stoneDark);
+    rect(buf, w, h, x, 2, 2, 6, PAL.stoneHi);
+    rect(buf, w, h, x + 6, 2, 2, 6, PAL.stoneShade);
+    rect(buf, w, h, x + 1, 8, 6, 2, PAL.stoneShade);
+    if (ember) { rect(buf, w, h, x + 2, 0, 4, 1, PAL.orange); rect(buf, w, h, x + 3, 0, 2, 1, PAL.yellow); }
+}
+
+function eaveAndFoundation(buf, w, h) {
+    rect(buf, w, h, 0, 30, w, 2, PAL.outline);
+    rect(buf, w, h, 1, 32, w - 2, 2, 'rgba(0,0,0,0.35)');
+    rect(buf, w, h, 0, 52, w, 6, PAL.stoneDark);
+    rect(buf, w, h, 0, 52, w, 1, PAL.stoneBase);
+    const set = setter(buf, w, h);
+    for (let x = 3; x < w - 2; x += 7) set(x, 54 + (x % 3), PAL.stoneBase);
+}
+
+function litWindow(buf, w, h, x, y, shutter) {
+    rect(buf, w, h, x, y, 12, 9, PAL.woodDark);
+    rect(buf, w, h, x + 1, y + 1, 10, 7, '#e8c060');
+    rect(buf, w, h, x + 1, y + 4, 10, 1, PAL.woodDark);
+    rect(buf, w, h, x + 5, y + 1, 1, 7, PAL.woodDark);
+    rect(buf, w, h, x + 1, y + 1, 3, 2, '#f8e0a0');
+    rect(buf, w, h, x - 1, y + 9, 14, 2, PAL.woodBase);
+    if (shutter) {
+        rect(buf, w, h, x - 3, y, 3, 9, shutter);
+        rect(buf, w, h, x + 12, y, 3, 9, shutter);
+    }
+}
+
+function plankDoor(buf, w, h, x, width, color) {
+    const set = setter(buf, w, h);
+    rect(buf, w, h, x, 38, width, 14, PAL.woodDark);
+    rect(buf, w, h, x + 1, 39, width - 2, 13, color);
+    for (let dx = x + 3; dx < x + width - 1; dx += 3) rect(buf, w, h, dx, 40, 1, 12, PAL.woodDark);
+    set(x + width - 3, 45, PAL.brassHi); set(x + width - 3, 46, PAL.brassBase);
+}
+
+function woodenHouse() {
+    const w = 80, h = 60;
+    const buf = makeBuf(w, h);
+    roofPlane(buf, w, h, PAL.woodDark, PAL.woodBase, PAL.woodMid);
+    chimney(buf, w, h, 12);
+    eaveAndFoundation(buf, w, h);
+    // Facade: horizontal plank siding with corner posts
+    rect(buf, w, h, 2, 32, 76, 20, PAL.woodMid);
+    for (let y = 35; y < 52; y += 3) rect(buf, w, h, 2, y, 76, 1, PAL.woodBase);
+    rect(buf, w, h, 2, 32, 2, 20, PAL.woodDark);
+    rect(buf, w, h, 76, 32, 2, 20, PAL.woodDark);
+    plankDoor(buf, w, h, 34, 12, PAL.leafDark);
+    litWindow(buf, w, h, 13, 36, PAL.leafBase);
+    litWindow(buf, w, h, 55, 36, PAL.leafBase);
+    rect(buf, w, h, 33, 52, 14, 3, PAL.stoneMid);
+    return { w, h, buffer: buf };
+}
+
+function plotTavern() {
+    const w = 80, h = 60;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    roofPlane(buf, w, h, PAL.blueDark, PAL.blueBase, PAL.blueHi);
+    chimney(buf, w, h, 8);
+    chimney(buf, w, h, 64);
+    eaveAndFoundation(buf, w, h);
+    // Half-timber facade
+    rect(buf, w, h, 2, 32, 76, 20, PAL.woodLite);
+    for (let x = 2; x <= 74; x += 12) rect(buf, w, h, x, 32, 2, 20, PAL.woodDark);
+    rect(buf, w, h, 76, 32, 2, 20, PAL.woodDark);
+    rect(buf, w, h, 2, 41, 76, 1, PAL.woodDark);
+    // Double door
+    plankDoor(buf, w, h, 30, 10, PAL.woodBase);
+    plankDoor(buf, w, h, 40, 10, PAL.woodBase);
+    litWindow(buf, w, h, 10, 36);
+    litWindow(buf, w, h, 58, 36);
+    // Hanging sign with a mug (bracket off the eave, left of the door)
+    rect(buf, w, h, 22, 33, 1, 3, PAL.ironBase);
+    rect(buf, w, h, 22, 33, 6, 1, PAL.ironBase);
+    rect(buf, w, h, 23, 36, 6, 5, PAL.woodBase);
+    rect(buf, w, h, 23, 36, 6, 1, PAL.woodHi);
+    rect(buf, w, h, 25, 37, 2, 3, PAL.yellow);
+    set(27, 38, PAL.yellow);
+    // Lantern right of the door
+    rect(buf, w, h, 52, 40, 3, 4, PAL.ironDark);
+    rect(buf, w, h, 53, 41, 1, 2, PAL.yellow);
+    rect(buf, w, h, 29, 52, 22, 3, PAL.stoneMid);
+    return { w, h, buffer: buf };
+}
+
+function plotSmithy() {
+    const w = 80, h = 60;
+    const buf = makeBuf(w, h);
+    const set = setter(buf, w, h);
+    roofPlane(buf, w, h, PAL.stoneShade, PAL.stoneDark, PAL.stoneBase, 5);
+    // Big forge chimney with embers
+    rect(buf, w, h, 58, 0, 12, 10, PAL.stoneBase);
+    rect(buf, w, h, 57, 0, 14, 2, PAL.stoneDark);
+    rect(buf, w, h, 58, 2, 2, 8, PAL.stoneHi);
+    rect(buf, w, h, 68, 2, 2, 8, PAL.stoneShade);
+    rect(buf, w, h, 61, 0, 6, 1, PAL.orange);
+    rect(buf, w, h, 63, 0, 2, 1, PAL.yellow);
+    eaveAndFoundation(buf, w, h);
+    // Stone-block facade (offset courses)
+    rect(buf, w, h, 2, 32, 76, 20, PAL.stoneBase);
+    for (let y = 34, row = 0; y < 52; y += 4, row++) {
+        rect(buf, w, h, 2, y, 76, 1, PAL.stoneDark);
+        for (let x = 2 + (row % 2) * 5; x < 78; x += 10) rect(buf, w, h, x, y + 1, 1, 3, PAL.stoneDark);
+    }
+    rect(buf, w, h, 2, 32, 76, 1, PAL.stoneHi);
+    // Open forge mouth with glow (left)
+    rect(buf, w, h, 8, 38, 22, 14, PAL.ironDark);
+    rect(buf, w, h, 10, 44, 18, 8, '#2a1206');
+    rect(buf, w, h, 12, 47, 14, 5, PAL.orange);
+    rect(buf, w, h, 15, 48, 8, 3, PAL.yellow);
+    rect(buf, w, h, 8, 37, 22, 1, PAL.stoneShade);
+    // Anvil in front of the forge
+    rect(buf, w, h, 32, 49, 8, 2, PAL.ironBase);
+    rect(buf, w, h, 34, 51, 4, 1, PAL.ironDark);
+    set(32, 49, PAL.ironHi);
+    // Door (right)
+    plankDoor(buf, w, h, 54, 12, PAL.woodBase);
+    rect(buf, w, h, 53, 52, 14, 3, PAL.stoneMid);
+    return { w, h, buffer: buf };
+}
+
 function clothBanner(accent) {
     const w = 16, h = 32;
     const buf = makeBuf(w, h);
@@ -1139,32 +1281,6 @@ function barrelTipped() {
     return { w, h, buffer: buf };
 }
 
-function catSleeping() {
-    // Curled-up sleeping cat — shopkeeper's ginger mouser.
-    const w = 20, h = 12;
-    const buf = makeBuf(w, h);
-    const set = setter(buf, w, h);
-    const furDark = '#8a4a18', furBase = '#c07030', furHi = '#e09a50';
-    // Curled body
-    ellipse(buf, w, h, 10, 7, 8, 4, furBase);
-    ellipse(buf, w, h, 10, 6, 7, 3, furHi);
-    rect(buf, w, h, 3, 9, 14, 2, furDark);
-    // Tail wrapped around the front
-    rect(buf, w, h, 3, 8, 10, 2, furDark);
-    set(2, 8, furDark); set(2, 7, furBase);
-    // Head resting on paws (right side)
-    ellipse(buf, w, h, 14, 6, 4, 3, furBase);
-    // Ears
-    set(12, 2, furDark); set(13, 3, furBase);
-    set(16, 2, furDark); set(16, 3, furBase);
-    // Closed eyes + nose
-    set(13, 5, PAL.outline); set(16, 5, PAL.outline);
-    set(15, 7, '#e87aa8');
-    // Stripes
-    set(7, 4, furDark); set(9, 4, furDark); set(11, 4, furDark);
-    return { w, h, buffer: buf };
-}
-
 function councilBoard() {
     // Council notice board — roofed post board plastered with quest papers.
     const w = 44, h = 48;
@@ -1291,6 +1407,9 @@ export const SPRITE_REGISTRY = {
     hay: hayBale(),
     weapon_rack: weaponRack(),
     shop_building: shopBuilding(),
+    house_wood: woodenHouse(),
+    tavern: plotTavern(),
+    smithy: plotSmithy(),
     market_stall_red: marketStall(PAL.redBase),
     market_stall_green: marketStall(PAL.leafBase),
     market_stall_purple: marketStall(PAL.purpleBase),
@@ -1314,7 +1433,7 @@ export const SPRITE_REGISTRY = {
     skull: pixelSkull(),
     ledgar_statue: ledgarStatue(),
     barrel_tipped: barrelTipped(),
-    cat_sleeping: catSleeping(),
+    cat_sleeping: makeCritter('cat_sleeping', '#c07030'),
     council_board: councilBoard(),
     ancient_tree: ancientTree(),
 };

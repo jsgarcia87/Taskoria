@@ -55,7 +55,7 @@ export const MAP_DATA = {
             { id: 'fx_cat', x: 305, y: 748, width: 24, height: 16, radius: 60, label: 'Sleeping cat',
               flavor: "The shopkeeper's cat. It has never caught a mouse. It has never needed to." },
             { id: 'fx_canal', x: 775, y: 915, width: 50, height: 40, radius: 80, label: 'Canal pier',
-              flavor: 'Boats used to moor here once. Coinhilda still keeps the mooring ledger — just in case they return.' },
+              flavor: 'The district ferry leaves from the end of this pier. Coinhilda keeps the mooring ledger — every crossing is recorded.' },
             { id: 'fx_market', x: 1150, y: 260, width: 50, height: 40, radius: 85, label: 'Market stall',
               flavor: 'Everything costs "two coins". The haggling is ceremonial. The two coins are not.' }
         ],
@@ -78,12 +78,12 @@ export const MAP_DATA = {
             {
                 x: 1300, y: 40, width: 100, height: 60,
                 targetMap: 'taskoriaKeep',
-                targetX: 500, targetY: 850,
+                targetX: 500, targetY: 790,
                 label: 'Taskoria Keep'
             },
-            // Path to Free District (south-east)
+            // Ferry to the Free District — end of the canal pier
             {
-                x: 1400, y: 900, width: 100, height: 60,
+                x: 762, y: 932, width: 86, height: 38,
                 targetMap: 'freeDistrict',
                 targetX: 800, targetY: 1100,
                 label: 'Free District'
@@ -199,7 +199,7 @@ export const MAP_DATA = {
         baseColor: '#2a2a3a',
         tileSprite: 'stone_floor_tile',
         tileSize: 64,
-        spawn: { x: 500, y: 850 },
+        spawn: { x: 500, y: 790 },
         obstacles: [
             { x: 0, y: 0, width: 1000, height: 100 }, // Top
             { x: 0, y: 900, width: 1000, height: 100 }, // Bottom
@@ -208,7 +208,7 @@ export const MAP_DATA = {
         ],
         portals: [
             {
-                x: 450, y: 900, width: 100, height: 60,
+                x: 450, y: 840, width: 100, height: 60, // floor in front of the bottom wall (y 900)
                 targetMap: 'townSquare',
                 targetX: 1350, targetY: 150,
                 label: 'Exit to Town'
@@ -228,6 +228,22 @@ export const MAP_DATA = {
               flavor: 'Ceremonial armor. Never worn in battle. Polished daily. Priorities.' }
         ],
         decorations: [
+            // --- Hall shell: stone walls, tall windows, daylight shafts ---
+            { type: 'wall', x: 0,   y: 0,   width: 1000, height: 100, tone: 'stone', edge: 'bottom' },
+            { type: 'wall', x: 0,   y: 0,   width: 100,  height: 1000, tone: 'stone', edge: 'right' },
+            { type: 'wall', x: 900, y: 0,   width: 100,  height: 1000, tone: 'stone', edge: 'left' },
+            { type: 'wall', x: 0,   y: 900, width: 450,  height: 100, tone: 'stone', edge: 'top' },
+            { type: 'wall', x: 550, y: 900, width: 450,  height: 100, tone: 'stone', edge: 'top' },
+            { type: 'rect', x: 450, y: 900, width: 100, height: 100, color: '#1b2740', border: '#5c5c6c', z: 2 },
+            { type: 'rect', x: 150, y: 18, width: 56, height: 64, color: '#2a3b66', border: '#5c5c6c', radius: '28px 28px 0 0', z: 2 },
+            { type: 'rect', x: 250, y: 18, width: 56, height: 64, color: '#2a3b66', border: '#5c5c6c', radius: '28px 28px 0 0', z: 2 },
+            { type: 'rect', x: 694, y: 18, width: 56, height: 64, color: '#2a3b66', border: '#5c5c6c', radius: '28px 28px 0 0', z: 2 },
+            { type: 'rect', x: 794, y: 18, width: 56, height: 64, color: '#2a3b66', border: '#5c5c6c', radius: '28px 28px 0 0', z: 2 },
+            { type: 'light_shaft', x: 150, y: 100, width: 56, height: 340, color: 'rgba(255,225,150,0.16)', skew: -16, z: 1 },
+            { type: 'light_shaft', x: 250, y: 100, width: 56, height: 340, color: 'rgba(255,225,150,0.16)', skew: -16, z: 1 },
+            { type: 'light_shaft', x: 694, y: 100, width: 56, height: 340, color: 'rgba(255,225,150,0.16)', skew: 16, z: 1 },
+            { type: 'light_shaft', x: 794, y: 100, width: 56, height: 340, color: 'rgba(255,225,150,0.16)', skew: 16, z: 1 },
+
             // Council banners flanking the dais — gold for the Council seal
             { type: 'sprite', name: 'banner_gold', x: 400, y: 250, scale: 1.6, z: 250 },
             { type: 'sprite', name: 'banner_gold', x: 600, y: 250, scale: 1.6, z: 250 },
@@ -281,7 +297,9 @@ export const MAP_DATA = {
             { x: 200, y: 200, width: 400, height: 80 },
             // Tables
             { x: 200, y: 400, width: 120, height: 80 },
-            { x: 500, y: 400, width: 120, height: 80 }
+            { x: 500, y: 400, width: 120, height: 80 },
+            // Barrels by the door
+            { x: 118, y: 664, width: 80, height: 34 }
         ],
         // Council interaction zones. Ledgar sits in the right nook past the
         // bar and opens the beta-feedback modal when the hero speaks with him.
@@ -298,13 +316,45 @@ export const MAP_DATA = {
         portals: [
             // Door to outside
             {
-                x: 350, y: 700, width: 100, height: 60,
+                x: 350, y: 640, width: 100, height: 60, // floor in front of the bottom wall (y 700)
                 targetMap: 'townSquare',
                 targetX: 990, targetY: 275,
                 label: 'Exit'
             }
         ],
         decorations: [
+            // --- Room shell: walls, windows, light (drawn first so props sit on top) ---
+            { type: 'wall', x: 0,   y: 0,   width: 800, height: 100, tone: 'wood', edge: 'bottom' },
+            { type: 'wall', x: 0,   y: 0,   width: 100, height: 800, tone: 'wood', edge: 'right' },
+            { type: 'wall', x: 700, y: 0,   width: 100, height: 800, tone: 'wood', edge: 'left' },
+            { type: 'wall', x: 0,   y: 700, width: 350, height: 100, tone: 'wood', edge: 'top' },
+            { type: 'wall', x: 450, y: 700, width: 350, height: 100, tone: 'wood', edge: 'top' },
+            // Door: the night outside, a worn mat inside
+            { type: 'rect', x: 350, y: 700, width: 100, height: 100, color: '#0c1426', border: '#6b4423', z: 2 },
+            { type: 'rect', x: 362, y: 662, width: 76,  height: 30,  color: '#4a2c18', radius: '4px', opacity: 0.9, z: 0 },
+            // Windows with moonlight falling across the floor
+            { type: 'rect', x: 150, y: 28, width: 80, height: 50, color: '#16254a', border: '#6b4423', z: 2 },
+            { type: 'rect', x: 570, y: 28, width: 80, height: 50, color: '#16254a', border: '#6b4423', z: 2 },
+            { type: 'light_shaft', x: 150, y: 100, width: 80, height: 260, color: 'rgba(150,180,255,0.18)', skew: -14, z: 1 },
+            { type: 'light_shaft', x: 570, y: 100, width: 80, height: 260, color: 'rgba(150,180,255,0.18)', skew: -14, z: 1 },
+            // Warm light: hearth and wall torches
+            { type: 'lantern_glow', x: 150, y: 150, radius: 150, color: 'rgba(255,140,40,0.30)', z: 2 },
+            { type: 'sprite', name: 'wall_torch', x: 84,  y: 300, scale: 1.6, z: 300 },
+            { type: 'sprite', name: 'wall_torch', x: 84,  y: 560, scale: 1.6, z: 560 },
+            { type: 'sprite', name: 'wall_torch', x: 716, y: 300, scale: 1.6, z: 300 },
+            { type: 'sprite', name: 'wall_torch', x: 716, y: 560, scale: 1.6, z: 560 },
+            { type: 'lantern_glow', x: 100, y: 300, radius: 110, color: 'rgba(255,170,60,0.28)', z: 2 },
+            { type: 'lantern_glow', x: 100, y: 560, radius: 110, color: 'rgba(255,170,60,0.28)', z: 2 },
+            { type: 'lantern_glow', x: 700, y: 300, radius: 110, color: 'rgba(255,170,60,0.28)', z: 2 },
+            { type: 'lantern_glow', x: 700, y: 560, radius: 110, color: 'rgba(255,170,60,0.28)', z: 2 },
+            // Shelves against the back wall, barrels by the door
+            { type: 'sprite', name: 'bookshelf', x: 270, y: 102, scale: 1.5, z: 102 },
+            { type: 'sprite', name: 'bookshelf', x: 520, y: 102, scale: 1.5, z: 102 },
+            { type: 'sprite', name: 'barrel', x: 140, y: 696, scale: 1.7, z: 696 },
+            { type: 'sprite', name: 'barrel', x: 178, y: 692, scale: 1.5, z: 692 },
+            // Rug trim (the rug itself is below)
+            { type: 'rect', x: 290, y: 540, width: 220, height: 160, color: '#d4a24a', opacity: 0.22, radius: '14px', z: 0 },
+
             // Bar counter
             { x: 200, y: 200, type: 'bar_counter', width: 400, height: 80 },
             { x: 400, y: 150, type: 'mug', size: 40 },
@@ -430,13 +480,11 @@ export const MAP_DATA = {
             // ─── Stone trail — town portal ↔ bridge ↔ crypts portal ────────
             // Small worn patches trace the well-trod route so the map reads as
             // a "path with two edges" instead of an aimless grove field.
-            { type: 'cobble_patch', x: 1650, y: 490, width: 120, height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
-            { type: 'cobble_patch', x: 1450, y: 500, width: 120, height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
-            { type: 'cobble_patch', x: 1240, y: 490, width: 120, height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
-            { type: 'cobble_patch', x: 1080, y: 500, width: 90,  height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
-            { type: 'cobble_patch', x: 700,  y: 500, width: 90,  height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
-            { type: 'cobble_patch', x: 540,  y: 495, width: 120, height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
-            { type: 'cobble_patch', x: 340,  y: 490, width: 120, height: 70, color: '#8a7a5c', opacity: 0.30, z: 0 },
+            //   One continuous dirt trail: east portal → bridge → west portal.
+            { type: 'rect', x: 1020, y: 462, width: 860, height: 62, color: '#a8885a', opacity: 0.5, z: 0 },
+            { type: 'rect', x: 1020, y: 476, width: 860, height: 34, color: '#c9a872', opacity: 0.32, z: 0 },
+            { type: 'rect', x: 170,  y: 462, width: 610, height: 62, color: '#a8885a', opacity: 0.5, z: 0 },
+            { type: 'rect', x: 170,  y: 476, width: 610, height: 34, color: '#c9a872', opacity: 0.32, z: 0 },
 
             // ─── River banks — reeds + lily pads ───────────────────────────
             // Grass tufts on both shores break the flat blue rectangle, and
@@ -547,7 +595,7 @@ export const MAP_DATA = {
         baseColor: '#0a0a14',
         tileSprite: 'dungeon_floor_tile',
         tileSize: 64,
-        spawn: { x: 600, y: 1400 },
+        spawn: { x: 600, y: 1290 },
         obstacles: [
             { x: 0, y: 0, width: 1200, height: 100 },
             { x: 0, y: 1400, width: 1200, height: 100 },
@@ -563,7 +611,7 @@ export const MAP_DATA = {
         ],
         portals: [
             {
-                x: 550, y: 1400, width: 100, height: 60,
+                x: 550, y: 1340, width: 100, height: 60, // floor in front of the bottom wall (y 1400)
                 targetMap: 'mysticForest',
                 targetX: 250, targetY: 450,
                 label: 'Exit to Forest'
@@ -579,6 +627,14 @@ export const MAP_DATA = {
               flavor: 'The ooze hums softly. It sounds almost exactly like a reminder notification.' }
         ],
         decorations: [
+            // --- Crypt shell: dark masonry, a door onto the forest ---
+            { type: 'wall', x: 0,    y: 0,    width: 1200, height: 100,  tone: 'dungeon', edge: 'bottom' },
+            { type: 'wall', x: 0,    y: 0,    width: 100,  height: 1500, tone: 'dungeon', edge: 'right' },
+            { type: 'wall', x: 1100, y: 0,    width: 100,  height: 1500, tone: 'dungeon', edge: 'left' },
+            { type: 'wall', x: 0,    y: 1400, width: 550,  height: 100,  tone: 'dungeon', edge: 'top' },
+            { type: 'wall', x: 650,  y: 1400, width: 550,  height: 100,  tone: 'dungeon', edge: 'top' },
+            { type: 'rect', x: 550,  y: 1400, width: 100,  height: 100, color: '#07090f', border: '#3a3446', z: 2 },
+
             // Torches (flickering)
             { x: 150, y: 200, type: 'torch', size: 40 },
             { x: 1050, y: 200, type: 'torch', size: 40 },
@@ -713,10 +769,9 @@ export const MAP_DATA = {
         name: 'Free District',
         width: 1600,
         height: 1200,
-        bgColor: '#1a2810',
-        ambientLight: 0.9,
+        baseColor: '#1a2810',
         spawn: { x: 800, y: 1100 },
-        tileSprite: 'grass',
+        tileSprite: 'grass_tile',
         plots: [
             { id: 'plot_0_0', gridX: 0, gridY: 0, x: 150, y: 150,  w: 200, h: 200, price: 500 },
             { id: 'plot_1_0', gridX: 1, gridY: 0, x: 450, y: 150,  w: 200, h: 200, price: 500 },
@@ -733,23 +788,66 @@ export const MAP_DATA = {
         ],
         obstacles: [],
         decorations: [
-            { type: 'signpost', x: 750, y: 1050, size: 48 },
-            { type: 'torch', x: 100, y: 100, size: 40 },
-            { type: 'torch', x: 1300, y: 100, size: 40 },
-            { type: 'torch', x: 100, y: 700, size: 40 },
-            { type: 'torch', x: 1300, y: 700, size: 40 },
-            { type: 'fence_gate', x: 700, y: 1020, size: 48 },
+            // --- Streets: a grid of dirt lanes between the plots, joined to the ferry ---
+            { type: 'rect', x: 120, y: 380, width: 1160, height: 40, color: '#c8a878', opacity: 0.5, z: 0 },
+            { type: 'rect', x: 120, y: 680, width: 1160, height: 40, color: '#c8a878', opacity: 0.5, z: 0 },
+            { type: 'rect', x: 120, y: 980, width: 1160, height: 40, color: '#c8a878', opacity: 0.5, z: 0 },
+            { type: 'rect', x: 380, y: 120, width: 40, height: 900, color: '#c8a878', opacity: 0.5, z: 0 },
+            { type: 'rect', x: 680, y: 120, width: 40, height: 900, color: '#c8a878', opacity: 0.5, z: 0 },
+            { type: 'rect', x: 980, y: 120, width: 40, height: 900, color: '#c8a878', opacity: 0.5, z: 0 },
+            { type: 'rect', x: 120, y: 120, width: 1160, height: 30, color: '#c8a878', opacity: 0.5, z: 0 },
+            { type: 'rect', x: 770, y: 1020, width: 60, height: 180, color: '#c8a878', opacity: 0.5, z: 0 },
+            // --- Lamps at the junctions ---
+            { type: 'lamp', x: 375, y: 375, size: 64 },
+            { type: 'lamp', x: 675, y: 375, size: 64 },
+            { type: 'lamp', x: 975, y: 375, size: 64 },
+            { type: 'lamp', x: 375, y: 675, size: 64 },
+            { type: 'lamp', x: 675, y: 675, size: 64 },
+            { type: 'lamp', x: 975, y: 675, size: 64 },
+            { type: 'lamp', x: 675, y: 975, size: 64 },
+            { type: 'lamp', x: 975, y: 975, size: 64 },
+            { type: 'lamp', x: 760, y: 1100, size: 64 },
+            { type: 'lamp', x: 840, y: 1100, size: 64 },
+            // --- Entrance: sign, benches and flowers by the ferry landing ---
+            { type: 'sign', x: 880, y: 1070, size: 32 },
+            { type: 'bench', x: 700, y: 1075, size: 56 },
+            { type: 'bench', x: 900, y: 1135, size: 56 },
+            { type: 'flowers', x: 740, y: 1040, size: 28 },
+            { type: 'flowers', x: 860, y: 1040, size: 28 },
+            { type: 'flowers', x: 720, y: 1150, size: 28 },
+            { type: 'flowers', x: 880, y: 1160, size: 28 },
+            // --- East wood: the district's green edge ---
+            { type: 'oak_tree', x: 1330, y: 140, width: 80, height: 120 },
+            { type: 'pine_tree', x: 1440, y: 90, width: 70, height: 130 },
+            { type: 'oak_tree', x: 1380, y: 330, width: 90, height: 130 },
+            { type: 'pine_tree', x: 1480, y: 440, width: 70, height: 120 },
+            { type: 'oak_tree', x: 1320, y: 560, width: 80, height: 120 },
+            { type: 'pine_tree', x: 1450, y: 690, width: 70, height: 130 },
+            { type: 'oak_tree', x: 1360, y: 850, width: 90, height: 130 },
+            { type: 'pine_tree', x: 1470, y: 980, width: 70, height: 120 },
+            { type: 'bush', x: 1300, y: 300, size: 44 },
+            { type: 'bush', x: 1420, y: 560, size: 44 },
+            { type: 'bush', x: 1310, y: 780, size: 44 },
+            { type: 'bush', x: 1500, y: 860, size: 44 },
+            { type: 'bush', x: 1340, y: 1050, size: 44 },
+            // --- Flower beds along the main streets ---
+            { type: 'flowers', x: 130, y: 430, size: 30 },
+            { type: 'flowers', x: 1270, y: 430, size: 30 },
+            { type: 'flowers', x: 130, y: 730, size: 30 },
+            { type: 'flowers', x: 1270, y: 730, size: 30 },
+            { type: 'flowers', x: 130, y: 1030, size: 30 },
+            { type: 'flowers', x: 1270, y: 1030, size: 30 },
         ],
         portals: [
             {
                 x: 750, y: 1150, width: 100, height: 50,
                 targetMap: 'townSquare',
                 targetX: 800, targetY: 900,
-                label: 'Town Square'
+                label: 'Ferry to Town'
             }
         ],
         interactables: [
-            { id: 'fx_district_sign', x: 750, y: 1050, width: 48, height: 48, radius: 80,
+            { id: 'fx_district_sign', x: 880, y: 1050, width: 40, height: 40, radius: 80,
               label: 'District signpost',
               flavor: '"Welcome to the Free District. Buy a plot, build your home. — Coinhilda, Treasurer of the Council"' }
         ],

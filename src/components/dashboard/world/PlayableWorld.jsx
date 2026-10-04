@@ -2,14 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import ModernPixelAvatar from '../../common/ModernPixelAvatar';
 import MobileJoystick from './MobileJoystick';
 import { MAP_DATA } from './MapData';
+import { validateMap } from './validateMap';
 import { expandPrefabs } from './prefabs';
 import { SPRITES, PixelSprite, pixelBufferToDataUrl } from './sprites';
-import { WorldSprite, WORLD_PROPS } from './worldProps';
+import { WorldSprite, WORLD_PROPS, ensureCritterSprite } from './worldProps';
 import { fetchCustomBlueprints } from '../../../utils/blueprints';
 import { firstFrame, frameToBuffer } from '../../../utils/pixelFormat';
 import { playFootstep, playPortalSound, surfaceForTile } from '../../../utils/sound';
 import ChatModal from '../ChatModal';
-import PlotSystem from './PlotSystem';
+import PlotSystem, { buildingFootprint } from './PlotSystem';
+import { useGame } from '../../../context/GameContext';
 import { X, MessageSquare } from 'lucide-react';
 
 const TILE_SIZE = 40;
@@ -21,6 +23,27 @@ const NPC_STOP_DIST = 5;
 // not a full-body box. Lets you walk close to obstacles from the sides / above.
 const FOOT_W = 26;
 const FOOT_H = 14;
+
+// Ambient animals: a short patrol plus an idle motion each (see .critter-* in index.css).
+const CRITTER_MOTION = {
+    slime: { scale: 2.4, distance: 20, period: 9,  idle: 'critter-hop',    faces: false },
+    cat:   { scale: 2,   distance: 44, period: 24, idle: 'critter-breathe', faces: true },
+    dog:   { scale: 2,   distance: 64, period: 28, idle: 'critter-breathe', faces: true },
+};
+
+// Interior walls: a textured face plus a trim and a shadow cast toward the room.
+const WALL_TONES = {
+    wood:    { base: '#3a2314', trim: '#6b4423', pattern: 'repeating-linear-gradient(90deg, rgba(0,0,0,0.24) 0 2px, transparent 2px 30px)', size: 'auto' },
+    stone:   { base: '#34343f', trim: '#5c5c6c', pattern: 'linear-gradient(rgba(0,0,0,0.28) 2px, transparent 2px), linear-gradient(90deg, rgba(0,0,0,0.28) 2px, transparent 2px)', size: '64px 32px' },
+    dungeon: { base: '#1d1a24', trim: '#3a3446', pattern: 'linear-gradient(rgba(0,0,0,0.4) 2px, transparent 2px), linear-gradient(90deg, rgba(0,0,0,0.4) 2px, transparent 2px)', size: '48px 24px' },
+};
+// `edge` = the side of the wall that faces the room.
+const wallShadow = (edge, trim) => (({
+    bottom: `inset 0 -6px 0 ${trim}, inset 0 -8px 0 rgba(0,0,0,0.5), 0 12px 18px -4px rgba(0,0,0,0.55)`,
+    top:    `inset 0 6px 0 ${trim}, inset 0 8px 0 rgba(0,0,0,0.5), 0 -12px 18px -4px rgba(0,0,0,0.55)`,
+    right:  `inset -6px 0 0 ${trim}, inset -8px 0 0 rgba(0,0,0,0.5), 12px 0 18px -4px rgba(0,0,0,0.55)`,
+    left:   `inset 6px 0 0 ${trim}, inset 8px 0 0 rgba(0,0,0,0.5), -12px 0 18px -4px rgba(0,0,0,0.55)`,
+})[edge] || '');
 
 // Viewport culling — quantum for camera-position-triggered re-renders. Camera
 // moves in single-pixel steps, but we only re-cull the decoration list when
@@ -74,7 +97,39 @@ export const DecorationsLayer = React.memo(function DecorationsLayer({ decoratio
     return (
         <>
             {decorations?.map((dec, i) => {
+                    if (dec.type === 'wall') {
+                        const tone = WALL_TONES[dec.tone] || WALL_TONES.wood;
+                        return (
+                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{
+                                left: dec.x, top: dec.y, width: dec.width, height: dec.height,
+                                backgroundColor: tone.base, backgroundImage: tone.pattern, backgroundSize: tone.size,
+                                boxShadow: wallShadow(dec.edge, tone.trim), zIndex: dec.z ?? 1,
+                            }} />
+                        );
+                    }
+
+                    if (dec.type === 'light_shaft') {
+                        return (
+                            <div key={`dec_${i}`} className="absolute pointer-events-none" style={{
+                                left: dec.x, top: dec.y, width: dec.width, height: dec.height,
+                                background: `linear-gradient(to bottom, ${dec.color || 'rgba(190,210,255,0.22)'}, transparent)`,
+                                transform: `skewX(${dec.skew ?? -14}deg)`, transformOrigin: 'top',
+                                mixBlendMode: 'screen', zIndex: dec.z ?? 2,
+                            }} />
+                        );
+                    }
+
                     if (dec.type === 'rect') {
+                        const isRoundPatch = (dec.radius === '50%' || dec.radius === '9999px') && dec.width >= 100 && !dec.border;
+                        if (isRoundPatch) {
+                            return (
+                                <div key={`dec_${i}`} className="absolute pointer-events-none" style={{
+                                    left: dec.x, top: dec.y, width: dec.width, height: dec.height,
+                                    background: `radial-gradient(ellipse at center, ${dec.color} 0%, ${dec.color} 55%, transparent 100%)`,
+                                    opacity: dec.opacity || 1, zIndex: dec.z !== undefined ? dec.z : dec.y,
+                                }} />
+                            );
+                        }
                         return (
                             <div key={`dec_${i}`} className="absolute shadow-xl" style={{ left: dec.x, top: dec.y, width: dec.width, height: dec.height, backgroundColor: dec.color, border: dec.border ? `4px solid ${dec.border}` : 'none', borderRadius: dec.radius || 0, opacity: dec.opacity || 1, zIndex: dec.z !== undefined ? dec.z : dec.y }}></div>
                         );
@@ -355,30 +410,21 @@ export const DecorationsLayer = React.memo(function DecorationsLayer({ decoratio
                     }
 
                     if (dec.type === 'critter') {
-                        const c = dec.color || '#22c55e';
+                        const variant = ['slime', 'cat', 'dog'].includes(dec.variant) ? dec.variant : 'slime';
+                        const key = ensureCritterSprite(variant, dec.color);
+                        const motion = CRITTER_MOTION[variant];
+                        // Desync neighbours: each critter starts at its own point of the loop.
+                        const delay = -(((Math.floor(dec.x) * 7 + Math.floor(dec.y) * 13) % (motion.period * 10)) / 10);
                         return (
-                            <div key={`dec_${i}`} className="absolute pointer-events-none animate-world-bob" style={{ left: dec.x, top: dec.y, transform: 'translate(-50%, -100%)', zIndex: Math.floor(dec.y) }}>
-                                {dec.variant === 'slime' ? (
-                                    <div className="relative w-7 h-6 rounded-[45%] shadow" style={{ backgroundColor: c }}>
-                                        <div className="absolute top-2 left-1.5 w-1 h-1 bg-black rounded-full" />
-                                        <div className="absolute top-2 right-1.5 w-1 h-1 bg-black rounded-full" />
-                                    </div>
-                                ) : dec.variant === 'cat' ? (
-                                    <div className="relative w-7 h-6">
-                                        <div className="absolute top-0 left-0 w-2 h-2" style={{ backgroundColor: c, clipPath: 'polygon(0 100%,50% 0,100% 100%)' }} />
-                                        <div className="absolute top-0 right-0 w-2 h-2" style={{ backgroundColor: c, clipPath: 'polygon(0 100%,50% 0,100% 100%)' }} />
-                                        <div className="absolute bottom-0 w-full h-4 rounded-md" style={{ backgroundColor: c }} />
-                                        <div className="absolute bottom-1.5 left-1.5 w-1 h-1 bg-black rounded-full" />
-                                        <div className="absolute bottom-1.5 right-1.5 w-1 h-1 bg-black rounded-full" />
-                                    </div>
-                                ) : (
-                                    <div className="relative w-8 h-6">
-                                        <div className="absolute top-0 left-0 w-2.5 h-3 rounded-md" style={{ backgroundColor: c }} />
-                                        <div className="absolute bottom-0 w-full h-4 rounded-md" style={{ backgroundColor: c }} />
-                                        <div className="absolute bottom-1.5 left-1 w-1 h-1 bg-black rounded-full" />
-                                    </div>
-                                )}
-                                <div className="w-6 h-1.5 bg-black/30 rounded-full blur-[1px] mx-auto" />
+                            <div
+                                key={`dec_${i}`}
+                                className="absolute critter-patrol pointer-events-none"
+                                style={{
+                                    left: 0, top: 0, width: 0, height: 0, zIndex: Math.floor(dec.y),
+                                    '--patrol': `${motion.distance}px`, '--period': `${motion.period}s`, '--delay': `${delay}s`,
+                                }}
+                            >
+                                <WorldSprite name={key} x={dec.x} y={dec.y} scale={motion.scale} className={motion.idle} svgClassName={motion.faces ? 'critter-face' : ''} />
                             </div>
                         );
                     }
@@ -397,6 +443,7 @@ export const DecorationsLayer = React.memo(function DecorationsLayer({ decoratio
                                     x={dec.x}
                                     y={dec.y}
                                     scale={dec.scale || 1}
+                                    className={dec.name === 'cat_sleeping' ? 'critter-breathe' : ''}
                                 />
                             );
                         }
@@ -574,16 +621,24 @@ export const PortalsLayer = React.memo(function PortalsLayer({ portals }) {
     return (
         <>
             {portals?.map((portal, i) => (
+                <div
+                    key={`portal_${i}`}
+                    className="absolute flex items-end justify-center pointer-events-none"
+                    style={{ left: portal.x, top: portal.y, width: portal.width, height: portal.height, zIndex: portal.y }}
+                >
+                    {/* Light spilling through the doorway */}
                     <div
-                        key={`portal_${i}`}
-                        className="absolute flex items-center justify-center pointer-events-none"
-                        style={{ left: portal.x, top: portal.y, width: portal.width, height: portal.height, zIndex: portal.y }}
-                    >
-                        <div className="w-full h-full border-2 border-dashed border-white/50 rounded-lg animate-pulse shadow-[0_0_15px_rgba(255,255,255,0.3)] bg-white/5 flex flex-col items-center justify-center">
-                            <span className="text-[8px] font-bold text-white uppercase tracking-tighter opacity-70 mb-1">Portal</span>
-                            <span className="text-[10px] font-bold text-rpg-gold text-shadow-glow whitespace-nowrap">{portal.label}</span>
-                        </div>
-                    </div>
+                        className="absolute inset-[-14px] animate-pulse"
+                        style={{
+                            background: 'radial-gradient(ellipse at center, rgba(254,223,140,0.42) 0%, rgba(254,223,140,0.16) 45%, transparent 72%)',
+                            animationDuration: '3.2s',
+                        }}
+                    />
+                    <div className="absolute inset-x-[10%] bottom-[18%] h-[2px] rounded-full bg-[#fedf8c]/70" />
+                    <span className="relative mb-1 px-2 py-0.5 rounded-[3px] bg-[#342c3e]/90 text-[10px] font-bold uppercase tracking-wider text-[#fedf8c] whitespace-nowrap shadow-[0_2px_0_rgba(0,0,0,0.4)]">
+                        {portal.label}
+                    </span>
+                </div>
             ))}
         </>
     );
@@ -641,7 +696,7 @@ const NpcLayer = React.memo(function NpcLayer({ npcs, npcDOMRefs, onSelectNpc })
     );
 });
 
-const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onClose, onInteract, className }) => {
+const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onClose, onInteract, onAreaChange, className }) => {
     // Engine State
     const [currentMapId, setCurrentMapId] = useState('townSquare');
     const [dbMaps, setDbMaps] = useState({});
@@ -725,17 +780,31 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
 
     // Resolve the map with any prefab placements expanded into raw decorations
     // and obstacles. Memoised so we don't re-expand on every render.
+    const { state: gameState } = useGame();
+    const ownedPlots = gameState.character?.ownedPlots;
+
     const map = React.useMemo(() => {
         const raw = dbMaps[currentMapId] || MAP_DATA[currentMapId];
         if (!raw) return raw;
-        if (!raw.prefabs || raw.prefabs.length === 0) return raw;
-        const expanded = expandPrefabs(raw.prefabs);
+        const expanded = raw.prefabs?.length ? expandPrefabs(raw.prefabs) : { decorations: [], obstacles: [] };
+        // Built houses are solid: add their ground floor as obstacles.
+        const builtPlots = (raw.plots || []).filter(plot =>
+            (ownedPlots || []).some(o => o.plotId === plot.id && o.buildingId));
+        if (!expanded.decorations.length && !expanded.obstacles.length && !builtPlots.length) return raw;
         return {
             ...raw,
             decorations: [...(raw.decorations || []), ...expanded.decorations],
-            obstacles: [...(raw.obstacles || []), ...expanded.obstacles],
+            obstacles: [...(raw.obstacles || []), ...expanded.obstacles, ...builtPlots.map(buildingFootprint)],
         };
-    }, [currentMapId, dbMaps]);
+    }, [currentMapId, dbMaps, ownedPlots]);
+
+    // Dev-only: flag unreachable portals, missing tiles and unrendered decorations.
+    useEffect(() => {
+        if (!import.meta.env.DEV || !map) return;
+        validateMap(map).forEach(issue => console.warn(`[World] ${map.id || currentMapId}: ${issue}`));
+    }, [map, currentMapId]);
+
+    useEffect(() => { if (map?.name && onAreaChange) onAreaChange(map.name); }, [map?.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Player State
     const [pos, setPos] = useState({ x: map?.spawn?.x || 0, y: map?.spawn?.y || 0 });
@@ -954,13 +1023,18 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
         if (!mapDOMRef.current || viewportSizeRef.current.w <= 0) return;
         const viewW = viewportSizeRef.current.w;
         const viewH = viewportSizeRef.current.h;
-        let camX = Math.max(0, Math.min(currentMap.width - viewW, px - viewW / 2));
-        let camY = Math.max(0, Math.min(currentMap.height - viewH, py - viewH / 2));
-        mapDOMRef.current.style.transform = `translate3d(-${camX}px, -${camY}px, 0)`;
+        // A map smaller than the window is centred instead of stuck to the top-left.
+        const camX = currentMap.width <= viewW
+            ? (currentMap.width - viewW) / 2
+            : Math.max(0, Math.min(currentMap.width - viewW, px - viewW / 2));
+        const camY = currentMap.height <= viewH
+            ? (currentMap.height - viewH) / 2
+            : Math.max(0, Math.min(currentMap.height - viewH, py - viewH / 2));
+        mapDOMRef.current.style.transform = `translate3d(${-camX}px, ${-camY}px, 0)`;
         // Culling: only trigger a React update when the camera crosses a
         // chunk boundary. Cheap per-frame arithmetic; near-zero re-renders.
-        const cx = Math.floor(camX / CULL_CHUNK);
-        const cy = Math.floor(camY / CULL_CHUNK);
+        const cx = Math.floor(Math.max(0, camX) / CULL_CHUNK);
+        const cy = Math.floor(Math.max(0, camY) / CULL_CHUNK);
         if (cx !== visibleChunkRef.current.x || cy !== visibleChunkRef.current.y) {
             visibleChunkRef.current = { x: cx, y: cy };
             setVisibleChunk({ x: cx, y: cy });
@@ -1139,7 +1213,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
     return (
         <div
             className={(className || 'w-full h-full relative') + ' overflow-hidden transition-colors duration-1000'}
-            style={{ backgroundColor: map?.baseColor || '#000' }}
+            style={{ backgroundColor: '#0d0a14' }}
             ref={viewportRef}
         >
             {/* Map Transition Overlay */}

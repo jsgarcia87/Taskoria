@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import EnemySprite from '../common/EnemySprite';
 import PixelIcon from '../common/PixelIcon';
 import FloatingTextLayer from '../common/FloatingTextLayer';
 import { bosses } from '../../data/bestiary';
+import CardViewer from '../cards/CardViewer';
+import { worldCardBase, resolveCard } from '../../utils/bossCards';
 
 const BossArena = () => {
     const { state } = useGame();
     const { activeWorldBoss } = state;
+    const [cardOpen, setCardOpen] = useState(false);
 
     if (!activeWorldBoss || !activeWorldBoss.isActive) {
         return (
@@ -31,6 +34,9 @@ const BossArena = () => {
     const spriteRef = activeWorldBoss.spriteRef
         || bosses.find(b => b.id === 'chaos_herald')?.spriteRef
         || bosses[0]?.spriteRef;
+
+    const worldCard = worldCardBase({ ...activeWorldBoss, spriteRef });
+    const stored = (state.character?.bossCards || []).find(c => c.id === worldCard.id);
 
     return (
         <div
@@ -66,7 +72,13 @@ const BossArena = () => {
                     />
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-32 h-6 bg-black/40 rounded-[100%] blur-sm"></div>
 
-                    <div className="relative z-10" style={{ filter: 'drop-shadow(0 0 16px rgba(239,68,68,0.25))' }}>
+                    <button
+                        type="button"
+                        onClick={() => setCardOpen(true)}
+                        aria-label={`View the ${activeWorldBoss.name} card`}
+                        className="relative z-10 rounded-2xl transition-transform duration-200 hover:scale-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-rpg-gold"
+                        style={{ filter: 'drop-shadow(0 0 16px rgba(239,68,68,0.25))' }}
+                    >
                         {spriteRef ? (
                             <EnemySprite blueprintKey={spriteRef} scale={3} />
                         ) : (
@@ -74,7 +86,7 @@ const BossArena = () => {
                                 <PixelIcon name="skull" size={48} className="text-red-400/40" />
                             </div>
                         )}
-                    </div>
+                    </button>
 
                     <FloatingTextLayer />
                 </div>
@@ -115,6 +127,14 @@ const BossArena = () => {
                     </div>
                 )}
             </div>
+            {cardOpen && (
+                <CardViewer
+                    card={stored ? resolveCard(stored) : worldCard}
+                    locked={!stored}
+                    progress={!stored ? { hp: hpCurrent, maxHp: hpMax } : null}
+                    onClose={() => setCardOpen(false)}
+                />
+            )}
         </div>
     );
 };

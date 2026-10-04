@@ -5,6 +5,10 @@ import PixelIcon from '../common/PixelIcon';
 import { CHARACTERS } from '../../data/characters';
 import { useGame } from '../../context/GameContext';
 
+const GOLD = '#fedf8c';
+// Stepped pixel border (notched corners), same dialog style as the profile bubble.
+const DIALOG_FRAME = `0 -2px 0 0 ${GOLD}, 0 2px 0 0 ${GOLD}, -2px 0 0 0 ${GOLD}, 2px 0 0 0 ${GOLD}, 4px 4px 0 0 rgba(0,0,0,0.35)`;
+
 /**
  * PixelPlaque — a reusable pixel-art plaque/sign with a chiseled 3D border.
  * Uses sharp corners + dual-side borders (light top/left, dark bottom/right)
@@ -140,7 +144,11 @@ const GardenView = ({ forceScenario }) => {
 
     if (!character) return null;
 
-    const charData = CHARACTERS.find(c => c.id === character.avatarId) || CHARACTERS[0]; // Fallback to first char if ID mismatch
+    // Same lookup as the Hero profile and header so the hero looks identical everywhere.
+    const charData =
+        CHARACTERS.find(c => c.id === character.avatarId) ||
+        CHARACTERS.find(c => c.class === character.class) ||
+        CHARACTERS[0];
 
     // Scenario configurations — static per render, memoized so the periodic
     // speech-bubble re-render (every 8s) doesn't rebuild this object.
@@ -152,7 +160,7 @@ const GardenView = ({ forceScenario }) => {
                 backgroundSize: '20px 20px',
                 opacity: 0.1
             },
-            badge: 'Garden Lv. 1',
+            badge: 'Garden',
             badgeClass: 'text-rpg-green bg-rpg-green/10 border-rpg-green/20',
             badgeVariant: 'green',
         },
@@ -186,9 +194,9 @@ const GardenView = ({ forceScenario }) => {
     const currentConfig = configs[activeScenario];
 
     return (
-        <div className="relative glass-card p-0 h-64 flex items-end justify-center pb-6 overflow-hidden group shadow-2xl ring-1 ring-white/10">
+        <div className="relative rounded-xl h-[300px] sm:h-80 flex items-end justify-center pb-[76px] overflow-hidden ring-1 ring-white/10">
             {/* Decorative Background */}
-            <div className={`absolute inset-0 bg-gradient-to-b ${currentConfig.bgGradient} transition-all duration-1000 group-hover:scale-110`} />
+            <div className={`absolute inset-0 bg-gradient-to-b ${currentConfig.bgGradient} transition-colors duration-1000`} />
             <div className="absolute inset-0 transition-opacity duration-1000" style={currentConfig.pattern}></div>
             <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/50 to-transparent z-0"></div>
 
@@ -227,12 +235,12 @@ const GardenView = ({ forceScenario }) => {
                                         )}
                                         {activePet.happiness < 30 && (
                                             <div className="bg-pink-500 rounded-full p-1 shadow-lg border border-white/20">
-                                                <PixelIcon name="heart" size={10} color="white" />
+                                                <PixelIcon name="ball" size={10} color="white" />
                                             </div>
                                         )}
                                         {activePet.hygiene < 30 && (
                                             <div className="bg-blue-500 rounded-full p-1 shadow-lg border border-white/20 flex items-center justify-center w-5 h-5" title="Needs cleaning">
-                                                <PixelIcon name="bell" size={10} color="white" />
+                                                <PixelIcon name="droplet" size={10} color="white" />
                                             </div>
                                         )}
                                     </div>
@@ -249,98 +257,37 @@ const GardenView = ({ forceScenario }) => {
 
                 {/* Main Avatar */}
                 <div
-                    className="flex flex-col items-center relative cursor-pointer group/avatar"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Open hero profile"
+                    className="flex flex-col items-center relative cursor-pointer group/avatar rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-rpg-gold"
                     onClick={() => setActiveView && setActiveView('profile')}
+                    onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && setActiveView) { e.preventDefault(); setActiveView('profile'); } }}
                 >
-                    {/* Speech bubble — centered popup with upward-pointing tail */}
-                    {messageVisible && message && (
-                        <div
-                            className="absolute z-50 pointer-events-none animate-bubble-popup"
-                            style={{
-                                left: '50%',
-                                top: '50%',
-                                transform: 'translate(-50%, -50%)',
-                            }}
-                        >
-                            <div
-                                className="relative bg-white text-black font-pixel text-center"
-                                style={{
-                                    border: '3px solid #000',
-                                    padding: '8px 10px 7px',
-                                    maxWidth: '190px',
-                                    minWidth: '110px',
-                                    fontSize: '15px',
-                                    lineHeight: '1.1',
-                                    letterSpacing: '0.02em',
-                                    boxShadow: '3px 3px 0 rgba(0,0,0,0.55), inset -2px -2px 0 #c8c8c8, inset 2px 2px 0 #ffffff',
-                                    imageRendering: 'pixelated',
-                                    textTransform: 'uppercase',
-                                }}
-                            >
-                                {/* Pixel-art tail pointing UP (sitting on the top edge of the bubble) */}
-                                <div
-                                    aria-hidden="true"
-                                    style={{
-                                        position: 'absolute',
-                                        left: '50%',
-                                        top: '-10px',
-                                        transform: 'translateX(-50%)',
-                                        width: 0, height: 0,
-                                        lineHeight: 0,
-                                    }}
-                                >
-                                    {/* Black outline triangle (bigger, behind) */}
-                                    <div style={{
-                                        position: 'absolute',
-                                        left: '-7px', top: '0',
-                                        width: 0, height: 0,
-                                        borderLeft: '7px solid transparent',
-                                        borderRight: '7px solid transparent',
-                                        borderBottom: '11px solid #000',
-                                    }} />
-                                    {/* White fill triangle (smaller, on top, slightly lower so it covers only the inside) */}
-                                    <div style={{
-                                        position: 'absolute',
-                                        left: '-4px', top: '4px',
-                                        width: 0, height: 0,
-                                        borderLeft: '4px solid transparent',
-                                        borderRight: '4px solid transparent',
-                                        borderBottom: '6px solid #fff',
-                                    }} />
-                                </div>
-                                {message}
-                            </div>
-                        </div>
-                    )}
-
                     {charData && (
-                        <div className="relative transform group-hover/avatar:scale-110 transition-transform duration-300 flex justify-center filter drop-shadow-2xl md:drop-shadow-none md:group-hover/avatar:drop-shadow-2xl">
+                        <div className="relative transform md:group-hover/avatar:scale-105 transition-transform duration-300 flex justify-center drop-shadow-xl">
                             <ModernPixelAvatar
-                                type={character.class || charData.avatarType || charData.id}
+                                type={charData.avatarType || charData.id}
                                 scale={2.4}
                                 customColors={character?.avatarColors}
                             />
-                            {/* Mobile visual cue */}
-                            <div className="md:hidden absolute -inset-2 rounded-full border-2 border-rpg-gold/0 group-hover/avatar:border-rpg-gold/50 transition-all animate-pulse"></div>
                         </div>
                     )}
                     {/* Simple shadow */}
-                    <div className="w-16 h-2.5 bg-black/60 rounded-[50%] blur-md mt-[-8px] group-hover/avatar:scale-110 transition-transform" />
-                    
-                    {/* Mobile "Edit" Hint */}
-                    <div className="md:hidden absolute -bottom-8 opacity-0 group-hover/avatar:opacity-100 transition-opacity text-[10px] text-rpg-gold font-bold uppercase tracking-widest whitespace-nowrap">
-                        View Hero
-                    </div>
+                    <div className="w-16 h-2.5 bg-black/60 rounded-[50%] blur-md mt-[-8px]" />
                 </div>
             </div>
 
-            {/* Date/Info overlay — original style */}
-            <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end z-20">
-                <div className="glass-panel px-3 py-1.5 backdrop-blur-md bg-black/40 border-white/5">
-                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Today</div>
-                    <div className="text-xs text-white font-heading font-medium">
-                        {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                    </div>
+            {/* RPG dialog box — the hero speaks without covering the scene */}
+            <div className="absolute inset-x-3 bottom-3 z-30">
+                <div className="px-3.5 py-2.5" style={{ backgroundColor: 'rgba(52,44,62,0.94)', boxShadow: DIALOG_FRAME }}>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] leading-none" style={{ color: GOLD }}>{charName}</p>
+                    <p
+                        aria-live="polite"
+                        className={`mt-1.5 text-[13px] leading-snug text-[#f6eedb] min-h-[18px] transition-opacity duration-300 ${messageVisible && message ? 'opacity-100' : 'opacity-0'}`}
+                    >
+                        {message || '\u00a0'}
+                    </p>
                 </div>
             </div>
 

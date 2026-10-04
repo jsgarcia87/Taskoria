@@ -8,9 +8,18 @@
 
 import React from 'react';
 import { SPRITE_REGISTRY, PAL } from '../../../data/sprite-registry.js';
+import { makeCritter } from '../../../data/critter-sprites.js';
 
 export { PAL };
 export const WORLD_PROPS = SPRITE_REGISTRY;
+
+// Critters are one drawing recoloured per placement: build the sprite on first use.
+export const ensureCritterSprite = (variant, color) => {
+    const safe = /^#[0-9a-f]{6}$/i.test(color || '') ? color : '#22c55e';
+    const key = `critter_${variant}_${safe.slice(1)}`;
+    if (!WORLD_PROPS[key]) WORLD_PROPS[key] = makeCritter(variant, safe);
+    return key;
+};
 
 // -----------------------------------------------------------------------------
 //  WorldSprite — renders a registry prop as inline SVG (crisp at any scale)
@@ -43,7 +52,7 @@ function bufferToRects(buffer, w, h) {
  * Renders a WORLD_PROPS entry. Anchored bottom-center at (x, y) so trees/posts
  * "stand on" their ground coordinate. Z-sorted by y like the rest of the world.
  */
-export const WorldSprite = React.memo(function WorldSprite({ name, x, y, scale = 1, sway = false, opacity = 1, shadow = true }) {
+export const WorldSprite = React.memo(function WorldSprite({ name, x, y, scale = 1, sway = false, opacity = 1, shadow = true, className = '', svgClassName = '' }) {
     const prop = WORLD_PROPS[name];
     if (!prop) return null;
     const { w, h, buffer } = prop;
@@ -54,8 +63,8 @@ export const WorldSprite = React.memo(function WorldSprite({ name, x, y, scale =
 
     return (
         <div
-            className={`absolute pointer-events-none ${sway ? 'animate-sway' : ''}`}
-            style={{ left, top, width: drawW, height: drawH, zIndex: Math.floor(y), opacity }}
+            className={`absolute pointer-events-none ${sway ? 'animate-sway' : ''} ${className}`}
+            style={{ left, top, width: drawW, height: drawH, zIndex: Math.floor(y), opacity, transformOrigin: className ? '50% 100%' : undefined }}
         >
             {shadow && (
                 <div
@@ -75,6 +84,7 @@ export const WorldSprite = React.memo(function WorldSprite({ name, x, y, scale =
                 height={drawH}
                 viewBox={`0 0 ${w} ${h}`}
                 shapeRendering="crispEdges"
+                className={svgClassName}
                 style={{ imageRendering: 'pixelated', display: 'block' }}
             >
                 {bufferToRects(buffer, w, h)}

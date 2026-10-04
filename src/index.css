@@ -1,6 +1,14 @@
 /* stylelint-disable */
 @import url('https://fonts.googleapis.com/css2?family=Handjet:wght@700;800;900&family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&family=VT323&display=swap');
 
+@font-face {
+  font-family: 'Taskoria Herald';
+  src: url('/fonts/taskoria-herald.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,12 +33,17 @@
 }
 
 @layer base {
+  /* `clip` stops sideways scroll without turning html/body into scroll containers,
+     which would break every `position: sticky` (landing Council chapter, headers).
+     `hidden` stays as the fallback for browsers without `clip`. */
   html {
     overflow-x: hidden;
+    overflow-x: clip;
   }
 
   body {
     overflow-x: hidden;
+    overflow-x: clip;
     background-color: var(--color-bg-secondary);
     color: #ffffff;
     -webkit-font-smoothing: antialiased;
@@ -545,6 +558,65 @@
   animation: tabContentIn 0.3s ease-out both;
 }
 
+/* Profile hero stage */
+@keyframes heroTwinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50%      { opacity: 0.9; transform: scale(1); }
+}
+.hero-twinkle {
+  animation: heroTwinkle 3.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes heroRise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero-rise {
+  animation: heroRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* World critters */
+@keyframes critterPatrol {
+  0%, 4%    { transform: translateX(0); }
+  46%, 54%  { transform: translateX(var(--patrol, 40px)); }
+  96%, 100% { transform: translateX(0); }
+}
+.critter-patrol {
+  animation: critterPatrol var(--period, 20s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes critterFace {
+  0%, 49.99% { transform: scaleX(1); }
+  50%, 100%  { transform: scaleX(-1); }
+}
+.critter-face {
+  animation: critterFace var(--period, 20s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes critterHop {
+  0%, 100% { transform: scale(1, 1); }
+  50%      { transform: scale(1.07, 0.88); }
+}
+.critter-hop { animation: critterHop 2.4s ease-in-out infinite; }
+@keyframes critterBreathe {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(1.04); }
+}
+.critter-breathe { animation: critterBreathe 3.6s ease-in-out infinite; }
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-twinkle { animation: none; opacity: 0.6; }
+  .hero-rise { animation: none; }
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+
 /* Landing stat bar fill animation */
 @keyframes stat-fill {
   from { width: 0%; }
@@ -605,24 +677,24 @@
 }
 
 .chapter-headline {
-  font-family: 'VT323', monospace;
-  font-size: clamp(1.75rem, 4.5vw, 3rem);
-  font-weight: 800;
-  line-height: 1.05;
+  font-family: 'Taskoria Herald', 'Outfit', sans-serif;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 400;
+  line-height: 1.02;
   color: white;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.01em;
+  margin-bottom: 0.75rem;
+  text-wrap: balance;
 }
 
 .chapter-tagline {
-  font-family: 'Handjet', sans-serif;
-  font-size: clamp(1.15rem, 2.6vw, 1.65rem);
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
   font-weight: 500;
-  line-height: 1.3;
+  line-height: 1.4;
   color: rgba(255, 255, 255, 0.78);
   margin-bottom: 1.25rem;
-  letter-spacing: 0.01em;
+  text-wrap: pretty;
 }
 
 .chapter-body {
@@ -832,10 +904,9 @@
 .sign-parchment::after  { bottom: -8px; }
 
 .sign-parchment-title {
-  font-family: 'VT323', monospace;
-  font-size: 1.4rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
+  font-family: 'Taskoria Herald', 'Outfit', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 0.04em;
   text-align: center;
   color: #4a2818;
   margin-bottom: 0.25rem;
@@ -850,10 +921,11 @@
   margin-bottom: 1.5rem;
 }
 .sign-parchment-body {
-  font-family: 'Handjet', sans-serif;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 500;
   color: rgba(58, 40, 24, 0.85);
   text-align: center;
-  font-size: 1.1rem;
+  font-size: 0.98rem;
   line-height: 1.4;
   margin-bottom: 1.5rem;
   padding: 0 0.5rem;
@@ -1104,9 +1176,9 @@
 .chronicle-enter-content > *:nth-child(8) { animation-delay: 760ms; }
 .chronicle-enter-content > *:nth-child(n+9) { animation-delay: 800ms; }
 
-/* ═══ Subtle breathing animation ═══ */
+/* ═══ Scroll-hint breathing (fades) — distinct from .animate-breathe ═══ */
 
-@keyframes breathe {
+@keyframes hint-breathe {
   0%, 100% { transform: translateY(0); opacity: 0.4; }
   50% { transform: translateY(3px); opacity: 0.8; }
 }

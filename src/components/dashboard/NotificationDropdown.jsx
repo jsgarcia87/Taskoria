@@ -2,7 +2,7 @@ import React from 'react';
 import { Bell, AlertTriangle, CalendarX2 } from 'lucide-react';
 import PixelIcon from '../common/PixelIcon';
 
-const NotificationDropdown = ({ isOpen, onClose, overdueTasks = [], setActiveView }) => {
+const NotificationDropdown = ({ isOpen, onClose, overdueTasks = [], friendRequests = 0, setActiveView }) => {
     if (!isOpen) return null;
 
     return (
@@ -16,13 +16,26 @@ const NotificationDropdown = ({ isOpen, onClose, overdueTasks = [], setActiveVie
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
-                {overdueTasks.length === 0 ? (
+                {friendRequests > 0 && (
+                    <div className="p-2 pb-0">
+                        <button
+                            onClick={() => { if (setActiveView) setActiveView('party'); onClose(); }}
+                            className="w-full text-left p-3 bg-rpg-gold/[0.07] ring-1 ring-rpg-gold/25 hover:bg-rpg-gold/10 rounded-xl transition-colors flex items-center gap-3"
+                        >
+                            <PixelIcon name="users" size={16} color="#fbbf24" />
+                            <span className="text-sm font-semibold text-rpg-gold">
+                                {friendRequests === 1 ? '1 hero wants to join your party' : `${friendRequests} heroes want to join your party`}
+                            </span>
+                        </button>
+                    </div>
+                )}
+                {overdueTasks.length === 0 && friendRequests === 0 ? (
                     <div className="text-center p-6 text-gray-500 flex flex-col items-center gap-2">
                         <AlertTriangle size={32} className="opacity-20 mb-2" />
                         <p className="text-sm">Notifus has nothing to report.</p>
                         <p className="text-[10px] uppercase tracking-wider">The herald's horn is silent</p>
                     </div>
-                ) : (
+                ) : overdueTasks.length === 0 ? null : (
                     <div className="space-y-2 p-2">
                         <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest pl-2 mb-2">Overdue Tasks</div>
                         {overdueTasks.map(task => (

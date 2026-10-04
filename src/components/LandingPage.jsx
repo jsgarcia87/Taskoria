@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import {
     Sword, Shield, Scroll, Users, CheckCircle2, ChevronRight, Loader2, Crown, Hammer,
     Sparkles, Map, Timer, Heart, Target, Trophy, Flame, Star, Zap, BookOpen, TreePine, Castle, Eraser, Square,
-    ChevronDown, ArrowLeft, Calendar, Clock, ChevronLeft
+    ChevronDown, ArrowLeft, Calendar, Clock, ChevronLeft, Play
 } from 'lucide-react';
 import BLOG_POSTS from '../data/blogPosts';
 import ModernPixelAvatar from './common/ModernPixelAvatar';
@@ -11,43 +11,37 @@ import LoreScroll from './common/LoreScroll';
 
 const CastleScene = lazy(() => import('./landing/CastleScene'));
 
-const LoadingScreen = ({ onReady }) => {
-    const [progress, setProgress] = useState(0);
+// The loader only exists while something real is loading: fonts, the crest, the 3D castle's
+// first frame and the guest-mode setting. Its bar is the share of those that are done, and it
+// stays invisible for the first 300 ms so a fast load never flashes it.
+const LoadingScreen = ({ progress, done, onGone }) => {
+    const [visible, setVisible] = useState(false);
     const [fading, setFading] = useState(false);
 
     useEffect(() => {
-        let raf;
-        let start = null;
-        const duration = 1800;
-        const tick = (ts) => {
-            if (!start) start = ts;
-            const elapsed = ts - start;
-            const p = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - p, 3);
-            setProgress(Math.round(eased * 100));
-            if (p < 1) {
-                raf = requestAnimationFrame(tick);
-            } else {
-                setFading(true);
-                setTimeout(() => onReady(), 500);
-            }
-        };
-        raf = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(raf);
-    }, [onReady]);
+        const t = setTimeout(() => setVisible(true), 300);
+        return () => clearTimeout(t);
+    }, []);
+
+    useEffect(() => {
+        if (!done) return;
+        setFading(true);
+        const t = setTimeout(onGone, 450);
+        return () => clearTimeout(t);
+    }, [done, onGone]);
 
     return (
-        <div className={`fixed inset-0 z-[200] bg-rpg-bg flex flex-col items-center justify-center transition-opacity duration-500 ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-            <img src="./icono_taskoria_white.png" alt="" className="w-16 h-16 mb-8 drop-shadow-[0_0_20px_rgba(253,223,140,0.5)]" />
-            <div className="w-48 h-2 bg-rpg-panelDark rounded-full overflow-hidden border border-rpg-panelLight">
-                <div
-                    className="h-full bg-rpg-gold rounded-full transition-[width] duration-100 ease-out"
-                    style={{ width: `${progress}%` }}
-                />
+        <div
+            role="status"
+            aria-label="Loading Taskoria"
+            className={`fixed inset-0 z-[200] bg-rpg-bg flex flex-col items-center justify-center transition-opacity duration-[450ms] ease-out ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        >
+            <div className={`flex flex-col items-center transition-opacity duration-500 ${visible ? 'opacity-100' : 'opacity-0'}`}>
+                <img src="./icono_taskoria_white.png" alt="" className="w-16 h-16 mb-8 drop-shadow-[0_0_14px_rgba(253,223,140,0.3)]" />
+                <div className="w-48 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-rpg-gold rounded-full transition-[width] duration-500 ease-out" style={{ width: `${Math.round(progress * 100)}%` }} />
+                </div>
             </div>
-            <p className="mt-4 text-[10px] uppercase tracking-[0.3em] text-gray-500 font-heading">
-                Entering the kingdom...
-            </p>
         </div>
     );
 };
@@ -88,6 +82,22 @@ const FAQParchmentItem = ({ question, answer }) => {
     );
 };
 
+const LandingFooter = ({ onBlog, onGoToTerms, onGoToLegal }) => (
+    <footer className="border-t border-white/10 bg-rpg-panelDark/80 backdrop-blur-sm py-10 mt-12">
+        <div className="container mx-auto px-6 text-center font-heading">
+            <p className="text-sm text-gray-400">
+                Made by{' '}
+                <a href="https://sangar.studio" target="_blank" rel="noopener noreferrer" className="text-gray-200 hover:text-rpg-gold transition-colors">Sangar.Studio</a>
+            </p>
+            <div className="flex justify-center gap-6 mt-6">
+                <button onClick={onBlog} className="hover:text-rpg-gold text-gray-500 transition-colors cursor-pointer text-xs uppercase tracking-widest">Blog</button>
+                <button onClick={onGoToTerms} className="hover:text-rpg-gold text-gray-500 transition-colors cursor-pointer text-xs uppercase tracking-widest">Terms of Service</button>
+                <button onClick={onGoToLegal} className="hover:text-rpg-gold text-gray-500 transition-colors cursor-pointer text-xs uppercase tracking-widest">Legal Notice</button>
+            </div>
+        </div>
+    </footer>
+);
+
 const GUARDIANS = [
     { name: 'Ledgar',     title: 'The Chronicler',  color: '#6699ff', lore: 'I record every deed, lest they fade into the void.',            tech: 'Habits, Tasks & Diary' },
     { name: 'Chronos',    title: 'The Timekeeper',  color: '#ff5544', lore: 'Time is a monster. Slay it, or let it consume you.',            tech: 'Pomodoro Focus Combat' },
@@ -97,14 +107,17 @@ const GUARDIANS = [
     { name: 'Matriarch',  title: 'The Protector',   color: '#ff6699', lore: 'Every lineage has its heroes. Let them all rise.',              tech: 'Multi-profile for families' },
 ];
 
-const FAQ_DATA = [
+// Only promises the product keeps today: no founder perks or waves of invites that don't exist.
+const faqData = (guestOpen) => [
     {
         q: 'What is Taskoria?',
-        a: 'Taskoria is a task manager that turns your daily to-dos into RPG quests. Complete tasks to earn XP, level up your hero, unlock companions, and explore a pixel-art open world — all while staying productive.',
+        a: 'Taskoria is a task manager that turns your daily to-dos into RPG quests. Complete tasks to earn XP, level up your hero, unlock companions, and explore a pixel-art world — all while staying productive.',
     },
     {
         q: 'Is Taskoria free?',
-        a: 'Yes! During the closed beta, Taskoria is completely free. Founding citizens get early access to all 5 maps, exclusive badges, and will keep any special perks when we launch.',
+        a: guestOpen
+            ? 'Yes. Taskoria is free during the beta and needs no card. You can try it right now without an account, and register whenever you want to keep your progress.'
+            : 'Yes. Taskoria is free during the beta and needs no card. Leave your email and you get an account to keep your hero and progress.',
     },
     {
         q: 'How does the gamification work?',
@@ -112,15 +125,19 @@ const FAQ_DATA = [
     },
     {
         q: 'Can I use it as a serious task manager?',
-        a: 'Absolutely. Taskoria is a utility-first app: task lists, deadlines, priorities, and habits are all front and center. The RPG layer is designed to motivate, never to get in the way.',
+        a: 'Yes. Task lists, deadlines, priorities and habits come first. The RPG layer is there to motivate, never to get in the way.',
     },
     {
         q: 'What platforms does it support?',
         a: 'Taskoria works in any modern browser on desktop and mobile. It\'s a Progressive Web App (PWA), so you can install it on your phone\'s home screen for a native-like experience.',
     },
     {
-        q: 'When does the beta launch?',
-        a: 'We\'re onboarding founding citizens right now. Join the waitlist above to secure your spot — early access invitations go out in waves.',
+        q: 'Who is behind Taskoria?',
+        a: 'Taskoria is created by Jesús Sánchez García under the Sangar Studio brand. Questions, bugs or ideas: write to taskoriaapp@gmail.com and a person will answer.',
+    },
+    {
+        q: 'Can I join the beta now?',
+        a: 'Yes. Leave your email in the register above and your login details are sent straight away.',
     },
 ];
 
@@ -175,7 +192,7 @@ const BlogListView = ({ posts, onSelectPost, onBack }) => (
             </button>
             <div className="chronicle-enter-header text-center mb-14">
                 <div className="chronicle-divider mb-6">❧</div>
-                <h1 className="text-3xl md:text-4xl font-landing font-bold text-white mb-3">The Chronicle</h1>
+                <h1 className="text-3xl md:text-4xl font-herald text-white mb-3">The Chronicle</h1>
                 <p className="text-gray-500 max-w-md mx-auto text-sm">Dispatches from the Archive Council. Every entry, a chapter in Taskoria's unfolding story.</p>
                 <div className="chronicle-divider mt-6">◆ ◆ ◆</div>
             </div>
@@ -214,7 +231,7 @@ const BlogPostView = ({ slug, posts, onBack, onBackToList }) => {
                         </span>
                     </div>
 
-                    <h1 className="chronicle-enter text-2xl md:text-4xl font-landing font-bold text-white mb-4 leading-tight text-center" style={{ '--enter-delay': '100ms' }}>{post.title}</h1>
+                    <h1 className="chronicle-enter text-2xl md:text-4xl font-herald text-white mb-4 leading-tight text-center" style={{ '--enter-delay': '100ms' }}>{post.title}</h1>
 
                     <div className="chronicle-enter flex items-center justify-center gap-4 text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-6" style={{ '--enter-delay': '180ms' }}>
                         <span className="flex items-center gap-1.5"><Calendar size={12} /> {formatDate(post.date)}</span>
@@ -360,7 +377,7 @@ const QuestScroll = () => {
                 </div>
                 <div className="mt-6 text-center w-56">
                     <div className="text-[10px] uppercase tracking-[0.25em] font-heading font-bold text-gray-500 mb-1">Hero</div>
-                    <div className="font-landing text-lg text-white mb-3">Arcanys the Wise · Lvl {level}</div>
+                    <div className="font-herald text-lg text-white mb-3">Arcanys the Wise · Lvl {level}</div>
                     <div className="relative h-2.5 bg-black/50 border border-white/10 rounded-sm overflow-hidden">
                         <div className="absolute inset-y-0 left-0 bg-rpg-gold shadow-[0_0_8px_rgba(253,215,109,0.6)] transition-[width] duration-500 ease-out" style={{ width: `${xp}%` }} />
                     </div>
@@ -472,7 +489,7 @@ const ChapterProgress = ({ chapters }) => {
             if (!el) return;
             const obs = new IntersectionObserver(
                 ([entry]) => { if (entry.isIntersecting) setActiveIdx(i); },
-                { threshold: 0.15, rootMargin: '-40% 0px -40% 0px' }
+                { threshold: 0, rootMargin: '-45% 0px -45% 0px' }
             );
             obs.observe(el);
             observers.push(obs);
@@ -519,8 +536,7 @@ const ChapterProgress = ({ chapters }) => {
 
 // Renders a real game prop inside the landing mini map, positioned by % coords.
 // The sprite anchors at its bottom (feet on the ground), like in the real world.
-const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
-    const [pageReady, setPageReady] = useState(false);
+const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal, onTryAsGuest }) => {
     const [email, setEmail] = useState('');
     const [status, setStatus] = useState('idle');
     const [message, setMessage] = useState('');
@@ -528,6 +544,36 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
     const [blogView, setBlogView] = useState(null);
     const [posts, setPosts] = useState(BLOG_POSTS);
     const [councilIdx, setCouncilIdx] = useState(0);
+    // Guest access is an admin switch (api/settings.php); the button only exists while it is on.
+    const [guestOpen, setGuestOpen] = useState(false);
+    const [loaded, setLoaded] = useState({ fonts: false, crest: false, scene: false, settings: false });
+    const [pageReady, setPageReady] = useState(false);
+    const markLoaded = useCallback((key) => setLoaded(prev => (prev[key] ? prev : { ...prev, [key]: true })), []);
+    const loadedCount = Object.values(loaded).filter(Boolean).length;
+    const allLoaded = loadedCount === Object.keys(loaded).length;
+
+    useEffect(() => {
+        const fonts = Promise.all([
+            document.fonts.load('48px "Taskoria Herald"'),
+            document.fonts.load('700 18px "Outfit"'),
+            document.fonts.load('500 16px "Inter"'),
+        ]).catch(() => {});
+        fonts.then(() => document.fonts.ready).then(() => markLoaded('fonts'));
+        const crest = new Image();
+        crest.onload = crest.onerror = () => markLoaded('crest');
+        crest.src = './icono_taskoria_white.png';
+        // Never trap anyone behind the loader (no WebGL, offline, slow network).
+        const giveUp = setTimeout(() => setLoaded({ fonts: true, crest: true, scene: true, settings: true }), 5000);
+        return () => clearTimeout(giveUp);
+    }, [markLoaded]);
+
+    useEffect(() => {
+        fetch('api/settings.php')
+            .then(res => res.json())
+            .then(data => { if (data && data.success) setGuestOpen(!!data.allow_guest_mode); })
+            .catch(() => {})
+            .finally(() => markLoaded('settings'));
+    }, [markLoaded]);
 
     useEffect(() => {
         fetch('api/cms.php?action=public_posts')
@@ -653,13 +699,14 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
 
     return (
         <div className="min-h-screen bg-rpg-bg text-white font-sans selection:bg-rpg-gold selection:text-black" style={{ overflowX: 'clip' }}>
-            {!pageReady && <LoadingScreen onReady={() => setPageReady(true)} />}
+
+            {!pageReady && <LoadingScreen progress={loadedCount / Object.keys(loaded).length} done={allLoaded} onGone={() => setPageReady(true)} />}
 
             {!blogView && (
                 <>
                 {/* 3D Castle background */}
                 <Suspense fallback={null}>
-                    <CastleScene />
+                    <CastleScene onReady={() => markLoaded('scene')} />
                 </Suspense>
                 {/* Dark overlay on castle */}
                 <div className="fixed inset-0 z-[1] pointer-events-none bg-black/40" />
@@ -685,6 +732,12 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                         onClick={scrollToWaitlist}
                         className="hidden md:block text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-rpg-gold px-4 py-2 transition-colors cursor-pointer"
                     >Join Beta</button>
+                    {guestOpen && onTryAsGuest && (
+                        <button
+                            onClick={() => onTryAsGuest()}
+                            className="hidden md:flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-rpg-gold hover:text-white px-4 py-2 transition-colors cursor-pointer"
+                        ><Play size={12} fill="currentColor" /> Play free</button>
+                    )}
                     <button
                         onClick={() => onGoToLogin?.()}
                         className="bg-rpg-panel border-2 md:border-[3px] border-rpg-panelLight hover:border-rpg-gold text-white text-[10px] md:text-sm font-bold uppercase tracking-wider md:tracking-widest px-3 md:px-6 py-1.5 md:py-2 rounded-lg md:rounded-xl transition-all group font-heading shadow-lg shadow-black/30 active:translate-y-0.5 active:shadow-md"
@@ -716,16 +769,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                         />
                     )}
                     {/* Footer */}
-                    <footer className="border-t border-white/10 bg-rpg-panelDark/80 backdrop-blur-sm py-8 mt-12">
-                        <div className="container mx-auto px-6 text-center text-sm text-gray-500 font-heading">
-                            <p className="mb-4 text-gray-400 tracking-wider uppercase text-xs">Taskoria © {new Date().getFullYear()}</p>
-                            <div className="flex justify-center gap-6">
-                                <button onClick={() => { setBlogView('list'); window.scrollTo(0, 0); }} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Blog</button>
-                                <button onClick={onGoToTerms} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Terms of Service</button>
-                                <button onClick={onGoToLegal} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Legal Notice</button>
-                            </div>
-                        </div>
-                    </footer>
+            <LandingFooter onBlog={() => { setBlogView('list'); window.scrollTo(0, 0); }} onGoToTerms={onGoToTerms} onGoToLegal={onGoToLegal} />
                 </div>
             ) : (
             <>
@@ -733,29 +777,41 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
             <ChapterProgress chapters={chapters} />
 
             {/* HERO — sticky fullscreen with castle 3D behind */}
-            <main ref={heroRef} className="relative z-10 h-[100dvh] flex flex-col items-center justify-center text-center px-6">
+            <main ref={heroRef} className="relative z-10 min-h-[100dvh] flex flex-col items-center justify-center text-center px-6">
                 <div className="max-w-4xl mx-auto flex flex-col items-center py-16 md:py-24">
-                    <div className="mb-10 flex items-center justify-center">
-                        <img src="./icono_taskoria_white.png" alt="Taskoria Crest" className="w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_0_30px_rgba(253,223,140,0.7)]" />
+                    <div className="mb-8 flex items-center justify-center">
+                        <img src="./icono_taskoria_white.png" alt="Taskoria Crest" className="w-20 h-20 md:w-28 md:h-28 drop-shadow-[0_0_18px_rgba(253,223,140,0.35)]" />
                     </div>
                     <h1 className="sr-only">Taskoria: Gamified Productivity App and RPG Habit Tracker</h1>
-                    <h2 className="text-4xl md:text-5xl lg:text-7xl font-landing font-extrabold tracking-widest uppercase mb-8 animate-[slideUpFade_1s_ease-out_forwards] opacity-0 text-white drop-shadow-[0_0_15px_rgba(253,223,140,0.5)] leading-tight">
-                        Turn your tasks<br/>into an RPG adventure.
+                    <h2 aria-hidden="true" className={`text-4xl sm:text-5xl lg:text-7xl font-herald mb-8 ${pageReady ? 'animate-[slideUpFade_1s_ease-out_0.1s_forwards]' : ''} opacity-0 text-white leading-[1.05]`}>
+                        Turn your tasks<br/>into an <span className="text-rpg-gold">RPG adventure.</span>
                     </h2>
-                    <p className="text-lg md:text-2xl text-rpg-gold font-heading max-w-2xl mx-auto mb-8 animate-[slideUpFade_1s_ease-out_0.3s_forwards] opacity-0 leading-relaxed drop-shadow-[0_0_10px_rgba(253,223,140,0.3)]">
+                    <p className={`text-lg md:text-2xl text-gray-200 font-heading font-medium max-w-2xl mx-auto mb-10 ${pageReady ? 'animate-[slideUpFade_1s_ease-out_0.3s_forwards]' : ''} opacity-0 leading-relaxed`}>
                         A task manager where every completed quest<br className="hidden md:block"/> levels up your hero.
                     </p>
-                    <div className="animate-[slideUpFade_1s_ease-out_0.6s_forwards] opacity-0 flex flex-col items-center">
-                        <button onClick={scrollToWaitlist} className="bg-rpg-gold text-rpg-panel border-b-[6px] border-yellow-600 active:border-b-0 active:translate-y-[6px] rounded-xl px-10 py-4 uppercase tracking-widest text-base md:text-lg font-heading font-extrabold transition-all flex items-center justify-center gap-3 group shadow-xl">
-                            Join the Beta <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform"/>
-                        </button>
+                    <div className={`${pageReady ? 'animate-[slideUpFade_1s_ease-out_0.6s_forwards]' : ''} opacity-0 flex flex-col items-center gap-4`}>
+                        {guestOpen && onTryAsGuest ? (
+                            <>
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+                                    <button onClick={() => onTryAsGuest()} className="bg-rpg-gold text-rpg-panel border-b-[6px] border-yellow-600 active:border-b-0 active:translate-y-[6px] rounded-xl px-5 sm:px-8 py-4 uppercase tracking-wider sm:tracking-widest text-[13px] sm:text-base whitespace-nowrap font-heading font-extrabold transition-all flex items-center justify-center gap-2.5 sm:gap-3 group shadow-xl">
+                                        <Play size={18} fill="currentColor" /> Play free — no sign-up
+                                    </button>
+                                    <button onClick={scrollToWaitlist} className="rounded-xl px-6 py-4 border border-white/20 hover:border-rpg-gold text-white hover:text-rpg-gold uppercase tracking-widest text-sm font-heading font-bold transition-colors flex items-center justify-center gap-2 group">
+                                        Join the Beta <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                </div>
+                                <p className="text-sm text-gray-400 font-heading">No account, no card. Register whenever you want to keep your progress.</p>
+                            </>
+                        ) : (
+                            <button onClick={scrollToWaitlist} className="bg-rpg-gold text-rpg-panel border-b-[6px] border-yellow-600 active:border-b-0 active:translate-y-[6px] rounded-xl px-10 py-4 uppercase tracking-widest text-base md:text-lg font-heading font-extrabold transition-all flex items-center justify-center gap-3 group shadow-xl">
+                                Join the Beta <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        )}
                     </div>
                 </div>
-                {/* Scroll hint — anchored to viewport bottom, full-width so the
-                    keyframe transform can't fight the horizontal centering. */}
-                <div className="absolute bottom-4 inset-x-0 flex flex-col items-center gap-1.5 animate-[slideUpFade_1s_ease-out_1.2s_forwards] opacity-0 pointer-events-none">
+                <div className={`absolute bottom-4 inset-x-0 flex flex-col items-center gap-1.5 ${pageReady ? 'animate-[slideUpFade_1s_ease-out_1.2s_forwards]' : ''} opacity-0 pointer-events-none`}>
                     <span className="text-[9px] uppercase tracking-[0.3em] text-gray-500 font-heading">Scroll to enter</span>
-                    <ChevronDown size={14} className="text-gray-500 animate-[breathe_2.5s_ease-in-out_infinite]" />
+                    <ChevronDown size={14} className="text-gray-500 animate-[hint-breathe_2.5s_ease-in-out_infinite]" />
                 </div>
             </main>
 
@@ -800,20 +856,6 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                             Long ago, the Royal Archive began transforming every mundane duty into a grand Quest. No deed goes unrecorded. No effort is forgotten.
                         </p>
                     </Reveal>
-                    <Reveal delay={350}>
-                        <div className="grid md:grid-cols-3 gap-4 mt-12 text-left">
-                            {[
-                                { chapter: 'I', quote: 'Every checkbox is a chapter. Every day, a saga.' },
-                                { chapter: 'II', quote: 'What is not written, is forgotten. What is forgotten, is lost.' },
-                                { chapter: 'III', quote: 'The Council watches. Your deeds shape the kingdom.' },
-                            ].map((s) => (
-                                <div key={s.chapter} className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-5 hover:border-rpg-gold/40 transition-colors">
-                                    <div className="text-rpg-gold font-landing text-xl mb-2 opacity-70">Chapter {s.chapter}</div>
-                                    <p className="text-gray-300 text-sm leading-relaxed italic font-heading">"{s.quote}"</p>
-                                </div>
-                            ))}
-                        </div>
-                    </Reveal>
                     <Reveal delay={500}>
                         <div className="mt-10 flex justify-center">
                             <LoreScroll />
@@ -839,13 +881,13 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                         <div className="text-[10px] font-mono text-gray-500 tracking-[0.3em] mb-4">
                             {String(councilIdx + 1).padStart(2, '0')} / 06
                         </div>
-                        <h3 className="font-landing font-bold text-3xl md:text-4xl mb-1" style={{ color: GUARDIANS[councilIdx].color, textShadow: `0 0 20px ${GUARDIANS[councilIdx].color}55` }}>
+                        <h3 className="font-herald text-3xl md:text-4xl mb-1" style={{ color: GUARDIANS[councilIdx].color, textShadow: `0 0 20px ${GUARDIANS[councilIdx].color}55` }}>
                             {GUARDIANS[councilIdx].name}
                         </h3>
                         <div className="text-[10px] uppercase tracking-[0.3em] text-gray-400 font-bold mb-5">
                             {GUARDIANS[councilIdx].title}
                         </div>
-                        <p className="text-base italic text-gray-200 leading-relaxed font-heading mb-5 max-w-sm mx-auto">
+                        <p className="text-base text-gray-200 leading-relaxed font-heading mb-5 max-w-sm mx-auto">
                             "{GUARDIANS[councilIdx].lore}"
                         </p>
                         <div className="inline-block text-[11px] font-heading font-bold uppercase tracking-widest text-gray-400 border-t border-white/10 pt-3">
@@ -877,20 +919,6 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                                 <p className="chapter-body max-w-lg">
                                     Open the Pixel Studio and design houses, castles, mounts, trees and decorations pixel by pixel. Upload a reference, trace with adjustable opacity, use the kingdom's palette. Hit publish — approved creations live on the map forever.
                                 </p>
-                                <div className="flex gap-8 mt-8">
-                                    <div className="text-center">
-                                        <div className="text-3xl font-pixel text-white">6</div>
-                                        <div className="text-[9px] uppercase tracking-[0.2em] text-gray-500 mt-1">Categories</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-3xl font-pixel text-rpg-gold">∞</div>
-                                        <div className="text-[9px] uppercase tracking-[0.2em] text-gray-500 mt-1">Creations</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-3xl font-pixel text-white">Live</div>
-                                        <div className="text-[9px] uppercase tracking-[0.2em] text-gray-500 mt-1">On the map</div>
-                                    </div>
-                                </div>
                                 <button onClick={() => onGoToLogin?.()} className="mt-8 inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white border border-white/20 hover:border-rpg-gold font-heading px-7 py-3 rounded-xl uppercase tracking-widest text-sm transition-all group font-bold">
                                     <Hammer size={16}/> Try the Pixel Studio <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/>
                                 </button>
@@ -909,11 +937,15 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                     <Reveal>
                         <div className="chapter-label text-rpg-gold justify-center">The Call</div>
                         <h2 className="chapter-headline">Your quest awaits.</h2>
-                        <p className="chapter-tagline mx-auto max-w-xl">Log in and start playing in seconds — free during closed beta.</p>
-                        <div className="inline-flex items-center gap-2 mt-4 px-3 py-1 rounded-full bg-rpg-gold/10 border border-rpg-gold/30">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rpg-gold animate-pulse" />
-                            <span className="text-[10px] uppercase tracking-[0.2em] font-heading font-bold text-rpg-gold">Closed beta · Limited spots</span>
-                        </div>
+                        <p className="chapter-tagline mx-auto max-w-xl">{guestOpen && onTryAsGuest ? 'Step in now — no account needed. Free during the beta.' : 'Get your login and start playing in minutes — free during the beta.'}</p>
+                        {guestOpen && onTryAsGuest && (
+                            <div className="mt-6 flex flex-col items-center gap-2">
+                                <button onClick={() => onTryAsGuest()} className="bg-rpg-gold text-rpg-panel border-b-[6px] border-yellow-600 active:border-b-0 active:translate-y-[6px] rounded-xl px-5 sm:px-8 py-4 uppercase tracking-wider sm:tracking-widest text-[13px] sm:text-base whitespace-nowrap font-heading font-extrabold transition-all flex items-center justify-center gap-2.5 sm:gap-3 shadow-xl">
+                                    <Play size={18} fill="currentColor" /> Play free — no sign-up
+                                </button>
+                                <span className="text-sm text-gray-500 font-heading">Or get your own account below.</span>
+                            </div>
+                        )}
                     </Reveal>
 
                     <Reveal delay={200}>
@@ -921,15 +953,15 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                             <div className="sign-parchment-title">The Founder's Register</div>
                             <div className="sign-parchment-flourish">◆ ◆ ◆</div>
                             <p className="sign-parchment-body">
-                                Sign your name in the register. Your hero credentials arrive by raven — log in and cross the threshold.
+                                Leave your email and we'll send your login details straight away.
                             </p>
 
                             <div className="sign-input-wrap">
-                                <span className="sign-input-label">Your name in ink</span>
+                                <span className="sign-input-label">Your email</span>
                                 <input
                                     type="email"
                                     required
-                                    placeholder="you@kingdom.realm"
+                                    placeholder="you@example.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     disabled={status === 'loading' || status === 'success'}
@@ -992,7 +1024,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
             <section className="relative z-10 container mx-auto px-6 py-20">
                 <Reveal className="text-center mb-14">
                     <div className="chronicle-divider mb-6">❧</div>
-                    <h2 className="text-2xl md:text-3xl font-landing font-bold text-white mb-3">The Chronicle</h2>
+                    <h2 className="text-2xl md:text-3xl font-herald text-white mb-3">The Chronicle</h2>
                     <p className="text-gray-500 max-w-md mx-auto text-sm">Dispatches from the Archive Council.</p>
                     <div className="chronicle-divider mt-6">◆ ◆ ◆</div>
                 </Reveal>
@@ -1022,11 +1054,11 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
                 <Reveal>
                     <div className="max-w-2xl mx-auto">
                         <div className="text-center mb-10">
-                            <h2 className="text-2xl md:text-3xl font-landing font-bold text-white mb-2">Traveler's Guide</h2>
+                            <h2 className="text-2xl md:text-3xl font-herald text-white mb-2">Traveler's Guide</h2>
                             <p className="text-gray-500 text-sm">Common inquiries at the gate.</p>
                         </div>
                         <div className="faq-parchment">
-                            {FAQ_DATA.map((faq, i) => (
+                            {faqData(guestOpen && !!onTryAsGuest).map((faq, i) => (
                                 <FAQParchmentItem key={i} question={faq.q} answer={faq.a} />
                             ))}
                         </div>
@@ -1035,16 +1067,7 @@ const LandingPage = ({ onGoToLogin, onGoToTerms, onGoToLegal }) => {
             </section>
 
             {/* Footer */}
-            <footer className="border-t border-white/10 bg-rpg-panelDark/80 backdrop-blur-sm py-8 mt-12">
-                <div className="container mx-auto px-6 text-center text-sm text-gray-500 font-heading">
-                    <p className="mb-4 text-gray-400 tracking-wider uppercase text-xs">Taskoria © {new Date().getFullYear()}</p>
-                    <div className="flex justify-center gap-6">
-                        <button onClick={() => { setBlogView('list'); window.scrollTo(0, 0); }} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Blog</button>
-                        <button onClick={onGoToTerms} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Terms of Service</button>
-                        <button onClick={onGoToLegal} className="hover:text-rpg-gold transition-colors block cursor-pointer text-xs uppercase tracking-widest">Legal Notice</button>
-                    </div>
-                </div>
-            </footer>
+            <LandingFooter onBlog={() => { setBlogView('list'); window.scrollTo(0, 0); }} onGoToTerms={onGoToTerms} onGoToLegal={onGoToLegal} />
             </div>{/* end post-hero background */}
             </>
             )}
