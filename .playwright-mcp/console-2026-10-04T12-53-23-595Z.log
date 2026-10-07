@@ -185,3 +185,26 @@ requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:20
 requ"... is not valid JSON @ :0
 [10639452ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
 requ"... is not valid JSON @ :0
+[63841931ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:864
+[72188542ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:0
+[72188544ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/main.jsx:0
+[72188544ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@react-refresh:0
+[72188544ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite-plugin-pwa/pwa-entry-point-loaded:0
+[72188549ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/manifest.webmanifest:0
+[72188919ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/manifest.webmanifest:0
+[72188920ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/Icono_taskoria.svg:0
+[72193505ms] Error: Minified React error #418; visit https://react.dev/errors/418?args[]=HTML&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at ni (https://taskoria.es/assets/vendor-react-f0ILHROH.js:8:31370)
+    at jc (https://taskoria.es/assets/vendor-react-f0ILHROH.js:8:75879)
+    at Ry (https://taskoria.es/assets/vendor-react-f0ILHROH.js:8:83230)
+    at nv (https://taskoria.es/assets/vendor-react-f0ILHROH.js:8:117169)
+    at IT (https://taskoria.es/assets/vendor-react-f0ILHROH.js:8:116213)
+    at Td (https://taskoria.es/assets/vendor-react-f0ILHROH.js:8:116043)
+    at Jy (https://taskoria.es/assets/vendor-react-f0ILHROH.js:8:112483)
+    at yv (https://taskoria.es/assets/vendor-react-f0ILHROH.js:8:124671)
+    at MessagePort.C (https://taskoria.es/assets/vendor-D7zbWXZ4.js:1:1622)
+[72193774ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ https://taskoria.es/:0
+[72193879ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ https://taskoria.es/assets/vendor-D7zbWXZ4.js:0
+[72193885ms] [WARNING] THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead. @ https://taskoria.es/assets/vendor-D7zbWXZ4.js:0
+[72201091ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://taskoria.es/:0
+[72201136ms] [ERROR] Failed to load resource: the server responded with a status of 402 () @ https://grainy-gradients.vercel.app/noise.svg:0
