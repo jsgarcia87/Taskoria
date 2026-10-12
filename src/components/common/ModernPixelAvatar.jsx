@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import blueprintsData from '../../data/character_blueprints.json';
 import { fetchCustomBlueprints, getCustomBlueprintsCache } from '../../utils/blueprints.js';
+import { composeAvatar } from '../../utils/avatarLayers.js';
 
 const S_BASE = 1.8;
 const GRID_SIZE = 64;
@@ -34,10 +35,51 @@ const shadeHex = (color, percent) => {
     } catch(e) { return color; }
 }
 
-const ModernPixelAvatar = ({ type = 'warrior', scale = 1, headOnly = false, customColors = null }) => {
+const hexToHsl = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    if (max === min) return [0, 0, l];
+    const d = max - min;
+    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [h / 6, s, l];
+};
+
+const hslToHex = (h, s, l) => {
+    const f = (n) => {
+        const k = (n + h * 12) % 12;
+        const a = s * Math.min(l, 1 - l);
+        const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+        return Math.round(c * 255).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+};
+
+// Recolors a ramp of palette letters toward `target`: the first letter is the
+// reference tone and takes the target colour; the others keep their lightness
+// offset from it, so shading reads the same in any colour.
+const retintRamp = (paleta, letters, target) => {
+    const valid = (letters || []).filter(L => /^#[0-9a-f]{6}$/i.test(paleta[L] || ''));
+    if (!valid.length || !/^#[0-9a-f]{6}$/i.test(target)) return {};
+    const [th, ts, tl] = hexToHsl(target);
+    const refL = hexToHsl(paleta[valid[0]])[2];
+    const out = {};
+    valid.forEach(L => {
+        const l = Math.min(0.97, Math.max(0.03, tl + hexToHsl(paleta[L])[2] - refL));
+        out[L] = L === valid[0] ? target : hslToHex(th, ts, l);
+    });
+    return out;
+};
+
+// `cosmetics`: { slot: { id, part } | null } from character.cosmetics. Only used
+// when the class has layered parts published from the Forja.
+const ModernPixelAvatar = ({ type = 'warrior', scale = 1, headOnly = false, customColors = null, cosmetics = null }) => {
     const canvasRef = useRef(null);
     const animationFrameRef = useRef(null);
     const customColorsStr = customColors ? JSON.stringify(customColors) : null;
+    const cosmeticsKey = cosmetics ? Object.entries(cosmetics).map(([s, c]) => `${s}:${c ? c.id : '-'}`).sort().join('|') : '';
     
     // We use useState to hold the pre-rendered 64x64 cache
     const [cachedImage, setCachedImage] = useState(null);
@@ -55,33 +97,47 @@ const ModernPixelAvatar = ({ type = 'warrior', scale = 1, headOnly = false, cust
     useEffect(() => {
         const mappedType = TYPE_MAP[type] || 'fighter';
         const customBp = dbBlueprints?.characters?.[mappedType.toLowerCase()];
-        // Built-in blueprints always win: they are the canonical, full-frame
-        // 64-grid sprites the game ships with. Custom DB designs only fill in
-        // brand-new types the JSON doesn't define — never silently replace a
-        // shipped avatar (that was the bug where custom designs broke heroes).
-        const config = blueprintsData[mappedType] || customBp || blueprintsData['fighter'];
+        const liveBp = dbBlueprints?.liveClasses?.[mappedType];
+        // Priority: a Forja design explicitly marked "En el juego" (validated
+        // 64×64 frame) > the shipped blueprint > other DB designs. Generic DB
+        // designs only fill in types the JSON doesn't define — they never
+        // silently replace a shipped avatar (the old "broken heroes" bug).
+        let config = liveBp || blueprintsData[mappedType] || customBp || blueprintsData['fighter'];
+        if (liveBp?.parts) {
+            // Layered class: compose body + outfit parts + equipped cosmetics.
+            const overrides = Object.fromEntries(Object.entries(cosmetics || {}).map(([slot, c]) => [slot, c ? c.part : null]));
+            config = composeAvatar({ parts: liveBp.parts, appearance: liveBp.appearance }, overrides);
+        }
         const blueprint = config.blueprint;
         const pixels = config.pixels;
         const paleta = config.paleta ? { ...config.paleta } : {};
 
         if (customColorsStr && config.paleta) {
             const parsedColors = JSON.parse(customColorsStr);
-            const baseSkin = config.paleta['E'] || '#ffdbac'; 
-            
-            // Apply custom palette overrides
             if (parsedColors) {
-                if (parsedColors.skin) {
-                    Object.keys(paleta).forEach(k => {
-                        if (paleta[k].toLowerCase() === baseSkin.toLowerCase()) paleta[k] = parsedColors.skin;
+                if (config.roles) {
+                    // Blueprints declare which palette letters are skin / hair /
+                    // primary outfit. Each ramp is shifted as a whole so its
+                    // highlights and shadows survive the recolor.
+                    const ROLE_COLOR = { skin: parsedColors.skin, hair: parsedColors.hair, primary: parsedColors.primary };
+                    Object.entries(config.roles).forEach(([role, letters]) => {
+                        if (ROLE_COLOR[role]) Object.assign(paleta, retintRamp(config.paleta, letters, ROLE_COLOR[role]));
                     });
-                }
-                if (parsedColors.primary) {
-                    paleta['B'] = parsedColors.primary;
-                    paleta['C'] = shadeHex(parsedColors.primary, -0.2);
-                    paleta['D'] = shadeHex(parsedColors.primary, -0.4);
-                }
-                if (parsedColors.hair) {
-                    if (paleta['J']) paleta['J'] = parsedColors.hair;
+                } else {
+                    // Legacy contract for blueprints without `roles`
+                    // (e.g. older DB designs): E = skin, B/C/D = outfit, J = hair.
+                    const baseSkin = config.paleta['E'] || '#ffdbac';
+                    if (parsedColors.skin) {
+                        Object.keys(paleta).forEach(k => {
+                            if (paleta[k].toLowerCase() === baseSkin.toLowerCase()) paleta[k] = parsedColors.skin;
+                        });
+                    }
+                    if (parsedColors.primary) {
+                        paleta['B'] = parsedColors.primary;
+                        paleta['C'] = shadeHex(parsedColors.primary, -0.2);
+                        paleta['D'] = shadeHex(parsedColors.primary, -0.4);
+                    }
+                    if (parsedColors.hair && paleta['J']) paleta['J'] = parsedColors.hair;
                 }
             }
         }
@@ -126,7 +182,8 @@ const ModernPixelAvatar = ({ type = 'warrior', scale = 1, headOnly = false, cust
         }
 
         setCachedImage(offCanvas);
-    }, [type, customColorsStr, dbBlueprints]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cosmeticsKey stands in for `cosmetics`
+    }, [type, customColorsStr, dbBlueprints, cosmeticsKey]);
 
     // 2. Ultra-Fast Render Loop 
     useEffect(() => {

@@ -1,0 +1,118 @@
+{
+  "Fighter": {
+    "id": "fighter",
+    "family": "armored",
+    "combatStats": [
+      "str"
+    ],
+    "avatarType": "warrior"
+  },
+  "Paladin": {
+    "id": "paladin",
+    "family": "armored",
+    "combatStats": [
+      "str",
+      "will"
+    ],
+    "avatarType": "paladin"
+  },
+  "Wizard": {
+    "id": "wizard",
+    "family": "robed",
+    "combatStats": [
+      "int"
+    ],
+    "avatarType": "mage"
+  },
+  "Rogue": {
+    "id": "rogue",
+    "family": "common",
+    "combatStats": [
+      "dex"
+    ],
+    "avatarType": "rogue"
+  },
+  "Cleric": {
+    "id": "cleric",
+    "family": "robed",
+    "combatStats": [
+      "will",
+      "cha"
+    ],
+    "avatarType": "cleric"
+  },
+  "Ranger": {
+    "id": "ranger",
+    "family": "common",
+    "combatStats": [
+      "dex"
+    ],
+    "avatarType": "ranger"
+  },
+  "Barbarian": {
+    "id": "barbarian",
+    "family": "armored",
+    "combatStats": [
+      "str"
+    ],
+    "avatarType": "barbarian"
+  },
+  "Bard": {
+    "id": "bard",
+    "family": "common",
+    "combatStats": [
+      "cha"
+    ],
+    "avatarType": "bard"
+  },
+  "Druid": {
+    "id": "druid",
+    "family": "robed",
+    "combatStats": [
+      "will"
+    ],
+    "avatarType": "druid"
+  },
+  "Monk": {
+    "id": "monk",
+    "family": "common",
+    "combatStats": [
+      "dex",
+      "will"
+    ],
+    "avatarType": "monk"
+  },
+  "Necromancer": {
+    "id": "necromancer",
+    "family": "robed",
+    "combatStats": [
+      "int"
+    ],
+    "avatarType": "necromancer"
+  },
+  "Antipaladin": {
+    "id": "antipaladin",
+    "family": "armored",
+    "combatStats": [
+      "str",
+      "cha"
+    ],
+    "avatarType": "antipaladin"
+  },
+  "Sorcerer": {
+    "id": "sorcerer",
+    "family": "robed",
+    "combatStats": [
+      "cha"
+    ],
+    "avatarType": "sorcerer"
+  },
+  "Scout": {
+    "id": "scout",
+    "family": "common",
+    "combatStats": [
+      "dex"
+    ],
+    "avatarType": "scout"
+  }
+}

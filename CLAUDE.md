@@ -81,6 +81,17 @@ src/
 
 ---
 
+## Sistema de Clases
+
+- **Fuente única:** `src/data/classes.js` (14 clases canónicas: stats, level-up, combate, afinidad, perk, tema, brief de silueta). `characters.js`, `CLASS_CONFIG` (gameUtils) y `CLASS_THEME` (CharacterSheet) derivan de ahí.
+- **Perks:** `src/utils/classPerks.js` → sinergia +10% si `task.attribute` ∈ afinidad + perk de firma (taskoria-rules §5). Se aplica en `COMPLETE_TASK`.
+- **Blueprints:** cada entrada de `character_blueprints.json` lleva `roles: { skin, hair, primary }` (letras de paleta). `E` = piel base `#ffdbac`. El recoloreado desplaza cada rampa conservando el sombreado.
+- **Forja de Clases** (`public/admin-tools/character_builder.html`): roster espejo de `classes.js` + propuestas de rediseño (`<clase>_vN`). Flujo: Adoptar propuesta → marcar «En el juego» → Publicar. El juego lee `api/class_blueprints.php?action=live` y solo sustituye el sprite si el diseño es 64×64 válido.
+- **Capas / cosméticos:** taxonomía única en `src/data/outfitSlots.js` (9 huecos de ropa + escudo; pelo y barba son apariencia). Cada pieza va en su hueco y se dibuja **completa** aunque quede tapada. La Forja publica `parts` + `appearance` y `src/utils/avatarLayers.js` las compone en tiempo real; `character.cosmetics = { hueco: { id, name, part } }` sustituye piezas (solo cosméticos de la propia clase). Sin `parts` publicados, el avatar usa el sprite plano.
+- **Validar tras cualquier cambio:** `npm run validate:classes`.
+
+---
+
 ## Motor PlayableWorld
 
 - **React DOM** (no canvas global) · 60fps via `requestAnimationFrame`

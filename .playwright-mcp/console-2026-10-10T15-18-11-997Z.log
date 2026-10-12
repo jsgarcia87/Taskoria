@@ -1,0 +1,76 @@
+[     109ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[     223ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[     224ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:39
+[    6721ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onOpenChat @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:2366
+[   40045ms] [ERROR] In HTML, %s cannot be a descendant of <%s>.
+This will cause a hydration error.%s <div> p 
+
+  ...
+    <div style={{opacity:0, ...}} ref={function}>
+      <div className="grid grid-..." onOpenChat={function bound dispatchSetState}>
+        <AnimatePresence>
+        <DailyRewardModal>
+        <CardReveal>
+        <PWAInstallPrompt>
+        <AnimatePresence mode="wait">
+          <PresenceChild isPresent={true} initial={undefined} custom={undefined} presenceAffectsLayout={true} mode="wait" ...>
+            <PopChild pop={false} isPresent={true} anchorX="left" anchorY="top" root={undefined}>
+              <PopChildMeasure isPresent={true} childRef={{current:null}} sizeRef={{...}} pop={false}>
+                <motion.div initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}} ...>
+                  <div className="col-span-1..." style={{opacity:0, ...}} ref={function}>
+                    <PartyView currentUser={{id:1, ...}}>
+                      <div className="space-y-6 ...">
+                        <div>
+                        <ChatModal>
+                        <div>
+                        <div>
+                        <div className="flex items...">
+>                         <p className="text-gray-400 text-sm font-bold animate-pulse flex items-center gap-2">
+>                           <div
+>                             className="w-4 h-4 border-2 border-rpg-gold border-t-transparent rounded-full animate-spin"
+>                           >
+                            ...
+ @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:2155
+[   40459ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[   40510ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[   99620ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:20102
+[   99659ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ http://localhost:5173/src/utils/blueprints.js:39
+[   99660ms] [INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ http://localhost:5173/:0
+[  106216ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onOpenChat @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:2366
+[  139522ms] [ERROR] In HTML, %s cannot be a descendant of <%s>.
+This will cause a hydration error.%s <div> p 
+
+  ...
+    <div style={{opacity:0, ...}} ref={function}>
+      <div className="grid grid-..." onOpenChat={function bound dispatchSetState}>
+        <AnimatePresence>
+        <DailyRewardModal>
+        <CardReveal>
+        <PWAInstallPrompt>
+        <AnimatePresence mode="wait">
+          <PresenceChild isPresent={true} initial={undefined} custom={undefined} presenceAffectsLayout={true} mode="wait" ...>
+            <PopChild pop={false} isPresent={true} anchorX="left" anchorY="top" root={undefined}>
+              <PopChildMeasure isPresent={true} childRef={{current:null}} sizeRef={{...}} pop={false}>
+                <motion.div initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}} ...>
+                  <div className="col-span-1..." style={{opacity:0, ...}} ref={function}>
+                    <PartyView currentUser={{id:1, ...}}>
+                      <div className="space-y-6 ...">
+                        <div>
+                        <ChatModal>
+                        <div>
+                        <div>
+                        <div className="flex items...">
+>                         <p className="text-gray-400 text-sm font-bold animate-pulse flex items-center gap-2">
+>                           <div
+>                             className="w-4 h-4 border-2 border-rpg-gold border-t-transparent rounded-full animate-spin"
+>                           >
+                            ...
+ @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=eb52eb8c:2155
+[  139934ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0
+[  139974ms] [ERROR] SyntaxError: Unexpected token '<', "<?php
+requ"... is not valid JSON @ :0

@@ -130,7 +130,7 @@ if ($method === 'GET') {
         $userId = (int)($_GET['user_id'] ?? 0);
         if (!$userId) { http_response_code(400); echo json_encode(['error' => 'user_id required']); exit; }
         $stmt = $pdo->prepare("
-            SELECT c.id, c.name, c.category, c.grid_size, c.pixels, c.price,
+            SELECT c.id, c.name, c.category, c.grid_size, c.pixels, c.params, c.price,
                    u.username, p.price_paid, p.purchased_at
             FROM creation_purchases p
             JOIN world_creations c ON c.id = p.creation_id

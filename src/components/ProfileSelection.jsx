@@ -72,7 +72,7 @@ const ProfileSelection = ({ profiles, onSelectProfile, onCreateProfile, onLogout
                                 <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl bg-black/40 border-2 border-white/10 flex items-center justify-center p-2 group-hover:border-rpg-gold group-hover:bg-white/5 group-hover:shadow-[0_0_30px_rgba(255,215,0,0.2)] transition-all duration-300 transform group-hover:-translate-y-2 overflow-hidden relative">
                                     {/* Default avatar fallback if profile doesn't have one set up yet */}
                                     {profile.state?.character?.avatarId ? (
-                                        <ModernPixelAvatar type={profile.state.character.avatarId} scale={4.0} customColors={profile.state.character.avatarColors} headOnly={true} />
+                                        <ModernPixelAvatar type={profile.state.character.avatarId} scale={4.0} customColors={profile.state.character.avatarColors} cosmetics={profile.state.character.cosmetics} headOnly={true} />
                                     ) : (
                                         <User size={48} className="text-gray-500 group-hover:text-rpg-gold transition-colors" />
                                     )}

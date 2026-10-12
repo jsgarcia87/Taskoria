@@ -16,6 +16,9 @@ import { useConfirm } from '../context/ConfirmContext';
 import { NumberTicker } from './common/NumberTicker';
 import PixelIcon from './common/PixelIcon';
 import { CHARACTERS } from '../data/characters';
+import { CLASSES, getClass } from '../data/classes';
+import { OUTFIT_SLOTS, OUTFIT_SLOT_IDS } from '../data/outfitSlots';
+import { partFromPixels } from '../utils/avatarLayers';
 import { EQUIPMENT_SLOTS, ITEM_TYPES, SET_BONUSES } from '../data/items';
 import ModernPixelAvatar from './common/ModernPixelAvatar';
 import ModernPixelPet from './common/ModernPixelPet';
@@ -27,22 +30,7 @@ import StatsRadarChart from './dashboard/StatsRadarChart';
 import CardAlbum from './cards/CardAlbum';
 import { useToast } from './common/Toast';
 
-const CLASS_THEME = {
-    Fighter:     { accent: '#ef4444', icon: 'swords', skillsLabel: 'Battle Stances',  gearLabel: 'Armory' },
-    Wizard:      { accent: '#818cf8', icon: 'hat',    skillsLabel: 'Arcane Arts',     gearLabel: 'Arcanum' },
-    Rogue:       { accent: '#10b981', icon: 'dagger', skillsLabel: 'Shadow Tricks',   gearLabel: 'Stash' },
-    Cleric:      { accent: '#fbbf24', icon: 'chalice', skillsLabel: 'Divine Rites',    gearLabel: 'Vestments' },
-    Paladin:     { accent: '#f59e0b', icon: 'cross',  skillsLabel: 'Sacred Oaths',    gearLabel: 'Arsenal' },
-    Ranger:      { accent: '#22c55e', icon: 'bow',    skillsLabel: 'Wild Craft',      gearLabel: 'Kit' },
-    Barbarian:   { accent: '#dc2626', icon: 'axe',    skillsLabel: 'Primal Fury',     gearLabel: 'War Spoils' },
-    Bard:        { accent: '#a78bfa', icon: 'note',   skillsLabel: 'Performances',    gearLabel: 'Repertoire' },
-    Druid:       { accent: '#4ade80', icon: 'leaf',   skillsLabel: 'Nature Bonds',    gearLabel: 'Grove Cache' },
-    Monk:        { accent: '#f97316', icon: 'lotus',  skillsLabel: 'Inner Forms',     gearLabel: 'Wrappings' },
-    Necromancer: { accent: '#7c3aed', icon: 'skull',  skillsLabel: 'Dark Pacts',      gearLabel: 'Reliquary' },
-    Antipaladin: { accent: '#991b1b', icon: 'horns',  skillsLabel: 'Dread Vows',      gearLabel: 'Blight Forge' },
-    Sorcerer:    { accent: '#c084fc', icon: 'orb',    skillsLabel: 'Raw Channeling',  gearLabel: 'Focus Array' },
-    Scout:       { accent: '#06b6d4', icon: 'eye',    skillsLabel: 'Recon Tactics',   gearLabel: 'Field Pack' },
-};
+const CLASS_THEME = Object.fromEntries(CLASSES.map(c => [c.name, c.theme]));
 
 const STAT_CONFIG = [
     { key: 'str', label: 'STR', full: 'Strength',     color: '#ef4444', bg: 'bg-red-500',    icon: 'dumbbell'  },
@@ -233,12 +221,22 @@ const CharacterSheet = ({ setActiveView }) => {
                             let params = {};
                             try { params = typeof c.params === 'string' ? JSON.parse(c.params) : c.params; } catch(e){}
 
+                            let pixels = c.pixels;
+                            try { pixels = typeof pixels === 'string' ? JSON.parse(pixels) : pixels; } catch (e) { pixels = null; }
+                            // Legacy params used stat-gear slots and avatar types ('head', 'warrior').
+                            const LEGACY_SLOT = { head: 'capucha', body: 'torso', legs: 'piernas', mainHand: 'arma', weapon: 'arma', offHand: 'escudo', shield: 'escudo', accessory: 'capucha' };
+                            const rawSlot = params?.cosmeticSlot || 'head';
+                            const slot = OUTFIT_SLOT_IDS.includes(rawSlot) ? rawSlot : (LEGACY_SLOT[rawSlot] || 'capucha');
+                            const rawClass = String(params?.cosmeticClass || '').toLowerCase();
+                            const cls = getClass(rawClass) || CLASSES.find(k => k.avatarType === rawClass);
                             return {
                                 id: `cosmetic_${c.id}`,
                                 name: c.name,
                                 type: ITEM_TYPES.GEAR,
-                                slot: params?.cosmeticSlot || 'head',
-                                cosmeticClass: params?.cosmeticClass || 'warrior',
+                                slot,
+                                classId: cls?.id || null,
+                                cosmeticClass: cls?.name || null,
+                                part: partFromPixels(pixels),
                                 description: `A custom cosmetic designed by ${c.username}.`,
                                 cost: c.price,
                                 isCosmetic: true,
@@ -283,8 +281,13 @@ const CharacterSheet = ({ setActiveView }) => {
     };
 
     const handleEquip = (item) => {
-        if (item.isCosmetic && item.cosmeticClass && item.cosmeticClass.toLowerCase() !== character.class.toLowerCase()) {
-            toast.error(`Solo los personajes de clase ${item.cosmeticClass} pueden equiparse este cosmético.`);
+        if (item.isCosmetic) {
+            if (item.classId && item.classId !== getClass(character.class)?.id) {
+                toast.error(`Solo los personajes de clase ${item.cosmeticClass} pueden equiparse este cosmético.`);
+                return;
+            }
+            if (!item.part) { toast.error('Este cosmético no tiene dibujo.'); return; }
+            actions.equipCosmetic(item);
             return;
         }
         actions.equipItem(item, item.slot);
@@ -573,6 +576,7 @@ const CharacterSheet = ({ setActiveView }) => {
                                             type={charData.avatarType || charData.id}
                                             scale={bustScale}
                                             customColors={character?.avatarColors}
+                                            cosmetics={character?.cosmetics}
                                         />
                                     </div>
                                 </div>
@@ -913,6 +917,29 @@ const CharacterSheet = ({ setActiveView }) => {
                             </div>
                         </div>
 
+                        {/* Wardrobe: cosmetics worn per outfit slot (visual only) */}
+                        {character.cosmetics && Object.keys(character.cosmetics).length > 0 && (
+                            <div data-reveal>
+                                <div className="mb-3">
+                                    <SectionDivider label="Wardrobe" icon="shirt" color="#a78bfa" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    {OUTFIT_SLOTS.filter(s => character.cosmetics[s.id]).map(s => (
+                                        <div key={s.id} className="flex items-center gap-3 p-2 rounded-lg bg-black/20 group">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">{s.label}</p>
+                                                <p className="text-xs font-bold text-white truncate">{character.cosmetics[s.id].name}</p>
+                                            </div>
+                                            <button onClick={() => actions.unequipCosmetic(s.id)}
+                                                className="px-2 py-1 text-[9px] font-bold uppercase bg-red-500/5 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 rounded-lg border border-red-500/10 transition-all">
+                                                Remove
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Inventory */}
                         <div data-reveal>
                             <div className="mb-3">
@@ -951,10 +978,12 @@ const CharacterSheet = ({ setActiveView }) => {
                                                         USE
                                                     </button>
                                                 )}
+                                                {!item.isCosmetic && (
                                                 <button onClick={() => handleSellClick(item)}
                                                     className="px-2 py-1 rounded-lg bg-white/5 hover:bg-amber-500/20 text-[9px] font-bold text-gray-400 hover:text-amber-400 transition-colors border border-white/5">
                                                     SELL
                                                 </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

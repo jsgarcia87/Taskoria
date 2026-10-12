@@ -81,7 +81,7 @@ const AvatarBattle = ({ isActive, onEnemyDefeated, isBoss = false, zone = 'crypt
                         <ModernPixelAvatar
                             type={character?.avatarId || character?.class?.toLowerCase() || 'warrior'}
                             scale={2}
-                            customColors={character?.avatarColors}
+                            customColors={character?.avatarColors} cosmetics={character?.cosmetics}
                         />
                     </div>
                     {/* Hero name */}

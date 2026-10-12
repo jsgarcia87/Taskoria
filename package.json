@@ -8,6 +8,8 @@
     "build": "vite build",
     "build:local": "vite build --config vite.local.config.js",
     "lint": "eslint .",
+    "validate:classes": "node scripts/validate-classes.mjs",
+    "validate:duel": "node scripts/validate-duel.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

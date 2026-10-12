@@ -87,6 +87,18 @@ Navegación unificada móvil/escritorio: los destinos viven en `src/components/c
 - La API **no tiene autenticación**: confía en el `user_id` del cliente. No añadir endpoints que expongan datos sensibles hasta que haya tokens.
 - Cargar la landing pide `api/settings.php` y `api/cms.php`; en `npm run dev` esas rutas devuelven el PHP como texto y fallan (esperado, la UI tiene fallback).
 
+## Duelos PvP (partida de rol)
+
+- Reglas d20 en **dos sitios que deben coincidir**: `src/utils/duelEngine.js` (cliente: duelos locales y repetición) y `api/lib/duel.php` (servidor: **el único que decide** los duelos entre amigos, con `random_int`). Cualquier cambio de reglas se hace en ambos y se comprueba con `npm run validate:duel` (mismos dados → mismos duelos; `--balance` imprime el balance por clase).
+- La tabla de clases que lee PHP es `api/lib/duel_classes.json`; se regenera con `node scripts/sync-duel-classes.mjs` al tocar `src/data/classes.js`.
+- Modificadores comprimidos (tope +3, suelo −3) y DEX limitado en la CA: así las clases quedan entre ~36 % y ~64 % de victorias a igual nivel. No quitar los topes sin repasar el balance.
+- La **Inspiración** (repeticiones heroicas) sale de trabajo real de hoy (`activityHistory`): nunca se regala ni se vende.
+- **El rival decide:** un duelo entre amigos es un desafío asíncrono. El retador elige postura (queda sellada) y la envía; el amigo la ve en Party → Duels (con insignia en la barra), elige **su** postura y acepta (el servidor tira los dados en ese momento) o rechaza. Caduca a las 24 h; máx. 3 desafíos abiertos por retador y uno por pareja.
+- **Solo duelos de honor:** no se quita nada de ningún guardado. Un autosave obsoleto del rival puede pisar cualquier edición del servidor sobre su `save_data`, así que no añadir botín/oro a los desafíos sin antes resolver esa carrera (p. ej. reclamos idempotentes aplicados por el cliente).
+- API: `api/battle_pvp.php` con `action: preview | challenge | inbox | pending_count | respond | cancel | watch | history` (la antigua `duel` inmediata responde 410). Solo entre amigos con amistad aceptada. Tablas `duels` (eventos completos, para repetirlo) y `duel_challenges` (estado, posturas, visto/no visto); se crean solas.
+- Cliente: `src/utils/duelApi.js`; `PartyView` pinta el panel Duels y abre `DuelArena` con `mode`: `fight` (sparring familiar local), `send`, `answer`, `watch`. App.jsx suma los avisos de duelo a la insignia de Party.
+- UI: `src/components/duel/` (`DuelArena`, `Die`, `duelTimeline`). Los dados (`Die`, `dieGeometry`) son poliedros reales en CSS 3D (d6/d8/d10/d12/d20, caras opuestas suman N+1): la tirada es un giro que se frena y termina exactamente en la cara del resultado; la luz se recalcula por cara en cada frame. Animaciones sutiles: sin shake ni partículas.
+
 ## Cómo trabajar
 
 1. Para el mundo, leer primero el doc de `docs/world/` que toque y mantener la paleta del design system.

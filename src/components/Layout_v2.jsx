@@ -169,7 +169,7 @@ const Layout_v2 = ({
                                 className={`flex items-center gap-2.5 rounded-full p-0.5 2xl:pr-4 transition-colors ${onProfile ? 'bg-rpg-gold/15 ring-2 ring-rpg-gold/60' : 'bg-black/25 ring-1 ring-white/15 hover:ring-rpg-gold/50'}`}
                             >
                                 <span className="relative w-9 h-9 rounded-full overflow-hidden bg-rpg-panelDark flex items-center justify-center">
-                                    <ModernPixelAvatar type={heroData.avatarType || heroData.id} headOnly scale={1.4} customColors={character.avatarColors} />
+                                    <ModernPixelAvatar type={heroData.avatarType || heroData.id} headOnly scale={1.4} customColors={character.avatarColors} cosmetics={character.cosmetics} />
                                 </span>
                                 <span className="hidden 2xl:flex flex-col items-start leading-none">
                                     <span className="text-sm font-bold text-rpg-gold">{character.name}</span>

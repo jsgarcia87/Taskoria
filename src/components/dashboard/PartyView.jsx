@@ -7,6 +7,11 @@ import ChatModal from './ChatModal';
 import GuildView from './GuildView';
 import BossArena from './BossArena';
 import { useConfirm } from '../../context/ConfirmContext';
+import DuelArena from '../duel/DuelArena';
+import { buildCombatant, runDuel, randomRoll } from '../../utils/duelEngine';
+import {
+    previewDuel, sendChallenge, answerChallenge, cancelChallenge, fetchDuelInbox, watchDuel, announceDuelsChanged, DUELS_CHANGED,
+} from '../../utils/duelApi';
 // Shop carries the full items catalog + sprite sheet URL → defer until needed.
 const Shop = React.lazy(() => import('../Shop'));
 // PlayableWorld is the biggest single component (~1000 lines + world/sprites/
@@ -18,10 +23,15 @@ import {
     fetchFriends, sendFriendRequest, respondToRequest, removeFriend, importLegacyFriends,
 } from '../../utils/friendsApi';
 
+const hoursLeft = (iso) => {
+    const h = Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 3600000));
+    return h <= 1 ? 'under an hour left' : `${h}h left`;
+};
+
 const sameIds = (a = [], b = []) => a.length === b.length && a.every(x => b.some(y => String(y.id) === String(x.id)));
 
 const PartyView = ({ currentUser, onOpenChat }) => {
-    const { state, dispatch, actions, activeProfileId, familyData, setFamilyData } = useGame();
+    const { state, dispatch, activeProfileId, familyData, setFamilyData } = useGame();
     const toast = useToast();
     const confirm = useConfirm();
     const [familyMembers, setFamilyMembers] = useState([]);
@@ -35,7 +45,9 @@ const PartyView = ({ currentUser, onOpenChat }) => {
 
     // UI State
     const [loading, setLoading] = useState(true);
-    const [battleResult, setBattleResult] = useState(null);
+    const [duel, setDuel] = useState(null);
+    // Challenges between friends: the rival decides, so they live on the server.
+    const [duels, setDuels] = useState({ me: null, incoming: [], outgoing: [], finished: [] });
 
     // Friendships live on the server and only count once both sides agreed.
     // `familyData.friends` mirrors the accepted list so chat and the world keep working offline.
@@ -71,11 +83,18 @@ const PartyView = ({ currentUser, onOpenChat }) => {
         }
     };
 
+    const loadDuels = async () => {
+        if (!canUseServer) return;
+        try { setDuels(await fetchDuelInbox(currentUser.id)); } catch (e) { console.error('Could not load duels', e); }
+    };
+
     useEffect(() => {
         if (!canUseServer) return;
         loadFriends();
-        const timer = setInterval(loadFriends, 30000);
-        return () => clearInterval(timer);
+        loadDuels();
+        const timer = setInterval(() => { loadFriends(); loadDuels(); }, 30000);
+        window.addEventListener(DUELS_CHANGED, loadDuels);
+        return () => { clearInterval(timer); window.removeEventListener(DUELS_CHANGED, loadDuels); };
     }, [currentUser?.id]);
     const [activeChatFriend, setActiveChatFriend] = useState(null);
     const [areaName, setAreaName] = useState('Town Square');
@@ -211,88 +230,101 @@ const PartyView = ({ currentUser, onOpenChat }) => {
         }
     };
 
+    // A duel is played like a tabletop session (components/duel). Network duels are rolled and
+    // decided on the server; family sparring is rolled here with the same rules and no stakes.
     const handleBattle = async (opponentId, isLocal) => {
-        if (!await confirm({ title: 'Issue Challenge?', message: isLocal ? 'A friendly sparring match between allies.' : 'A network battle against this player.', variant: 'quest', confirmText: 'Fight!' })) return;
-
         const myChar = state.character;
+        const today = new Date().toLocaleDateString('en-CA');
 
         if (isLocal) {
-            // Local PvP Simulator (Family)
             const opponent = familyMembers.find(u => u.id === opponentId);
             if (!opponent || !opponent.state || !opponent.state.character) {
                 toast.info("This family member hasn't created a hero yet.");
                 return;
             }
-
-            const opChar = opponent.state.character;
-
-            const myPower = myChar.level * 10 + (myChar.stats?.str || 10) + (myChar.stats?.int || 10) + (myChar.stats?.dex || 10) + Math.floor(Math.random() * 20);
-            const opPower = opChar.level * 10 + (opChar.stats?.str || 10) + (opChar.stats?.int || 10) + (opChar.stats?.dex || 10) + Math.floor(Math.random() * 20);
-
-            const iWon = myPower > opPower;
-
-            if (iWon) {
-                dispatch({ type: 'COMPLETE_TASK', payload: 'dummy_pvp_win' });
-            }
-
-            // Simulate pushing the combat log notification
-            if (actions.triggerPush) {
-                actions.triggerPush(
-                    iWon ? `Victory against ${opChar.name}!` : `Defeated by ${opChar.name}!`,
-                    iWon ? `Your ${myChar.class} overpowered them with ${myPower} power!` : `Their counterattack hit for ${opPower} power!`
-                );
-            }
-
-            setBattleResult({
-                winner: iWon ? 'attacker' : 'defender',
-                log: iWon ?
-                    `Your ${myChar.class} overpowered ${opChar.name}'s defenses!` :
-                    `${opChar.name}'s counterattack caught you off guard!`,
-                battleDetails: {
-                    attacker: { total: myPower },
-                    defender: { total: opPower }
-                }
+            const me = buildCombatant(myChar, { today });
+            const foe = buildCombatant(opponent.state.character, { today });
+            setDuel({
+                me, foe,
+                stakes: 'A friendly sparring match between allies — nothing is lost.',
+                fight: async (stance) => {
+                    const r = runDuel(me, foe, { a: stance }, randomRoll);
+                    if (r.winner === 'a') dispatch({ type: 'COMPLETE_TASK', payload: 'dummy_pvp_win' });
+                    return { events: r.events, spoils: null, local: true };
+                },
             });
-        } else {
-            // External PvP via Network (Friends)
-            try {
-                const res = await fetch('api/battle_pvp.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        attacker_id: currentUser.id,
-                        defender_id: opponentId
-                    })
-                });
-                const data = await res.json();
+            return;
+        }
 
-                if (data.error) {
-                    toast.error(data.error);
-                    return;
-                }
-
-                setBattleResult(data);
-
-                // Update local state if we won/lost items
-                if (data.newState) {
-                    dispatch({ type: 'RESTORE_STATE', payload: data.newState });
-                }
-
-                if (actions.triggerPush) {
-                    const isWin = data.winner === 'attacker';
-                    actions.triggerPush(isWin ? 'Network Victory!' : 'Network Defeat!', data.log || (isWin ? 'You won the battle!' : 'You lost the battle.'));
-                }
-
-            } catch (e) {
-                console.error("Battle failed", e);
-                setBattleResult({
-                    winner: Math.random() > 0.5 ? 'attacker' : 'defender',
-                    log: "Network error. The battle simulation timed out!",
-                    battleDetails: { attacker: { total: 0 }, defender: { total: 0 } }
-                });
-            }
+        try {
+            const sheets = await previewDuel(currentUser.id, opponentId);
+            setDuel({
+                mode: 'send', viewerSide: 'a', me: sheets.a, foe: sheets.b,
+                stakes: `${sheets.b.name} has to accept before a single die is rolled — and picks their own stance. It's a duel of honor: nothing is taken from either hero.`,
+                fight: async (stance) => {
+                    try {
+                        const sent = await sendChallenge(currentUser.id, opponentId, stance);
+                        loadDuels(); announceDuelsChanged();
+                        return { message: `${sheets.b.name} has ${hoursLeft(sent.expiresAt).replace(' left', '')} to answer.` };
+                    } catch (e) { toast.error(e.message); throw e; }
+                },
+            });
+        } catch (e) {
+            toast.error(e.message || 'Could not reach the arena. Try again in a moment.');
         }
     };
+
+    // The challenged friend sits at the table as side B and chooses their own stance.
+    const openChallenge = (c) => {
+        if (!duels.me || !c.other) { toast.info('That hero is not ready yet.'); return; }
+        setDuel({
+            mode: 'answer', viewerSide: 'b', me: duels.me, foe: c.other,
+            stakes: 'Accept and the dice roll right now. A duel of honor — nothing is taken from either hero.',
+            fight: async (stance) => {
+                try {
+                    const data = await answerChallenge(currentUser.id, c.id, 'accept', stance);
+                    loadDuels(); announceDuelsChanged();
+                    return { events: data.duel.events, local: true };
+                } catch (e) { toast.error(e.message); loadDuels(); throw e; }
+            },
+            decline: async () => {
+                try {
+                    await answerChallenge(currentUser.id, c.id, 'decline');
+                    toast.info(`Challenge from ${c.other.name} declined.`);
+                    setDuel(null); loadDuels(); announceDuelsChanged();
+                } catch (e) { toast.error(e.message); loadDuels(); throw e; }
+            },
+        });
+    };
+
+    const declineChallenge = async (c) => {
+        try {
+            await answerChallenge(currentUser.id, c.id, 'decline');
+            toast.info(`Challenge from ${c.other?.name || 'your friend'} declined.`);
+        } catch (e) { toast.error(e.message); }
+        loadDuels(); announceDuelsChanged();
+    };
+
+    const withdrawChallenge = async (c) => {
+        try { await cancelChallenge(currentUser.id, c.id); toast.info('Challenge withdrawn.'); }
+        catch (e) { toast.error(e.message); }
+        loadDuels(); announceDuelsChanged();
+    };
+
+    const watchFinished = async (c) => {
+        try {
+            const data = await watchDuel(currentUser.id, c.id);
+            setDuel({ mode: 'watch', viewerSide: data.viewerSide, initial: { events: data.duel.events, local: true } });
+            loadDuels(); announceDuelsChanged();
+        } catch (e) { toast.error(e.message); }
+    };
+
+    const closeDuel = () => {
+        setDuel(null);
+        loadDuels();
+    };
+
+    const openWith = new Set([...duels.incoming, ...duels.outgoing].map(c => String(c.otherId)));
 
     const renderUserCard = (u, isLocal) => {
         const charData = isLocal ? u.state?.character : u.character;
@@ -338,10 +370,11 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                 <div className="flex flex-col gap-2">
                     <button
                         onClick={() => handleBattle(u.id, isLocal)}
-                        className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 hover:border-red-500/60 py-2 sm:py-3 rounded-xl text-xs sm:text-base font-bold flex items-center justify-center gap-1 sm:gap-2 transition-all duration-300 group/btn"
+                        disabled={!isLocal && openWith.has(String(u.id))}
+                        className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 hover:border-red-500/60 py-2 sm:py-3 rounded-xl text-xs sm:text-base font-bold flex items-center justify-center gap-1 sm:gap-2 transition-all duration-300 group/btn disabled:opacity-50 disabled:cursor-default disabled:hover:bg-red-500/10 disabled:hover:border-red-500/30"
                     >
                         <PixelIcon name="sword" size={14} className="group-hover/btn:scale-125 transition-transform hidden sm:block" />
-                        CHALLENGE
+                        {!isLocal && openWith.has(String(u.id)) ? 'DUEL PENDING' : isLocal ? 'SPAR' : 'CHALLENGE'}
                     </button>
                     <button
                         onClick={() => {
@@ -417,7 +450,7 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                                     {requests.incoming.map(r => (
                                         <div key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-2.5 p-3 rounded-xl bg-rpg-gold/[0.06] ring-1 ring-rpg-gold/25">
                                             <div className="w-11 h-11 rounded-xl bg-black/30 overflow-hidden flex items-center justify-center shrink-0">
-                                                {r.character ? <ModernPixelAvatar type={r.character.avatarId} scale={1.6} headOnly customColors={r.character.avatarColors} /> : <PixelIcon name="user" size={16} color="#6b7280" />}
+                                                {r.character ? <ModernPixelAvatar type={r.character.avatarId} scale={1.6} headOnly customColors={r.character.avatarColors} cosmetics={r.character.cosmetics} /> : <PixelIcon name="user" size={16} color="#6b7280" />}
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-sm font-semibold text-white truncate">{r.character?.name || r.username}</p>
@@ -429,6 +462,59 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Duels: challenges waiting for you, sent by you, and the latest results */}
+                        {(duels.incoming.length > 0 || duels.outgoing.length > 0 || duels.finished.length > 0) && (
+                            <div className="mb-6">
+                                <h3 className="text-sm font-heading font-bold text-gray-300 mb-3 border-b border-white/10 pb-2 flex items-center gap-2 uppercase tracking-wider">
+                                    <PixelIcon name="sword" size={16} className="text-red-400" /> Duels
+                                    {duels.incoming.length > 0 && <span className="text-[11px] text-rpg-gold ml-auto font-sans">{duels.incoming.length} waiting</span>}
+                                </h3>
+                                <div className="flex flex-col gap-2">
+                                    {duels.incoming.map(c => (
+                                        <div key={`in-${c.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-2.5 p-3 rounded-xl bg-red-500/[0.07] ring-1 ring-red-400/25">
+                                            <div className="w-11 h-11 rounded-xl bg-black/30 overflow-hidden flex items-center justify-center shrink-0">
+                                                {c.other && <ModernPixelAvatar type={c.other.avatarId} scale={1.6} headOnly customColors={c.other.avatarColors} />}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-semibold text-white truncate">{c.other?.name || 'A friend'} challenges you</p>
+                                                <p className="text-xs text-gray-400 truncate">{c.other ? `Lv ${c.other.level} ${c.other.className} · ` : ''}{hoursLeft(c.expiresAt)}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                                <button onClick={() => declineChallenge(c)} className="px-3.5 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Decline</button>
+                                                <button onClick={() => openChallenge(c)} className="px-4 py-2 rounded-lg text-xs font-bold bg-rpg-gold text-rpg-bg hover:brightness-105 transition-[filter]">Answer</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {duels.outgoing.map(c => (
+                                        <div key={`out-${c.id}`} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] ring-1 ring-white/10">
+                                            <div className="w-11 h-11 rounded-xl bg-black/30 overflow-hidden flex items-center justify-center shrink-0">
+                                                {c.other && <ModernPixelAvatar type={c.other.avatarId} scale={1.6} headOnly customColors={c.other.avatarColors} />}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-semibold text-white truncate">Waiting for {c.other?.name || 'your friend'}</p>
+                                                <p className="text-xs text-gray-400 truncate">Your stance is sealed · {hoursLeft(c.expiresAt)}</p>
+                                            </div>
+                                            <button onClick={() => withdrawChallenge(c)} className="px-3.5 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Withdraw</button>
+                                        </div>
+                                    ))}
+                                    {duels.finished.slice(0, 5).map(c => {
+                                        const name = c.other?.name || 'your friend';
+                                        const text = c.status === 'accepted'
+                                            ? (c.won ? `You beat ${name}` : `${name} bested you`)
+                                            : c.status === 'declined' ? (c.me === 'challenger' ? `${name} declined` : `You declined ${name}`)
+                                            : `Challenge with ${name} expired`;
+                                        return (
+                                            <div key={`done-${c.id}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02]">
+                                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.unseen ? 'bg-rpg-gold' : 'bg-transparent'}`} aria-label={c.unseen ? 'New result' : undefined} />
+                                                <p className={`text-sm min-w-0 flex-1 truncate ${c.status === 'accepted' && c.won ? 'text-emerald-300' : 'text-gray-400'}`}>{text}{c.rounds ? <span className="text-gray-600"> · {c.rounds} rounds</span> : null}</p>
+                                                {c.status === 'accepted' && <button onClick={() => watchFinished(c)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-colors">Watch</button>}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -518,7 +604,7 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden">
                                                     {u.character ? (
-                                                        <ModernPixelAvatar type={u.character.avatarId} scale={1.5} customColors={u.character.avatarColors} />
+                                                        <ModernPixelAvatar type={u.character.avatarId} scale={1.5} customColors={u.character.avatarColors} cosmetics={u.character.cosmetics} />
                                                     ) : (
                                                         <PixelIcon name="user" size={14} className="text-gray-500" />
                                                     )}
@@ -621,43 +707,9 @@ const PartyView = ({ currentUser, onOpenChat }) => {
                         </div>
                     )}
 
-                    {/* Battle Result Modal */}
-                    {battleResult && (
-                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
-                            <div className={`bg-rpg-panel/90 backdrop-blur-3xl rounded-3xl p-8 max-w-sm w-full text-center border shadow-2xl ${battleResult.winner === 'attacker' ? 'border-green-500/50 shadow-[0_0_50px_rgba(45,204,112,0.2)]' : 'border-red-500/50 shadow-[0_0_50px_rgba(239,68,68,0.2)]'}`}>
-                                <div className="flex justify-center mb-6">
-                                    {battleResult.winner === 'attacker' ? (
-                                        <div className="p-4 bg-green-500/10 rounded-full border border-green-500/30 animate-bounce">
-                                            <PixelIcon name="trophy" size={48} className="text-green-400" />
-                                        </div>
-                                    ) : (
-                                        <div className="p-4 bg-red-500/10 rounded-full border border-red-500/30">
-                                            <PixelIcon name="skull" size={48} className="text-red-400" />
-                                        </div>
-                                    )}
-                                </div>
-
-                                <h2 className={`text-4xl font-heading font-bold mb-2 ${battleResult.winner === 'attacker' ? 'text-green-400' : 'text-red-400'}`}>
-                                    {battleResult.winner === 'attacker' ? 'VICTORY!' : 'DEFEAT!'}
-                                </h2>
-
-                                <div className="glass-card p-4 mb-6 text-left text-sm space-y-3 bg-black/40">
-                                    <p className="text-gray-300 italic leading-relaxed">"{battleResult.log}"</p>
-                                    <div className="h-px bg-white/10 my-2" />
-                                    <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-gray-500">
-                                        <span>You: <span className="text-white">{battleResult.battleDetails.attacker.total} Power</span></span>
-                                        <span>Enemy: <span className="text-white">{battleResult.battleDetails.defender.total} Power</span></span>
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={() => setBattleResult(null)}
-                                    className="bg-white/10 hover:bg-white/20 text-white border border-white/10 px-8 py-3 rounded-xl font-bold transition-all w-full uppercase tracking-widest"
-                                >
-                                    Close
-                                </button>
-                            </div>
-                        </div>
+                    {duel && (
+                        <DuelArena mode={duel.mode || 'fight'} me={duel.me} foe={duel.foe} stakes={duel.stakes} viewerSide={duel.viewerSide || 'a'}
+                            initial={duel.initial} onFight={duel.fight} onDecline={duel.decline} onClose={closeDuel} />
                     )}
                 </>
             )}

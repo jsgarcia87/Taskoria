@@ -1,0 +1,133 @@
+- generic [ref=f14e19]:
+  - banner [ref=f14e20]:
+    - generic [ref=f14e21] [cursor=pointer]:
+      - img "Taskoria Icon" [ref=f14e24]
+      - generic [ref=f14e25]:
+        - generic [ref=f14e26]: TASKORIA BETA
+        - generic [ref=f14e27]: Gamified Productivity
+    - navigation [ref=f14e28]:
+      - button "Camp" [ref=f14e29] [cursor=pointer]
+      - button "Quests" [ref=f14e68] [cursor=pointer]
+      - button "Party" [ref=f14e89] [cursor=pointer]
+      - button "World" [ref=f14e120] [cursor=pointer]
+      - button "Diary" [ref=f14e150] [cursor=pointer]
+    - generic [ref=f14e181]:
+      - generic [ref=f14e182]:
+        - generic "Health Points" [ref=f14e183]:
+          - generic [ref=f14e225]: "40"
+          - generic [ref=f14e226]: HP
+        - generic "Time Points" [ref=f14e228]:
+          - generic [ref=f14e262]: "0"
+          - generic [ref=f14e263]: TP
+        - generic "Gold" [ref=f14e265]: "40"
+      - 'button "Hero profile: Aria, level 6" [ref=f14e288] [cursor=pointer]'
+      - generic [ref=f14e290]:
+        - img "Offline - Saved Locally" [ref=f14e292]
+        - button "Notifications" [ref=f14e297] [cursor=pointer]
+        - button "Messages" [ref=f14e302] [cursor=pointer]
+        - button "Menu" [ref=f14e306] [cursor=pointer]
+  - main [ref=f14e308]:
+    - generic [ref=f14e313]:
+      - generic [ref=f14e339]:
+        - heading "Aria" [level=2] [ref=f14e340]
+        - generic [ref=f14e353]:
+          - generic [ref=f14e354]: Saturday
+          - generic [ref=f14e355]: ·
+          - generic [ref=f14e356]: Lv. 6
+          - generic [ref=f14e357]: ·
+          - generic [ref=f14e358]: All clear
+      - generic [ref=f14e382]:
+        - generic [ref=f14e383]:
+          - generic [ref=f14e384]:
+            - generic [ref=f14e385]:
+              - generic [ref=f14e386]:
+                - button "Open hero profile" [ref=f14e391] [cursor=pointer]
+                - generic [ref=f14e395]:
+                  - paragraph [ref=f14e396]: Aria
+                  - paragraph [ref=f14e397]: The stars are out. Rest soon.
+                - generic [ref=f14e398]: Garden
+              - generic [ref=f14e399]:
+                - generic [ref=f14e400]:
+                  - generic [ref=f14e401]: 0m
+                  - generic [ref=f14e402]: Focus today
+                - generic [ref=f14e403]:
+                  - generic [ref=f14e404]: "0"
+                  - generic [ref=f14e405]: Battles
+                - generic [ref=f14e406]:
+                  - generic [ref=f14e407]: "1"
+                  - generic [ref=f14e408]: In satchel
+            - generic [ref=f14e409]:
+              - generic [ref=f14e411]: POMODORO DUNGEON
+              - generic [ref=f14e414]:
+                - button "Battle" [ref=f14e415] [cursor=pointer]
+                - button [ref=f14e418] [cursor=pointer]
+              - button "Enter portal" [ref=f14e420] [cursor=pointer]:
+                - generic [ref=f14e421]: Enter
+              - button "Select Quests (Optional)" [ref=f14e427] [cursor=pointer]
+              - generic [ref=f14e432]: 20m / 5m
+          - button "The Arena ▼" [ref=f14e438] [cursor=pointer]:
+            - generic [ref=f14e439]: The Arena
+            - generic [ref=f14e440]: ▼
+        - generic [ref=f14e441]:
+          - generic [ref=f14e446]:
+            - generic [ref=f14e447]:
+              - generic [ref=f14e448]:
+                - generic [ref=f14e449]: Saturday
+                - heading "The Questbook" [level=3] [ref=f14e450]
+              - generic "0 open quests" [ref=f14e451]: "0"
+            - generic [ref=f14e452]:
+              - generic [ref=f14e478]: Ledgar's pages lie blank.
+              - button "Write your first quest" [ref=f14e479] [cursor=pointer]
+            - generic [ref=f14e481]:
+              - generic [ref=f14e482]: +
+              - textbox "Quick-add a quest" [ref=f14e483]:
+                - /placeholder: Write a quest…
+              - button "more" [ref=f14e484] [cursor=pointer]
+          - generic [ref=f14e488]:
+            - generic [ref=f14e489]:
+              - heading "HOUSEHOLD CHORES" [level=3] [ref=f14e491]
+              - generic [ref=f14e520]:
+                - generic [ref=f14e543]: A Clean Tavern
+                - generic [ref=f14e544]: Every surface polished. The innkeeper nods with approval.
+            - generic [ref=f14e545]:
+              - generic [ref=f14e546]:
+                - heading "DAILY HABITS" [level=3] [ref=f14e547]
+                - button "+ NEW HABIT" [ref=f14e567] [cursor=pointer]:
+                  - generic [ref=f14e568]: +
+                  - text: NEW HABIT
+              - generic [ref=f14e570]:
+                - generic [ref=f14e597]: No Daily Rituals
+                - generic [ref=f14e598]: A hero without habits is a blade without an edge.
+                - button "Begin a ritual" [ref=f14e599] [cursor=pointer]
+          - generic [ref=f14e601]:
+            - generic [ref=f14e602]:
+              - generic [ref=f14e609]:
+                - heading "Daily Missions" [level=3] [ref=f14e610]
+                - paragraph [ref=f14e611]: Resets at midnight
+              - generic [ref=f14e612]: 0/3 done
+            - generic [ref=f14e613]:
+              - generic [ref=f14e615]:
+                - generic [ref=f14e616]:
+                  - generic [ref=f14e617]: Complete 3 quests
+                  - generic [ref=f14e618]:
+                    - generic [ref=f14e619]: 0/3
+                    - generic [ref=f14e620]: +60 XP
+                    - generic [ref=f14e621]: +50 G
+                - generic [ref=f14e622]: 0%
+              - generic [ref=f14e624]:
+                - generic [ref=f14e625]:
+                  - generic [ref=f14e626]: Focus for 25 minutes
+                  - generic [ref=f14e627]:
+                    - generic [ref=f14e628]: 0/25
+                    - generic [ref=f14e629]: +80 XP
+                    - generic [ref=f14e630]: +80 G
+                - generic [ref=f14e631]: 0%
+              - generic [ref=f14e633]:
+                - generic [ref=f14e634]:
+                  - generic [ref=f14e635]: Slay 1 hard quest
+                  - generic [ref=f14e636]:
+                    - generic [ref=f14e637]: 0/1
+                    - generic [ref=f14e638]: +80 XP
+                    - generic [ref=f14e639]: +70 G
+                - generic [ref=f14e640]: 0%
+  - button "Send feedback" [ref=f14e641] [cursor=pointer]

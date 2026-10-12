@@ -2,6 +2,7 @@
  * Taskoria Game Utilities
  * Shared constants and logic for RPG calculations.
  */
+import { CLASSES } from '../data/classes';
 
 export const TASK_DIFFICULTY = {
     NORMAL: 1,
@@ -207,25 +208,12 @@ export const getStatBonus = (stat, ratio = 0.02, maxBonus = 0.5) => {
     return 1 + Math.min(maxBonus, raw);
 };
 
-// Single source of truth for class-driven mechanics.
+// Class-driven mechanics, derived from the registry in data/classes.js.
 // `levelStats`: stat increments granted on every level up.
 // `combatStats`: array of stat keys averaged to produce the damage modifier in COMPLETE_TASK.
-export const CLASS_CONFIG = {
-    Fighter:     { levelStats: { str: 2, con: 1 },             combatStats: ['str'] },
-    Paladin:     { levelStats: { str: 1, con: 1, will: 1 },    combatStats: ['str', 'will'] },
-    Wizard:      { levelStats: { int: 2, will: 1 },            combatStats: ['int'] },
-    Rogue:       { levelStats: { dex: 2, cha: 1 },             combatStats: ['dex'] },
-    Cleric:      { levelStats: { will: 2, cha: 1 },            combatStats: ['will', 'cha'] },
-    Ranger:      { levelStats: { dex: 1, con: 1, will: 1 },    combatStats: ['dex'] },
-    Barbarian:   { levelStats: { str: 2, con: 2 },             combatStats: ['str'] },
-    Bard:        { levelStats: { cha: 2, int: 1 },             combatStats: ['cha'] },
-    Druid:       { levelStats: { will: 2, con: 1 },            combatStats: ['will'] },
-    Monk:        { levelStats: { dex: 1, will: 1, con: 1 },    combatStats: ['dex', 'will'] },
-    Necromancer: { levelStats: { int: 2, cha: 1 },             combatStats: ['int'] },
-    Antipaladin: { levelStats: { str: 1, cha: 1, will: 1 },    combatStats: ['str', 'cha'] },
-    Sorcerer:    { levelStats: { cha: 2, will: 1 },            combatStats: ['cha'] },
-    Scout:       { levelStats: { dex: 2, int: 1 },             combatStats: ['dex'] },
-};
+export const CLASS_CONFIG = Object.fromEntries(
+    CLASSES.map(c => [c.name, { levelStats: c.levelStats, combatStats: c.combatStats }])
+);
 
 const DEFAULT_CLASS = { levelStats: { str: 1, int: 1, dex: 1 }, combatStats: ['str'] };
 

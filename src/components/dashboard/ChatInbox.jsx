@@ -117,7 +117,7 @@ const ChatInbox = ({ isOpen, onClose, currentUser, onOpenChat }) => {
                             >
                                 <div className="w-10 h-10 shrink-0 rounded-full bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden">
                                     {charData.avatarId ? (
-                                        <ModernPixelAvatar type={charData.avatarId} scale={1.2} customColors={charData.avatarColors} headOnly={true} />
+                                        <ModernPixelAvatar type={charData.avatarId} scale={1.2} customColors={charData.avatarColors} cosmetics={charData.cosmetics} headOnly={true} />
                                     ) : (
                                         <div className="text-gray-500 font-bold">?</div>
                                     )}

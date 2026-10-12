@@ -9,6 +9,7 @@ const Shop = React.lazy(() => import('./components/Shop'));
 import Dashboard from './components/Dashboard';
 import Missions from './components/dashboard/Missions';
 import { fetchPendingCount } from './utils/friendsApi';
+import { fetchDuelCounts, DUELS_CHANGED } from './utils/duelApi';
 import Auth from './components/Auth';
 // Heavy / rarely-used routes are lazy-loaded so the initial bundle stays small.
 // Each becomes its own chunk via vite.config manualChunks. Suspense boundary
@@ -437,6 +438,7 @@ function App() {
   const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'auth' | 'terms' | 'legal'
   const [globalUnreadMsgCount, setGlobalUnreadMsgCount] = useState(0);
   const [globalFriendRequests, setGlobalFriendRequests] = useState(0);
+  const [globalDuelAlerts, setGlobalDuelAlerts] = useState(0);
 
   // Request Notification Permissions for PWA Push
   React.useEffect(() => {
@@ -467,12 +469,17 @@ function App() {
           const pending = await fetchPendingCount(currentUser.id);
           setGlobalFriendRequests(pending.incoming);
         } catch (e) { }
+        try {
+          const duels = await fetchDuelCounts(currentUser.id);
+          setGlobalDuelAlerts(duels.incoming + duels.results);
+        } catch (e) { }
       }
     };
 
     fetchUnread();
     const interval = setInterval(fetchUnread, 15000); // Check every 15s
-    return () => clearInterval(interval);
+    window.addEventListener(DUELS_CHANGED, fetchUnread);
+    return () => { clearInterval(interval); window.removeEventListener(DUELS_CHANGED, fetchUnread); };
   }, [currentUser, activeProfileId]);
   // Check for persistent session on mount
   React.useEffect(() => {
@@ -654,7 +661,7 @@ function App() {
       activeProfileId={activeProfileId}
       setFamilyData={setFamilyData}
     >
-      <GameContent currentUser={{ ...currentUser, unreadMessages: globalUnreadMsgCount, friendRequests: globalFriendRequests }} onLogout={onGameLogout} onGuestRegister={handleGuestRegister} />
+      <GameContent currentUser={{ ...currentUser, unreadMessages: globalUnreadMsgCount, friendRequests: (globalFriendRequests || 0) + globalDuelAlerts }} onLogout={onGameLogout} onGuestRegister={handleGuestRegister} />
       <CookieBanner />
     </GameProvider>
   );

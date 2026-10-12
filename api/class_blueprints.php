@@ -22,6 +22,13 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS class_blueprints (
     updated_by INT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+// `live` = this design replaces the class sprite in the game. Opt-in per class,
+// so publishing a work-in-progress never changes heroes by accident.
+$hasLive = $pdo->query("SHOW COLUMNS FROM class_blueprints LIKE 'live'")->fetch();
+if (!$hasLive) {
+    $pdo->exec("ALTER TABLE class_blueprints ADD COLUMN live TINYINT(1) NOT NULL DEFAULT 0");
+}
+
 $action = $_GET['action'] ?? '';
 
 function verifyAdmin($pdo, $adminId) {
@@ -41,6 +48,16 @@ switch ($action) {
             $r['baked_payload'] = json_decode($r['baked_payload'], true);
         }
         echo json_encode(['blueprints' => $rows]);
+        break;
+
+    // Public: blueprints the game should render instead of the shipped ones.
+    case 'live':
+        $stmt = $pdo->query("SELECT class_id, baked_payload, updated_at FROM class_blueprints WHERE live = 1 AND published = 1");
+        $out = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $out[$r['class_id']] = json_decode($r['baked_payload'], true);
+        }
+        echo json_encode(['success' => true, 'classes' => $out]);
         break;
 
     case 'get':
@@ -72,14 +89,15 @@ switch ($action) {
             $classId = $cls['class_id'] ?? '';
             if (!$classId) { $results[] = ['class_id' => '?', 'error' => 'Missing class_id']; continue; }
             try {
-                $stmt = $pdo->prepare("INSERT INTO class_blueprints (class_id, class_name, class_desc, class_silhouette, baked_payload, project_data, updated_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                $stmt = $pdo->prepare("INSERT INTO class_blueprints (class_id, class_name, class_desc, class_silhouette, baked_payload, project_data, live, updated_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE
                         class_name = VALUES(class_name),
                         class_desc = VALUES(class_desc),
                         class_silhouette = VALUES(class_silhouette),
                         baked_payload = VALUES(baked_payload),
                         project_data = VALUES(project_data),
+                        live = VALUES(live),
                         updated_by = VALUES(updated_by),
                         updated_at = CURRENT_TIMESTAMP");
                 $stmt->execute([
@@ -89,6 +107,7 @@ switch ($action) {
                     $cls['class_silhouette'] ?? '',
                     json_encode($cls['baked_payload']),
                     isset($cls['project_data']) ? json_encode($cls['project_data']) : null,
+                    !empty($cls['live']) ? 1 : 0,
                     $adminId
                 ]);
                 $results[] = ['class_id' => $classId, 'success' => true];
@@ -121,7 +140,7 @@ switch ($action) {
             echo json_encode(['error' => 'Admin access required']);
             break;
         }
-        $stmt = $pdo->query("SELECT class_id, class_name, class_desc, class_silhouette, baked_payload, project_data FROM class_blueprints");
+        $stmt = $pdo->query("SELECT class_id, class_name, class_desc, class_silhouette, baked_payload, project_data, live FROM class_blueprints");
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach ($rows as &$r) {
             $r['baked_payload'] = json_decode($r['baked_payload'], true);
@@ -131,5 +150,5 @@ switch ($action) {
         break;
 
     default:
-        echo json_encode(['error' => 'Unknown action. Use: list, get, publish, delete, load_workspace']);
+        echo json_encode(['error' => 'Unknown action. Use: list, live, get, publish, delete, load_workspace']);
 }

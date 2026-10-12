@@ -326,7 +326,7 @@ const GuildView = ({ currentUser }) => {
                                                 <div className="flex justify-center mb-4 relative">
                                                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-center shadow-inner relative z-10 overflow-hidden">
                                                         {charData ? (
-                                                            <ModernPixelAvatar type={charData.avatarId} scale={2} headOnly={true} customColors={charData.avatarColors} />
+                                                            <ModernPixelAvatar type={charData.avatarId} scale={2} headOnly={true} customColors={charData.avatarColors} cosmetics={charData.cosmetics} />
                                                         ) : (
                                                             <div className="text-gray-600 font-bold text-2xl">?</div>
                                                         )}

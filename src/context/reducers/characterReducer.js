@@ -7,6 +7,8 @@ import {
     bumpDailyMissions
 } from '../../utils/gameUtils';
 import { SET_BONUSES } from '../../data/items';
+import { OUTFIT_SLOT_IDS } from '../../data/outfitSlots';
+import { getClass } from '../../data/classes';
 
 export const characterReducer = (state, action) => {
     switch (action.type) {
@@ -213,6 +215,29 @@ export const characterReducer = (state, action) => {
                 },
                 log: [{ id: Date.now(), message: `Equipped ${item.name}`, type: 'info' }, ...state.log]
             };
+        }
+
+        // Cosmetics are visual only (no stats) and owned server-side, so they live
+        // in character.cosmetics = { slot: { id, name, part } }, not the inventory.
+        case 'EQUIP_COSMETIC': {
+            const { item } = action.payload;
+            const char = state.character;
+            if (!char || !item?.part || !OUTFIT_SLOT_IDS.includes(item.slot)) return state;
+            if (item.classId && item.classId !== getClass(char.class)?.id) return state;
+            return {
+                ...state,
+                character: { ...char, cosmetics: { ...(char.cosmetics || {}), [item.slot]: { id: item.id, name: item.name, part: item.part } } },
+                log: [{ id: Date.now(), message: `Wearing ${item.name}`, type: 'info' }, ...state.log]
+            };
+        }
+
+        case 'UNEQUIP_COSMETIC': {
+            const { slot } = action.payload;
+            const char = state.character;
+            if (!char?.cosmetics?.[slot]) return state;
+            const cosmetics = { ...char.cosmetics };
+            delete cosmetics[slot];
+            return { ...state, character: { ...char, cosmetics } };
         }
 
         case 'UNEQUIP_ITEM': {

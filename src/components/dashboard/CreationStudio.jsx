@@ -3,6 +3,8 @@ import { Trash2, Image as ImageIcon, X, Upload, Save, Eraser, Pipette, PaintBuck
 import { frameToBuffer } from '../../utils/pixelFormat';
 import { useConfirm } from '../../context/ConfirmContext';
 import ModernPixelAvatar from '../common/ModernPixelAvatar';
+import { CLASSES } from '../../data/classes';
+import { OUTFIT_SLOTS } from '../../data/outfitSlots';
 
 const GRID_SIZE = 64;
 const TOTAL = GRID_SIZE * GRID_SIZE;
@@ -73,15 +75,15 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
     const [price, setPrice] = useState(initialAsset ? initialAsset.price || 100 : 100);
     const [cosmeticClass, setCosmeticClass] = useState(() => {
         if (initialAsset && initialAsset.params) {
-            try { const p = typeof initialAsset.params === 'string' ? JSON.parse(initialAsset.params) : initialAsset.params; return p.cosmeticClass || 'warrior'; } catch (e) {}
+            try { const p = typeof initialAsset.params === 'string' ? JSON.parse(initialAsset.params) : initialAsset.params; return p.cosmeticClass || 'fighter'; } catch (e) {}
         }
-        return 'warrior';
+        return 'fighter';
     });
     const [cosmeticSlot, setCosmeticSlot] = useState(() => {
         if (initialAsset && initialAsset.params) {
-            try { const p = typeof initialAsset.params === 'string' ? JSON.parse(initialAsset.params) : initialAsset.params; return p.cosmeticSlot || 'head'; } catch (e) {}
+            try { const p = typeof initialAsset.params === 'string' ? JSON.parse(initialAsset.params) : initialAsset.params; return p.cosmeticSlot || 'capucha'; } catch (e) {}
         }
-        return 'head';
+        return 'capucha';
     });
     const [showCosmeticGuide, setShowCosmeticGuide] = useState(true);
     const [refImage, setRefImage] = useState(null);
@@ -869,12 +871,7 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                                         onChange={(e) => setCosmeticClass(e.target.value)}
                                         className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm focus:border-rpg-gold focus:outline-none"
                                     >
-                                        <option value="warrior">Warrior</option>
-                                        <option value="mage">Mage</option>
-                                        <option value="rogue">Rogue</option>
-                                        <option value="ranger">Ranger</option>
-                                        <option value="cleric">Cleric</option>
-                                        <option value="paladin">Paladin</option>
+                                        {CLASSES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
@@ -884,12 +881,7 @@ const CreationStudio = ({ currentUser, initialAsset = null, onSave = null }) => 
                                         onChange={(e) => setCosmeticSlot(e.target.value)}
                                         className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm focus:border-rpg-gold focus:outline-none"
                                     >
-                                        <option value="head">Cabeza (Cascos, sombreros)</option>
-                                        <option value="torso">Torso (Armaduras, camisas)</option>
-                                        <option value="legs">Piernas (Pantalones, botas)</option>
-                                        <option value="weapon">Arma principal</option>
-                                        <option value="shield">Escudo / Secundario</option>
-                                        <option value="accessory">Accesorio</option>
+                                        {OUTFIT_SLOTS.map(sl => <option key={sl.id} value={sl.id}>{sl.label}</option>)}
                                     </select>
                                 </div>
                                 <button 

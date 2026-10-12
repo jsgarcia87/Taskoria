@@ -1191,3 +1191,37 @@
     scroll-behavior: auto !important;
   }
 }
+/* ═══ Duel arena — dice thrown onto the table (components/duel) ═══ */
+.duel-die { position: relative; will-change: transform; }
+.duel-die-stage { position: absolute; inset: 0; }
+.duel-die-body { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; }
+.duel-die-face { position: absolute; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.duel-die-num { position: absolute; transform: translate(-50%, -50%); font-family: 'VT323', monospace; line-height: 1; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35); pointer-events: none; }
+.duel-die-shadow { position: absolute; left: 22%; right: 22%; bottom: 2%; height: 9%; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0) 70%); transition: opacity 0.4s ease; }
+.duel-die--rolling { animation: duel-throw var(--roll-ms, 800ms) cubic-bezier(0.22, 0.8, 0.3, 1) both; }
+.duel-die--glow { filter: drop-shadow(0 0 14px var(--glow)); transition: filter 0.4s ease; }
+@keyframes duel-throw {
+  0%   { transform: translate(var(--throw-x, -90px), -46px) scale(0.72); opacity: 0; }
+  18%  { opacity: 1; }
+  42%  { transform: translate(calc(var(--throw-x, -90px) * 0.28), 8px) scale(1.06); }
+  58%  { transform: translate(calc(var(--throw-x, -90px) * 0.1), -16px) scale(1); }
+  78%  { transform: translate(0, 3px) scale(1); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.duel-lunge-a { animation: duel-lunge-a 0.42s ease-out; }
+.duel-lunge-a-alt { animation: duel-lunge-a-alt 0.42s ease-out; }
+.duel-lunge-b { animation: duel-lunge-b 0.42s ease-out; }
+.duel-lunge-b-alt { animation: duel-lunge-b-alt 0.42s ease-out; }
+@keyframes duel-lunge-a { 0%, 100% { transform: translateX(0); } 40% { transform: translateX(18px); } }
+@keyframes duel-lunge-a-alt { 0%, 100% { transform: translateX(0); } 40% { transform: translateX(18px); } }
+@keyframes duel-lunge-b { 0%, 100% { transform: translateX(0); } 40% { transform: translateX(-18px); } }
+@keyframes duel-lunge-b-alt { 0%, 100% { transform: translateX(0); } 40% { transform: translateX(-18px); } }
+.duel-struck { animation: duel-struck 0.5s ease-out; }
+.duel-struck-alt { animation: duel-struck-alt 0.5s ease-out; }
+@keyframes duel-struck { 0% { filter: brightness(1.9) saturate(0.6); } 100% { filter: none; } }
+@keyframes duel-struck-alt { 0% { filter: brightness(1.9) saturate(0.6); } 100% { filter: none; } }
+.duel-fade-in { animation: duel-fade-in 0.35s ease-out both; }
+@keyframes duel-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .duel-die--rolling, .duel-lunge-a, .duel-lunge-a-alt, .duel-lunge-b, .duel-lunge-b-alt, .duel-struck, .duel-struck-alt, .duel-fade-in { animation: none !important; }
+}

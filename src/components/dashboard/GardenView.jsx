@@ -269,7 +269,7 @@ const GardenView = ({ forceScenario }) => {
                             <ModernPixelAvatar
                                 type={charData.avatarType || charData.id}
                                 scale={2.4}
-                                customColors={character?.avatarColors}
+                                customColors={character?.avatarColors} cosmetics={character?.cosmetics}
                             />
                         </div>
                     )}

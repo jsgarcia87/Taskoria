@@ -181,6 +181,8 @@ export const GameProvider = ({ children, currentUser, familyData, activeProfileI
         createCharacter: (name, charClass, avatarId, stats, colors) => dispatch({ type: 'CREATE_CHARACTER', payload: { name, class: charClass, avatarId, stats, colors } }),
         equipItem: (item, slot) => dispatch({ type: 'EQUIP_ITEM', payload: { item, slot } }),
         unequipItem: (slot) => dispatch({ type: 'UNEQUIP_ITEM', payload: { slot } }),
+        equipCosmetic: (item) => dispatch({ type: 'EQUIP_COSMETIC', payload: { item } }),
+        unequipCosmetic: (slot) => dispatch({ type: 'UNEQUIP_COSMETIC', payload: { slot } }),
         sellItem: (item) => { playCoinSound(); dispatch({ type: 'SELL_ITEM', payload: item }); },
         listMarketItem: (item) => { playCoinSound(); dispatch({ type: 'LIST_MARKET_ITEM', payload: item }); },
         useItem: (item) => { if (item.effect?.hp) playHealSound(); if (item.effect?.hatch) playLevelUpSound(); dispatch({ type: 'USE_ITEM', payload: item }); },
@@ -192,8 +194,8 @@ export const GameProvider = ({ children, currentUser, familyData, activeProfileI
         releasePet: (petId) => dispatch({ type: 'RELEASE_PET', payload: petId }),
         evolvePet: (petId) => { playLevelUpSound(); dispatch({ type: 'EVOLVE_PET', payload: petId }); },
         updateCharacter: (updates) => dispatch({ type: 'UPDATE_CHARACTER', payload: updates }),
-        addTask: (title, difficulty, dueDate, recurrence = 'none', category = 'quest', extraInfo = '', assigneeId = 'self') => {
-            const newTask = { id: Date.now().toString(), title, difficulty: parseInt(difficulty), dueDate, recurrence, category, extraInfo, assignerId: (assigneeId !== 'self' && assigneeId !== activeProfileId) ? activeProfileId : null, completed: false, lastCompleted: null, penalized: false };
+        addTask: (title, difficulty, dueDate, recurrence = 'none', category = 'quest', extraInfo = '', assigneeId = 'self', projectId = null, attribute = 'none') => {
+            const newTask = { id: Date.now().toString(), createdAt: Date.now(), title, difficulty: parseInt(difficulty), dueDate, recurrence, category, extraInfo, attribute: attribute || 'none', ...(projectId ? { projectId } : {}), assignerId: (assigneeId !== 'self' && assigneeId !== activeProfileId) ? activeProfileId : null, completed: false, lastCompleted: null, penalized: false };
             if (assigneeId !== 'self' && assigneeId !== activeProfileId) {
                 const updatedProfiles = familyData.profiles.map(p => { if (p.id === assigneeId) { const pState = p.state || {}; return { ...p, state: { ...pState, tasks: [...(pState.tasks || []), newTask] } }; } return p; });
                 setFamilyData({ ...familyData, profiles: updatedProfiles });

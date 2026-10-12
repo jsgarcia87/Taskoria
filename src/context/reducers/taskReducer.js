@@ -14,6 +14,7 @@ import {
     PET_BOND_MAX
 } from '../../utils/gameUtils';
 import { generateLoot } from '../../utils/lootUtils';
+import { getClassTaskBonus, getStreakDaysCap } from '../../utils/classPerks';
 import { addCardToCollection, epicCardBase, resolveWeeklyDefeat } from '../../utils/bossCards';
 
 // Random suffix to avoid Date.now() id collisions when multiple things happen in the same tick.
@@ -190,10 +191,15 @@ export const taskReducer = (state, action) => {
             // Was diff × (12 daily / 8 normal) → bumped to (20 daily / 15 normal).
             const xpBase = task.recurrence === 'daily' ? 20 : 15;
             const streakMult = (task.recurrence && task.recurrence !== 'none' && task.streakCount > 0)
-                ? 1 + Math.min(task.streakCount, 30) * 0.02
+                ? 1 + Math.min(task.streakCount, getStreakDaysCap(charClass)) * 0.02
                 : 1;
-            let xpGain = Math.floor(task.difficulty * xpBase * intBonus * petBonus * (1 + perks.xpMult) * streakMult);
-            let goldGain = Math.floor(task.difficulty * 5 * chaBonus * (1 + perks.goldMult) * streakMult);
+            // Class synergy + signature perk (utils/classPerks.js)
+            const todayKey = new Date().toDateString();
+            const hardDoneToday = [...(state.completedTasks || []), ...state.tasks]
+                .filter(t => t.id !== taskId && t.difficulty >= 3 && t.lastCompleted && new Date(t.lastCompleted).toDateString() === todayKey).length;
+            const classBonus = getClassTaskBonus(state.character, task, { now: Date.now(), hardDoneToday });
+            let xpGain = Math.floor(task.difficulty * xpBase * intBonus * petBonus * (1 + perks.xpMult) * streakMult * (1 + classBonus.xpMult)) + classBonus.bonusXp;
+            let goldGain = Math.floor(task.difficulty * 5 * chaBonus * (1 + perks.goldMult) * streakMult * (1 + classBonus.goldMult));
 
             const rewardRes = processRewardsAndLevelUp(state.character, xpGain, goldGain);
             let updatedChar = rewardRes ? rewardRes.newChar : state.character;
@@ -202,6 +208,10 @@ export const taskReducer = (state, action) => {
             let logMessage = state.activeDungeon?.hp > 0
                 ? `Dealt ${damage} DMG! (d20:${d20} + ${modifier}). +${actualXpGain} XP, +${goldGain} Gold.`
                 : `Completed Quest! +${actualXpGain} XP, +${goldGain} Gold.`;
+            if (classBonus.reasons.length) logMessage += ` (${classBonus.reasons.join(' · ')})`;
+            if (classBonus.discovery) {
+                updatedChar = { ...updatedChar, discoveries: [...(updatedChar.discoveries || []), classBonus.discovery] };
+            }
 
             let newFloatingTexts = [...(state.floatingTexts || [])];
             if (task.attribute && task.attribute !== 'none') {

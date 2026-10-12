@@ -131,7 +131,7 @@ const ChatModal = ({ isOpen, onClose, currentUser, friend, onUpdateUnread }) => 
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-black/50 border border-white/10 flex items-center justify-center overflow-hidden">
                             {friendChar.avatarId ? (
-                                <ModernPixelAvatar type={friendChar.avatarId} scale={1.5} customColors={friendChar.avatarColors} headOnly={true} />
+                                <ModernPixelAvatar type={friendChar.avatarId} scale={1.5} customColors={friendChar.avatarColors} cosmetics={friendChar.cosmetics} headOnly={true} />
                             ) : (
                                 <div className="text-gray-500 font-bold">?</div>
                             )}

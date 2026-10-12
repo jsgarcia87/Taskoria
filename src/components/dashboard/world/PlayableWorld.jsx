@@ -685,7 +685,7 @@ const NpcLayer = React.memo(function NpcLayer({ npcs, npcDOMRefs, onSelectNpc })
                                         opacity: isAsleep ? 0.75 : 1,
                                     }}
                                 >
-                                    <MemoAvatar type={npcChar?.avatarId || 'warrior'} scale={1.0} customColors={npcChar?.avatarColors} />
+                                    <MemoAvatar type={npcChar?.avatarId || 'warrior'} scale={1.0} customColors={npcChar?.avatarColors} cosmetics={npcChar?.cosmetics} />
                                 </div>
                                 <div className="w-8 h-2 bg-black/40 rounded-full blur-sm mt-[-4px]" />
                             </div>
@@ -1331,7 +1331,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                             className={`transform origin-bottom transition-transform duration-100 ${isMoving ? 'animate-world-bob' : ''}`}
                             style={{ transform: facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)' }}
                         >
-                            <MemoAvatar type={charData.avatarId} scale={1.0} customColors={charData.avatarColors} />
+                            <MemoAvatar type={charData.avatarId} scale={1.0} customColors={charData.avatarColors} cosmetics={charData.cosmetics} />
                         </div>
                         <div className="w-10 h-2 bg-black/60 rounded-full blur-md mt-[-6px]" />
                     </div>
@@ -1470,7 +1470,7 @@ const PlayableWorld = ({ currentUser, activeProfile, familyMembers, friends, onC
                                 <ModernPixelAvatar
                                     type={npcChar.avatarId || 'warrior'}
                                     scale={1.5}
-                                    customColors={npcChar.avatarColors}
+                                    customColors={npcChar.avatarColors} cosmetics={npcChar.cosmetics}
                                     headOnly={true}
                                 />
                             </div>
