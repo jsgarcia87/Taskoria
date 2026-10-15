@@ -9,6 +9,9 @@ import React, { memo, useState, useEffect, useMemo } from 'react';
 
 const SCENE_W = 480; // ancha (≈5:1) para llenar de borde a borde con `contain`
 const SCENE_H = 96;
+// La escena se centra y mantiene su proporción; las cordilleras siguen a ambos lados para que
+// lleguen de borde a borde en pantallas más anchas que 5:1 (el castillo y el dragón no se repiten).
+const PAD = 720;
 
 // Paleta derivada del bg #342C3E — pasos suaves para que la escena recede.
 const C = {
@@ -27,7 +30,7 @@ const C = {
 // --- Cordillera escalonada (columnas gruesas) --------------------------------
 function ridgeRects(step, seed, amp, base, color, key) {
     const r = [];
-    for (let x = 0; x < SCENE_W; x += step) {
+    for (let x = -PAD; x < SCENE_W + PAD; x += step) {
         const n = (Math.sin(x * 0.11 + seed) * 0.5
             + Math.sin(x * 0.05 + seed * 1.7) * 0.35
             + Math.sin(x * 0.23 + seed * 2.3) * 0.15 + 1) / 2;
@@ -136,7 +139,7 @@ const DashboardLandscape = memo(function DashboardLandscape() {
 
     return (
         <div
-            className="hidden md:block fixed bottom-0 left-0 right-0 pointer-events-none select-none"
+            className="hidden md:block fixed bottom-0 left-0 right-0 overflow-hidden pointer-events-none select-none"
             style={{ zIndex: 0 }}
             aria-hidden="true"
         >
@@ -155,7 +158,7 @@ const DashboardLandscape = memo(function DashboardLandscape() {
                     viewBox={`0 0 ${SCENE_W} ${SCENE_H}`}
                     preserveAspectRatio="xMidYMax meet"
                     className="absolute bottom-0 left-0 w-full h-full"
-                    style={{ imageRendering: 'pixelated', opacity: 0.6 }}
+                    style={{ imageRendering: 'pixelated', opacity: 0.6, overflow: 'visible' }}
                     shapeRendering="crispEdges"
                 >
                     <defs>
@@ -171,7 +174,7 @@ const DashboardLandscape = memo(function DashboardLandscape() {
                     </defs>
 
                     {/* Resplandor de horizonte */}
-                    <rect x="0" y="0" width={SCENE_W} height={SCENE_H} fill="url(#lsHz)" shapeRendering="auto" />
+                    <rect x={-PAD} y="0" width={SCENE_W + PAD * 2} height={SCENE_H} fill="url(#lsHz)" shapeRendering="auto" />
 
                     {/* Estrellas — solo de noche */}
                     {time.isNight && (
